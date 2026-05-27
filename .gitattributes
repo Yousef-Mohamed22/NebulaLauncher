@@ -1,0 +1,13 @@
+*   text=auto   eol=lf
+
+*.cpp   text    eol=lf
+*.hpp   text    eol=lf
+
+*.txt   text    eol=lf
+*.py    text    eol=lf
+.clang_format text eol=lf
+
+*.sh    text    eol=lf
+*.bat   text    eol=crlf
+
+*.md    text    eol=lf

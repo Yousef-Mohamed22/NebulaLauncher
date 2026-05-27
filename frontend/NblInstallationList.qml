@@ -1,0 +1,81 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+
+Item {
+
+    id: root
+    required property NblFilterRef filter
+
+    implicitHeight: content.height
+    width: parent.width
+
+    Item {
+
+        id: content
+        height: loader.item != null ? loader.item.height : 0
+
+        Loader {
+            id: loader
+            sourceComponent: filter.multiLine ? multiLineComponent : singleLineComponent
+            active: true
+        }
+
+        Component {
+            id: singleLineComponent
+            Flickable {
+
+                id: flickable
+
+                height: singleLineList.height + 8
+                width: root.width
+
+                contentWidth: singleLineList.width
+                contentHeight: singleLineList.height + 8
+
+                clip: true
+                flickableDirection: Flickable.HorizontalFlick
+
+                Row {
+                    id: singleLineList
+                    spacing: 8
+                    Repeater {
+                        model: filter.installations
+                        NblInstallationPoster {
+                            required property NblInstallationRef modelData
+                            installation: modelData
+                        }
+                    }
+                }
+
+                ScrollBar.horizontal: ScrollBar {
+                    parent: flickable
+                    anchors.bottom: flickable.bottom
+                    anchors.left: flickable.left
+                    anchors.right: flickable.right
+                    active: flickable.movingHorizontally
+                }
+                ScrollBar.vertical: null
+            }
+        }
+
+        Component {
+            id: multiLineComponent
+            Item {
+                height: multiLineList.height + 8
+                Flow {
+                    id: multiLineList
+                    width: root.width
+                    spacing: 8
+                    Repeater {
+                        model: filter.installations
+                        NblInstallationPoster {
+                            required property NblInstallationRef modelData
+                            installation: modelData
+                        }
+                    }   
+                }
+            }
+        }
+    }
+}
