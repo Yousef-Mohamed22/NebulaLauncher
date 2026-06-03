@@ -10,6 +10,7 @@
 
 #include <Core/Result.hpp>
 #include <Core/String.hpp>
+#include <Core/Stream.hpp>
 #include <Platform/Logging.hpp>
 #include <Platform/Arena.hpp>
 
@@ -63,7 +64,11 @@ public:
         if(!_mLastResult.success()) {
             return _mLastResult;
         }
+        if(_mLength == 0) {
+            _mFrame.releaseUnsafe();
+        }
         _mLastResult = toString(std::forward<T>(value), _mFrame);
+        _mLength = _mFrame.index();
         return _mLastResult;
     }
 
@@ -103,6 +108,19 @@ public:
         return Result::SUCCESS;
     }
 
+
+    operator Writer() {
+        return Writer {
+            .impl = this,
+            .pfnWrite = [](void* impl, const void* data, usize length, usize* bytesWritten) -> Result {
+                StringBuilder* builder = static_cast<StringBuilder*>(impl);
+                NBL_CHECK(builder->appendChecked(StringView(length, static_cast<const char*>(data))));
+                if(bytesWritten) *bytesWritten = length;
+                return Result::SUCCESS;
+            }
+        };       
+    }
+
     /**
      * \brief Static helper function that creates a null-terminated string view from a given string.
      * \param string The StringView representing the string to be converted into a null-terminated string view. 
@@ -114,6 +132,7 @@ public:
 
 private:
     Result _mLastResult;
+    usize _mLength;
     ArenaFrame _mFrame;
 
 };

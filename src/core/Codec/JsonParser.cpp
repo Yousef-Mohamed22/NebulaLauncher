@@ -10,7 +10,7 @@
 #include <Platform/Arena.hpp>
 #include <Platform/Logging.hpp>
 #include <Codec/Json.hpp>
-
+#include <Codec/Utf8.hpp>
 
 #ifndef NBL_IN_PLACE_ARRAY_FRAME_SIZE
 #define NBL_IN_PLACE_ARRAY_FRAME_SIZE 32
@@ -32,17 +32,17 @@ struct _ParseContext {
 
 nbl::Result _parseValue(_ParseContext* context);
 
-nbl::Result _nextToken(_ParseContext* context) {
+nbl::Result _nextToken(nbl::Reader reader, char* lastReadChar) {
     while(true) {
         char c;
-        nbl::Result res = context->reader.readAll(&c, 1);
+        nbl::Result res = reader.readAll(&c, 1);
         if(res == nbl::error::UNEXPECTED_EOF) {
-            context->lastReadChar = 0;
+            *lastReadChar = 0;
             return nbl::Result::SUCCESS;
         }
         NBL_CHECK(res);
 
-        context->lastReadChar = c;
+        *lastReadChar = c;
         if(c != ' ' && c != '\t' && c != '\n' && c != '\r') {
             break;
         }
@@ -50,19 +50,20 @@ nbl::Result _nextToken(_ParseContext* context) {
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result _parseString(_ParseContext* context, nbl::StringView* outString) {
+nbl::Result _nextToken(_ParseContext* context) {
+    return _nextToken(context->reader, &context->lastReadChar);
+}
+
+nbl::Result _readString(nbl::Reader reader, nbl::StringBuilder* builder, char* lastReadChar) {
 
     // Assume lastReadChar is '"'
 
     bool escaped = false;
 
-    usize startIndex = context->storage->index();
-    void* start = context->storage->current();
-
     while(true) {
         char c;
-        NBL_CHECK(context->reader.readAll(&c, 1));
-        context->lastReadChar = c;
+        NBL_CHECK(reader.readAll(&c, 1));
+        *lastReadChar = c;
 
         if(escaped) {
             escaped = false;
@@ -70,26 +71,26 @@ nbl::Result _parseString(_ParseContext* context, nbl::StringView* outString) {
                 case '"':
                 case '\\':
                 case '/':
-                    context->storage->pushValue(c);
+                    if(builder) builder->append(c);
                     break;
                 case 'b':
-                    context->storage->pushValue('\b');
+                    if(builder) builder->append('\b');
                     break;
                 case 'f':
-                    context->storage->pushValue('\f');
+                    if(builder) builder->append('\f');
                     break;
                 case 'n':
-                    context->storage->pushValue('\n');
+                    if(builder) builder->append('\n');
                     break;
                 case 'r':
-                    context->storage->pushValue('\r');
+                    if(builder) builder->append('\r');
                     break;
                 case 't':
-                    context->storage->pushValue('\t');
+                    if(builder) builder->append('\t');
                     break;
                 case 'u': {
                     char hex[4];
-                    NBL_CHECK(context->reader.readAll(hex, 4));
+                    NBL_CHECK(reader.readAll(hex, 4));
                     uint16_t codePoint = 0;
                     for(int i = 0; i < 4; i++) {
                         char h = hex[i];
@@ -104,6 +105,7 @@ nbl::Result _parseString(_ParseContext* context, nbl::StringView* outString) {
                             return nbl::error::UNEXPECTED_TOKEN;
                         }
                     }
+                    nbl::writeCodePoint(*builder, codePoint);
                 }
                 default:
                     return nbl::error::UNEXPECTED_TOKEN;
@@ -115,29 +117,54 @@ nbl::Result _parseString(_ParseContext* context, nbl::StringView* outString) {
             if(c == '\\') {
                 escaped = true;
             } else {
-                context->storage->pushValue(c);
+                if(builder) builder->append(c);
             }
         }
     }
+    return _nextToken(reader, lastReadChar);
+}
 
-    usize length = context->storage->index() - startIndex;
-    if(length == 0) {
-        *outString = nbl::StringView();
-    } else {
+nbl::Result _parseString(_ParseContext* context) {
+    if(context->storage == nullptr) {
 
-        NBL_CHECK(context->storage->pushValue('\0'));
-        usize alignedLength = nbl::align(length + 1, sizeof(void*));
+        NBL_CHECK(_readString(context->reader, nullptr, &context->lastReadChar));
 
-        if(alignedLength > length + 1) {
-            void* paddingBytes;
-            NBL_CHECK(context->storage->push(alignedLength - (length + 1), &paddingBytes));
-            memset(paddingBytes, 0, alignedLength - (length + 1));
-        }
-
-        *outString = nbl::StringView(length, static_cast<char*>(start));
+        context->outValue->string = {};
+        context->outValue->type = nbl::JsonType::STRING;
+        return nbl::Result::SUCCESS;
     }
 
+    nbl::StringBuilder builder(context->storage);
+    NBL_CHECK(_readString(context->reader, &builder, &context->lastReadChar));
+
+    builder.buildNullTerminated(&context->outValue->string);
+    usize length = context->outValue->string.length + 1;
+
+    usize alignedLength = nbl::align(length + 1, sizeof(void*));
+    if(alignedLength > length + 1) {
+        void* paddingBytes;
+        NBL_CHECK(context->storage->push(alignedLength - (length + 1), &paddingBytes));
+        memset(paddingBytes, 0, alignedLength - (length + 1));
+    }
+    
     context->outValue->type = nbl::JsonType::STRING;
+    return nbl::Result::SUCCESS;
+}
+
+nbl::Result _skipArray(_ParseContext* context) {
+
+    usize count = 0;
+    do {
+        if(count > 0) {
+            NBL_CHECK(_nextToken(context));
+        }
+        NBL_CHECK(_parseValue(context));
+        count++;
+    } while(context->lastReadChar == ',');
+
+    if(context->lastReadChar != ']') {
+        return nbl::error::UNEXPECTED_TOKEN;
+    }
 
     return _nextToken(context);
 }
@@ -202,6 +229,10 @@ nbl::Result _parseArray(_ParseContext* context) {
         return _nextToken(context);
     }
 
+    if(context->storage == nullptr) {
+        return _skipArray(context);
+    }
+
     if(context->temporaryStorage == nullptr) {
         return _parseArrayInPlace(context);
     }
@@ -234,6 +265,31 @@ nbl::Result _parseArray(_ParseContext* context) {
     return _nextToken(context);
 }
 
+nbl::Result _skipObject(_ParseContext* context) {
+
+    do {
+        if(context->lastReadChar != '"') {
+            return nbl::error::UNEXPECTED_TOKEN;
+        }
+
+        NBL_CHECK(_parseString(context));
+
+        if(context->lastReadChar != ':') {
+            return nbl::error::UNEXPECTED_TOKEN;
+        }
+
+        NBL_CHECK(_nextToken(context));
+        NBL_CHECK(_parseValue(context));
+
+    } while(context->lastReadChar == ',');
+
+    if(context->lastReadChar != '}') {
+        return nbl::error::UNEXPECTED_TOKEN;
+    }
+
+    return _nextToken(context);
+}
+
 nbl::Result _parseObjectInPlace(_ParseContext* context, usize depth = 0) {
 
     nbl::JsonObject::Entry entries[NBL_IN_PLACE_OBJECT_FRAME_SIZE];
@@ -248,7 +304,8 @@ nbl::Result _parseObjectInPlace(_ParseContext* context, usize depth = 0) {
         }
 
         nbl::StringView key;
-        NBL_CHECK(_parseString(context, &key));
+        NBL_CHECK(_parseString(context));
+        key = context->outValue->string;
 
         if(context->lastReadChar != ':') {
             return nbl::error::UNEXPECTED_TOKEN;
@@ -314,6 +371,10 @@ nbl::Result _parseObject(_ParseContext* context) {
         return _nextToken(context);
     }
 
+    if(context->storage == nullptr) {
+        return _skipObject(context);
+    }
+
     if(context->temporaryStorage == nullptr) {
         return _parseObjectInPlace(context);
     }
@@ -335,7 +396,8 @@ nbl::Result _parseObject(_ParseContext* context) {
             }
 
             nbl::StringView key;
-            NBL_CHECK(_parseString(context, &key));
+            NBL_CHECK(_parseString(context));
+            key = context->outValue->string;
 
             if(context->lastReadChar != ':') {
                 return nbl::error::UNEXPECTED_TOKEN;
@@ -501,7 +563,7 @@ nbl::Result _parseValue(_ParseContext* context) {
             return nbl::error::UNEXPECTED_TOKEN;
         }   
         case '"': // string
-            return _parseString(context, &context->outValue->string);
+            return _parseString(context);
         case '[': // array
             return _parseArray(context);
         case '{': // object
@@ -559,4 +621,311 @@ nbl::Result nbl::parseJsonNumber(Reader reader, JsonNumber* outNumber) {
     
     *outNumber = value.number;
     return nbl::Result::SUCCESS;
+}
+
+
+
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::beginObject() {
+    if(_mLastResult.error()) {
+        return *this;
+    }
+    _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+    if(_mLastResult.error()) {
+        return *this;
+    } else if(_mCurrentChar != '{') {
+        _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+        return *this;
+    }
+
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::endObject() {
+
+    if(_mLastResult.error()) {
+        return *this;
+    }
+    if(_mCurrentChar != '}') {
+        _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+        return *this;
+    }
+    _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::readKey(nbl::StringBuilder* outKey) {
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    if(_mCurrentChar == '{' || _mCurrentChar == ',') {
+        nbl::Result res = _nextToken(_mReader, &_mCurrentChar);
+        if(res.error()) {
+            _mLastResult = res;
+        } else if(_mCurrentChar != '"') {
+            _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+        } else {
+            res = _readString(_mReader, outKey, &_mCurrentChar);
+            if(res.error()) {
+                _mLastResult = res;
+            } else if(_mCurrentChar != ':') {
+                _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+            }
+        }
+    } else {
+        _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+    }
+
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::expectKey(StringView expectedKey) {
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::StringBuilder builder(&frame);
+
+    readKey(&builder);
+    if(_mLastResult.error()) return *this;
+
+    StringView key;
+    _mLastResult = builder.build(&key);
+    if(_mLastResult.error()) return *this;
+
+    if(key != expectedKey) _mLastResult = nbl::error::ILLEGAL_STATE;
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::readValue(nbl::ArenaFrame* frame, nbl::JsonValue* outValue) {
+
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    _ParseContext context {
+        .reader = _mReader,
+        .storage = frame,
+        .temporaryStorage = nullptr,
+        .outValue = outValue,
+        .lastReadChar = _mCurrentChar
+    };
+
+    _mLastResult = _nextToken(&context);
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    _mLastResult = _parseValue(&context);
+
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::readString(nbl::StringBuilder* outString) {
+
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    if(_mCurrentChar != '"') {
+        _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+        return *this;
+    }
+
+    _mLastResult = _readString(_mReader, outString, &_mCurrentChar);
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::readNumber(nbl::JsonNumber* outNumber) {
+
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    if((_mCurrentChar < '0' || _mCurrentChar > '9') && _mCurrentChar != '-') {
+        _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+        return *this;
+    }
+
+    nbl::JsonValue value;
+    _ParseContext context {
+        .reader = _mReader,
+        .storage = nullptr,
+        .temporaryStorage = nullptr,
+        .outValue = &value,
+        .lastReadChar = _mCurrentChar
+    };
+    _mLastResult = _parseNumber(&context);
+    if(_mLastResult.error()) {
+        return *this;
+    }
+    _mCurrentChar = context.lastReadChar;
+
+    if(context.outValue->type != nbl::JsonType::NUMBER) {
+        _mLastResult = nbl::error::UNEXPECTED_ERROR;
+        return *this;
+    }
+
+    *outNumber = context.outValue->number;
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::readBoolean(bool* outBoolean) {
+
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    if(_mCurrentChar == 't') {
+        char buffer[3];
+        _mLastResult = _mReader.readAll(buffer, 3);
+        if(_mLastResult.error()) {
+            return *this;
+        }
+        if(buffer[0] == 'r' && buffer[1] == 'u' && buffer[2] == 'e') {
+            *outBoolean = true;
+            _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+            return *this;
+        }
+    } else if(_mCurrentChar == 'f') {
+        char buffer[4];
+        _mLastResult = _mReader.readAll(buffer, 4);
+        if(_mLastResult.error()) {
+            return *this;
+        }
+        if(buffer[0] == 'a' && buffer[1] == 'l' && buffer[2] == 's' && buffer[3] == 'e') {
+            *outBoolean = false;
+            _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+            return *this;
+        }
+    }
+
+    _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::beginArray() {
+    
+    if(_mLastResult.error()) {
+        return *this;
+    }
+    _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+    if(_mLastResult.error()) {
+        return *this;
+    } else if(_mCurrentChar != '[') {
+        _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+        return *this;
+    }
+
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::endArray() {
+
+    if(_mLastResult.error()) {
+        return *this;
+    }
+    if(_mCurrentChar != ']') {
+        _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+    }
+    _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::readNull() {
+
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    if(_mCurrentChar != 'n') {
+        _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+        return *this;
+    }
+
+    char buffer[3];
+    _mLastResult = _mReader.readAll(buffer, 3);
+    if(_mLastResult.error()) {
+        return *this;
+    }
+    if(buffer[0] == 'u' && buffer[1] == 'l' && buffer[2] == 'l') {
+        _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+        return *this;
+    }
+    
+    _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::skipKey() {
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    if(_mCurrentChar == '{' || _mCurrentChar == ',') {
+        _mLastResult = _nextToken(_mReader, &_mCurrentChar);
+        if(_mLastResult.error()) {
+            return *this;
+        } else if(_mCurrentChar != '"') {
+            _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+            return *this;
+        } else {
+            _mLastResult = _readString(_mReader, nullptr, &_mCurrentChar);
+            if(_mLastResult.error()) {
+                return *this;
+            } else if(_mCurrentChar != ':') {
+                _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+                return *this;
+            }
+        }
+    } else {
+        _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+    }
+
+    return *this;
+}
+
+nbl::PartialJsonParser& nbl::PartialJsonParser::skipValue() {
+
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    nbl::JsonValue dummy;
+    _ParseContext context {
+        .reader = _mReader,
+        .storage = nullptr,
+        .temporaryStorage = nullptr,
+        .outValue = &dummy,
+        .lastReadChar = _mCurrentChar
+    };
+
+    _mLastResult = _nextToken(&context);
+    if(_mLastResult.error()) {
+        return *this;
+    }
+
+    _mLastResult = _parseValue(&context);
+    _mCurrentChar = context.lastReadChar;
+
+    return *this;
 }

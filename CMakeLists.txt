@@ -56,6 +56,7 @@ add_library(Nebula_Core STATIC ${NBL_CORE_SOURCES})
 target_include_directories(Nebula_Core PUBLIC ${NBL_INCLUDE_DIR}/core)
 target_include_directories(Nebula_Core PRIVATE ${NBL_SRC_DIR}/core)
 target_link_libraries(Nebula_Core PRIVATE SQLite3::SQLite3)
+target_link_libraries(Nebula_Core PRIVATE CURL::libcurl)
 target_precompile_headers(Nebula_Core PUBLIC ${NBL_CORE_HEADERS})
 
 add_executable(Nebula_Test ${NBL_TEST_SOURCES})

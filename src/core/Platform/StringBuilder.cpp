@@ -5,6 +5,9 @@ nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValu
     if(!_mLastResult.success()) {
         return _mLastResult;
     }
+    if(_mLength == 0) {
+        _mFrame.releaseUnsafe();
+    }
 
     void* ptr = _mFrame.begin();
     char* stringData = static_cast<char*>(ptr);
@@ -49,6 +52,8 @@ nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValu
             }
         }
     }
+
+    _mLength = outStringLength;
 
     return Result::SUCCESS;
 

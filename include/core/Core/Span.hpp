@@ -35,7 +35,7 @@ struct Span {
      * \param index The index of the element to access.
      * \return A reference to the element at the specified index.
      */
-    const T& operator[](usize index) const { 
+    constexpr const T& operator[](usize index) const { 
         NBL_ASSERT(index < length);
         return data[index]; 
     }
@@ -45,7 +45,7 @@ struct Span {
      * \param index The index of the element to access.
      * \return A reference to the element at the specified index.
      */
-    T& operator[](usize index) { 
+    constexpr T& operator[](usize index) { 
         NBL_ASSERT(index < length);
         return data[index]; 
     }
@@ -54,24 +54,33 @@ struct Span {
      * \brief Returns an iterator to the first element in the span.
      * \return A pointer to the first element in the span.
      */
-    T* begin() { return data; }
+    constexpr T* begin() { return data; }
 
     /**
      * \brief Returns an iterator to one past the last element in the span.
      * \return A pointer to one past the last element in the span.
      */
-    T* end() { return data + length; }
+    constexpr T* end() { return data + length; }
 
     /**
      * \brief Returns a const iterator to the first element in the span.
      * \return A pointer to the first element in the span.
      */
-    const T* begin() const { return data; }
+    constexpr const T* begin() const { return data; }
 
     /**
      * \brief Returns a const iterator to one past the last element in the span.
      * \return A pointer to one past the last element in the span.
      */
-    const T* end() const { return data + length; }
+    constexpr const T* end() const { return data + length; }
+
+    constexpr bool contains(const T& value) {
+        for(const T& v : *this) {
+            if(v == value) return true;
+        }
+        return false;
+    }
+
 };
+
 }

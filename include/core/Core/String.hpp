@@ -161,6 +161,30 @@ struct StringView {
     constexpr bool empty() const {
         return length == 0;
     }
+
+    constexpr StringView slice(usize start, usize length) const {
+        NBL_ASSERT(start + length <= this->length);
+        return StringView(length, data + start);
+    }
+
+    constexpr Result findFirst(char c, usize* outIndex) const {
+        for (usize i = 0; i < length; i++) {
+            if (data[i] == c) {
+                if(outIndex) *outIndex = i;
+            }
+        }
+        return nbl::error::NOT_FOUND;
+    }
+
+    constexpr Result findLast(char c, usize* outIndex) const {
+        if(length == 0) return nbl::error::NOT_FOUND;
+        for (usize i = length - 1; i >= 0; i--) {
+            if (data[i] == c) {
+                if(outIndex) *outIndex = i;
+            }
+        }
+        return nbl::error::NOT_FOUND;
+    }
 };
 
 

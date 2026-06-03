@@ -11,8 +11,6 @@
 #include <Core/Types.hpp>
 #include <Core/Span.hpp>
 
-#include <initializer_list>
-
 namespace nbl {
 
 /**
@@ -21,74 +19,80 @@ namespace nbl {
  * \tparam Length The number of elements in the array.
  */
 template<typename T, usize Length>
-class Array {
-public:
+struct Array {
 
-    /** 
-     * \brief Default constructor that intializes the array with default-constructed values of type T.
-     */
-    Array() = default;
+    T data[Length];
 
-    /**
-     * \brief Constructor that initializes the array with a list of values. The constructor will copy values from the initializer list into the array until either the end of the list is reached or the array is full, whichever comes first.
-     * \param values The initializer list of values to initialize the array with.
-     */
-    Array(const std::initializer_list<T>& values) {
-        usize i = 0;
-        for (const T& value : values) {
-            if (i >= Length) break;
-            _mValues[i++] = value;
-        }
-    }
+    // constexpr Array(
+    //
+    // constexpr Array(const T (&array)[Length]) {
+    //     for(usize i = 0 ; i < Length ; ++i) {
+    //         data[i] = array[i];
+    //     }
+    // }
+
+    constexpr usize size() const { return Length; }
 
     /**
      * \brief Index operator to access elements in the array.
      * \param index The index of the element to access.
      * \return A reference to the element at the specified index.
      */
-    const T& operator[](usize index) const { return _mValues[index]; }
+    constexpr const T& operator[](usize index) const { return data[index]; }
 
     /**
      * \brief Index operator to access elements in the array.
      * \param index The index of the element to access.
      * \return A reference to the element at the specified index.
      */
-    T& operator[](usize index) { return _mValues[index]; }
+    constexpr T& operator[](usize index) { return data[index]; }
 
     /** 
      * \brief Implicit conversion operator that allows an Array to be used as a Span. This operator constructs a Span struct with the appropriate data pointer and length for the array.
      * \return A Span representing the elements in the array.
      */
-    operator Span<T>() {
-        return Span<T>{ _mValues, Length };
+    constexpr operator Span<T>() {
+        return Span<T>{ data, Length };
+    }
+
+    constexpr operator Span<const T>() const {
+        return Span<const T>{ data, Length };
     }
 
     /** 
      * \brief Returns an iterator to the first element in the array.
      * \return A pointer to the first element in the array.
      */
-    T* begin() { return _mValues; }
+    constexpr T* begin() { return data; }
 
     /** 
      * \brief Returns an iterator to one past the last element in the array.
      * \return A pointer to one past the last element in the array.
      */
-    T* end() { return _mValues + Length; }
+    constexpr T* end() { return data + Length; }
 
     /** 
      * \brief Returns a const iterator to the first element in the array.
      * \return A pointer to the first element in the array.
      */
-    const T* begin() const { return _mValues; }
+    constexpr const T* begin() const { return data; }
 
     /** 
      * \brief Returns a const iterator to one past the last element in the array.
      * \return A pointer to one past the last element in the array.
      */
-    const T* end() const { return _mValues + Length; }
+    constexpr const T* end() const { return data + Length; }
 
-private:
-    T _mValues[Length];
+    /**
+     * \brief Determines if the given value is present in the array.
+     * \return True if the given value is present in the array.
+     */
+    constexpr bool contains(const T& value) const { 
+        return operator Span<const T>().contains(value); 
+    }
 };
+
+template<typename T, typename... Rest>
+Array(T, Rest...) -> Array<T, 1 + sizeof...(Rest)>;
 
 }

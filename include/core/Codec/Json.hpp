@@ -13,6 +13,7 @@
 #include <Core/Types.hpp>
 #include <Core/String.hpp>
 
+#include <Platform/StringBuilder.hpp>
 #include <Platform/Arena.hpp>
 
 namespace nbl {
@@ -641,6 +642,7 @@ struct JsonValue {
 
 };
 
+
 /** 
  * \brief Parses a JSON value from a reader and stores it in the provided storage location.  
  * \param reader The Reader from which to read the JSON data.
@@ -657,6 +659,7 @@ Result parseJson(Reader reader, ArenaFrame* storage, JsonValue* outValue, bool i
  * \return A Result indicating success or failure of the parse operation.
  */
 Result parseJsonNumber(Reader reader, JsonNumber* outNumber);
+
 
 /** 
  * \brief Writes a JSON value to a writer. 
@@ -681,6 +684,191 @@ Result writeJsonArray(Writer writer, const JsonArray& value);
  * \return A Result indicating success or failure of the write operation.
  */
 Result writeJsonObject(Writer writer, const JsonObject& value);
+
+
+/** 
+ * \brief A class for parsing JSON data from a Reader in a manual fashion. The PartialJsonParser allows for incremental parsing of JSON data, which can be useful for handling large or incomplete JSON documents.
+ */
+class PartialJsonParser {
+public:
+
+    /** 
+     * \brief Constructor that initializes the parser with a Reader from which to read the JSON data. 
+     * \param reader The Reader from which to read the JSON data.
+     */
+    PartialJsonParser(Reader reader) :
+        _mReader(reader),
+        _mLastResult(Result::SUCCESS),
+        _mCurrentChar(0)
+    { }
+
+    /**
+     * \brief Consumes a '{' from the input stream, indicating the beginning of a JSON object. 
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& beginObject();
+
+    /** 
+     * \brief Consumes a '}' from the input stream, indicating the end of a JSON object. 
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& endObject();
+
+    /** 
+     * \brief Consumes a '[' from the input stream, indicating the beginning of a JSON array. 
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& beginArray();
+
+    /** 
+     * \brief Consumes a ']' from the input stream, indicating the end of a JSON array. 
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& endArray();
+
+    /** 
+     * \brief Reads a key from the input stream, and consumes the following ':' character.
+     * \param outKey Pointer to a StringBuilder that will receive the key read from the input stream.
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& readKey(StringBuilder* outKey);
+
+    PartialJsonParser& expectKey(StringView expectedKey);
+
+    /**
+     * \brief Reads any JSON value from the input stream, and stores it in the provided storage location.
+     * \param frame Pointer to the ArenaFrame where the parsed JSON value will be stored. 
+     * \param outValue Pointer to a variable that will receive the resulting JSON value after the parse operation is complete.
+     */
+    PartialJsonParser& readValue(ArenaFrame* frame, JsonValue* outValue);
+
+    /** 
+     * \brief Reads a JSON object from the input stream, and stores it in the provided storage location. 
+     * \param frame Pointer to the ArenaFrame where the parsed JSON object will be stored. 
+     * \param outObject Pointer to a variable that will receive the resulting JSON object after the parse operation is complete.
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    inline PartialJsonParser& readObject(ArenaFrame* frame, JsonObject* outObject) {
+        JsonValue value;
+        readValue(frame, &value);
+        if(_mLastResult.error()) return *this; 
+        if(value.type != JsonType::OBJECT) {
+            _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+            return *this;
+        } 
+        *outObject = value.object;
+        return *this;
+    }
+
+    /** 
+     * \brief Reads a JSON array from the input stream, and stores it in the provided storage location. 
+     * \param frame Pointer to the ArenaFrame where the parsed JSON array will be stored. 
+     * \param outArray Pointer to a variable that will receive the resulting JSON array after the parse operation is complete.
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& readArray(ArenaFrame* frame, JsonArray* outArray) {
+        JsonValue value;
+        readValue(frame, &value);
+        if(_mLastResult.error()) return *this; 
+        if(value.type != JsonType::ARRAY) {
+            _mLastResult = nbl::error::UNEXPECTED_TOKEN;
+            return *this;
+        } 
+        *outArray = value.array;
+        return *this;
+    }
+
+    /**
+     * \brief Reads a JSON string from the input stream, and stores it in the provided StringBuilder. 
+     * \param outString Pointer to a StringBuilder that will receive the resulting JSON string after the parse operation is complete.
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& readString(StringBuilder* outString);
+
+    /** 
+     * \brief Reads a JSON number from the input stream, and stores it in the provided JsonNumber variable. 
+     * \param outNumber Pointer to a variable that will receive the resulting JSON number after the parse operation is complete.
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& readNumber(JsonNumber* outNumber);
+
+    /** 
+     * \brief Reads a JSON boolean value from the input stream, and stores it in the provided boolean variable. 
+     * \param outBoolean Pointer to a variable that will receive the resulting JSON boolean value after the parse operation is complete.
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& readBoolean(bool* outBoolean);
+
+    /** 
+     * \brief Reads a JSON number from the input stream, converts it to an unsigned integer, and stores it in the provided variable.
+     * \param outUint Pointer to a variable that will receive the resulting unsigned integer value after the parse operation is complete.  
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    template<typename T>
+    inline PartialJsonParser& readUint(T* outUint) {
+        JsonNumber number;
+        readNumber(&number);
+        if(!_mLastResult.error()) *outUint = static_cast<T>(number.asUint());
+        return *this;
+    }
+    
+    /** 
+     * \brief Reads a JSON number from the input stream, converts it to an integer, and stores it in the provided variable.
+     * \param outInt Pointer to a variable that will receive the resulting signed integer value after the parse operation is complete.  
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    template<typename T>
+    inline PartialJsonParser& readInt(T* outInt) {
+        JsonNumber number;
+        readNumber(&number);
+        if(!_mLastResult.error()) *outInt = static_cast<T>(number.asInt());
+        return *this;
+    }
+    
+    /** 
+     * \brief Reads a JSON number from the input stream, converts it to a float, and stores it in the provided variable.
+     * \param outFloat Pointer to a variable that will receive the resulting float value after the parse operation is complete.  
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    template<typename T>
+    inline PartialJsonParser& readFloat(T* outFloat) { 
+        JsonNumber number;
+        readNumber(&number);
+        if(!_mLastResult.error()) *outFloat = static_cast<T>(number.asFloat());
+        return *this;
+    }
+
+    /** 
+     * \brief Reads a JSON null value from the input stream. If the next value in the input stream is not null, the parse operation will fail and the parser will store the error result.
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& readNull();
+
+    /** 
+     * \brief Skips a key in the input stream, consuming the key itself and the following ':' character. 
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& skipKey();
+
+    /** 
+     * \brief Skips any JSON value in the input stream, consuming the entire value including any nested structures. 
+     * \return A reference to the parser for chaining. If the parse operation fails, the parser will store the error result and all subsequent parse operations will be no-ops.
+     */
+    PartialJsonParser& skipValue();
+
+    /** 
+     * \brief Gets the result of the last parse operation performed by the parser. 
+     * \return A Result indicating the success or failure of the last parse operation.  
+     */
+    nbl::Result result() const { return _mLastResult; }
+
+private:
+
+    nbl::Reader _mReader;
+    nbl::Result _mLastResult;
+    char _mCurrentChar;
+
+};
 
 
 // toString overloads. See String.hpp

@@ -30,6 +30,8 @@ namespace nbl {
 struct Result {
     i32 value;
 
+    constexpr Result() : value(0) {}
+
     /**
      * \brief Constructor that creates a result with a specific value.
      * \param value The value representing the result, where 0 indicates success and negative values indicate different error conditions.
