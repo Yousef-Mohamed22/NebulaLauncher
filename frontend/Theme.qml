@@ -14,6 +14,7 @@ QtObject {
         property color layer1: "#2d212d"
         property color border: "#3e2c3e"
         property color text: "#ffffff"
+        property color accent: "#ff79c6"
     }
 
     property QtObject _private: QtObject {

@@ -5,7 +5,8 @@ import QtQuick.Effects
 
 Item {
 
-    property NblInstallationRef installation
+    required property NblInstallationRef installation
+    required property MainWindow mainWindow
 
     width: 180 + 16
     height: 270 + 16
@@ -54,7 +55,7 @@ Item {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: {
-            ApplicationContext.launchInstallation(installation.installationId)
+            mainWindow.openInstallationDetails(installation.installationId)
         }
     }
 

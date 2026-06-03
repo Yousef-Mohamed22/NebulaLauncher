@@ -1,4 +1,5 @@
 #include "ApplicationContext.hpp"
+#include "NblInstallationDetails.hpp"
 
 #include <Core/Result.hpp>
 #include <Core/String.hpp>
@@ -83,4 +84,43 @@ void ApplicationContext::launchInstallation(i64 installationId) {
     }, this);
 
     nbl::markInstallationJustPlayed(&_mConnection, installationId);
+}
+
+NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installationId) {
+
+    if(!_mConnection.isValid()) {
+        nbl::log(nbl::LogLevel::ERROR, "Cannot get installation details, database connection is not valid");
+        return nullptr;
+    }
+
+    NblInstallationDetails* details;
+
+    if(nbl::getInstallationMeta(&_mConnection, installationId, [](void* userData, const nbl::InstallationMeta& meta) {
+
+         *static_cast<NblInstallationDetails**>(userData) = new NblInstallationDetails(
+            meta.id,
+            QString::fromUtf8(meta.title.data, meta.title.length),
+            QString::fromUtf8(meta.description.data, meta.description.length),
+            QString::fromUtf8(meta.poster.data, meta.poster.length),
+            QString::fromUtf8(meta.banner.data, meta.banner.length),
+            QString::fromUtf8(meta.icon.data, meta.icon.length),
+            QString::fromUtf8(meta.logo.data, meta.logo.length),
+            meta.playTime,
+            meta.playCount,
+            meta.lastPlayed,
+            meta.added,
+            meta.releaseDate,
+            meta.rating,
+            QString::fromUtf8(meta.gameTitle.data, meta.gameTitle.length),
+            QString::fromUtf8(meta.gamePoster.data, meta.gamePoster.length)
+        );
+
+        return nbl::Result::SUCCESS;
+    }, &details).error()) {
+        nbl::log(nbl::LogLevel::ERROR, "Failed to get installation details for installation with ID ", installationId);
+        return nullptr;
+    }
+
+    return details;
+
 }

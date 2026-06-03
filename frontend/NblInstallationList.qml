@@ -6,6 +6,7 @@ Item {
 
     id: root
     required property NblFilterRef filter
+    required property MainWindow mainWindow
 
     implicitHeight: content.height
     width: parent.width
@@ -44,6 +45,7 @@ Item {
                         NblInstallationPoster {
                             required property NblInstallationRef modelData
                             installation: modelData
+                            mainWindow: root.mainWindow
                         }
                     }
                 }
@@ -72,6 +74,7 @@ Item {
                         NblInstallationPoster {
                             required property NblInstallationRef modelData
                             installation: modelData
+                            mainWindow: root.mainWindow
                         }
                     }   
                 }

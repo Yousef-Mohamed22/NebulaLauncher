@@ -9,7 +9,7 @@
 #include <Platform/Pool.hpp>
 
 #include "NblTabRef.hpp"
-
+#include "NblInstallationDetails.hpp"
 
 class NblRunningInstallation : public QObject {
 
@@ -104,6 +104,8 @@ public:
     }
 
     Q_INVOKABLE void launchInstallation(i64 installationId);
+
+    Q_INVOKABLE NblInstallationDetails* getInstallationDetails(i64 installationId);
 
     nbl::DatabaseConnection* connection() {
         return &_mConnection;

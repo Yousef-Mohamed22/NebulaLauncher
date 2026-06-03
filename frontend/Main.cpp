@@ -6,23 +6,11 @@
  * \brief Main application entry point.
  */
 
-#include <Core/String.hpp>
-
-#include <Platform/Logging.hpp>
-#include <Platform/File.hpp>
-#include <Platform/Arena.hpp>
-#include <Platform/Socket.hpp>
-#include <Platform/StringBuilder.hpp>
-#include <Platform/Process.hpp>
-
-#include <Codec/Json.hpp>
-
-#include <Data/Database.hpp>
-#include <Data/Model.hpp>
-
-#include <curl/curl.h>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+
+#include <Core/String.hpp>
+#include <Platform/Logging.hpp>
 
 int run(int argc, char** argv) {
     

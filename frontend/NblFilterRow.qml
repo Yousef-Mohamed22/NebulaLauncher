@@ -5,7 +5,9 @@ import QtQuick.Layouts
 Item {
 
     id: root
-    property NblFilterRef filter;
+
+    required property NblFilterRef filter;
+    required property MainWindow mainWindow
 
     implicitHeight: content.height
 
@@ -37,6 +39,7 @@ Item {
 
         NblInstallationList {
             filter: root.filter
+            mainWindow: root.mainWindow
         }
         
     }

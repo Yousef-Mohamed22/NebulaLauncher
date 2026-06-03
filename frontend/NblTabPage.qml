@@ -4,7 +4,10 @@ import QtQuick.Layouts
 
 Item {
 
-    property NblTabRef tab
+    id: root
+
+    required property NblTabRef tab
+    required property MainWindow mainWindow
 
     Flickable {
 
@@ -24,12 +27,13 @@ Item {
             width: flickable.width - 16
 
             Repeater {
-                model: tab ? tab.filters : 0
+                model: tab.filters
                 NblFilterRow {
                     required property NblFilterRef modelData
 
                     width: parent.width
                     filter: modelData
+                    mainWindow: root.mainWindow
                 }
             }
         }
