@@ -1,6 +1,7 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 Item {
 
@@ -27,7 +28,7 @@ Item {
             width: flickable.width - 16
 
             Repeater {
-                model: tab.filters
+                model: root.tab.filters
                 NblFilterRow {
                     required property NblFilterRef modelData
 

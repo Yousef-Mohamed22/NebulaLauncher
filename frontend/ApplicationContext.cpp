@@ -105,6 +105,7 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installat
             QString::fromUtf8(meta.banner.data, meta.banner.length),
             QString::fromUtf8(meta.icon.data, meta.icon.length),
             QString::fromUtf8(meta.logo.data, meta.logo.length),
+            static_cast<u64>(meta.logoPosition),
             meta.playTime,
             meta.playCount,
             meta.lastPlayed,

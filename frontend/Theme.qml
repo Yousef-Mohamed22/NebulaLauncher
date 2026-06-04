@@ -1,7 +1,6 @@
 pragma Singleton
 
 import QtQuick
-import QtQuick.Controls
 
 QtObject {
 
@@ -9,15 +8,20 @@ QtObject {
     property string italicFont: _private.italicFont.name
     property string nerdFont: _private.nerdFont.name
 
-    property QtObject colors: QtObject {
-        property color layer0: "#140c16"
-        property color layer1: "#2d212d"
-        property color border: "#3e2c3e"
+
+    property var colors: QtObject {
+        property color activeColor: "#cb48e2"
+
+        property color layer0: Qt.hsla(activeColor.hslHue, 0.2, 0.125, 1.0)
+        property color layer1: Qt.lighter(layer0, 1.35)
+        property color border: Qt.lighter(layer1, 1.35)
         property color text: "#ffffff"
-        property color accent: "#ff79c6"
+        property color textDim: Qt.hsla(activeColor.hslHue, 0.1, 0.75, 1.0)
+        property color accent: activeColor
     }
 
-    property QtObject _private: QtObject {
+    property var _private: QtObject {
+
         property FontLoader mainFont: FontLoader {
             source: "qrc:/qt/qml/Nebula/fonts/NotoSansDisplay-VariableFont_wdth,wght.ttf"
         }

@@ -47,7 +47,7 @@ nbl::Result nbl::getInstallationMeta(DatabaseConnection* connection, i64 install
     static nbl::PreparedStatement _getInstallationMetaStmt;
     if(!_getInstallationMetaStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT installation.iId, display.title, display.description, display.poster, display.banner, display.icon, display.logo, installation.command, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, game.releaseDate, game.rating, game_display.title AS game_title, game_display.poster AS game_poster
+SELECT installation.iId, display.title, display.description, display.poster, display.banner, display.icon, display.logo, display.logoPosition, installation.command, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, game.releaseDate, game.rating, game_display.title AS game_title, game_display.poster AS game_poster
 FROM installation
 JOIN game ON installation.gId = game.gId
 JOIN display ON display.dId = IFNULL(installation.dId, game.dId)
@@ -65,7 +65,7 @@ WHERE installation.iId = ?1;
 
     return connection->execute(&_getInstallationMetaStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 16) {
+        if(columnCount != 17) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 16 columns in installation meta query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
@@ -80,15 +80,16 @@ WHERE installation.iId = ?1;
             .banner = columnValues[4].textValue,
             .icon = columnValues[5].textValue,
             .logo = columnValues[6].textValue,
-            .command = columnValues[7].textValue,
-            .playTime = columnValues[8].uintValue(),
-            .playCount = columnValues[9].uintValue(),
-            .lastPlayed = columnValues[10].uintValue(),
-            .added = columnValues[11].uintValue(),
-            .releaseDate = columnValues[12].uintValue(),
-            .rating = columnValues[13].floatValue,
-            .gameTitle = columnValues[14].textValue,
-            .gamePoster = columnValues[15].textValue
+            .logoPosition = byId(columnValues[7].uintValue()),
+            .command = columnValues[8].textValue,
+            .playTime = columnValues[9].uintValue(),
+            .playCount = columnValues[10].uintValue(),
+            .lastPlayed = columnValues[11].uintValue(),
+            .added = columnValues[12].uintValue(),
+            .releaseDate = columnValues[13].uintValue(),
+            .rating = columnValues[14].floatValue,
+            .gameTitle = columnValues[15].textValue,
+            .gamePoster = columnValues[16].textValue
         };
 
         return queryData->callback(queryData->userData, meta);

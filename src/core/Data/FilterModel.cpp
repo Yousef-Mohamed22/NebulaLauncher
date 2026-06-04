@@ -124,7 +124,7 @@ nbl::Result nbl::addFilter(DatabaseConnection* connection, StringView name, Stri
     static nbl::PreparedStatement _addFilterStmt;
     if(!_addFilterStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO filter (name, icon, criteria, multi_line) VALUES (?1, ?2, ?3, ?4);
+INSERT INTO filter (name, icon, criteria, multiLine) VALUES (?1, ?2, ?3, ?4);
         )", &_addFilterStmt));
     }
 
@@ -167,7 +167,7 @@ nbl::Result nbl::getFilter(DatabaseConnection* connection, i64 filterId, FilterC
     static nbl::PreparedStatement _getFilterStmt;
     if(!_getFilterStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT fId, name, icon, criteria, multi_line FROM filter WHERE fId = ?1;
+SELECT fId, name, icon, criteria, multiLine FROM filter WHERE fId = ?1;
         )", &_getFilterStmt));
     }
 

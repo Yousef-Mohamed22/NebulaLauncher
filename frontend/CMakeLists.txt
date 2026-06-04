@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 4.0)
 
+set(QT_QML_GENERATE_QMLLS_INI ON)
+
 project(Nebula_App LANGUAGES CXX)
 
 find_package(Qt6 6.11.1 COMPONENTS Quick REQUIRED)
@@ -24,5 +26,4 @@ qt_add_qml_module(Nebula_App
 
 target_link_libraries(Nebula_App PRIVATE Qt6::Quick)
 target_link_libraries(Nebula_App PRIVATE Nebula_Core)
-target_link_libraries(Nebula_App PRIVATE webview::core)
 target_link_libraries(Nebula_App PRIVATE CURL::libcurl)

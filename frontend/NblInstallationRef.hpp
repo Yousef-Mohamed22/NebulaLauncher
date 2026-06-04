@@ -10,7 +10,7 @@ class NblInstallationRef : public QObject {
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(i64 installationId READ installationId CONSTANT)
+    Q_PROPERTY(int64_t installationId READ installationId CONSTANT)
     Q_PROPERTY(QString title READ title CONSTANT)
     Q_PROPERTY(QString poster READ poster CONSTANT)
 

@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 Item {
 
@@ -23,13 +22,13 @@ Item {
             spacing: 8
 
             Label {
-                text: filter.icon
+                text: root.filter.icon
                 font.family: Theme.nerdFont
                 font.pixelSize: 20
                 color: Theme.colors.text
             }
             Label {
-                text: filter.name
+                text: root.filter.name
                 font.family: Theme.font
                 font.pixelSize: 20
                 font.bold: true

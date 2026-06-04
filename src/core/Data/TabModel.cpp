@@ -107,7 +107,7 @@ nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, Fil
     static nbl::PreparedStatement _getFiltersForTabStmt;
     if(!_getFiltersForTabStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT filter.fId, filter.name, filter.icon, filter.multi_line
+SELECT filter.fId, filter.name, filter.icon, filter.multiLine
 FROM filter
 JOIN tab_filter ON filter.fId = tab_filter.fId
 WHERE tab_filter.tabId = ?1

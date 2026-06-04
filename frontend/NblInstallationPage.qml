@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
 
@@ -19,11 +18,11 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 240
 
-            height: 240
+            implicitHeight: 240
 
             Image {
                 id: banner
-                source: "file://" + ApplicationContext.dataFolder + "/media/banner/" + details.banner
+                source: "file://" + ApplicationContext.dataFolder + "/media/banner/" + root.details.banner
                 fillMode: Image.PreserveAspectCrop
                 width: parent.width
                 height: parent.height
@@ -43,6 +42,7 @@ Item {
                 }
             }
 
+
             MultiEffect {
                 source: banner
                 anchors.fill: banner
@@ -50,14 +50,21 @@ Item {
                 maskSource: maskShape
             }
 
+            // Logo image
             Item {
 
                 height: parent.height
                 width: 256
 
+                anchors.left: root.details.logoPosition == 0 ? parent.left : undefined
+                anchors.horizontalCenter: root.details.logoPosition == 1 ? parent.horizontalCenter : undefined
+                anchors.right: root.details.logoPosition == 2 ? parent.right : undefined
+
+                //anchors.horizontalCenter: parent.horizontalCenter
+
                 Image {
                     id: logo
-                    source: "file://" + ApplicationContext.dataFolder + "/media/logo/" + details.logo
+                    source: "file://" + ApplicationContext.dataFolder + "/media/logo/" + root.details.logo
                     anchors.centerIn: parent
                     width: parent.width - 16
                     height: parent.height - 16
@@ -70,42 +77,21 @@ Item {
         RowLayout {
 
             Layout.fillWidth: true
-            Layout.preferredHeight: 64
+            Layout.preferredHeight: 48
+            Layout.leftMargin: 8
 
-            Rectangle {
+            NblLaunchButton {
+                Layout.topMargin: -24
+                details: root.details
+            }
 
-                Layout.fillHeight: true
-                width: 192
+            // Spacer
+            Item { Layout.fillWidth: true }
 
-                color: Theme.colors.accent
-                radius: 8
-
-                Row {
-                    spacing: 8
-                    anchors.centerIn: parent
-
-                    Label {
-                        text: ""
-                        font.family: Theme.nerdFont
-                        font.pixelSize: 28
-                        color: Theme.colors.text
-                    }
-                    Label {
-                        text: "LAUNCH"
-                        font.family: Theme.font
-                        font.pixelSize: 28
-                        font.bold: true
-                        color: Theme.colors.text
-                    }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    hoverEnabled: true
-                    onClicked: {
-                        ApplicationContext.launchInstallation(details.installationId)
-                    }
+            NblIconButton {
+                icon: ""
+                onClicked: {
+                    console.log("Clicked")
                 }
             }
         }

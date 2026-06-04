@@ -4,6 +4,8 @@ import QtQuick.Layouts
 
 Item {
 
+    id: root
+
     property Sidebar sidebar
 
     Rectangle {
@@ -29,8 +31,8 @@ Item {
             Rectangle {
                 color: "transparent"
 
-                width: 48
-                height: 48
+                implicitWidth: 48
+                implicitHeight: 48
 
                 Label {
                     text: "󰍜"
@@ -45,7 +47,7 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        sidebar.collapsed = !sidebar.collapsed
+                        root.sidebar.collapsed = !root.sidebar.collapsed
                     }
                 }
             }

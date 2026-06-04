@@ -128,7 +128,8 @@ CREATE TABLE IF NOT EXISTS display (
     poster TEXT,
     banner TEXT,
     icon TEXT,
-    logo TEXT
+    logo TEXT,
+    logoPosition INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS game (
     gId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -183,7 +184,7 @@ CREATE TABLE IF NOT EXISTS filter (
     name TEXT NOT NULL,
     icon TEXT NOT NULL,
     criteria TEXT NOT NULL,
-    multi_line BOOLEAN NOT NULL DEFAULT 0
+    multiLine BOOLEAN NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS tab (
     tabId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -207,7 +208,7 @@ VALUES
 (1,'Home','',0);
 
 INSERT INTO filter 
-(fId,name,icon,criteria,multi_line) 
+(fId,name,icon,criteria,multiLine) 
 VALUES
 (1,'All Installations','󰮂','{"sort_by":"title","sort_order":"ascending"}',1),
 (2,'Recently Played','','{"sort_by":"last_played","sort_order":"descending"}',0);

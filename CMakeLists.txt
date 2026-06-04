@@ -32,12 +32,6 @@ CPMAddPackage(
         "CMAKE_USE_OPENSSL ON"
 )
 
-CPMAddPackage(
-    NAME webview
-    GIT_REPOSITORY "https://github.com/webview/webview"
-    GIT_TAG "0.12.0"
-)
-
 include(cmake/SQLite3.cmake)
 
 

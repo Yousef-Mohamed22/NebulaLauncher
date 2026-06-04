@@ -57,6 +57,22 @@ StringView getName(SortOrder sortOrder);
 Result byName(StringView name, SortOrder* outSortOrder);
 
 
+enum class LogoPosition : u32 {
+    LEFT,
+    CENTER,
+    RIGHT,
+    _END
+};
+
+inline LogoPosition byId(u32 id) {
+    if(id >= static_cast<u32>(LogoPosition::_END)) {
+        return LogoPosition::LEFT;
+    }
+    return static_cast<LogoPosition>(id);
+}
+
+
+
 
 /**
  * \brief Initializes the database schema if it doesn't already exist
@@ -170,6 +186,7 @@ struct GameMeta {
     StringView banner;
     StringView icon;
     StringView logo;
+    LogoPosition logoPosition;
     u64 releaseDate;
     f64 rating;
 };
@@ -278,6 +295,7 @@ struct InstallationMeta {
     StringView banner;
     StringView icon;
     StringView logo;
+    LogoPosition logoPosition;
     StringView command;
     u64 playTime;
     u64 playCount;

@@ -10,19 +10,20 @@ class NblInstallationDetails : public QObject {
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(i64 installationId READ installationId CONSTANT)
+    Q_PROPERTY(int64_t installationId READ installationId CONSTANT)
     Q_PROPERTY(QString title READ title CONSTANT)
     Q_PROPERTY(QString description READ description CONSTANT)
     Q_PROPERTY(QString poster READ poster CONSTANT)
     Q_PROPERTY(QString banner READ banner CONSTANT)
     Q_PROPERTY(QString icon READ icon CONSTANT)
     Q_PROPERTY(QString logo READ logo CONSTANT)
-    Q_PROPERTY(u64 playTime READ playTime CONSTANT)
-    Q_PROPERTY(u64 playCount READ playCount CONSTANT)
-    Q_PROPERTY(u64 lastPlayed READ lastPlayed CONSTANT)
-    Q_PROPERTY(u64 added READ added CONSTANT)
-    Q_PROPERTY(u64 releaseDate READ releaseDate CONSTANT)
-    Q_PROPERTY(f64 rating READ rating CONSTANT)
+    Q_PROPERTY(uint64_t logoPosition READ logoPosition CONSTANT)
+    Q_PROPERTY(uint64_t playTime READ playTime CONSTANT)
+    Q_PROPERTY(uint64_t playCount READ playCount CONSTANT)
+    Q_PROPERTY(uint64_t lastPlayed READ lastPlayed CONSTANT)
+    Q_PROPERTY(uint64_t added READ added CONSTANT)
+    Q_PROPERTY(uint64_t releaseDate READ releaseDate CONSTANT)
+    Q_PROPERTY(double rating READ rating CONSTANT)
     Q_PROPERTY(QString gameTitle READ gameTitle CONSTANT)
     Q_PROPERTY(QString gamePoster READ gamePoster CONSTANT)
 
@@ -37,6 +38,7 @@ public:
         _mBanner{},
         _mIcon{},
         _mLogo{},
+        _mLogoPosition(0),
         _mPlayTime(0),
         _mPlayCount(0),
         _mLastPlayed(0),
@@ -55,6 +57,7 @@ public:
         QString banner,
         QString icon,
         QString logo,
+        u64 logoPosition,
         u64 playTime,
         u64 playCount,
         u64 lastPlayed,
@@ -73,6 +76,7 @@ public:
         _mBanner(banner),
         _mIcon(icon),
         _mLogo(logo),
+        _mLogoPosition(logoPosition),
         _mPlayTime(playTime),
         _mPlayCount(playCount),
         _mLastPlayed(lastPlayed),
@@ -132,6 +136,7 @@ public:
     QString banner() const { return _mBanner; }
     QString icon() const { return _mIcon; }
     QString logo() const { return _mLogo; }
+    u64 logoPosition() const { return _mLogoPosition; }
     u64 playTime() const { return _mPlayTime; }
     u64 playCount() const { return _mPlayCount; }
     u64 lastPlayed() const { return _mLastPlayed; }
@@ -150,6 +155,7 @@ private:
     QString _mBanner;
     QString _mIcon;
     QString _mLogo;
+    u64 _mLogoPosition;
     u64 _mPlayTime;
     u64 _mPlayCount;
     u64 _mLastPlayed;

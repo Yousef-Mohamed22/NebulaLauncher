@@ -7,28 +7,26 @@ Item {
     id: root
 
     required property MainWindow mainWindow
-    property NblTabRef ref
+    required property NblTabRef ref
 
     property bool collapsed: false
-    property bool hovered: false
 
     height: 48
 
     Rectangle {
         id: background
         anchors.fill: parent
-        color: hovered ? Theme.colors.border : Theme.colors.layer0
+        color: mouseArea.containsMouse ? Theme.colors.border : Theme.colors.layer0
         radius: 8
     }
 
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onEntered: root.hovered = true
-        onExited: root.hovered = false
         onClicked: {
-            mainWindow.openTab(ref)
+            root.mainWindow.openTab(root.ref)
         }
     }
 
@@ -39,15 +37,15 @@ Item {
 
         Rectangle {
             color: "transparent"
-            width: 32
-            height: 32
+            implicitWidth: 32
+            implicitHeight: 32
 
             Label {
-                text: ref.icon
+                text: root.ref.icon
                 anchors.centerIn: parent
                 font.family: Theme.nerdFont
                 font.pixelSize: 24
-                color: Theme.colors.text
+                color: mouseArea.containsMouse ? Theme.colors.text : Theme.colors.textDim
             }
         }
 
@@ -56,14 +54,15 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.alignment: Qt.AlignVCenter
-            visible: !collapsed
+            visible: !root.collapsed
             
             Label {
                 anchors.verticalCenter: parent.verticalCenter
-                text: ref.name
+                text: root.ref.name
                 font.family: Theme.font
                 font.pixelSize: 16
-                color: Theme.colors.text
+                font.bold: true
+                color: mouseArea.containsMouse ? Theme.colors.text : Theme.colors.textDim
             }
         }
 

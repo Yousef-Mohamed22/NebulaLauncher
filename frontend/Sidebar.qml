@@ -1,5 +1,6 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 
 
@@ -8,7 +9,7 @@ Item {
     id: root
 
     required property MainWindow mainWindow
-    property bool collapsed: false
+    property bool collapsed: true
 
     implicitWidth: collapsed ? 64 : 240
 

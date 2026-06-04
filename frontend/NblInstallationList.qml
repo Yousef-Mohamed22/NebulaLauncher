@@ -1,6 +1,7 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 Item {
 
@@ -18,7 +19,7 @@ Item {
 
         Loader {
             id: loader
-            sourceComponent: filter.multiLine ? multiLineComponent : singleLineComponent
+            sourceComponent: root.filter.multiLine ? multiLineComponent : singleLineComponent
             active: true
         }
 
@@ -41,8 +42,8 @@ Item {
                     id: singleLineList
                     spacing: 8
                     Repeater {
-                        model: filter.installations
-                        NblInstallationPoster {
+                        model: root.filter.installations
+                        NblPosterImage {
                             required property NblInstallationRef modelData
                             installation: modelData
                             mainWindow: root.mainWindow
@@ -70,8 +71,8 @@ Item {
                     width: root.width
                     spacing: 8
                     Repeater {
-                        model: filter.installations
-                        NblInstallationPoster {
+                        model: root.filter.installations
+                        NblPosterImage {
                             required property NblInstallationRef modelData
                             installation: modelData
                             mainWindow: root.mainWindow

@@ -24,7 +24,7 @@ namespace {
 
     nbl::Result _gameMetaCallback(void* userData, i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) {
 
-        if(argc != 9) {
+        if(argc != 10) {
             return nbl::error::ILLEGAL_STATE;
         }
 
@@ -38,8 +38,9 @@ namespace {
             .banner = values[4].textValue,
             .icon = values[5].textValue,
             .logo = values[6].textValue,
-            .releaseDate = static_cast<u64>(values[7].intValue),
-            .rating = values[8].floatValue
+            .logoPosition = nbl::byId(values[7].uintValue()),
+            .releaseDate = values[8].uintValue(),
+            .rating = values[9].floatValue
         };
 
         return queryData->callback(
@@ -175,7 +176,7 @@ nbl::Result nbl::getGameMeta(DatabaseConnection* connection, i64 gameId, GameCal
     static nbl::PreparedStatement _getGameMetaStmt;
     if(!_getGameMetaStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT game.gId, display.title, display.description, display.poster, display.banner, display.icon, display.logo, game.releaseDate, game.rating
+SELECT game.gId, display.title, display.description, display.poster, display.banner, display.icon, display.logo, display.logoPosition, game.releaseDate, game.rating
 FROM game
 JOIN display ON display.dId = game.dId
 WHERE game.gId = ?1;
@@ -220,7 +221,7 @@ WITH
         WHERE NOT ?2 IS NULL
           AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
     )
-SELECT game.gId, display.title, display.description, display.poster, display.banner, display.icon, display.logo, game.releaseDate, game.rating
+SELECT game.gId, display.title, display.description, display.poster, display.banner, display.icon, display.logo, display.logoPosition, game.releaseDate, game.rating
 FROM game
 JOIN display ON display.dId = game.dId
 LEFT JOIN game_tag ON game_tag.gId = game.gId

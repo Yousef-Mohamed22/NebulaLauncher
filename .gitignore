@@ -2,5 +2,6 @@ build/
 .cache/
 .vs/
 .clangd
+.qmlls.ini
 
 CMakeUserPresets.json
