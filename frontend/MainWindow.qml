@@ -55,12 +55,28 @@ Window {
         }
     }
 
+    Loader {
+        id: modalLoader
+        anchors.fill: parent
+        active: false
+    }
+
+
     Component.onCompleted: {
         ApplicationContext.reload()
 
         if(ApplicationContext.allTabs.length > 0) {
             openTab(ApplicationContext.allTabs[0])
         }
+    }
+
+    function beginAddGame() {
+        modalLoader.setSource("AddGameDialog.qml", { "mainWindow": root })
+        modalLoader.active = true
+    }
+
+    function cancelAddGame() {
+        modalLoader.active = false
     }
 
     function openTab(ref) {

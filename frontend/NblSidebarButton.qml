@@ -6,8 +6,11 @@ Item {
 
     id: root
 
-    required property MainWindow mainWindow
-    required property NblTabRef ref
+    required property string icon
+    required property string name
+    property var alignment: Text.AlignLeft
+
+    signal clicked
 
     property bool collapsed: false
 
@@ -26,7 +29,7 @@ Item {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: {
-            root.mainWindow.openTab(root.ref)
+            root.clicked()
         }
     }
 
@@ -41,7 +44,7 @@ Item {
             implicitHeight: 32
 
             Label {
-                text: root.ref.icon
+                text: root.icon
                 anchors.centerIn: parent
                 font.family: Theme.nerdFont
                 font.pixelSize: 24
@@ -57,11 +60,14 @@ Item {
             visible: !root.collapsed
             
             Label {
+                width: parent.width - (root.alignment == Qt.AlignHCenter ? 32 : 0)
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.ref.name
+                text: root.name
                 font.family: Theme.font
                 font.pixelSize: 16
-                font.bold: true
+                font.weight: 500
+                elide: Qt.ElideRight
+                horizontalAlignment: root.alignment
                 color: mouseArea.containsMouse ? Theme.colors.text : Theme.colors.textDim
             }
         }

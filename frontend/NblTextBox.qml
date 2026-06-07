@@ -1,0 +1,50 @@
+import QtQuick
+import QtQuick.Controls.Basic
+
+TextField {
+
+    id: root
+    required property string label
+
+    color: enabled ? Theme.colors.text : Theme.colors.textDim
+    font.pixelSize: 16
+    font.family: Theme.font
+
+    implicitHeight: 56
+    y: 4
+
+    leftPadding: 16
+    rightPadding: 16
+
+    background: Rectangle {
+        color: Theme.colors.layer0
+        height: parent.height - 8
+        y: 4
+        radius: 8
+        border.width: 2
+        border.color: root.cursorVisible ? Theme.colors.accent : Theme.colors.border
+    }
+
+    Item {
+
+        width: 0
+        height: 0
+        x: 16
+        y: -6
+
+        Rectangle { 
+            width: labelText.width + 12
+            height: labelText.height - 8
+            anchors.centerIn: labelText
+            color: Theme.colors.layer0 
+        }
+        Label { 
+            id: labelText
+            text: root.label
+            font.family: Theme.font
+            font.weight: 500
+            color: root.cursorVisible ? Theme.colors.accent : Theme.colors.textDim
+        }
+    }
+
+}

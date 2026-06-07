@@ -10,7 +10,7 @@ QtObject {
 
 
     property var colors: QtObject {
-        property color activeColor: "#cb48e2"
+        property color activeColor: "#278ce5"
 
         property color layer0: Qt.hsla(activeColor.hslHue, 0.2, 0.125, 1.0)
         property color layer1: Qt.lighter(layer0, 1.35)

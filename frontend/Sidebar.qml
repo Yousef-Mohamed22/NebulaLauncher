@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-
+import QtQuick.Controls
 
 Item {
 
@@ -23,29 +23,96 @@ Item {
     }
 
     ColumnLayout {
-        anchors.fill: background
-        anchors.margins: 8
+        width: parent.width - 16
+        height: parent.height - 16
+        anchors.centerIn: parent
+
         spacing: 8
 
-        ColumnLayout {
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignTop
-            spacing: 8
+        Flickable {
 
-            Repeater {
-                model: ApplicationContext.allTabs
-                
-                NblTabButton {
-                    required property NblTabRef modelData
+            id: flickable
+
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+
+            contentWidth: width
+            contentHeight: tabList.height
+
+            flickableDirection: Flickable.VerticalFlick
+
+            ScrollBar.horizontal: null
+            ScrollBar.vertical: ScrollBar {
+                parent: flickable
+                anchors.top: flickable.top
+                anchors.bottom: flickable.bottom
+                anchors.right: flickable.right
+                active: flickable.movingVertically
+            }
+
+            Column {
+                id: tabList
+                width: parent.width
+                spacing: 8
+
+                Repeater {
+                    model: ApplicationContext.allTabs
+
+                    NblSidebarButton {
+                        required property NblTabRef modelData
+
+                        width: parent.width
+
+                        collapsed: root.collapsed
+                        icon: modelData.icon
+                        name: modelData.name
+
+                        onClicked: {
+                            root.mainWindow.openTab(modelData)
+                        }
+                    }
+                }
+            }
+        }
+
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: root.collapsed ? 48 + 48 + 8 : 48
+
+            FlexboxLayout {
+                gap: 8
+                width: parent.width
+                height: parent.height
+                direction: root.collapsed ? FlexboxLayout.Column : FlexboxLayout.Row
+
+                NblSidebarButton {
+
+                    Layout.preferredWidth: 48
+                    collapsed: true
+                    icon: ""
+                    name: ""
+
+                    onClicked: { 
+                        console.log("Clicked settings")
+                    }
+                }
+
+                NblSidebarButton {
 
                     Layout.fillWidth: true
 
-                    mainWindow: root.mainWindow
                     collapsed: root.collapsed
-                    ref: modelData
-                }
-            }
+                    icon: ""
+                    name: "Add"
+                    alignment: Text.AlignHCenter
 
+                    onClicked: { 
+                        root.mainWindow.beginAddGame()
+                    }
+                }
+
+            }
         }
 
     }
