@@ -30,6 +30,7 @@ CPMAddPackage(
         "BUILD_CURL_EXE OFF"
         "BUILD_SHARED_LIBS OFF"
         "CMAKE_USE_OPENSSL ON"
+        "CMAKE_POSITION_INDEPENDENT_CODE ON"
 )
 
 include(cmake/SQLite3.cmake)
@@ -47,20 +48,30 @@ endif()
 set(NBL_SRC_DIR ${NBL_ROOT_DIR}/src)
 set(NBL_INCLUDE_DIR ${NBL_ROOT_DIR}/include)
 
-file(GLOB_RECURSE NBL_CORE_SOURCES ${NBL_SRC_DIR}/core/**.cpp)
+file(GLOB_RECURSE NBL_API_SOURCES ${NBL_SRC_DIR}/api/**.cpp)
+file(GLOB_RECURSE NBL_API_HEADERS ${NBL_INCLUDE_DIR}/api/**.hpp)
+
+add_library(Nebula_Api SHARED ${NBL_API_SOURCES})
+target_include_directories(Nebula_Api PUBLIC ${NBL_INCLUDE_DIR}/api)
+target_include_directories(Nebula_Api PRIVATE ${NBL_SRC_DIR}/api)
+target_precompile_headers(Nebula_Api PUBLIC ${NBL_API_HEADERS})
+target_link_libraries(Nebula_Api PRIVATE CURL::libcurl)
+
+
+file(GLOB_RECURSE NBL_MODEL_SOURCES ${NBL_SRC_DIR}/model/**.cpp)
+
+add_library(Nebula_Model STATIC ${NBL_MODEL_SOURCES})
+target_include_directories(Nebula_Model PUBLIC ${NBL_INCLUDE_DIR}/api)
+target_include_directories(Nebula_Model PUBLIC ${NBL_INCLUDE_DIR}/model)
+target_include_directories(Nebula_Model PRIVATE ${NBL_SRC_DIR}/model)
+target_link_libraries(Nebula_Model PRIVATE SQLite3::SQLite3)
+target_link_libraries(Nebula_Model PUBLIC Nebula_Api)
+
+
 file(GLOB_RECURSE NBL_TEST_SOURCES ${NBL_SRC_DIR}/test/**.cpp)
 
-file(GLOB_RECURSE NBL_CORE_HEADERS ${NBL_INCLUDE_DIR}/core/**.h)
-
-add_library(Nebula_Core STATIC ${NBL_CORE_SOURCES})
-target_include_directories(Nebula_Core PUBLIC ${NBL_INCLUDE_DIR}/core)
-target_include_directories(Nebula_Core PRIVATE ${NBL_SRC_DIR}/core)
-target_link_libraries(Nebula_Core PRIVATE SQLite3::SQLite3)
-target_link_libraries(Nebula_Core PRIVATE CURL::libcurl)
-target_precompile_headers(Nebula_Core PUBLIC ${NBL_CORE_HEADERS})
-
 add_executable(Nebula_Test ${NBL_TEST_SOURCES})
-target_link_libraries(Nebula_Test PRIVATE Nebula_Core)
+target_link_libraries(Nebula_Test PRIVATE Nebula_Model)
 target_link_libraries(Nebula_Test PRIVATE GTest::gtest_main)
 
 add_subdirectory(frontend)
