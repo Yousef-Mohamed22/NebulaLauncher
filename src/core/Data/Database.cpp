@@ -242,26 +242,40 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
 
 nbl::Result nbl::DatabaseConnection::beginTransaction() {
 
+    if(_bInTransaction) return nbl::Result::SUCCESS;
+
     static nbl::PreparedStatement stmt;
     if(!stmt.isValid(this)) {
         NBL_CHECK(prepare("BEGIN TRANSACTION;", &stmt));
     }
-    return execute(&stmt, nullptr, nullptr);
+    NBL_CHECK(execute(&stmt, nullptr, nullptr));
+    _bInTransaction = true;
+    return nbl::Result::SUCCESS;
 }
 nbl::Result nbl::DatabaseConnection::commitTransaction() {
+
+    if(!_bInTransaction) return nbl::Result::SUCCESS;
+
     static nbl::PreparedStatement stmt;
     if(!stmt.isValid(this)) {
         NBL_CHECK(prepare("COMMIT;", &stmt));
     }
-    return execute(&stmt, nullptr, nullptr);
+    NBL_CHECK(execute(&stmt, nullptr, nullptr));
+    _bInTransaction = false;
+    return nbl::Result::SUCCESS;
 }
 
 nbl::Result nbl::DatabaseConnection::rollbackTransaction() {
+
+    if(!_bInTransaction) return nbl::Result::SUCCESS;
+
     static nbl::PreparedStatement stmt;
     if(!stmt.isValid(this)) {
         NBL_CHECK(prepare("ROLLBACK;", &stmt));
     }
     return execute(&stmt, nullptr, nullptr);
+    _bInTransaction = false;
+    return nbl::Result::SUCCESS;
 }
 
 nbl::Result nbl::DatabaseConnection::doTransaction(nbl::Span<PreparedStatement*> statements, i64* lastInsertRowId) {

@@ -8,6 +8,27 @@
 
 #include <Data/Model.hpp>
 
+
+nbl::Result nbl::countTabs(DatabaseConnection* connection, u64* numTabs) {
+
+    static nbl::PreparedStatement _countFiltersStmt;
+    if(!_countFiltersStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT COUNT(tId) FROM tab;
+        )", &_countFiltersStmt));
+    }
+
+    return connection->execute(&_countFiltersStmt, [](void* userData, i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount == 0) return nbl::error::IO_ERROR;
+
+        *static_cast<u64*>(userData) = values[0].uintValue();
+        return nbl::Result::SUCCESS;
+
+    }, numTabs);
+
+}
+
 nbl::Result nbl::addTab(DatabaseConnection* connection, StringView name, StringView icon, bool hidden, i64* outTabId) {
 
     static nbl::PreparedStatement _addTabStmt;
@@ -102,7 +123,7 @@ DELETE FROM tab_filter WHERE tabId = ?1 AND fId = ?2;
     return connection->execute(&_removeFilterFromTabStmt, nullptr, nullptr);
 }
 
-nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, FilterCallback callback, void* userData) {
+nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback, void* userData) {
 
     static nbl::PreparedStatement _getFiltersForTabStmt;
     if(!_getFiltersForTabStmt.isValid(connection)) {
@@ -111,11 +132,15 @@ SELECT filter.fId, filter.name, filter.icon, filter.multiLine
 FROM filter
 JOIN tab_filter ON filter.fId = tab_filter.fId
 WHERE tab_filter.tabId = ?1
-ORDER BY tab_filter.priority DESC, filter.fId ASC;
+ORDER BY tab_filter.priority DESC, filter.fId ASC
+LIMIT ?2
+OFFSET ?3;
         )", &_getFiltersForTabStmt));
     }
 
-    NBL_CHECK(_getFiltersForTabStmt.bindUint(1, tabId));
+    NBL_CHECK(_getFiltersForTabStmt.bindInt(1, tabId));
+    NBL_CHECK(_getFiltersForTabStmt.bindUint(2, limit));
+    NBL_CHECK(_getFiltersForTabStmt.bindUint(3, offset));
     
     struct _GetFiltersForTabQueryData {
         FilterCallback callback;

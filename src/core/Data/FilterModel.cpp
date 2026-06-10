@@ -10,6 +10,7 @@
 
 #include <Core/Math.hpp>
 #include <Platform/StringBuilder.hpp>
+#include "Core/Result.hpp"
 
 namespace {
 
@@ -118,6 +119,26 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* 
 
 }
 
+
+nbl::Result nbl::countFilters(DatabaseConnection* connection, u64* numFilters) {
+
+    static nbl::PreparedStatement _countFiltersStmt;
+    if(!_countFiltersStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT COUNT(fId) FROM filter;
+        )", &_countFiltersStmt));
+    }
+
+    return connection->execute(&_countFiltersStmt, [](void* userData, i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount == 0) return nbl::error::IO_ERROR;
+
+        *static_cast<u64*>(userData) = values[0].uintValue();
+        return nbl::Result::SUCCESS;
+
+    }, numFilters);
+
+}
 
 nbl::Result nbl::addFilter(DatabaseConnection* connection, StringView name, StringView icon, const InstallationSearchCriteria& criteria, bool multiLine, i64* outFilterId) {
 

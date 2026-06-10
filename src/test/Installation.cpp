@@ -6,14 +6,18 @@
 
 namespace {
 
-nbl::GameMeta _gameMeta = {
+nbl::DisplayMeta _displayMeta = {
     .id = 0,
     .title = "Test Game",
     .description = "A test game",
-    .poster = "poster.jpg",
     .banner = "banner.jpg",
+    .poster = "poster.jpg",
     .icon = "icon.jpg",
     .logo = "logo.jpg",
+};
+
+nbl::GameMeta _gameMeta = {
+    .id = 0,
     .releaseDate = 1600000000,
     .rating = 4.5
 };
@@ -27,6 +31,8 @@ TEST(Installation, AddInstallation) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+
     i64 gameId;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
 
@@ -39,6 +45,8 @@ TEST(Installation, RemoveInstallation) {
     nbl::DatabaseConnection connection;
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
+
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
 
     i64 gameId;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -54,6 +62,8 @@ TEST(Installation, GetInstallationMeta) {
     nbl::DatabaseConnection connection;
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
+
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
 
     i64 gameId;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());

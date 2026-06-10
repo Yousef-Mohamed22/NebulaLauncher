@@ -10,13 +10,13 @@ QtObject {
 
 
     property var colors: QtObject {
-        property color activeColor: "#278ce5"
+        property color activeColor: "#d658fc"
 
-        property color layer0: Qt.hsla(activeColor.hslHue, 0.2, 0.125, 1.0)
+        property color layer0: Qt.hsla(activeColor.hslHue, 0.3, 0.125, 1.0)
         property color layer1: Qt.lighter(layer0, 1.35)
         property color border: Qt.lighter(layer1, 1.35)
         property color text: "#ffffff"
-        property color textDim: Qt.hsla(activeColor.hslHue, 0.1, 0.75, 1.0)
+        property color textDim: Qt.hsla(activeColor.hslHue, 0.3, 0.75, 1.0)
         property color accent: activeColor
     }
 

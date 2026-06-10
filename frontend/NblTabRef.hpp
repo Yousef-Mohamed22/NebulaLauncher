@@ -5,8 +5,6 @@
 #include <QObject>
 #include <QtQml>
 
-#include "NblFilterRef.hpp"
-
 class NblTabRef : public QObject { 
 
     Q_OBJECT
@@ -14,9 +12,7 @@ class NblTabRef : public QObject {
 
     Q_PROPERTY(QString name READ name CONSTANT)
     Q_PROPERTY(QString icon READ icon CONSTANT)
-    Q_PROPERTY(i64 tabId READ tabId CONSTANT)
-
-    Q_PROPERTY(QQmlListProperty<NblFilterRef> filters READ filters NOTIFY filtersUpdated)
+    Q_PROPERTY(qint64 tabId READ tabId CONSTANT)
 
 public:
 
@@ -29,7 +25,7 @@ public:
 
     virtual ~NblTabRef() = default;
 
-    NblTabRef(i64 id, QString name, QString icon, QObject* parent = nullptr) :
+    NblTabRef(qint64 id, QString name, QString icon, QObject* parent = nullptr) :
         QObject(parent),
         _mName(name),
         _mIcon(icon),
@@ -55,35 +51,12 @@ public:
 
     QString name() { return _mName; }
     QString icon() { return _mIcon; }
-    i64 tabId() { return _mTabId; }
-
-    QQmlListProperty<NblFilterRef> filters() {
-        return QQmlListProperty<NblFilterRef>(
-            this,
-            nullptr,
-            [](QQmlListProperty<NblFilterRef>* ref) -> qsizetype {
-                NblTabRef* tab = static_cast<NblTabRef*>(ref->object);
-                return tab->_mFilters.count();
-            },
-            [](QQmlListProperty<NblFilterRef>* ref, qsizetype at) -> NblFilterRef* {
-                NblTabRef* tab = static_cast<NblTabRef*>(ref->object);
-                if(at > tab->_mFilters.count()) return nullptr;
-                return tab->_mFilters.data() + at;
-            }
-        );
-    }
-
-    Q_INVOKABLE i32 loadFilters();
-
-signals:
-
-    void filtersUpdated();
+    qint64 tabId() { return _mTabId; }
 
 private:
 
     QString _mName;
     QString _mIcon;
-    i64 _mTabId;
-    QList<NblFilterRef> _mFilters;
+    qint64 _mTabId;
 
 };

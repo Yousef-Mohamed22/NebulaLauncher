@@ -5,7 +5,10 @@ Item {
 
     id: root
 
-    required property NblFilterRef filter;
+    required property int filterId
+    required property string name
+    required property string icon
+    required property bool multiLine
     required property MainWindow mainWindow
 
     implicitHeight: content.height
@@ -22,13 +25,13 @@ Item {
             spacing: 8
 
             Label {
-                text: root.filter.icon
+                text: root.icon
                 font.family: Theme.nerdFont
                 font.pixelSize: 20
                 color: Theme.colors.text
             }
             Label {
-                text: root.filter.name
+                text: root.name
                 font.family: Theme.font
                 font.pixelSize: 20
                 font.bold: true
@@ -37,7 +40,8 @@ Item {
         }
 
         NblInstallationList {
-            filter: root.filter
+            filterId: root.filterId
+            multiLine: root.multiLine
             mainWindow: root.mainWindow
         }
         

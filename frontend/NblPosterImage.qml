@@ -1,21 +1,20 @@
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
 import QtQuick.Effects
 
 Item {
 
     id: root
 
-    required property NblInstallationRef installation
+    required property int installationId
+    required property string poster
     required property MainWindow mainWindow
 
-    width: 180 + 16
-    height: 270 + 16
+    implicitWidth: 180 + 16
+    implicitHeight: 270 + 16
 
     Image {
         id: image
-        source: "file://" + ApplicationContext.dataFolder + "/media/poster/" + root.installation.poster
+        source: "file://" + ApplicationContext.dataFolder + "/media/poster/" + root.poster
         anchors.centerIn: parent
         width: parent.width - 16
         height: parent.height - 16
@@ -57,7 +56,7 @@ Item {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: {
-            root.mainWindow.openInstallationDetails(root.installation.installationId)
+            root.mainWindow.openInstallationDetails(root.installationId)
         }
     }
 

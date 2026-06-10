@@ -56,6 +56,8 @@ Item {
                 height: parent.height
                 width: 256
 
+                visible: root.details.logoPosition < 3
+
                 anchors.left: root.details.logoPosition == 0 ? parent.left : undefined
                 anchors.horizontalCenter: root.details.logoPosition == 1 ? parent.horizontalCenter : undefined
                 anchors.right: root.details.logoPosition == 2 ? parent.right : undefined

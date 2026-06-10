@@ -61,6 +61,7 @@ enum class LogoPosition : u32 {
     LEFT,
     CENTER,
     RIGHT,
+    HIDDEN,
     _END
 };
 
@@ -170,6 +171,28 @@ Result renameTag(DatabaseConnection* connection, StringView oldName, StringView 
 
 
 //
+// Display
+//
+struct DisplayMeta {
+    i64 id;
+    StringView title;
+    StringView description;
+    StringView banner;
+    StringView poster;
+    StringView icon;
+    StringView logo;
+    LogoPosition logoPosition;
+};
+
+typedef Result (*DisplayCallback)(void* userData, const DisplayMeta& meta);
+
+
+Result addDisplay(DatabaseConnection* connection, const DisplayMeta& meta, i64* outDisplayId);
+
+Result removeDisplay(DatabaseConnection* connection, i64 displayId);
+
+
+//
 // Games
 //
 
@@ -180,6 +203,7 @@ struct GameMeta {
     i64 id;
     u64 igdbId;
     u64 steamId;
+    i64 dId;
     StringView title;
     StringView description;
     StringView poster;
@@ -289,6 +313,7 @@ Result lookupGames(
 
 struct InstallationMeta {
     i64 id;
+    i64 dId;
     StringView title;
     StringView description;
     StringView poster;
@@ -408,6 +433,8 @@ Result bumpInstallationPlayTime(DatabaseConnection* connection, i64 installation
 
 typedef Result (*FilterCallback)(void* userData, i64 filterId, StringView name, StringView icon, const InstallationSearchCriteria& criteria, bool multiLine);
 
+Result countFilters(DatabaseConnection* connection, u64* numFilters);
+
 Result addFilter(DatabaseConnection* connection, StringView name, StringView icon, const InstallationSearchCriteria& criteria, bool multiLine, i64* outFilterId);
 
 Result removeFilter(DatabaseConnection* connection, i64 filterId);
@@ -425,6 +452,8 @@ Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId
 
 typedef Result (*TabCallback)(void* userData, i64 tabId, StringView name, StringView icon, bool hidden);
 
+Result countTabs(DatabaseConnection* connection, u64* numTabs);
+
 Result addTab(DatabaseConnection* connection, StringView name, StringView icon, bool hidden, i64* outTabId);
 
 Result removeTab(DatabaseConnection* connection, i64 tabId);
@@ -435,7 +464,7 @@ Result addFilterToTab(DatabaseConnection* connection, i64 tabId, i64 filterId, i
 
 Result removeFilterFromTab(DatabaseConnection* connection, i64 tabId, i64 filterId);
 
-Result getFiltersForTab(DatabaseConnection* connection, i64 tabId, FilterCallback callback, void* userData);
+Result getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback, void* userData);
 
 
 

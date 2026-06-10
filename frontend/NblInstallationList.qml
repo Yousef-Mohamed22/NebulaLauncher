@@ -1,12 +1,12 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls
 
 Item {
 
     id: root
-    required property NblFilterRef filter
+    required property int filterId
+    required property bool multiLine
     required property MainWindow mainWindow
 
     implicitHeight: content.height
@@ -19,66 +19,71 @@ Item {
 
         Loader {
             id: loader
-            sourceComponent: root.filter.multiLine ? multiLineComponent : singleLineComponent
+            sourceComponent: root.multiLine ? multiLineComponent : singleLineComponent
             active: true
         }
 
         Component {
             id: singleLineComponent
-            Flickable {
 
-                id: flickable
+            ListView {
+                id: singleLineList
 
-                height: singleLineList.height + 8
+                height: 270 + 16 + 8
                 width: root.width
 
-                contentWidth: singleLineList.width
-                contentHeight: singleLineList.height + 8
+                orientation: ListView.Horizontal
 
-                clip: true
-                flickableDirection: Flickable.HorizontalFlick
+                model: NblFilterModel {
+                    id: filterModel
+                    filterId: root.filterId
+                }
 
-                Row {
-                    id: singleLineList
-                    spacing: 8
-                    Repeater {
-                        model: root.filter.installations
-                        NblPosterImage {
-                            required property NblInstallationRef modelData
-                            installation: modelData
-                            mainWindow: root.mainWindow
-                        }
+                delegate: NblPosterImage {
+                    required property var model
+                    installationId: model.id
+                    poster: model.poster
+                    mainWindow: root.mainWindow
+                }
+
+                onAtXEndChanged: {
+                    if(atXEnd && !filterModel.isLoading) {
+                        filterModel.loadNextPage()
                     }
                 }
-
-                ScrollBar.horizontal: ScrollBar {
-                    parent: flickable
-                    anchors.bottom: flickable.bottom
-                    anchors.left: flickable.left
-                    anchors.right: flickable.right
-                    active: flickable.movingHorizontally
-                }
-                ScrollBar.vertical: null
             }
         }
 
         Component {
             id: multiLineComponent
-            Item {
-                height: multiLineList.height + 8
-                Flow {
-                    id: multiLineList
-                    width: root.width
-                    spacing: 8
-                    Repeater {
-                        model: root.filter.installations
-                        NblPosterImage {
-                            required property NblInstallationRef modelData
-                            installation: modelData
-                            mainWindow: root.mainWindow
-                        }
-                    }   
+
+            GridView {
+                id: multiLineList
+                width: root.width
+                height: contentHeight
+                interactive: false
+
+                cellWidth: 180 + 16
+                cellHeight: 270 + 16
+
+                model: NblFilterModel {
+                    id: filterModel
+                    filterId: root.filterId
                 }
+
+                delegate: NblPosterImage {
+                    required property var model
+                    installationId: model.id
+                    poster: model.poster
+                    mainWindow: root.mainWindow
+                }
+
+                onAtYEndChanged: {
+                    if(atYEnd && !filterModel.isLoading) {
+                        filterModel.loadNextPage()
+                    }
+                }
+
             }
         }
     }

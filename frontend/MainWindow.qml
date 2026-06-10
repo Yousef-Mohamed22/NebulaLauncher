@@ -75,35 +75,43 @@ Window {
         modalLoader.active = true
     }
 
-    function cancelAddGame() {
+    function finishAddGame() {
         modalLoader.active = false
+        reloadTab()
     }
 
-    function openTab(ref) {
-
+    function reloadTab() {
         while(pageLoader.depth > 1) {
             pageLoader.pop()
         }
 
-        if(pageLoader.depth == 1 && pageLoader.currentItem.tab && pageLoader.currentItem.tab.tabId == ref.tabId) {
-            return
+        if(pageLoader.depth == 1 && pageLoader.currentItem.tabId) {
+            pageLoader.currentItem.refresh()
+        } else if(ApplicationContext.allTabs.length > 0) {
+            openTab(ApplicationContext.allTabs[0])
+        }
+    }
+
+    function openTab(ref) {
+
+        let initDepth = pageLoader.depth
+        while(pageLoader.depth > 1) {
+            pageLoader.pop()
         }
 
-        let rc = ref.loadFilters()
-        if(rc != 0) {
-            console.error("Failed to load filters for tab " + ref.name + ": " + rc)
-        }
-        for(let filter of ref.filters) {
-            let rc = filter.loadInstallations()
-            if(rc != 0) {
-                console.error("Failed to load installations for filter " + filter.name + ": " + rc)
+        if(pageLoader.depth == 1 && pageLoader.currentItem.tabId == ref.tabId) {
+            if(initDepth > 1) {
+                pageLoader.currentItem.refresh()
             }
+
+            return
         }
 
         pageLoader.replace("NblTabPage.qml", {
             tab: ref,
             mainWindow: root
         })
+
     }
 
     function openInstallationDetails(installationId) {

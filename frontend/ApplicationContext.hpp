@@ -23,7 +23,9 @@ public:
         _mProcess(this),
         _mInstallationId(0),
         _mStartTime(0)
-    {}
+    {
+        QObject::connect(&_mProcess, &QProcess::finished, this, &NblRunningInstallation::_finished);
+    }
 
     void launch(i64 installationId, nbl::StringView command);
 
@@ -106,6 +108,8 @@ public:
     Q_INVOKABLE void launchInstallation(i64 installationId);
 
     Q_INVOKABLE NblInstallationDetails* getInstallationDetails(i64 installationId);
+
+    Q_INVOKABLE int addInstallation(const QVariantMap& params);
 
     nbl::DatabaseConnection* connection() {
         return &_mConnection;

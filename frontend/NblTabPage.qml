@@ -10,42 +10,37 @@ Item {
     required property NblTabRef tab
     required property MainWindow mainWindow
 
-    Flickable {
+    ListView {
 
-        id: flickable
+        width: 1000
+        height: 1000
 
-        width: parent.width
-        height: parent.height
 
-        contentWidth: column.width
-        contentHeight: column.height
-        flickableDirection: Flickable.VerticalFlick
-        clip: true
+        model: NblTabModel {
+            id: tabModel
+            pageSize: 10
+            tabId: root.tab.tabId
+        }
 
-        Column {
-            id: column
-            spacing: 8
-            width: flickable.width - 16
+        delegate: NblFilterRow {
+            required property var model
+            width: parent.width
+            filterId: model.id
+            name: model.name
+            icon: model.icon
+            multiLine: model.multiLine
+            mainWindow: root.mainWindow
+        }
 
-            Repeater {
-                model: root.tab.filters
-                NblFilterRow {
-                    required property NblFilterRef modelData
-
-                    width: parent.width
-                    filter: modelData
-                    mainWindow: root.mainWindow
-                }
+        onAtYEndChanged: {
+            if(atYEnd && !tabModel.isLoading) {
+                tabModel.loadNextPage()
             }
         }
-
-        ScrollBar.horizontal: null
-        ScrollBar.vertical: ScrollBar {
-            parent: flickable
-            anchors.top: flickable.top
-            anchors.bottom: flickable.bottom
-            anchors.right: flickable.right
-            active: flickable.movingVertically
-        }
     }
+
+    function refresh() {
+        tabModel.refresh()
+    }
+
 }

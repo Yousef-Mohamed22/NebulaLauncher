@@ -263,6 +263,8 @@ private:
     Arena _mArena;
     void* _pHandle;
 
+    bool _bInTransaction;
+
     friend class PreparedStatement;
 
 };

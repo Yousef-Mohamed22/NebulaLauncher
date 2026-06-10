@@ -7,15 +7,26 @@ ComboBox {
 
     id: root
     required property string label
+    property bool highlightFirst: false
 
+    implicitHeight: 54
 
-    implicitHeight: 56
-    y: 4
+    indicator: Text {
+
+        x: root.width - root.rightPadding - width
+        y: root.topPadding + 3 + (root.availableHeight - height) / 2
+
+        color: Theme.colors.textDim
+        font.family: Theme.nerdFont
+        font.pixelSize: 20
+        text: ""
+
+    }
 
     background: Rectangle {
         color: Theme.colors.layer0
-        height: parent.height - 8
-        y: 4
+        height: parent.height - 6
+        y: 6
         radius: 8
         border.width: 2
         border.color: root.popup.visible ? Theme.colors.accent : Theme.colors.border
@@ -25,8 +36,9 @@ ComboBox {
         text: root.displayText
         font.pixelSize: 16
         font.family: Theme.font
+        font.weight: (root.currentIndex == 0 && root.highlightFirst) ? 600 : 400
         color: Theme.colors.text
-        topPadding: 16
+        topPadding: 18
         leftPadding: 16
         rightPadding: 16
     }
@@ -66,6 +78,7 @@ ComboBox {
             color: Theme.colors.text
             font.family: Theme.font
             font.pixelSize: 16
+            font.weight: (delegate.index == 0 && root.highlightFirst) ? 600 : 400
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
         }

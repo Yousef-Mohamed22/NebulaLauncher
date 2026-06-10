@@ -7,19 +7,21 @@ TextField {
     required property string label
 
     color: enabled ? Theme.colors.text : Theme.colors.textDim
+    placeholderTextColor: Theme.colors.border
+
     font.pixelSize: 16
     font.family: Theme.font
 
-    implicitHeight: 56
-    y: 4
+    implicitHeight: 54
 
+    topPadding: 12
     leftPadding: 16
     rightPadding: 16
 
     background: Rectangle {
         color: Theme.colors.layer0
-        height: parent.height - 8
-        y: 4
+        height: parent.height - 6
+        y: 6
         radius: 8
         border.width: 2
         border.color: root.cursorVisible ? Theme.colors.accent : Theme.colors.border

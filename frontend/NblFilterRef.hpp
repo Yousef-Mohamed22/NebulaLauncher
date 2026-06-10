@@ -1,23 +1,20 @@
 #pragma once
 
+#include <qtmetamacros.h>
 #include <Core/Types.hpp>
 
 #include <QObject>
 #include <QtQml>
-
-#include "NblInstallationRef.hpp"
 
 class NblFilterRef : public QObject { 
 
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(i64 filterId READ filterId CONSTANT)
+    Q_PROPERTY(qint64 filterId READ filterId CONSTANT)
     Q_PROPERTY(QString name READ name CONSTANT)
     Q_PROPERTY(QString icon READ icon CONSTANT)
     Q_PROPERTY(bool multiLine READ multiLine CONSTANT)
-
-    Q_PROPERTY(QQmlListProperty<NblInstallationRef> installations READ installations NOTIFY installationsUpdated)
 
 public:
 
@@ -56,32 +53,10 @@ public:
         return *this;
     }
 
-    i64 filterId() { return _mFilterId; }
+    qint64 filterId() { return _mFilterId; }
     QString name() { return _mName; }
     QString icon() { return _mIcon; }
     bool multiLine() { return _mMultiLine; }
-
-    QQmlListProperty<NblInstallationRef> installations() {
-        return QQmlListProperty<NblInstallationRef>(
-            this,
-            &_mInstallations,
-            [](QQmlListProperty<NblInstallationRef>* ref) -> qsizetype {
-                QList<NblInstallationRef>* list = static_cast<QList<NblInstallationRef>*>(ref->data);
-                return list->count();
-            },
-            [](QQmlListProperty<NblInstallationRef>* ref, qsizetype at) -> NblInstallationRef* {
-                QList<NblInstallationRef>* list = static_cast<QList<NblInstallationRef>*>(ref->data);
-                if(at > list->count()) return nullptr;
-                return list->data() + at;
-            }
-        );
-    }
-
-    Q_INVOKABLE i32 loadInstallations();
-
-signals:
-
-    void installationsUpdated();
 
 private:
     
@@ -90,6 +65,7 @@ private:
     QString _mIcon;
     bool _mMultiLine;
 
-    QList<NblInstallationRef> _mInstallations;
-
 };
+
+
+

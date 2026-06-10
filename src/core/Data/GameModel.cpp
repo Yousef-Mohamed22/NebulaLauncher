@@ -53,25 +53,13 @@ namespace {
 }
 
 
-
-nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& meta, i64* outGameId) {
+nbl::Result nbl::addDisplay(DatabaseConnection *connection, const DisplayMeta &meta, i64 *outDisplayId) {
 
     static nbl::PreparedStatement _displayStmt;
     if(!_displayStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO display (title, description, poster, banner, icon, logo) VALUES (?1, ?2, ?3, ?4, ?5, ?6);
+INSERT INTO display (title, description, poster, banner, icon, logo, logoPosition) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
         )", &_displayStmt));
-    }
-
-    static nbl::PreparedStatement _addGameStmt;
-    if(!_addGameStmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-INSERT INTO game (steamId, igdbId, releaseDate, rating, dId) VALUES (?1, ?2, ?3, ?4, last_insert_rowid());
-        )", &_addGameStmt));
-    }
-
-    if(meta.title.empty()) {
-        return nbl::error::ILLEGAL_ARGUMENT;
     }
 
     NBL_CHECK(_displayStmt.bindString(1, meta.title));
@@ -80,16 +68,44 @@ INSERT INTO game (steamId, igdbId, releaseDate, rating, dId) VALUES (?1, ?2, ?3,
     NBL_CHECK(_displayStmt.bindStringOrNull(4, meta.banner));
     NBL_CHECK(_displayStmt.bindStringOrNull(5, meta.icon));
     NBL_CHECK(_displayStmt.bindStringOrNull(6, meta.logo));
+    NBL_CHECK(_displayStmt.bindInt(7, static_cast<i32>(meta.logoPosition)));
 
+    return connection->execute(&_displayStmt, nullptr, nullptr, outDisplayId);
+}
+
+nbl::Result nbl::removeDisplay(nbl::DatabaseConnection* connection, i64 displayId) {
+
+    static nbl::PreparedStatement _removeDisplayStmt;
+    if(!_removeDisplayStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+DELETE FROM display WHERE dId = ?;
+        )", &_removeDisplayStmt));
+    }
+
+    NBL_CHECK(_removeDisplayStmt.bindInt(1, displayId));
+    return connection->execute(&_removeDisplayStmt, nullptr, nullptr);
+}
+
+
+nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& meta, i64* outGameId) {
+
+    static nbl::PreparedStatement _addGameStmt;
+    if(!_addGameStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+INSERT INTO game (steamId, igdbId, releaseDate, rating, dId) VALUES (?1, ?2, ?3, ?4, ?5);
+        )", &_addGameStmt));
+    }
+
+    if(meta.dId == 0) {
+        return nbl::error::ILLEGAL_ARGUMENT;
+    }
     NBL_CHECK(_addGameStmt.bindUint(1, meta.steamId));
     NBL_CHECK(_addGameStmt.bindUint(2, meta.igdbId));
     NBL_CHECK(_addGameStmt.bindUint(3, meta.releaseDate));
     NBL_CHECK(_addGameStmt.bindFloat(4, meta.rating));
+    NBL_CHECK(_addGameStmt.bindInt(5, meta.dId));
 
-    nbl::Array<nbl::PreparedStatement*, 2> statements{ &_displayStmt, &_addGameStmt };
-
-    NBL_CHECK(connection->doTransaction(statements, outGameId));
-    return nbl::Result::SUCCESS;
+    return connection->execute(&_addGameStmt, nullptr, nullptr, outGameId); 
 }
 
 nbl::Result nbl::removeGame(DatabaseConnection* connection, i64 gameId) {

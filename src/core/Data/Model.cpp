@@ -210,8 +210,8 @@ VALUES
 INSERT INTO filter 
 (fId,name,icon,criteria,multiLine) 
 VALUES
-(1,'All Installations','󰮂','{"sort_by":"title","sort_order":"ascending"}',1),
-(2,'Recently Played','','{"sort_by":"last_played","sort_order":"descending"}',0);
+(1,'All Installations','󰮂','{"sortBy":"title","sortOrder":"ascending"}',1),
+(2,'Recently Played','','{"sortBy":"last_played","sortOrder":"descending"}',0);
 
 INSERT INTO tab_filter
 (tabId,fId,priority)
