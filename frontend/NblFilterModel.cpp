@@ -32,7 +32,7 @@ QHash<int, QByteArray> NblFilterModel::roleNames() const {
 
 void NblFilterModel::loadNextPage() {
 
-    if(_mData.size() < _mTotalRows && !_mIsLoading) {
+    if(!_mAllLoaded && !_mIsLoading) {
         _mCurrentPage++;
         emit currentPageChanged();
         _fetchPageData();
@@ -44,29 +44,17 @@ void NblFilterModel::refresh() {
     beginResetModel();
 
     _mData.clear();
+    _mAllLoaded = false;
     _mCurrentPage = 1;
-    _fetchTotalCount();
     _fetchPageData();
 
     endResetModel();
 
 }
 
-void NblFilterModel::_fetchTotalCount() {
-
-    nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
-
-    u64 count;
-    if(nbl::countFilters(db, &count).error()) {
-        _mTotalRows = 0;
-    }
-
-    _mTotalRows = count;
-}
-
 void NblFilterModel::_fetchPageData() {
 
-    if(_mIsLoading) return;
+    if(_mAllLoaded || _mIsLoading) return;
     _mIsLoading = true;
 
     emit isLoadingChanged();
@@ -98,6 +86,10 @@ void NblFilterModel::_fetchPageData() {
             _mData.append(ref);
         }
         endInsertRows();
+    }
+
+    if(found.size() < limit) {
+        _mAllLoaded = true;
     }
 
     _mIsLoading = false;

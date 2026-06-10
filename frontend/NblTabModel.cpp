@@ -38,7 +38,7 @@ QHash<int, QByteArray> NblTabModel::roleNames() const {
 
 void NblTabModel::loadNextPage() {
 
-    if(_mData.size() < _mTotalRows && !_mIsLoading) {
+    if(!_mAllLoaded && !_mIsLoading) {
         _mCurrentPage++;
         emit currentPageChanged();
         _fetchPageData();
@@ -50,29 +50,17 @@ void NblTabModel::refresh() {
     beginResetModel();
 
     _mData.clear();
+    _mAllLoaded = false;
     _mCurrentPage = 1;
-    _fetchTotalCount();
     _fetchPageData();
 
     endResetModel();
 
 }
 
-void NblTabModel::_fetchTotalCount() {
-
-    nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
-
-    u64 count;
-    if(nbl::countFilters(db, &count).error()) {
-        _mTotalRows = 0;
-    }
-
-    _mTotalRows = count;
-}
-
 void NblTabModel::_fetchPageData() {
 
-    if(_mIsLoading) return;
+    if(_mIsLoading || _mAllLoaded) return;
     _mIsLoading = true;
 
     emit isLoadingChanged();
@@ -105,6 +93,9 @@ void NblTabModel::_fetchPageData() {
             _mData.append(ref);
         }
         endInsertRows();
+    }
+    if(found.size() < _mPageSize) {
+        _mAllLoaded = true;
     }
 
     _mIsLoading = false;

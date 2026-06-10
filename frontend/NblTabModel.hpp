@@ -14,7 +14,6 @@ class NblTabModel : public QAbstractListModel {
     QML_ELEMENT
 
     Q_PROPERTY(qint64 tabId READ tabId WRITE setTabId NOTIFY tabIdChanged)
-    Q_PROPERTY(int totalRows READ totalRows NOTIFY totalRowsChanged)
     Q_PROPERTY(int currentPage READ currentPage NOTIFY currentPageChanged)
     Q_PROPERTY(int pageSize READ pageSize WRITE setPageSize NOTIFY pageSizeChanged)
     Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
@@ -24,19 +23,19 @@ public:
     explicit NblTabModel(QObject* parent = nullptr) :
         QAbstractListModel(parent),
         _mTabId(0),
-        _mTotalRows(0),
         _mCurrentPage(0),
         _mPageSize(0),
-        _mIsLoading(false)
+        _mIsLoading(false),
+        _mAllLoaded(false)
     { }
 
     NblTabModel(i64 tabId, QObject* parent = nullptr) :
         QAbstractListModel(parent),
         _mTabId(tabId),
-        _mTotalRows(0),
         _mCurrentPage(1),
         _mPageSize(10),
-        _mIsLoading(false)
+        _mIsLoading(false),
+        _mAllLoaded(false)
     { }
 
     enum Roles {
@@ -53,7 +52,6 @@ public:
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    quint64 totalRows() const { return _mTotalRows; }
     quint64 currentPage() const { return _mCurrentPage; }
     quint64 pageSize() const { return _mPageSize; }
     bool isLoading() const { return _mIsLoading; }
@@ -84,15 +82,14 @@ signals:
 
 private:
 
-    void _fetchTotalCount();
     void _fetchPageData();
 
     qint64 _mTabId;
 
-    quint64 _mTotalRows;
     quint64 _mCurrentPage;
     quint64 _mPageSize;
     bool _mIsLoading;
+    bool _mAllLoaded;
 
     QList<NblFilterRef> _mData;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Core/Types.hpp>
+#include <Core/Math.hpp>
 #include <Platform/Logging.hpp>
 
 #include <QObject>
@@ -14,7 +15,6 @@ class NblFilterModel : public QAbstractListModel {
     QML_ELEMENT
 
     Q_PROPERTY(qint64 filterId READ filterId WRITE setFilterId NOTIFY filterIdChanged)
-    Q_PROPERTY(int totalRows READ totalRows NOTIFY totalRowsChanged)
     Q_PROPERTY(int currentPage READ currentPage NOTIFY currentPageChanged)
     Q_PROPERTY(int pageSize READ pageSize WRITE setPageSize NOTIFY pageSizeChanged)
     Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
@@ -24,19 +24,19 @@ public:
     explicit NblFilterModel(QObject* parent = nullptr) :
         QAbstractListModel(parent),
         _mFilterId(0),
-        _mTotalRows(0),
         _mCurrentPage(0),
-        _mPageSize(0),
-        _mIsLoading(false)
+        _mPageSize(10),
+        _mIsLoading(false),
+        _mAllLoaded(false)
     { }
 
     NblFilterModel(i64 filterId, QObject* parent = nullptr) :
         QAbstractListModel(parent),
         _mFilterId(filterId),
-        _mTotalRows(0),
         _mCurrentPage(1),
         _mPageSize(10),
-        _mIsLoading(false)
+        _mIsLoading(false),
+        _mAllLoaded(false)
     { }
 
     enum Roles {
@@ -51,12 +51,13 @@ public:
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    quint64 totalRows() const { return _mTotalRows; }
     quint64 currentPage() const { return _mCurrentPage; }
     quint64 pageSize() const { return _mPageSize; }
     bool isLoading() const { return _mIsLoading; }
 
-    void setPageSize(int size) { _mPageSize = size; }
+    void setPageSize(int size) { 
+        _mPageSize = nbl::max(1, size);
+    }
 
     qint64 filterId() const {
         return _mFilterId;
@@ -82,15 +83,14 @@ signals:
 
 private:
 
-    void _fetchTotalCount();
     void _fetchPageData();
 
     qint64 _mFilterId;
 
-    quint64 _mTotalRows;
     quint64 _mCurrentPage;
     quint64 _mPageSize;
     bool _mIsLoading;
+    bool _mAllLoaded;
 
     QList<NblInstallationRef> _mData;
 

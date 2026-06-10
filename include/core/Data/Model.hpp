@@ -395,6 +395,9 @@ Result getInstallationMeta(DatabaseConnection* connection, i64 installationId, I
 Result getInstallationCommand(DatabaseConnection* connection, i64 installationId, InstallationCallback callback, void* userData);
 
 
+Result countInstallationTags(DatabaseConnection* connection, i64 installationId, u64* outCount);
+Result getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback, void* userData);
+
 /**
  * \brief Looks up installations in the database that match the specified criteria and invokes a callback for each matching installation
  * \param connection The database connection to use for the query

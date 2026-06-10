@@ -9,6 +9,8 @@
 #include <Data/Model.hpp>
 #include <Platform/StringBuilder.hpp>
 #include <Platform/Time.hpp>
+#include "Core/Result.hpp"
+#include "Data/Database.hpp"
 
 
 nbl::Result nbl::addInstallation(DatabaseConnection* connection, i64 gameId, StringView installPath, i64* outInstallationId) {
@@ -326,6 +328,85 @@ OFFSET ?10;
 
     return nbl::Result::SUCCESS;
 }
+
+
+nbl::Result nbl::countInstallationTags(nbl::DatabaseConnection* connection, i64 installationId, u64* outCount) {
+
+    static nbl::PreparedStatement _countInstallationTagsStmt;
+    if(!_countInstallationTagsStmt.isValid(connection)) {
+
+        NBL_CHECK(connection->prepare(R"(
+WITH 
+	parentGame AS (
+		SELECT gId FROM installation WHERE iId = ?1
+	)
+SELECT COUNT(DISTINCT tag.tId)
+FROM tag
+JOIN tag_closure ON tag_closure.ancestorId = tag.tId
+WHERE descendantId IN (SELECT tId FROM installation_tag WHERE iId = ?1)
+   OR descendantId IN (SELECT tId FROM game_tag WHERE game_tag.gId = (SELECT gId FROM parentGame));
+        )", &_countInstallationTagsStmt));
+    }
+
+    NBL_CHECK(_countInstallationTagsStmt.bindInt(1, installationId));
+
+    return connection->execute(&_countInstallationTagsStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount == 0) return nbl::error::IO_ERROR;
+
+        *static_cast<u64*>(userData) = columnValues[0].uintValue();
+
+        return nbl::Result::SUCCESS;
+    }, outCount);
+
+
+}
+
+
+nbl::Result nbl::getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback, void* userData) {
+
+    static nbl::PreparedStatement _getInstallationTagsStmt;
+    if(!_getInstallationTagsStmt.isValid(connection)) {
+
+        NBL_CHECK(connection->prepare(R"(
+WITH 
+	parentGame AS (
+		SELECT gId FROM installation WHERE iId = ?1
+	)
+SELECT tag.name, tag.color
+FROM tag
+JOIN tag_closure ON tag_closure.ancestorId = tag.tId
+WHERE descendantId IN (SELECT tId FROM installation_tag WHERE iId = ?1)
+   OR descendantId IN (SELECT tId FROM game_tag WHERE game_tag.gId = (SELECT gId FROM parentGame)) 
+GROUP BY tag.tId
+LIMIT ?2 OFFSET ?3;
+        )", &_getInstallationTagsStmt));
+    }
+
+    NBL_CHECK(_getInstallationTagsStmt.bindInt(1, installationId));
+    NBL_CHECK(_getInstallationTagsStmt.bindUint(2, limit));
+    NBL_CHECK(_getInstallationTagsStmt.bindUint(3, offset));
+
+    struct _QueryData {
+        nbl::TagCallback callback;
+        void* userData;
+    };
+    _QueryData queryData{callback, userData};
+
+    return connection->execute(&_getInstallationTagsStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount != 2) {
+            return nbl::error::IO_ERROR;
+        }
+        if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
+            return nbl::error::IO_ERROR;
+        }
+        _QueryData* data = static_cast<_QueryData*>(userData);
+        return data->callback(data->userData, columnValues[0].textValue, columnValues[1].intValue);
+    }, &queryData);
+
+}
+
 
 nbl::Result nbl::markInstallationJustPlayed(DatabaseConnection* connection, i64 installationId) {
 

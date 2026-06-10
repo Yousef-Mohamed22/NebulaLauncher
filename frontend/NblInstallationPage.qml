@@ -180,21 +180,23 @@ Item {
                     Flow {
 
                         width: parent.width
-                        spacing: 4
+                        spacing: 8
 
-                        NblTag { text: "Test"; color: "red" }
-                        NblTag { text: "Test"; color: "blue" }
-                        NblTag { text: "Test"; color: "green" }
-                        NblTag { text: "Test"; color: "yellow" }
-                        NblTag { text: "Test"; color: "white" }
-                        NblTag { text: "Test"; color: "black" }
-                        NblTag { text: "Test"; color: "orange" }
-                        NblTag { text: "A really long tag"; color: "purple" }
+                        Repeater {
+                            model: NblInstallationTagModel {
+                                installationId: root.details.installationId;
+                                pageSize: 8
+                            }
+                        
+                            NblTag {
+                                required property var model;
+                                color: model.color
+                                text: model.name
+                            }
+                        }
                     }
                 }
-
             }
-
         }
     }
 }

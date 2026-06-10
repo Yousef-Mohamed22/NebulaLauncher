@@ -36,6 +36,7 @@ Item {
 
                 model: NblFilterModel {
                     id: filterModel
+                    pageSize: 10
                     filterId: root.filterId
                 }
 
@@ -68,6 +69,7 @@ Item {
 
                 model: NblFilterModel {
                     id: filterModel
+                    pageSize: 10
                     filterId: root.filterId
                 }
 

@@ -172,8 +172,6 @@ TEST(Game, LookupSingleGame) {
         &connection, {}, 
         [](void* userData, const nbl::GameMeta& meta) -> nbl::Result {
 
-        nbl::log(nbl::LogLevel::INFO, "Found game: ", meta.title);
-
         if(meta.title == "Test Game" 
         && meta.description == "A test game" 
         && meta.poster == "poster.jpg" 
