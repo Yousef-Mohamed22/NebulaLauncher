@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
+import QtQuick.Controls
 
 Item {
 
@@ -10,7 +11,7 @@ Item {
     ColumnLayout {
 
         width: parent.width
-
+        height: parent.height
         spacing: 8
 
         Item {
@@ -62,8 +63,6 @@ Item {
                 anchors.horizontalCenter: root.details.logoPosition == 1 ? parent.horizontalCenter : undefined
                 anchors.right: root.details.logoPosition == 2 ? parent.right : undefined
 
-                //anchors.horizontalCenter: parent.horizontalCenter
-
                 Image {
                     id: logo
                     source: "file://" + ApplicationContext.dataFolder + "/media/logo/" + root.details.logo
@@ -76,26 +75,126 @@ Item {
             }
         }
 
+
         RowLayout {
 
-            Layout.fillWidth: true
-            Layout.preferredHeight: 48
             Layout.leftMargin: 8
+            Layout.fillHeight: true
 
-            NblLaunchButton {
-                Layout.topMargin: -24
-                details: root.details
-            }
+            spacing: 8
 
-            // Spacer
-            Item { Layout.fillWidth: true }
+            Column {
 
-            NblIconButton {
-                icon: ""
-                onClicked: {
-                    console.log("Clicked")
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+
+                spacing: 16
+
+                RowLayout {
+
+                    width: parent.width
+                    height: 48
+
+                    anchors.leftMargin: 8
+                    spacing: 8
+
+                    NblLaunchButton {
+                        Layout.topMargin: -24
+                        details: root.details
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    NblIconButton {
+                        icon: ""
+                        onClicked: {
+                            console.log("Clicked favorite")
+                        }
+                    }
+
+                    NblIconButton {
+                        icon: ""
+                        onClicked: {
+                            console.log("Clicked Folder")
+                        }
+                    }
+
+                    NblIconButton {
+                        icon: ""
+                        onClicked: {
+                            console.log("Clicked Game Settings")
+                        }
+                    }
+                }
+
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 24
+                    font.weight: 500
+                    color: Theme.colors.text
+                    text: root.details.title
+                }
+
+                Label {
+
+                    width: parent.width
+
+                    font.family: Theme.font
+                    font.pixelSize: 16
+                    font.weight: 400
+                    wrapMode: Text.WordWrap
+
+                    color: Theme.colors.textDim
+                    text: root.details.description
                 }
             }
+
+            Item {
+
+                Layout.fillHeight: true
+                Layout.preferredWidth: 300
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: Theme.colors.layer1
+                    border.width: 2
+                    border.color: Theme.colors.border
+                    radius: 8
+                }
+
+                Column {
+
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    spacing: 8
+
+                    Label {
+                        font.family: Theme.font
+                        font.pixelSize: 16
+                        font.weight: 600
+                        color: Theme.colors.text
+                        text: "Tags"
+                    }
+
+                    Flow {
+
+                        width: parent.width
+                        spacing: 4
+
+                        NblTag { text: "Test"; color: "red" }
+                        NblTag { text: "Test"; color: "blue" }
+                        NblTag { text: "Test"; color: "green" }
+                        NblTag { text: "Test"; color: "yellow" }
+                        NblTag { text: "Test"; color: "white" }
+                        NblTag { text: "Test"; color: "black" }
+                        NblTag { text: "Test"; color: "orange" }
+                        NblTag { text: "A really long tag"; color: "purple" }
+                    }
+                }
+
+            }
+
         }
     }
 }

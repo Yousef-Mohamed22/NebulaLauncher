@@ -1,5 +1,7 @@
 #include "ApplicationContext.hpp"
 #include "NblInstallationDetails.hpp"
+#include "Platform/Arena.hpp"
+#include "Platform/File.hpp"
 
 #include <Core/Result.hpp>
 #include <Core/String.hpp>
@@ -160,7 +162,12 @@ nbl::Result ApplicationContext::_reload() {
 
     if(!_mConnection.isValid()) {
 
-        NBL_CHECK(nbl::DatabaseConnection::open("nebula.db", &_mConnection));
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::StringView path;
+
+        NBL_CHECK(nbl::StringBuilder(&frame).append(nbl::getDataDirectory()).append("/NebulaLauncher/nebula.db").build(&path));
+
+        NBL_CHECK(nbl::DatabaseConnection::open(path, &_mConnection));
         NBL_CHECK(nbl::initDatabase(&_mConnection));
     }
 

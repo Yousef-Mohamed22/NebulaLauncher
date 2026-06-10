@@ -81,14 +81,8 @@ Window {
     }
 
     function reloadTab() {
-        while(pageLoader.depth > 1) {
-            pageLoader.pop()
-        }
-
         if(pageLoader.depth == 1 && pageLoader.currentItem.tabId) {
             pageLoader.currentItem.refresh()
-        } else if(ApplicationContext.allTabs.length > 0) {
-            openTab(ApplicationContext.allTabs[0])
         }
     }
 
