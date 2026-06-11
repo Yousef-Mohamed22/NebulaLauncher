@@ -128,7 +128,7 @@ nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64
     static nbl::PreparedStatement _getFiltersForTabStmt;
     if(!_getFiltersForTabStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT filter.fId, filter.name, filter.icon, filter.multiLine
+SELECT filter.fId, filter.name, filter.icon, filter.multiLine, filter.showTitles, filter.useIcons
 FROM filter
 JOIN tab_filter ON filter.fId = tab_filter.fId
 WHERE tab_filter.tabId = ?1
@@ -150,20 +150,26 @@ OFFSET ?3;
 
     return connection->execute(&_getFiltersForTabStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 4) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in get filters for tab query result, but got ", columnCount);
+        if(columnCount != 6) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 6 columns in get filters for tab query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
 
         _GetFiltersForTabQueryData* queryData = static_cast<_GetFiltersForTabQueryData*>(userData);
     
+        nbl::FilterMeta meta = {
+            .filterId = columnValues[0].intValue, 
+            .name = columnValues[1].textValue, 
+            .icon = columnValues[2].textValue, 
+            .multiLine = columnValues[3].intValue != 0,
+            .showTitles = columnValues[4].intValue != 0,
+            .useIcons = columnValues[5].intValue != 0,
+            .criteria = {}
+        };
+
         return queryData->callback(
             queryData->userData, 
-            columnValues[0].intValue, 
-            columnValues[1].textValue, 
-            columnValues[2].textValue, 
-            {}, 
-            columnValues[3].intValue != 0
+            meta
         );
     }, &queryData);
 

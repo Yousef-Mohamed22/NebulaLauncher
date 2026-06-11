@@ -42,7 +42,9 @@ public:
         IdRole,
         NameRole,
         IconRole,
-        MultiLineRole
+        MultiLineRole,
+        ShowTitlesRole,
+        UseIconsRole
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override {

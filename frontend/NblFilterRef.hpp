@@ -15,6 +15,8 @@ class NblFilterRef : public QObject {
     Q_PROPERTY(QString name READ name CONSTANT)
     Q_PROPERTY(QString icon READ icon CONSTANT)
     Q_PROPERTY(bool multiLine READ multiLine CONSTANT)
+    Q_PROPERTY(bool showTitles READ showTitles CONSTANT)
+    Q_PROPERTY(bool useIcons READ useIcons CONSTANT)
 
 public:
 
@@ -23,15 +25,19 @@ public:
         _mFilterId(0),
         _mName{},
         _mIcon{},
-        _mMultiLine(false)
+        _mMultiLine(false),
+        _mShowTitles(false),
+        _mUseIcons(false)
     {}
 
-    NblFilterRef(i64 id, QString name, QString icon, bool multiLine, QObject* parent = nullptr) :
+    NblFilterRef(i64 id, QString name, QString icon, bool multiLine, bool showTitles, bool useIcons, QObject* parent = nullptr) :
         QObject(parent),
         _mFilterId(id),
         _mName(name),
         _mIcon(icon),
-        _mMultiLine(multiLine)
+        _mMultiLine(multiLine),
+        _mShowTitles(showTitles),
+        _mUseIcons(useIcons)
     { }
 
     NblFilterRef(const NblFilterRef& other) :
@@ -39,7 +45,9 @@ public:
         _mFilterId(other._mFilterId),
         _mName(other._mName),
         _mIcon(other._mIcon),
-        _mMultiLine(other._mMultiLine)
+        _mMultiLine(other._mMultiLine),
+        _mShowTitles(other._mShowTitles),
+        _mUseIcons(other._mUseIcons)
     { }
 
     NblFilterRef& operator=(const NblFilterRef& other) {
@@ -48,6 +56,8 @@ public:
         _mName = other._mName;
         _mIcon = other._mIcon;
         _mMultiLine = other._mMultiLine;
+        _mShowTitles = other._mShowTitles;
+        _mUseIcons = other._mUseIcons;
 
         setParent(other.parent());
         return *this;
@@ -57,6 +67,8 @@ public:
     QString name() { return _mName; }
     QString icon() { return _mIcon; }
     bool multiLine() { return _mMultiLine; }
+    bool showTitles() { return _mShowTitles; }
+    bool useIcons() { return _mUseIcons; }
 
 private:
     
@@ -64,6 +76,8 @@ private:
     QString _mName;
     QString _mIcon;
     bool _mMultiLine;
+    bool _mShowTitles;
+    bool _mUseIcons;
 
 };
 

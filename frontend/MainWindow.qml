@@ -34,11 +34,7 @@ Window {
             Layout.fillHeight: true
             spacing: 8
 
-            Sidebar {
-                id: sidebar
-                mainWindow: root
-                Layout.fillHeight: true
-            }
+            layoutDirection: Qt.RightToLeft
 
             StackView {
                 id: pageLoader
@@ -52,6 +48,12 @@ Window {
                 replaceEnter: null
                 replaceExit: null
             }
+            Sidebar {
+                id: sidebar
+                mainWindow: root
+                Layout.fillHeight: true
+            }
+
         }
     }
 

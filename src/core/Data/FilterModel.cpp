@@ -188,7 +188,7 @@ nbl::Result nbl::getFilter(DatabaseConnection* connection, i64 filterId, FilterC
     static nbl::PreparedStatement _getFilterStmt;
     if(!_getFilterStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT fId, name, icon, criteria, multiLine FROM filter WHERE fId = ?1;
+SELECT fId, name, icon, criteria, multiLine, showTitles, useIcons FROM filter WHERE fId = ?1;
         )", &_getFilterStmt));
     }
 
@@ -201,7 +201,7 @@ SELECT fId, name, icon, criteria, multiLine FROM filter WHERE fId = ?1;
 
     return connection->execute(&_getFilterStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 5) {
+        if(columnCount != 7) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in getFilter query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
@@ -209,16 +209,21 @@ SELECT fId, name, icon, criteria, multiLine FROM filter WHERE fId = ?1;
         _GetFilterQueryData* queryData = static_cast<_GetFilterQueryData*>(userData);
     
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-        InstallationSearchCriteria criteria;
-        NBL_CHECK(_deserializeCriteria(columnValues[3].textValue, &frame, &criteria));
+        FilterMeta meta = {
+            .filterId = columnValues[0].intValue,
+            .name = columnValues[1].textValue,
+            .icon = columnValues[2].textValue,
+            .multiLine = columnValues[4].intValue != 0,
+            .showTitles = columnValues[5].intValue != 0,
+            .useIcons = columnValues[6].intValue != 0,
+            .criteria = {},
+        };
+
+        NBL_CHECK(_deserializeCriteria(columnValues[3].textValue, &frame, &meta.criteria));
         
         return queryData->callback(
             queryData->userData, 
-            columnValues[0].intValue, 
-            columnValues[1].textValue, 
-            columnValues[2].textValue, 
-            criteria, 
-            columnValues[4].intValue != 0
+            meta
         );
     }, &queryData);
 }
@@ -258,15 +263,15 @@ nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i6
         void* userData;
      } queryData{ connection, callback, offset, limit, userData };
 
-    NBL_CHECK(getFilter(connection, tabId, [](void* userData, i64 filterId, StringView name, StringView icon, const InstallationSearchCriteria& criteria, bool multiLine) -> nbl::Result {
+    NBL_CHECK(getFilter(connection, tabId, [](void* userData, const nbl::FilterMeta& meta) -> nbl::Result {
 
         _GetFilterQueryData* queryData = static_cast<_GetFilterQueryData*>(userData);
 
-        InstallationSearchCriteria updatedCriteria = criteria;
+        InstallationSearchCriteria updatedCriteria = meta.criteria;
         updatedCriteria.offset = queryData->offset;
 
         if(queryData->limit > 0) {
-            updatedCriteria.limit = updatedCriteria.limit > 0 ? nbl::min(queryData->limit, criteria.limit) : queryData->limit;
+            updatedCriteria.limit = updatedCriteria.limit > 0 ? nbl::min(queryData->limit, meta.criteria.limit) : queryData->limit;
         }
 
         return lookupInstallations(

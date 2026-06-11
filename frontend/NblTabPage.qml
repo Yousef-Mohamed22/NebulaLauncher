@@ -29,6 +29,9 @@ Item {
             name: model.name
             icon: model.icon
             multiLine: model.multiLine
+            showTitles: model.showTitles
+            useIcons: model.useIcons
+
             mainWindow: root.mainWindow
         }
 

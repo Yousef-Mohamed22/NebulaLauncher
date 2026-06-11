@@ -15,8 +15,12 @@ QVariant NblFilterModel::data(const QModelIndex& index, int role) const {
     switch(role) {
         case IdRole:
             return static_cast<qint64>(ref.installationId());
+        case TitleRole:
+            return ref.title();
         case PosterRole:
             return ref.poster();
+        case IconRole:
+            return ref.icon();
         default:
             return QVariant();
     }
@@ -25,7 +29,9 @@ QVariant NblFilterModel::data(const QModelIndex& index, int role) const {
 QHash<int, QByteArray> NblFilterModel::roleNames() const {
     QHash<int, QByteArray> roles = {};
     roles[IdRole] = "id";
+    roles[TitleRole] = "title";
     roles[PosterRole] = "poster";
+    roles[IconRole] = "icon";
     return roles;
 }
 
@@ -69,7 +75,8 @@ void NblFilterModel::_fetchPageData() {
     if(nbl::lookupInstallationsForFilter(db, _mFilterId, [](void* userData, const nbl::InstallationMeta& meta) -> nbl::Result {
         NblInstallationRef ref(meta.id, 
             QString::fromUtf8(meta.title.data, meta.title.length), 
-            QString::fromUtf8(meta.poster.data, meta.poster.length)
+            QString::fromUtf8(meta.poster.data, meta.poster.length),
+            QString::fromUtf8(meta.icon.data, meta.icon.length)
         );
         static_cast<QList<NblInstallationRef>*>(userData)->append(ref);
         return nbl::Result::SUCCESS;

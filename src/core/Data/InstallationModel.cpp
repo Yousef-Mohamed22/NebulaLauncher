@@ -171,7 +171,7 @@ WITH
         WHERE NOT ?2 IS NULL
           AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
     )
-SELECT installation.iId, display.title, display.poster, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, game.releaseDate, game.rating
+SELECT installation.iId, display.title, display.poster, display.icon, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, game.releaseDate, game.rating
 FROM installation
 JOIN game ON installation.gId = game.gId
 JOIN display ON display.dId = IFNULL(installation.dId, game.dId)
@@ -297,12 +297,13 @@ OFFSET ?10;
         if(columnValues[0].type != DataType::INTEGER ||
            columnValues[1].type != DataType::TEXT ||
            columnValues[2].type != DataType::TEXT ||
-           columnValues[3].type != DataType::INTEGER ||
+           columnValues[3].type != DataType::TEXT ||
            columnValues[4].type != DataType::INTEGER ||
            columnValues[5].type != DataType::INTEGER ||
            columnValues[6].type != DataType::INTEGER ||
            columnValues[7].type != DataType::INTEGER ||
-           columnValues[8].type != DataType::FLOAT) {
+           columnValues[8].type != DataType::INTEGER ||
+           columnValues[9].type != DataType::FLOAT) {
             return nbl::error::IO_ERROR;
         }
 
@@ -312,12 +313,13 @@ OFFSET ?10;
             .id = columnValues[0].intValue,
             .title = columnValues[1].textValue,
             .poster = columnValues[2].textValue,
-            .playTime = columnValues[3].uintValue(),
-            .playCount = columnValues[4].uintValue(),
-            .lastPlayed = columnValues[5].uintValue(),
-            .added = columnValues[6].uintValue(),
-            .releaseDate = columnValues[7].uintValue(),
-            .rating = columnValues[8].floatValue
+            .icon = columnValues[3].textValue,
+            .playTime = columnValues[4].uintValue(),
+            .playCount = columnValues[5].uintValue(),
+            .lastPlayed = columnValues[6].uintValue(),
+            .added = columnValues[7].uintValue(),
+            .releaseDate = columnValues[8].uintValue(),
+            .rating = columnValues[9].floatValue
         };
 
         return queryData->callback(

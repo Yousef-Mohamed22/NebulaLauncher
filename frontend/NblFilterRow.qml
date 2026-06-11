@@ -9,6 +9,11 @@ Item {
     required property string name
     required property string icon
     required property bool multiLine
+    required property bool useIcons
+    required property bool showTitles
+
+    property bool showRowTitle: true
+
     required property MainWindow mainWindow
 
     implicitHeight: content.height
@@ -20,6 +25,8 @@ Item {
         width: parent.width
 
         Row {
+
+            visible: root.showRowTitle
 
             padding: 8
             spacing: 8
@@ -40,9 +47,14 @@ Item {
         }
 
         NblInstallationList {
+
+            id: list
+
             filterId: root.filterId
             multiLine: root.multiLine
             mainWindow: root.mainWindow
+            useIcons: root.useIcons
+            showTitles: root.showTitles
         }
         
     }

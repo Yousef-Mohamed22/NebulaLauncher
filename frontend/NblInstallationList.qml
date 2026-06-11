@@ -7,17 +7,26 @@ Item {
     id: root
     required property int filterId
     required property bool multiLine
+    required property bool showTitles
+    required property bool useIcons
+    
     required property MainWindow mainWindow
+
+
+    property real rowHeight: (useIcons ? 180 : 270) + (showTitles ? 24 : 0)
 
     implicitHeight: content.height
     width: parent.width
 
     Item {
 
+        anchors.fill: root
         id: content
         height: loader.item != null ? loader.item.height : 0
 
         Loader {
+
+            anchors.fill: parent
             id: loader
             sourceComponent: root.multiLine ? multiLineComponent : singleLineComponent
             active: true
@@ -29,7 +38,10 @@ Item {
             ListView {
                 id: singleLineList
 
-                height: 270 + 16 + 8
+                x: 8
+                spacing: 16
+
+                height: root.rowHeight
                 width: root.width
 
                 orientation: ListView.Horizontal
@@ -40,11 +52,22 @@ Item {
                     filterId: root.filterId
                 }
 
-                delegate: NblPosterImage {
-                    required property var model
-                    installationId: model.id
-                    poster: model.poster
-                    mainWindow: root.mainWindow
+                delegate: NblInstallationButton {
+                    required property var modelData
+
+                    width: 180
+                    height: singleLineList.height
+
+                    installationId: modelData.id
+                    imageSource: root.getImageSource(modelData)
+                    title: modelData.title
+                    aspectRatio: root.useIcons ? 1 : (2/3)
+                    showTitle: root.showTitles
+                    titleAlignment: root.useIcons ? Qt.AlignHCenter : Qt.AlignLeft
+
+                    onClicked: {
+                        root.mainWindow.openInstallationDetails(modelData.id)
+                    }
                 }
 
                 onAtXEndChanged: {
@@ -65,7 +88,7 @@ Item {
                 interactive: false
 
                 cellWidth: 180 + 16
-                cellHeight: 270 + 16
+                cellHeight: root.rowHeight + 16
 
                 model: NblFilterModel {
                     id: filterModel
@@ -73,11 +96,28 @@ Item {
                     filterId: root.filterId
                 }
 
-                delegate: NblPosterImage {
-                    required property var model
-                    installationId: model.id
-                    poster: model.poster
-                    mainWindow: root.mainWindow
+                delegate: Item {
+                    required property var modelData
+
+                    width: multiLineList.cellWidth
+                    height: multiLineList.cellHeight
+
+                    NblInstallationButton {
+
+                        anchors.fill: parent
+                        anchors.margins: 8
+
+                        installationId: parent.modelData.id
+                        imageSource: root.getImageSource(parent.modelData)
+                        title: parent.modelData.title
+                        aspectRatio: root.useIcons ? 1 : (2/3)
+                        showTitle: root.showTitles
+                        titleAlignment: root.useIcons ? Qt.AlignHCenter : Qt.AlignLeft
+
+                        onClicked: {
+                            root.mainWindow.openInstallationDetails(parent.modelData.id)
+                        }
+                    }
                 }
 
                 onAtYEndChanged: {
@@ -88,5 +128,12 @@ Item {
 
             }
         }
+    }
+
+    function getImageSource(modelData) {
+
+        if(root.useIcons) return "file://" + ApplicationContext.dataFolder + "/media/icon/" + modelData.icon
+        return "file://" + ApplicationContext.dataFolder + "/media/poster/" + modelData.poster
+
     }
 }

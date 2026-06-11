@@ -21,6 +21,10 @@ QVariant NblTabModel::data(const QModelIndex& index, int role) const {
             return ref.icon();
         case MultiLineRole:
             return ref.multiLine();
+        case UseIconsRole:
+            return ref.useIcons();
+        case ShowTitlesRole:
+            return ref.showTitles();
         default:
             return QVariant();
     }
@@ -32,6 +36,8 @@ QHash<int, QByteArray> NblTabModel::roleNames() const {
     roles[NameRole] = "name";
     roles[IconRole] = "icon";
     roles[MultiLineRole] = "multiLine";
+    roles[ShowTitlesRole] = "showTitles";
+    roles[UseIconsRole] = "useIcons";
     return roles;
 }
 
@@ -72,11 +78,13 @@ void NblTabModel::_fetchPageData() {
     
     QList<NblFilterRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::getFiltersForTab(db, _mTabId, offset, limit, [](void* userData, i64 filterId, nbl::StringView name, nbl::StringView icon, const nbl::InstallationSearchCriteria& criteria, bool multiLine) -> nbl::Result {
-        NblFilterRef ref(filterId, 
-            QString::fromUtf8(name.data, name.length), 
-            QString::fromUtf8(icon.data, icon.length),
-            multiLine
+    if(nbl::getFiltersForTab(db, _mTabId, offset, limit, [](void* userData, const nbl::FilterMeta& meta) -> nbl::Result {
+        NblFilterRef ref(meta.filterId, 
+            QString::fromUtf8(meta.name.data, meta.name.length), 
+            QString::fromUtf8(meta.icon.data, meta.icon.length),
+            meta.multiLine,
+            meta.showTitles,
+            meta.useIcons
         );
         static_cast<QList<NblFilterRef>*>(userData)->append(ref);
         return nbl::Result::SUCCESS;

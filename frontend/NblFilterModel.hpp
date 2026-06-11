@@ -41,7 +41,9 @@ public:
 
     enum Roles {
         IdRole,
-        PosterRole
+        TitleRole,
+        PosterRole,
+        IconRole
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override {

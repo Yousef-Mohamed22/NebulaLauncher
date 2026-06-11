@@ -434,7 +434,17 @@ Result bumpInstallationPlayTime(DatabaseConnection* connection, i64 installation
 // Filters
 // 
 
-typedef Result (*FilterCallback)(void* userData, i64 filterId, StringView name, StringView icon, const InstallationSearchCriteria& criteria, bool multiLine);
+struct FilterMeta {
+    i64 filterId;
+    StringView name;
+    StringView icon;
+    bool multiLine;
+    bool showTitles;
+    bool useIcons;
+    InstallationSearchCriteria criteria;
+};
+
+typedef Result (*FilterCallback)(void* userData, const FilterMeta& meta);
 
 Result countFilters(DatabaseConnection* connection, u64* numFilters);
 
