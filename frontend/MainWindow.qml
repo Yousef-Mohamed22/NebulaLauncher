@@ -61,8 +61,35 @@ Window {
         active: false
     }
 
+    Connections {
+
+        id: modalConnections
+        target: modalLoader.item
+
+        property var applyAction
+
+        function onClose() {
+            modalLoader.active = false
+        }
+
+        function onApply() {
+            applyAction()
+        }
+        
+    }
 
     Component.onCompleted: {
+
+        var settings = ApplicationContext.loadSettings()
+        if(settings.theme) {
+            if(settings.theme.activeColor) {
+                Theme.colors.activeColor = settings.theme.activeColor
+            }
+            if(settings.theme.lightTheme) {
+                Theme.colors.lightMode = settings.theme.lightTheme
+            }
+        }
+
         ApplicationContext.reload()
 
         if(ApplicationContext.allTabs.length > 0) {
@@ -71,14 +98,28 @@ Window {
     }
 
     function beginAddGame() {
-        modalLoader.setSource("AddGameDialog.qml", { "mainWindow": root })
+        modalLoader.setSource("AddGameDialog.qml", { 
+            "mainWindow": root
+        })
+        modalConnections.applyAction = function() { reloadTab() }
         modalLoader.active = true
     }
 
-    function finishAddGame() {
-        modalLoader.active = false
-        reloadTab()
+    function openSettings() {
+        modalLoader.setSource("AppSettingsDialog.qml", { 
+            "mainWindow": root
+        })
+        modalConnections.applyAction = function() { 
+            ApplicationContext.saveSettings({
+                theme: {
+                    activeColor: Theme.colors.activeColor, 
+                    lightTheme: Theme.colors.lightMode
+                }
+            })
+        }
+        modalLoader.active = true
     }
+
 
     function reloadTab() {
         if(pageLoader.depth == 1 && pageLoader.currentItem.tabId) {

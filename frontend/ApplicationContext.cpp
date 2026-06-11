@@ -11,6 +11,7 @@
 
 #include <QString>
 #include <qcontainerfwd.h>
+#include <qjsonparseerror.h>
 #include <qprocess.h>
 
 #include <openssl/evp.h>
@@ -334,4 +335,45 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
     NBL_CHECK(_mConnection.commitTransaction());
 
     return 0;
+}
+
+
+void ApplicationContext::saveSettings(const QVariantMap& settings) {
+
+    QJsonObject obj = QJsonObject::fromVariantMap(settings);
+    QJsonDocument doc(obj);
+
+    QString filePath = dataFolder() + "/frontend.json";
+    QFile file(filePath);
+
+    if(file.open(QIODevice::WriteOnly)) {
+        file.write(doc.toJson(QJsonDocument::Indented));
+        file.close();
+    } else {
+        QByteArray arr = filePath.toUtf8();
+        nbl::log(nbl::LogLevel::ERROR, "Unable to save settings to ", nbl::StringView(arr.length(), arr.data()));
+    }
+}
+
+QVariantMap ApplicationContext::loadSettings() {
+
+    QFile file(dataFolder() + "/frontend.json");
+    if(!file.exists()) {
+        return QVariantMap();
+    }
+
+    if(!file.open(QIODevice::ReadOnly)) {
+        nbl::log(nbl::LogLevel::ERROR, "Unable to load settings file!");
+        return QVariantMap();
+    }
+    
+    QJsonParseError err = {};
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+    
+    if(err.error != QJsonParseError::NoError || !doc.isObject()) {
+        nbl::log(nbl::LogLevel::ERROR, "An error occurred while loading the settings file!");
+        return QVariantMap();
+    }
+
+    return doc.object().toVariantMap();
 }

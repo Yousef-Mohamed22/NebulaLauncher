@@ -19,7 +19,7 @@ Item {
         radius: 8
 
         spread: 4
-        color: "#FF000000"
+        color: Theme.colors.shadow
 
     }
 
@@ -41,14 +41,14 @@ Item {
                 text: ""
                 font.family: Theme.nerdFont
                 font.pixelSize: 28
-                color: Theme.colors.text
+                color: Theme.colors.textOnAccent
             }
             Label {
                 text: "LAUNCH"
                 font.family: Theme.font
                 font.pixelSize: 28
                 font.bold: true
-                color: Theme.colors.text
+                color: Theme.colors.textOnAccent
             }
         }
     }

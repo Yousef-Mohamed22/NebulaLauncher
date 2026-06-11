@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qtmetamacros.h>
 #include <QObject>
 #include <QtQml>
 #include <QProcess>
@@ -110,6 +111,10 @@ public:
     Q_INVOKABLE NblInstallationDetails* getInstallationDetails(i64 installationId);
 
     Q_INVOKABLE int addInstallation(const QVariantMap& params);
+
+    Q_INVOKABLE void saveSettings(const QVariantMap& settings);
+
+    Q_INVOKABLE QVariantMap loadSettings();
 
     nbl::DatabaseConnection* connection() {
         return &_mConnection;

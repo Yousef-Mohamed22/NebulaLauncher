@@ -94,7 +94,7 @@ Item {
                     name: ""
 
                     onClicked: { 
-                        console.log("Clicked settings")
+                        root.mainWindow.openSettings()
                     }
                 }
 
