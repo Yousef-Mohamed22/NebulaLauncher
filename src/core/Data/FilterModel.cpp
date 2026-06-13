@@ -192,7 +192,7 @@ SELECT fId, name, icon, criteria, multiLine, showTitles, useIcons FROM filter WH
         )", &_getFilterStmt));
     }
 
-    NBL_CHECK(_getFilterStmt.bindUint(1, filterId));
+    NBL_CHECK(_getFilterStmt.bindInt(1, filterId));
 
     struct _GetFilterQueryData {
         FilterCallback callback;
@@ -202,7 +202,7 @@ SELECT fId, name, icon, criteria, multiLine, showTitles, useIcons FROM filter WH
     return connection->execute(&_getFilterStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 7) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in getFilter query result, but got ", columnCount);
+            nbl::log(nbl::LogLevel::ERROR, "Expected 7 columns in getFilter query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
 

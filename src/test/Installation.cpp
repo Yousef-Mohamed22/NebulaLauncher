@@ -37,7 +37,7 @@ TEST(Installation, AddInstallation) {
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
 
     i64 installationId;
-    ASSERT_TRUE(nbl::addInstallation(&connection, gameId, "C:/Games/Test Game", &installationId).success());
+    ASSERT_TRUE(nbl::addInstallation(&connection, gameId, 0, "C:/Games/Test Game", &installationId).success());
 }
 
 TEST(Installation, RemoveInstallation) {
@@ -52,7 +52,7 @@ TEST(Installation, RemoveInstallation) {
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
 
     i64 installationId;
-    ASSERT_TRUE(nbl::addInstallation(&connection, gameId, "C:/Games/Test Game", &installationId).success());
+    ASSERT_TRUE(nbl::addInstallation(&connection, gameId, 0, "C:/Games/Test Game", &installationId).success());
 
     ASSERT_TRUE(nbl::removeInstallation(&connection, installationId).success());
 }
@@ -69,7 +69,7 @@ TEST(Installation, GetInstallationMeta) {
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
 
     i64 installationId;
-    ASSERT_TRUE(nbl::addInstallation(&connection, gameId, "C:/Games/Test Game", &installationId).success());
+    ASSERT_TRUE(nbl::addInstallation(&connection, gameId, 0, "C:/Games/Test Game", &installationId).success());
 
     bool found = false;
     ASSERT_TRUE(nbl::getInstallationMeta(&connection, installationId, [](void* userData, const nbl::InstallationMeta& meta) -> nbl::Result {

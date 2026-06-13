@@ -101,7 +101,8 @@ Window {
 
     function beginAddGame() {
         modalLoader.setSource("AddGameDialog.qml", { 
-            "mainWindow": root
+            "mainWindow": root,
+            "showApplyButton": false
         })
         modalConnections.applyAction = function() { reloadTab() }
         modalLoader.active = true
@@ -122,6 +123,14 @@ Window {
         modalLoader.active = true
     }
 
+    function beginEditGame(details) {
+        modalLoader.setSource("AddGameDialog.qml", {
+            "mainWindow": root,
+            "activeInstallation": details
+        })
+        modalConnections.applyAction = function() { reloadTab() }
+        modalLoader.active = true
+    }
 
     function reloadTab() {
         if(pageLoader.depth == 1 && pageLoader.currentItem.tabId) {
@@ -160,7 +169,8 @@ Window {
         let details = ApplicationContext.getInstallationDetails(installationId)
 
         pageLoader.push("NblInstallationPage.qml", {
-            details: details
+            details: details,
+            mainWindow: root
         })
     }
 

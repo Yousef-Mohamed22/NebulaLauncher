@@ -191,6 +191,7 @@ Result addDisplay(DatabaseConnection* connection, const DisplayMeta& meta, i64* 
 
 Result removeDisplay(DatabaseConnection* connection, i64 displayId);
 
+Result updateDisplay(DatabaseConnection* connection, i64 displayId, const DisplayMeta& meta);
 
 //
 // Games
@@ -254,6 +255,8 @@ Result addGame(DatabaseConnection* connection, const GameMeta& meta, i64* outGam
 Result removeGame(DatabaseConnection* connection, i64 gameId);
 
 
+Result updateGame(DatabaseConnection* connection, i64 gameId, const GameMeta& meta);
+
 /**
  * \brief Adds a tag to a game in the database
  * \param connection The database connection to use for the query
@@ -314,6 +317,7 @@ Result lookupGames(
 struct InstallationMeta {
     i64 id;
     i64 dId;
+    i64 gId;
     StringView title;
     StringView description;
     StringView poster;
@@ -328,6 +332,8 @@ struct InstallationMeta {
     u64 added;
     u64 releaseDate;
     f64 rating;
+    u64 steamId;
+    u64 igdbId;
     StringView gameTitle;
     StringView gamePoster;
 };
@@ -363,7 +369,7 @@ typedef Result (*InstallationCallback)(void* userData, const InstallationMeta& m
  * \param outInstallationId An output parameter that will be set to the ID of the newly added installation in the database
  * \return A Result indicating success or failure of the operation
  */
-Result addInstallation(DatabaseConnection* connection, i64 gameId, StringView command, i64* outInstallationId);
+Result addInstallation(DatabaseConnection* connection, i64 displayId, i64 gameId, StringView command, i64* outInstallationId);
 
 
 /**
@@ -373,7 +379,6 @@ Result addInstallation(DatabaseConnection* connection, i64 gameId, StringView co
  * \return A Result indicating success or failure of the operation
  */
 Result removeInstallation(DatabaseConnection* connection, i64 installationId);
-
 
 /**
  * \brief Retrieves the metadata of an installation by its ID and fills an InstallationMeta structure with the installation's information
@@ -393,6 +398,8 @@ Result getInstallationMeta(DatabaseConnection* connection, i64 installationId, I
  * \return A Result indicating success or failure of the operation. If successful, the callback will be invoked with the installation's command string.
  */
 Result getInstallationCommand(DatabaseConnection* connection, i64 installationId, InstallationCallback callback, void* userData);
+
+Result updateInstallation(DatabaseConnection* connection, i64 installationId, i64 displayId, i64 gameId, StringView command);
 
 
 Result countInstallationTags(DatabaseConnection* connection, i64 installationId, u64* outCount);

@@ -1,16 +1,38 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 
 NblDialog {
 
+    id: root
+    property var activeInstallation: null
+
+    property bool newGame: root.activeInstallation == null && gameBox.currentIndex == 0
+
     NblComboBox {
+
+        visible: root.activeInstallation == null
+
         id: gameBox
         label: "Game"
         width: parent.width
         highlightFirst: true
 
-        model: [ "New Game" ]
+        textRole: "title"
+
+        model: NblGameModel {
+            includeNewGame: true
+            pageSize: 10
+        }
+    }
+
+    NblTextBox {
+
+        visible: root.activeInstallation != null
+
+        width: parent.width
+        enabled: false
+        label: "Game"
+        text: visible ? root.activeInstallation.gameTitle : ""
     }
 
     NblComboBox {
@@ -29,11 +51,11 @@ NblDialog {
     NblCheckBox {
         id: overrideBox
         text: "Override display assets for this installation"
-        visible: gameBox.currentIndex != 0
+        visible: !root.newGame
     }
 
     Column {
-        visible: overrideBox.checked || gameBox.currentIndex == 0
+        visible: overrideBox.checked || root.newGame
 
         width: parent.width
         spacing: 8
@@ -94,7 +116,7 @@ NblDialog {
     }
 
     Column {
-        visible: gameBox.currentIndex == 0
+        visible: root.newGame
         spacing: 8
         width: parent.width
         NblTextBox {
@@ -151,6 +173,31 @@ NblDialog {
         }
     }
 
+    Component.onCompleted: {
+
+        if(root.activeInstallation) {
+            let details = root.activeInstallation
+
+            let dateObj = new Date()
+            dateObj.setTime(details.releaseDate)
+
+            // TODO: Game box (e.g. gameBox.currentIndex = details.gameId)
+            commandField.text = details.command
+            overrideBox.checked = details.displayId != 0
+            titleField.text = details.title
+            descriptionField.text = details.description
+            posterPicker.imageSource = details.posterPath()
+            bannerPicker.imageSource = details.bannerPath()
+            iconPicker.imageSource = details.iconPath()
+            logoPicker.imageSource = details.logoPath()
+            logoPositionBox.currentIndex = details.logoPosition
+            releaseDateField.text = dateObj.toLocaleDateString(Qt.locale(), "yyyy/MM/dd")
+            ratingField.text = details.rating.toFixed(1)
+            steamIdField.text = details.steamId
+            igdbIdField.text = details.igdbId
+        }
+    }
+
     onApply: {
 
         // Validate
@@ -159,7 +206,7 @@ NblDialog {
         let steamId = 0
         let igdbId = 0
 
-        if(gameBox.currentIndex > 0) {
+        if(root.newGame) {
             if(releaseDateField.text.length != 0) {
                 dateObj = Date.fromLocaleDateString(Qt.locale(), releaseDateField.text, "yyyy/MM/dd")
                 if (isNaN(dateObj.getTime())) {
@@ -187,7 +234,7 @@ NblDialog {
         let icon = null
         let logo = null
         let banner = null
-        if(gameBox.currentIndex == 0 || overrideBox.checked) {
+        if(root.newGame || overrideBox.checked) {
             title = titleField.text
             description = descriptionField.text
             poster = posterPicker.imageSource
@@ -196,11 +243,19 @@ NblDialog {
             banner = bannerPicker.imageSource
         }
 
+        let gId = 0
+        if(root.activeInstallation != null) {
+            gId = root.activeInstallation.gameId
+        } else {
+            gId = gameBox.model.data(gameBox.model.index(gameBox.currentIndex, 0), 0); // 0 == IdRole
+        }
+
         let params = {
-            game: gameBox.currentIndex,
+            game: gId,
             type: commandTypeBox.currentIndex,
             command: commandField.text,
             displayOverride: overrideBox.checked,
+            displayId: root.activeInstallation ? root.activeInstallation.displayId : 0,
             title: title,
             description: description,
             banner: banner,
@@ -214,6 +269,10 @@ NblDialog {
             igdbId: igdbId
         }
 
-        ApplicationContext.addInstallation(params)
+        if(root.activeInstallation) {
+            ApplicationContext.updateInstallation(root.activeInstallation.installationId, params)
+        } else {
+            ApplicationContext.addInstallation(params)
+        }
     }
 }

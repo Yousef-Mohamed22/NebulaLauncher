@@ -6,6 +6,7 @@ import QtQuick.Controls
 Item {
 
     id: root
+    required property MainWindow mainWindow
     required property NblInstallationDetails details
 
     ColumnLayout {
@@ -122,7 +123,7 @@ Item {
                     NblIconButton {
                         icon: ""
                         onClicked: {
-                            console.log("Clicked Game Settings")
+                            root.mainWindow.beginEditGame(root.details)
                         }
                     }
                 }

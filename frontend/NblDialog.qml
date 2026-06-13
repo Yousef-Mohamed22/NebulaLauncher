@@ -13,6 +13,8 @@ Item {
     property string okText: "OK"
     property string cancelText: "Cancel"
 
+    property bool showApplyButton: true
+
     width: parent.width
     height: parent.height
 
@@ -127,6 +129,8 @@ Item {
                     }
 
                     Item {
+
+                        visible: root.showApplyButton
 
                         id: applyBtn
                         width: 128

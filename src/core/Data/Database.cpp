@@ -169,6 +169,17 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
 
     sqlite3_stmt* stmt = reinterpret_cast<sqlite3_stmt*>(query->_pHandle);
     
+#ifndef NDEBUG
+
+    char* stmtStr = sqlite3_expanded_sql(stmt);
+    StringView stmtView = stmtStr;
+
+    nbl::log(nbl::LogLevel::DEBUG, "Running SQL: ", stmtView);
+
+    sqlite3_free(stmtStr);
+
+#endif
+
     int rc;
     i64 lastId = 0;
     while((rc = sqlite3_step(stmt)) == SQLITE_ROW) {

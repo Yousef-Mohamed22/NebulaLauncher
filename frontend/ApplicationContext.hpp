@@ -111,6 +111,8 @@ public:
     Q_INVOKABLE NblInstallationDetails* getInstallationDetails(i64 installationId);
 
     Q_INVOKABLE int addInstallation(const QVariantMap& params);
+    
+    Q_INVOKABLE int updateInstallation(int64_t id, const QVariantMap& params);
 
     Q_INVOKABLE void saveSettings(const QVariantMap& settings);
 

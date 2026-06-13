@@ -87,6 +87,31 @@ DELETE FROM display WHERE dId = ?;
 }
 
 
+nbl::Result nbl::updateDisplay(DatabaseConnection* connection, i64 displayId, const DisplayMeta& meta) {
+
+    static nbl::PreparedStatement _updateDisplayStmt;
+    if(!_updateDisplayStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+UPDATE display SET title=?1, description=?2, poster=?3, banner=?4, icon=?5, logo=?6, logoPosition=?7 WHERE dId=?8;
+        )", &_updateDisplayStmt));
+    }
+
+    NBL_CHECK(_updateDisplayStmt.bindString(1, meta.title));
+    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(2, meta.description));
+    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(3, meta.poster));
+    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(4, meta.banner));
+    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(5, meta.icon));
+    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(6, meta.logo));
+    NBL_CHECK(_updateDisplayStmt.bindInt(7, static_cast<i32>(meta.logoPosition)));
+    NBL_CHECK(_updateDisplayStmt.bindInt(8, displayId));
+
+
+    return connection->execute(&_updateDisplayStmt, nullptr, nullptr);
+}
+
+
+
+
 nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& meta, i64* outGameId) {
 
     static nbl::PreparedStatement _addGameStmt;
@@ -120,6 +145,31 @@ DELETE FROM game WHERE gId = ?1;
     NBL_CHECK(_removeGameStmt.bindUint(1, gameId));
     return connection->execute(&_removeGameStmt, nullptr, nullptr);
 }
+
+
+nbl::Result nbl::updateGame(DatabaseConnection* connection, i64 gameId, const GameMeta& meta) {
+
+    static nbl::PreparedStatement _updateGameStmt;
+    if(!_updateGameStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+UPDATE game SET steamId=?1, igdbId=?2, releaseDate=?3, rating=?4, dId=?5 WHERE gId=?6;
+        )", &_updateGameStmt));
+    }
+
+    if(meta.dId == 0) {
+        return nbl::error::ILLEGAL_ARGUMENT;
+    }
+    NBL_CHECK(_updateGameStmt.bindUint(1, meta.steamId));
+    NBL_CHECK(_updateGameStmt.bindUint(2, meta.igdbId));
+    NBL_CHECK(_updateGameStmt.bindUint(3, meta.releaseDate));
+    NBL_CHECK(_updateGameStmt.bindFloat(4, meta.rating));
+    NBL_CHECK(_updateGameStmt.bindInt(5, meta.dId));
+    NBL_CHECK(_updateGameStmt.bindInt(6, gameId));
+
+    return connection->execute(&_updateGameStmt, nullptr, nullptr); 
+
+}
+
 
 nbl::Result nbl::addGameTag(DatabaseConnection* connection, i64 gameId, StringView tag) {
 
@@ -241,7 +291,7 @@ SELECT game.gId, display.title, display.description, display.poster, display.ban
 FROM game
 JOIN display ON display.dId = game.dId
 LEFT JOIN game_tag ON game_tag.gId = game.gId
-WHERE game.releaseDate >= ?
+WHERE game.releaseDate >= ?3
   AND (?4 = 0 OR game.releaseDate <= ?4)
   AND game.rating >= ?5
   AND (?6 = 0 OR game.rating <= ?6)
@@ -335,7 +385,7 @@ OFFSET ?8;
         NBL_CHECK(lookupGamesStmt.bindFloat(6, criteria.maxRating));
         NBL_CHECK(lookupGamesStmt.bindStringOrNull(7, criteria.titleFilter));
         NBL_CHECK(lookupGamesStmt.bindUint(8, criteria.offset));
-        NBL_CHECK(lookupGamesStmt.bindUint(9, criteria.limit == 0 ? 10 : 0));
+        NBL_CHECK(lookupGamesStmt.bindUint(9, criteria.limit == 0 ? 10 : criteria.limit));
     }
 
     _GameQueryUserData queryData{ callback, userData };
