@@ -84,12 +84,12 @@ void NblGameModel::_fetchPageData() {
 
     QList<NblGameRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::lookupGames(db, criteria, [](void* userData, const nbl::GameMeta& meta) -> nbl::Result {
+    if(nbl::lookupGames(db, criteria, [](void* userData, const nbl::GameLookupResult& res) -> nbl::Result {
         NblGameRef ref(
-                meta.id,
-                QString::fromUtf8(meta.title.data, meta.title.length),
-                QString::fromUtf8(meta.poster.data, meta.poster.length),
-                QString::fromUtf8(meta.icon.data, meta.icon.length)
+                res.id,
+                fromNbl(res.title),
+                fromNbl(res.poster),
+                fromNbl(res.icon)
         ); 
         static_cast<QList<NblGameRef>*>(userData)->append(ref);
         return nbl::Result::SUCCESS;

@@ -25,6 +25,5 @@ qt_add_qml_module(Nebula_App
 )
 
 target_link_libraries(Nebula_App PRIVATE Nebula_Api)
-target_link_libraries(Nebula_App PRIVATE Nebula_Model)
 target_link_libraries(Nebula_App PRIVATE Qt6::Quick)
 target_link_libraries(Nebula_App PRIVATE CURL::libcurl)

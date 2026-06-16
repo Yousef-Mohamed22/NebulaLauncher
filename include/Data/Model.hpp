@@ -175,8 +175,6 @@ Result renameTag(DatabaseConnection* connection, StringView oldName, StringView 
 //
 struct DisplayMeta {
     i64 id;
-    StringView title;
-    StringView description;
     StringView banner;
     StringView poster;
     StringView icon;
@@ -202,18 +200,27 @@ Result updateDisplay(DatabaseConnection* connection, i64 displayId, const Displa
  */
 struct GameMeta {
     i64 id;
-    u64 igdbId;
-    u64 steamId;
-    i64 dId;
+    i64 displayId;
     StringView title;
     StringView description;
-    StringView poster;
-    StringView banner;
-    StringView icon;
-    StringView logo;
-    LogoPosition logoPosition;
+    u64 steamId;
+    u64 igdbId;
     u64 releaseDate;
     f64 rating;
+};
+
+struct GameDetails {
+    GameMeta game;
+    DisplayMeta display;
+};
+
+struct GameLookupResult {
+    i64 id;
+    u64 releaseDate;
+    f64 rating;
+    StringView title;
+    StringView poster;
+    StringView icon;
 };
 
 struct GameSearchCriteria {
@@ -236,7 +243,9 @@ struct GameSearchCriteria {
  * \param meta A GameMeta struct containing the metadata of the game being processed
  * \return A Result indicating success or failure of the callback operation. If the callback returns a failure Result, the lookup will be aborted.
  */
-typedef Result (*GameCallback)(void* userData, const GameMeta& meta);
+typedef Result (*GameMetaCallback)(void* userData, const GameMeta& meta);
+typedef Result (*GameDetailsCallback)(void* userData, const GameDetails& meta);
+typedef Result (*GameLookupCallback)(void* userData, const GameLookupResult& meta);
 
 /**
  * \brief Adds a game to the database with the specified information
@@ -291,9 +300,11 @@ Result getGameTags(DatabaseConnection* connection, i64 gameId, TagCallback callb
  * \param gameId The ID of the game whose metadata is to be retrieved
  * \param callback The callback function to invoke with the game's metadata
  * \param userData A pointer to user-defined data that will be passed to the callback function
- * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, this function will return that failure Result.
+ * \return A Result indicating success or failure of the operation.
  */
-Result getGameMeta(DatabaseConnection* connection, i64 gameId, GameCallback callback, void* userData);
+Result getGameMeta(DatabaseConnection* connection, i64 gameId, GameMetaCallback callback, void* userData);
+
+Result getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCallback callback, void* userData);
 
 /**
  * \brief Looks up games in the database that match the specified criteria and invokes a callback for each matching game
@@ -306,7 +317,7 @@ Result getGameMeta(DatabaseConnection* connection, i64 gameId, GameCallback call
 Result lookupGames(
         DatabaseConnection* connection, 
         const GameSearchCriteria& criteria,
-        GameCallback callback,
+        GameLookupCallback callback,
         void* userData);
 
 
@@ -316,26 +327,41 @@ Result lookupGames(
 
 struct InstallationMeta {
     i64 id;
-    i64 dId;
-    i64 gId;
+    i64 displayId;
+    i64 gameId;
     StringView title;
     StringView description;
-    StringView poster;
-    StringView banner;
-    StringView icon;
-    StringView logo;
-    LogoPosition logoPosition;
+    StringView type;
     StringView command;
     u64 playTime;
     u64 playCount;
     u64 lastPlayed;
     u64 added;
+};
+
+struct InstallationLookupResult {
+    i64 installationId;
+    i64 displayId;
+    i64 gameId;
+
+    StringView title;
+    u64 playTime;
+    u64 playCount;
+    u64 lastPlayed;
+    u64 added;
+
+    StringView poster;
+    StringView icon;
+
     u64 releaseDate;
     f64 rating;
-    u64 steamId;
-    u64 igdbId;
-    StringView gameTitle;
-    StringView gamePoster;
+};
+
+struct InstallationDetails {
+    InstallationMeta installation;
+    GameMeta game;
+    DisplayMeta display;
+    DisplayMeta gameDisplay;
 };
 
 struct InstallationSearchCriteria {
@@ -360,7 +386,11 @@ struct InstallationSearchCriteria {
  * \param userData A pointer to user-defined data that will be passed to the callback
  * \return A Result indicating success or failure of the callback operation. If the callback returns a failure Result, the lookup will be aborted.
  */
-typedef Result (*InstallationCallback)(void* userData, const InstallationMeta& meta);
+typedef Result (*InstallationLookupCallback)(void* userData, const InstallationLookupResult& result);
+
+typedef Result (*InstallationDetailsCallback)(void* userData, const InstallationDetails& details);
+
+typedef Result (*InstallationMetaCallback)(void* userData, const InstallationMeta& meta);
 
 /**
  * \brief Adds an installation of a game to the database with the specified information
@@ -369,7 +399,7 @@ typedef Result (*InstallationCallback)(void* userData, const InstallationMeta& m
  * \param outInstallationId An output parameter that will be set to the ID of the newly added installation in the database
  * \return A Result indicating success or failure of the operation
  */
-Result addInstallation(DatabaseConnection* connection, i64 displayId, i64 gameId, StringView command, i64* outInstallationId);
+Result addInstallation(DatabaseConnection* connection, const InstallationMeta& meta, i64* outInstallationId);
 
 
 /**
@@ -381,26 +411,24 @@ Result addInstallation(DatabaseConnection* connection, i64 displayId, i64 gameId
 Result removeInstallation(DatabaseConnection* connection, i64 installationId);
 
 /**
- * \brief Retrieves the metadata of an installation by its ID and fills an InstallationMeta structure with the installation's information
+ * \brief Retrieves the metadata of an installation by its ID
  * \param connection The database connection to use for the query
  * \param installationId The ID of the installation whose metadata is to be retrieved
  * \param callback The callback function to invoke with the installation's metadata. 
- * \return A Result indicating success or failure of the operation. If successful, outMeta will be populated with the installation's metadata.
+ * \return A Result indicating success or failure of the operation.
  */
-Result getInstallationMeta(DatabaseConnection* connection, i64 installationId, InstallationCallback callback, void* userData);
+Result getInstallationMeta(DatabaseConnection* connection, i64 installationId, InstallationMetaCallback callback, void* userData);
 
 /**
- * \brief Retrieves the command associated with an installation by its ID and invokes a callback with the command string
+ * \brief Retrieves all the details about an installation by its ID
  * \param connection The database connection to use for the query
- * \param installationId The ID of the installation whose command is to be retrieved
- * \param callback The callback function to invoke with the installation's meta. Only the command field of the InstallationMeta struct will be populated for the callback.
- * \param userData A pointer to user-defined data that will be passed to the callback function
- * \return A Result indicating success or failure of the operation. If successful, the callback will be invoked with the installation's command string.
+ * \param installationId The ID of the installation whose details are to be retrieved
+ * \param callback The callback function to invoke with the installation's details. 
+ * \return A Result indicating success or failure of the operation.
  */
-Result getInstallationCommand(DatabaseConnection* connection, i64 installationId, InstallationCallback callback, void* userData);
+Result getInstallationDetails(DatabaseConnection* connection, i64 installationId, InstallationDetailsCallback callback, void* userData);
 
-Result updateInstallation(DatabaseConnection* connection, i64 installationId, i64 displayId, i64 gameId, StringView command);
-
+Result updateInstallation(DatabaseConnection* connection, const InstallationMeta& meta);
 
 Result countInstallationTags(DatabaseConnection* connection, i64 installationId, u64* outCount);
 Result getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback, void* userData);
@@ -416,7 +444,7 @@ Result getInstallationTags(DatabaseConnection* connection, i64 installationId, u
 Result lookupInstallations(
         DatabaseConnection* connection, 
         const InstallationSearchCriteria& criteria,
-        InstallationCallback callback,
+        InstallationLookupCallback callback,
         void* userData); 
 
 
@@ -463,7 +491,7 @@ Result getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback ca
 
 Result setFilterCriteria(DatabaseConnection* connection, i64 filterId, const InstallationSearchCriteria& criteria);
 
-Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, InstallationCallback callback, u64 offset, u64 limit, void* userData);
+Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, InstallationLookupCallback callback, u64 offset, u64 limit, void* userData);
 
 
 //

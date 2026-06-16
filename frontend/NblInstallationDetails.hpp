@@ -31,7 +31,7 @@ class NblInstallationDetails : public QObject {
     Q_PROPERTY(uint64_t igdbId READ igdbId CONSTANT)
     Q_PROPERTY(double rating READ rating CONSTANT)
     Q_PROPERTY(QString gameTitle READ gameTitle CONSTANT)
-    Q_PROPERTY(QString gamePoster READ gamePoster CONSTANT)
+    Q_PROPERTY(QString gameDescription READ gameDescription CONSTANT)
 
 public:
 
@@ -55,7 +55,7 @@ public:
         _mReleaseDate(0),
         _mRating(0.0),
         _mGameTitle{},
-        _mGamePoster{}
+        _mGameDescription{}
     {}
 
     NblInstallationDetails(
@@ -79,7 +79,7 @@ public:
         u64 steamId,
         u64 igdbId,
         QString gameTitle,
-        QString gamePoster,
+        QString gameDescription,
         QObject* parent = nullptr
     ) : 
         QObject(parent),
@@ -103,7 +103,7 @@ public:
         _mSteamId(steamId),
         _mIgdbId(igdbId),
         _mGameTitle(gameTitle),
-        _mGamePoster(gamePoster)
+        _mGameDescription(gameDescription)
     {}
 
     NblInstallationDetails(const NblInstallationDetails& other) :
@@ -127,7 +127,7 @@ public:
         _mSteamId(other._mSteamId),
         _mIgdbId(other._mIgdbId),
         _mGameTitle(other._mGameTitle),
-        _mGamePoster(other._mGamePoster)
+        _mGameDescription(other._mGameDescription)
     {}
 
     NblInstallationDetails& operator=(const NblInstallationDetails& other) {
@@ -153,7 +153,7 @@ public:
         _mSteamId = other._mSteamId;
         _mIgdbId = other._mIgdbId;
         _mGameTitle = other._mGameTitle;
-        _mGamePoster = other._mGamePoster;
+        _mGameDescription = other._mGameDescription;
 
         return *this;
     }
@@ -178,7 +178,7 @@ public:
     u64 steamId() const { return _mSteamId; }
     u64 igdbId() const { return _mIgdbId; }
     QString gameTitle() const { return _mGameTitle; }
-    QString gamePoster() const { return _mGamePoster; }
+    QString gameDescription() const { return _mGameDescription; }
 
     Q_INVOKABLE QString posterPath();
     Q_INVOKABLE QString bannerPath();
@@ -207,6 +207,6 @@ private:
     u64 _mSteamId;
     u64 _mIgdbId;
     QString _mGameTitle;
-    QString _mGamePoster;
+    QString _mGameDescription;
 
 };

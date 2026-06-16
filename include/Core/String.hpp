@@ -171,6 +171,7 @@ struct StringView {
         for (usize i = 0; i < length; i++) {
             if (data[i] == c) {
                 if(outIndex) *outIndex = i;
+                return nbl::Result::SUCCESS;
             }
         }
         return nbl::error::NOT_FOUND;
@@ -178,9 +179,10 @@ struct StringView {
 
     constexpr Result findLast(char c, usize* outIndex) const {
         if(length == 0) return nbl::error::NOT_FOUND;
-        for (usize i = length - 1; i >= 0; i--) {
+        for (usize i = length - 1; i > 0; i--) {
             if (data[i] == c) {
                 if(outIndex) *outIndex = i;
+                return nbl::Result::SUCCESS;
             }
         }
         return nbl::error::NOT_FOUND;

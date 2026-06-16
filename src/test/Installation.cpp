@@ -8,8 +8,6 @@ namespace {
 
 nbl::DisplayMeta _displayMeta = {
     .id = 0,
-    .title = "Test Game",
-    .description = "A test game",
     .banner = "banner.jpg",
     .poster = "poster.jpg",
     .icon = "icon.jpg",
@@ -18,8 +16,17 @@ nbl::DisplayMeta _displayMeta = {
 
 nbl::GameMeta _gameMeta = {
     .id = 0,
+    .title = "Test Game",
+    .description = "A test game",
     .releaseDate = 1600000000,
     .rating = 4.5
+};
+
+nbl::InstallationMeta _installMeta = {
+    .displayId = 0,
+    .gameId = 0,
+    .type = "dummy",
+    .command = "C:/Games/Test game"
 };
 
 }
@@ -31,13 +38,10 @@ TEST(Installation, AddInstallation) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
-    i64 gameId;
-    ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
-
-    i64 installationId;
-    ASSERT_TRUE(nbl::addInstallation(&connection, gameId, 0, "C:/Games/Test Game", &installationId).success());
+    ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
+    ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
 }
 
 TEST(Installation, RemoveInstallation) {
@@ -46,15 +50,11 @@ TEST(Installation, RemoveInstallation) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
-    i64 gameId;
-    ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
-
-    i64 installationId;
-    ASSERT_TRUE(nbl::addInstallation(&connection, gameId, 0, "C:/Games/Test Game", &installationId).success());
-
-    ASSERT_TRUE(nbl::removeInstallation(&connection, installationId).success());
+    ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
+    ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
+    ASSERT_TRUE(nbl::removeInstallation(&connection, _installMeta.id).success());
 }
 
 TEST(Installation, GetInstallationMeta) {
@@ -63,17 +63,14 @@ TEST(Installation, GetInstallationMeta) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
-    i64 gameId;
-    ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
-
-    i64 installationId;
-    ASSERT_TRUE(nbl::addInstallation(&connection, gameId, 0, "C:/Games/Test Game", &installationId).success());
+    ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
+    ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
 
     bool found = false;
-    ASSERT_TRUE(nbl::getInstallationMeta(&connection, installationId, [](void* userData, const nbl::InstallationMeta& meta) -> nbl::Result {
-        if(meta.command == "C:/Games/Test Game" && meta.gameTitle == "Test Game") {
+    ASSERT_TRUE(nbl::getInstallationDetails(&connection, _installMeta.id, [](void* userData, const nbl::InstallationDetails& details) -> nbl::Result {
+        if(details.installation.command == "C:/Games/Test Game" && details.game.title == "Test Game") {
             *static_cast<bool*>(userData) = true;
         }
         return nbl::Result::SUCCESS;

@@ -8,40 +8,47 @@
 #include <Data/Database.hpp>
 #include <Platform/File.hpp>
 #include <Platform/Pool.hpp>
+#include <Plugin/PluginContext.hpp>
 
 #include "NblTabRef.hpp"
 #include "NblInstallationDetails.hpp"
 
-class NblRunningInstallation : public QObject {
 
-    Q_OBJECT
-    QML_ELEMENT
+inline QString fromNbl(nbl::StringView sv) {
+    return QString::fromUtf8(sv.data, sv.length);
+}
 
-public:
 
-    NblRunningInstallation(QObject* parent = nullptr) : 
-        QObject(parent),
-        _mProcess(this),
-        _mInstallationId(0),
-        _mStartTime(0)
-    {
-        QObject::connect(&_mProcess, &QProcess::finished, this, &NblRunningInstallation::_finished);
-    }
-
-    void launch(i64 installationId, nbl::StringView command);
-
-    const QProcess* process() const { return &_mProcess; }
-
-private:
-
-    QProcess _mProcess;
-    i64 _mInstallationId;
-    u64 _mStartTime;
-
-    void _finished(int exitCode, QProcess::ExitStatus exitStatus);
-
-};
-
+// class NblRunningInstallation : public QObject {
+//
+//     Q_OBJECT
+//     QML_ELEMENT
+//
+// public:
+//
+//     NblRunningInstallation(QObject* parent = nullptr) : 
+//         QObject(parent),
+//         _mProcess(this),
+//         _mInstallationId(0),
+//         _mStartTime(0)
+//     {
+//         QObject::connect(&_mProcess, &QProcess::finished, this, &NblRunningInstallation::_finished);
+//     }
+//
+//     void launch(i64 installationId, nbl::StringView command);
+//
+//     const QProcess* process() const { return &_mProcess; }
+//
+// private:
+//
+//     QProcess _mProcess;
+//     i64 _mInstallationId;
+//     u64 _mStartTime;
+//
+//     void _finished(int exitCode, QProcess::ExitStatus exitStatus);
+//
+// };
+//
 
 class ApplicationContext : public QObject {
 
@@ -57,7 +64,7 @@ class ApplicationContext : public QObject {
 public:
 
     static ApplicationContext* instance() {
-        static ApplicationContext _instance;
+        static ApplicationContext _instance {};
         return &_instance;
     }
 
@@ -69,13 +76,7 @@ public:
 
         QQmlEngine::setObjectOwnership(context, QQmlEngine::CppOwnership);
 
-        NBL_ASSERT(nbl::Arena::create(1024 * 1024 * 10, &context->_mProcessArena).success());
-        NBL_ASSERT(nbl::PoolView<NblRunningInstallation>::create(
-            &context->_mProcessArena,
-            &context->_mRunningInstallations
-        ).success());
-        
-
+        context->_initialize();
         return context;
     }
 
@@ -128,6 +129,8 @@ signals:
 
 private:
 
+    void _initialize();
+
     nbl::Result _reload();
 
     ApplicationContext() = default;
@@ -135,8 +138,10 @@ private:
     nbl::DatabaseConnection _mConnection;
     QList<NblTabRef> _mAllTabs;
 
+    nbl::PluginContext _mContext;
+
     nbl::Arena _mProcessArena;
-    nbl::PoolView<NblRunningInstallation> _mRunningInstallations;
+    nbl::PoolView<nbl::ProcessHandle> _mRunningInstallations;
 
     friend class NblRunningInstallation;
 

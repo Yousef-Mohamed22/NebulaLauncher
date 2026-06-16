@@ -2,6 +2,9 @@
 #include "NblInstallationDetails.hpp"
 #include "Platform/Arena.hpp"
 #include "Platform/File.hpp"
+#include "Platform/Process.hpp"
+#include "Plugin/InstallationType.hpp"
+#include "Plugin/PluginContext.hpp"
 
 #include <Core/Result.hpp>
 #include <Core/String.hpp>
@@ -128,47 +131,61 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
 
 }
 
+// void NblRunningInstallation::launch(i64 installationId, nbl::StringView command) {
+//
+//     _mInstallationId = installationId;
+//     _mStartTime = nbl::getCurrentTime();
+//
+//     nbl::log(nbl::LogLevel::INFO, "Launching game with command: ", command);
+//
+//     QString qCommand = QString::fromUtf8(command.data, command.length);
+//
+//     _mProcess.startCommand(qCommand);
+//
+// }
+//
+// void NblRunningInstallation::_finished(int exitCode, QProcess::ExitStatus exitStatus) {
+//
+//     nbl::LogLevel lvl = exitCode == 0 ? nbl::LogLevel::INFO : nbl::LogLevel::ERROR;
+//     nbl::log(lvl, "Subprocess exited with code ", exitCode);
+//
+//     ApplicationContext* context = ApplicationContext::instance();
+//     nbl::DatabaseConnection* connection = context->connection();
+//
+//     u64 playTime = nbl::getCurrentTime() - _mStartTime;
+//     nbl::bumpInstallationPlayTime(connection, _mInstallationId, playTime);
+//
+//     context->_mRunningInstallations.pop(this);
+//
+// }
 
 
 
-void NblRunningInstallation::launch(i64 installationId, nbl::StringView command) {
+void ApplicationContext::_initialize() {
 
-    _mInstallationId = installationId;
-    _mStartTime = nbl::getCurrentTime();
+    NBL_ASSERT(nbl::Arena::create(1024 * 1024 * 10, &_mProcessArena).success());
+    NBL_ASSERT(nbl::PoolView<nbl::ProcessHandle>::create(
+        &_mProcessArena,
+        &_mRunningInstallations
+    ).success());
 
-    nbl::log(nbl::LogLevel::INFO, "Launching game with command: ", command);
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::StringView path;
 
-    QString qCommand = QString::fromUtf8(command.data, command.length);
+    NBL_ASSERT(nbl::StringBuilder(&frame).append(nbl::getDataDirectory()).append("/NebulaLauncher/nebula.db").build(&path).success());
 
-    _mProcess.startCommand(qCommand);
+    NBL_ASSERT(nbl::PluginContext::create(path, &_mContext).success());
+    _mContext.registerInstallationType(nbl::InstallationType::COMMAND);
 
 }
 
-void NblRunningInstallation::_finished(int exitCode, QProcess::ExitStatus exitStatus) {
 
-    nbl::LogLevel lvl = exitCode == 0 ? nbl::LogLevel::INFO : nbl::LogLevel::ERROR;
-    nbl::log(lvl, "Subprocess exited with code ", exitCode);
-
-    ApplicationContext* context = ApplicationContext::instance();
-    nbl::DatabaseConnection* connection = context->connection();
-
-    u64 playTime = nbl::getCurrentTime() - _mStartTime;
-    nbl::bumpInstallationPlayTime(connection, _mInstallationId, playTime);
-
-    context->_mRunningInstallations.pop(this);
-
-}
 
 nbl::Result ApplicationContext::_reload() {
 
     if(!_mConnection.isValid()) {
 
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-        nbl::StringView path;
-
-        NBL_CHECK(nbl::StringBuilder(&frame).append(nbl::getDataDirectory()).append("/NebulaLauncher/nebula.db").build(&path));
-
-        NBL_CHECK(nbl::DatabaseConnection::open(path, &_mConnection));
+        NBL_CHECK(nbl::DatabaseConnection::open(_mContext.databasePath(), &_mConnection));
         NBL_CHECK(nbl::initDatabase(&_mConnection));
     }
 
@@ -200,19 +217,66 @@ void ApplicationContext::launchInstallation(i64 installationId) {
         return;
     }
 
-    nbl::getInstallationCommand(&_mConnection, installationId, [](void* userData, const nbl::InstallationMeta& meta) {
+    nbl::getInstallationMeta(&_mConnection, installationId, [](void* userData, const nbl::InstallationMeta& meta) -> nbl::Result {
 
         ApplicationContext* context = static_cast<ApplicationContext*>(userData);
 
-        NblRunningInstallation* runningInstallation;
+        nbl::ProcessHandle* runningInstallation;
         NBL_CHECK(context->_mRunningInstallations.push(&runningInstallation));
 
-        runningInstallation->launch(meta.id, meta.command);
+        const nbl::InstallationType* installType = context->_mContext.getInstallationType(meta.type);
+        if(installType == nullptr) {
+            nbl::log(nbl::LogLevel::ERROR, "Unknown installation type: ", meta.type);
+            return nbl::error::ILLEGAL_STATE;
+        }
 
-        return nbl::Result::SUCCESS;
+        QJsonDocument doc = QJsonDocument::fromJson(QByteArray(meta.command.data, meta.command.length));
+        if(!doc.isObject()) return nbl::error::ILLEGAL_STATE;
+
+        QList<nbl::FieldValue> values;
+        QList<QByteArray> strings;
+        values.reserve(installType->fields.length);
+
+        for(auto& field : installType->fields) {
+
+            QByteArray qKey = QByteArray(field.key.data, field.key.length);
+            QJsonValue val = doc[qKey];
+
+            if(val.isNull()) {
+                if(!field.hasDefaultValue) {
+                    nbl::log(nbl::LogLevel::ERROR, "Missing required command value: ", field.key);
+                    return nbl::error::ILLEGAL_STATE;
+                }
+                values.append(field.defaultValue);            
+            } else {
+
+                switch(field.type) {
+                    case nbl::FieldType::STRING: {
+                        QByteArray str = val.toString().toUtf8();
+                        strings.append(str);
+                        values.append(nbl::FieldValue { .stringValue = nbl::StringView(str.length(), str.data()) } );
+                        break;
+                    }
+                    case nbl::FieldType::FLOAT: {
+                        values.append(nbl::FieldValue { .floatValue = val.toDouble() } );
+                        break;
+                    }
+                    case nbl::FieldType::INTEGER: {
+                        values.append(nbl::FieldValue { .integerValue = val.toInteger() } );
+                        break;
+                    }
+                    case nbl::FieldType::ENUM: {
+                        return nbl::error::UNIMPLEMENTED;
+                    }
+                }
+            }
+        }
+
+        nbl::log(nbl::LogLevel::DEBUG, "Launching a ", installType->id, " type installation. args[0] = ", values[0].stringValue);
+
+        return installType->launch(&context->_mContext, { .data = values.data(), .length = static_cast<usize>(values.length()) }, meta.id, runningInstallation);
+        
     }, this);
-
-    nbl::markInstallationJustPlayed(&_mConnection, installationId);
 }
 
 NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installationId) {
@@ -224,32 +288,30 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installat
 
     NblInstallationDetails* details;
 
-    if(nbl::getInstallationMeta(&_mConnection, installationId, [](void* userData, const nbl::InstallationMeta& meta) {
-
-            nbl::log(nbl::LogLevel::DEBUG, "Got installation with id ", meta.id, " and game id ", meta.gId);
+    if(nbl::getInstallationDetails(&_mConnection, installationId, [](void* userData, const nbl::InstallationDetails& details) {
 
          *static_cast<NblInstallationDetails**>(userData) = new NblInstallationDetails(
-            meta.id,
-            meta.dId,
-            meta.gId,
-            QString::fromUtf8(meta.command.data, meta.command.length),
-            QString::fromUtf8(meta.title.data, meta.title.length),
-            QString::fromUtf8(meta.description.data, meta.description.length),
-            QString::fromUtf8(meta.poster.data, meta.poster.length),
-            QString::fromUtf8(meta.banner.data, meta.banner.length),
-            QString::fromUtf8(meta.icon.data, meta.icon.length),
-            QString::fromUtf8(meta.logo.data, meta.logo.length),
-            static_cast<u64>(meta.logoPosition),
-            meta.playTime,
-            meta.playCount,
-            meta.lastPlayed,
-            meta.added,
-            meta.releaseDate,
-            meta.rating,
-            meta.steamId,
-            meta.igdbId,
-            QString::fromUtf8(meta.gameTitle.data, meta.gameTitle.length),
-            QString::fromUtf8(meta.gamePoster.data, meta.gamePoster.length)
+            details.installation.id,
+            details.display.id,
+            details.game.id,
+            fromNbl(details.installation.command),
+            fromNbl(details.installation.title),
+            fromNbl(details.installation.description),
+            fromNbl(details.display.poster),
+            fromNbl(details.display.banner),
+            fromNbl(details.display.icon),
+            fromNbl(details.display.logo),
+            static_cast<u64>(details.display.logoPosition),
+            details.installation.playTime,
+            details.installation.playCount,
+            details.installation.lastPlayed,
+            details.installation.added,
+            details.game.releaseDate,
+            details.game.rating,
+            details.game.steamId,
+            details.game.igdbId,
+            fromNbl(details.game.title),
+            fromNbl(details.game.description)
         );
 
         return nbl::Result::SUCCESS;
@@ -277,10 +339,6 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
     i64 dId = 0;
     if(addDisplay) {
         // Add a new display
-
-        QByteArray title = params.find("title")->toString().toUtf8();
-        QByteArray description = params.find("description")->toString().toUtf8();
-
         QString posterUrl = params.find("poster")->toString();
         QString iconUrl = params.find("icon")->toString();
         QString logoUrl = params.find("logo")->toString();
@@ -298,8 +356,6 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
         QByteArray banner = bannerUrl.toUtf8();
 
         nbl::DisplayMeta meta = {
-            .title = nbl::StringView(title.length(), title.constData()),
-            .description = nbl::StringView(description.length(), description.constData()),
             .banner = nbl::StringView(banner.length(), banner.constData()),
             .poster = nbl::StringView(poster.length(), poster.constData()),
             .icon = nbl::StringView(icon.length(), icon.constData()),
@@ -311,34 +367,56 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
 
     } else {
         // Get display id from game
-        NBL_CHECK(nbl::getGameMeta(&_mConnection, gId, [](void* userData, const nbl::GameMeta& meta) {
-            *static_cast<i64*>(userData) = meta.dId;
+        NBL_CHECK(nbl::getGameDetails(&_mConnection, gId, [](void* userData, const nbl::GameDetails& meta) {
+            *static_cast<i64*>(userData) = meta.display.id;
             return nbl::Result::SUCCESS;
         }, &dId));
     }
 
+    i64 realGId = gId;
     if(gId == 0) {
         // Add a new game
+        QByteArray title = params.find("title")->toString().toUtf8();
+        QByteArray description = params.find("description")->toString().toUtf8();
         u64 steamId = params.find("steamId")->toUInt();
         u64 igdbId = params.find("igdbId")->toUInt();
         u64 releaseDate = params.find("releaseDate")->toUInt();
         f64 rating = params.find("rating")->toDouble();
 
         nbl::GameMeta meta = {
-            .igdbId = igdbId,
+            .id = 0,
+            .title = nbl::StringView(title.length(), title.constData()),
+            .description = nbl::StringView(description.length(), description.constData()),
             .steamId = steamId,
-            .dId = dId,
+            .igdbId = igdbId,
             .releaseDate = releaseDate,
             .rating = rating
         };
 
-        NBL_CHECK(nbl::addGame(&_mConnection, meta, &gId));
+        NBL_CHECK(nbl::addGame(&_mConnection, meta, &realGId));
     }
 
     // Add a new installation
+    QByteArray type = params.find("type")->toString().toUtf8();
     QByteArray command = params.find("command")->toString().toUtf8();
-    NBL_CHECK(nbl::addInstallation(&_mConnection, gId, gId == 0 ? 0 : dId, nbl::StringView(command.length(), command.data()), nullptr));
 
+    nbl::InstallationMeta meta = {
+        .id = 0,
+        .displayId = gId == 0 ? 0 : dId,
+        .gameId = realGId,
+        .type = nbl::StringView(type.length(), type.data()),
+        .command = nbl::StringView(type.length(), type.data()),
+    };
+
+    if(gId != 0) {
+        QByteArray installationTitle = params.find("installationTitle")->toString().toUtf8();
+        QByteArray installationDesc = params.find("installationDescription")->toString().toUtf8();
+
+        meta.title = nbl::StringView(installationTitle.length(), installationTitle.data());
+        meta.description = nbl::StringView(installationDesc.length(), installationDesc.data());
+    }
+
+    NBL_CHECK(nbl::addInstallation(&_mConnection, meta, nullptr));
     NBL_CHECK(_mConnection.commitTransaction());
 
     return 0;
@@ -369,8 +447,6 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
         QByteArray banner = bannerUrl.toUtf8();
 
         nbl::DisplayMeta meta = {
-            .title = nbl::StringView(title.length(), title.constData()),
-            .description = nbl::StringView(description.length(), description.constData()),
             .banner = nbl::StringView(banner.length(), banner.constData()),
             .poster = nbl::StringView(poster.length(), poster.constData()),
             .icon = nbl::StringView(icon.length(), icon.constData()),
@@ -386,10 +462,22 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
     i64 gId = params.find("game")->toLongLong(&okay);
     if(!okay) return -1;
 
+    QByteArray type = params.find("type")->toString().toUtf8();
     QByteArray cmd = params.find("command")->toString().toUtf8();
+    QByteArray installationTitle = params.find("installationTitle")->toString().toUtf8();
+    QByteArray installationDesc = params.find("installationDescription")->toString().toUtf8();
 
-    nbl::updateInstallation(&_mConnection, installationId, dId, gId, nbl::StringView(cmd.length(), cmd.data()));
+    nbl::InstallationMeta meta = {
+        .id = installationId,
+        .displayId = dId,
+        .gameId = gId,
+        .title = nbl::StringView(installationTitle.length(), installationTitle.data()),
+        .description = nbl::StringView(installationDesc.length(), installationDesc.data()),
+        .type = nbl::StringView(type.length(), type.data()),
+        .command = nbl::StringView(type.length(), type.data())
+    };
 
+    nbl::updateInstallation(&_mConnection, meta);
     return nbl::Result::SUCCESS;
 }
 

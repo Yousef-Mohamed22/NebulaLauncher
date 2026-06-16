@@ -6,29 +6,34 @@
  * \brief Partial implementation of Data/Model.hpp. Functions related to installation management.
  */
 
-#include <Data/Model.hpp>
+#include <Core/Result.hpp>
 #include <Platform/StringBuilder.hpp>
 #include <Platform/Time.hpp>
-#include "Core/Result.hpp"
-#include "Data/Database.hpp"
+#include <Data/Database.hpp>
+#include <Data/Model.hpp>
 
 
-nbl::Result nbl::addInstallation(DatabaseConnection* connection, i64 displayId, i64 gameId, StringView installPath, i64* outInstallationId) {
+nbl::Result nbl::addInstallation(DatabaseConnection* connection, const InstallationMeta& meta, i64* outInstallationId) {
 
     static nbl::PreparedStatement _addInstallationStmt;
     if(!_addInstallationStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO installation (gId, command, playTime, playCount, lastPlayed, added, dId) VALUES (?1, ?2, 0, 0, 0, ?3, ?4);
+INSERT INTO installation 
+(gId, title, description, type, command, playTime, playCount, lastPlayed, added, dId) 
+VALUES (?1, ?2, ?3, ?4, ?5, 0, 0, 0, ?6, ?7);
         )", &_addInstallationStmt));
     }
 
-    NBL_CHECK(_addInstallationStmt.bindUint(1, gameId));
-    NBL_CHECK(_addInstallationStmt.bindString(2, installPath));
-    NBL_CHECK(_addInstallationStmt.bindUint(3, nbl::getCurrentTime()));
-    if(displayId == 0) {
-        NBL_CHECK(_addInstallationStmt.bindNull(4));
+    NBL_CHECK(_addInstallationStmt.bindUint(1, meta.gameId));
+    NBL_CHECK(_addInstallationStmt.bindStringOrNull(2, meta.title));
+    NBL_CHECK(_addInstallationStmt.bindStringOrNull(3, meta.description));
+    NBL_CHECK(_addInstallationStmt.bindString(4, meta.type));
+    NBL_CHECK(_addInstallationStmt.bindString(5, meta.command));
+    NBL_CHECK(_addInstallationStmt.bindUint(6, nbl::getCurrentTime()));
+    if(meta.displayId == 0) {
+        NBL_CHECK(_addInstallationStmt.bindNull(7));
     } else {
-        NBL_CHECK(_addInstallationStmt.bindUint(4, displayId));
+        NBL_CHECK(_addInstallationStmt.bindUint(7, meta.displayId));
     }
 
     return connection->execute(&_addInstallationStmt, nullptr, nullptr, outInstallationId);
@@ -48,129 +53,159 @@ DELETE FROM installation WHERE iId = ?1;
     return connection->execute(&_removeInstallationStmt, nullptr, nullptr);
 }
 
-nbl::Result nbl::updateInstallation(DatabaseConnection* connection, i64 installationId, i64 displayId, i64 gameId, StringView installPath) {
+nbl::Result nbl::updateInstallation(DatabaseConnection* connection, const InstallationMeta& meta) {
 
     static nbl::PreparedStatement _updateInstallationStmt;
     if(!_updateInstallationStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-UPDATE installation SET gId=?1, command=?2, dId=?3 WHERE iId=?4;
+UPDATE installation SET title=?1, description=?2, type=?3, command=?4, gId=?5, dId=?6 WHERE iId=?7;
         )", &_updateInstallationStmt));
     }
 
-    NBL_CHECK(_updateInstallationStmt.bindUint(1, gameId));
-    NBL_CHECK(_updateInstallationStmt.bindString(2, installPath));
-    if(displayId == 0) {
-        NBL_CHECK(_updateInstallationStmt.bindNull(3));
+    NBL_CHECK(_updateInstallationStmt.bindStringOrNull(1, meta.title));
+    NBL_CHECK(_updateInstallationStmt.bindStringOrNull(2, meta.description));
+    NBL_CHECK(_updateInstallationStmt.bindString(3, meta.type));
+    NBL_CHECK(_updateInstallationStmt.bindString(4, meta.command));
+    NBL_CHECK(_updateInstallationStmt.bindInt(5, meta.gameId));
+    if(meta.displayId == 0) {
+        NBL_CHECK(_updateInstallationStmt.bindNull(6));
     } else {
-        NBL_CHECK(_updateInstallationStmt.bindUint(3, displayId));
+        NBL_CHECK(_updateInstallationStmt.bindUint(6, meta.displayId));
     }
-    NBL_CHECK(_updateInstallationStmt.bindUint(4, installationId));
+    NBL_CHECK(_updateInstallationStmt.bindUint(7, meta.id));
 
     return connection->execute(&_updateInstallationStmt, nullptr, nullptr);
 }
 
 
-nbl::Result nbl::getInstallationMeta(DatabaseConnection* connection, i64 installationId, InstallationCallback callback, void* userData) {
+nbl::Result nbl::getInstallationMeta(DatabaseConnection* connection, i64 installationid, InstallationMetaCallback callback, void* userData) {
 
-    static nbl::PreparedStatement _getInstallationMetaStmt;
+    static PreparedStatement _getInstallationMetaStmt;
     if(!_getInstallationMetaStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT installation.iId, installation.dId, installation.gId, display.title, display.description, display.poster, display.banner, display.icon, display.logo, display.logoPosition, installation.command, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, game.releaseDate, game.rating, game.steamId, game.igdbId, game_display.title AS game_title, game_display.poster AS game_poster
+SELECT iId, title, description, type, command, playTime, playCount, lastPlayed, added
 FROM installation
+WHERE iId = ?1;
+        )", &_getInstallationMetaStmt));
+    }
+
+    NBL_CHECK(_getInstallationMetaStmt.bindInt(1, installationid));
+
+    struct _InstallationMetaQueryData {
+        InstallationMetaCallback callback;
+        void* userData;
+    } queryData { callback, userData };
+
+    return connection->execute(&_getInstallationMetaStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        _InstallationMetaQueryData* data = static_cast<_InstallationMetaQueryData*>(userData);
+
+        InstallationMeta meta = {
+            .id = columnValues[0].intValue,
+            .title = columnValues[1].textValue,
+            .description = columnValues[2].textValue,
+            .type = columnValues[3].textValue,
+            .command = columnValues[4].textValue,
+            .playTime = columnValues[5].uintValue(),
+            .playCount = columnValues[6].uintValue(),
+            .lastPlayed = columnValues[7].uintValue(),
+            .added = columnValues[8].uintValue()
+        };
+
+        return data->callback(data->userData, meta);
+
+    }, &queryData);
+
+}
+
+
+nbl::Result nbl::getInstallationDetails(DatabaseConnection* connection, i64 installationId, InstallationDetailsCallback callback, void* userData) {
+
+    static nbl::PreparedStatement _getInstallationDetailsStmt;
+    if(!_getInstallationDetailsStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT 
+
+installation.iId, installation.title, installation.description, installation.type, installation.command, installation.playTime, installation.playCount, installation.lastPlayed, installation.added,
+game.gId, game.title, game.description, game.steamId, game.igdbId, game.releaseDate, game.rating, 
+installation.dId, display.banner, display.poster, display.icon, display.logo, display.logoPosition, 
+game.dId, game_display.banner, game_display.poster, game_display.icon, game_display.logo, game_display.logoPosition
+
+FROM installation
+
 JOIN game ON installation.gId = game.gId
 JOIN display ON display.dId = IFNULL(installation.dId, game.dId)
 JOIN display AS game_display ON game_display.dId = game.dId
+
 WHERE installation.iId = ?1;
-        )", &_getInstallationMetaStmt));
+        )", &_getInstallationDetailsStmt));
     }
 
-    NBL_CHECK(_getInstallationMetaStmt.bindUint(1, installationId));
+    NBL_CHECK(_getInstallationDetailsStmt.bindUint(1, installationId));
 
-    struct _InstallationMetaQueryData {
-        InstallationCallback callback;
+    struct _InstallationDetailsQueryData {
+        InstallationDetailsCallback callback;
         void* userData;
     } queryData{ callback, userData };
 
-    return connection->execute(&_getInstallationMetaStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_getInstallationDetailsStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 21) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 21 columns in installation meta query result, but got ", columnCount);
+        if(columnCount != 28) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 28 columns in installation meta query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
 
-        _InstallationMetaQueryData* queryData = static_cast<_InstallationMetaQueryData*>(userData);
+        _InstallationDetailsQueryData* queryData = static_cast<_InstallationDetailsQueryData*>(userData);
 
-        InstallationMeta meta = {
-            .id = columnValues[0].intValue,
-            .dId = columnValues[1].intValue,
-            .gId = columnValues[2].intValue,
-            .title = columnValues[3].textValue,
-            .description = columnValues[4].textValue,
-            .poster = columnValues[5].textValue,
-            .banner = columnValues[6].textValue,
-            .icon = columnValues[7].textValue,
-            .logo = columnValues[8].textValue,
-            .logoPosition = byId(columnValues[9].uintValue()),
-            .command = columnValues[10].textValue,
-            .playTime = columnValues[11].uintValue(),
-            .playCount = columnValues[12].uintValue(),
-            .lastPlayed = columnValues[13].uintValue(),
-            .added = columnValues[14].uintValue(),
-            .releaseDate = columnValues[15].uintValue(),
-            .rating = columnValues[16].floatValue,
-            .steamId = columnValues[17].uintValue(),
-            .igdbId = columnValues[18].uintValue(),
-            .gameTitle = columnValues[19].textValue,
-            .gamePoster = columnValues[20].textValue
+        InstallationDetails details = {
+            .installation = {
+                .id = columnValues[0].intValue,
+                .displayId = columnValues[16].intValue,
+                .gameId = columnValues[9].intValue,
+                .title = columnValues[1].textValue,
+                .description = columnValues[2].textValue,
+                .type = columnValues[3].textValue,
+                .command = columnValues[4].textValue,
+                .playTime = columnValues[5].uintValue(),
+                .playCount = columnValues[6].uintValue(),
+                .lastPlayed = columnValues[7].uintValue(),
+                .added = columnValues[8].uintValue()
+            },
+            .game = {
+                .id = columnValues[9].intValue,
+                .title = columnValues[10].textValue,
+                .description = columnValues[11].textValue,
+                .steamId = columnValues[12].uintValue(),
+                .igdbId = columnValues[13].uintValue(),
+                .releaseDate = columnValues[14].uintValue(),
+                .rating = columnValues[15].floatValue
+            },
+            .display = {
+                .id = columnValues[16].intValue,
+                .banner = columnValues[17].textValue,
+                .poster = columnValues[18].textValue,
+                .icon = columnValues[19].textValue,
+                .logo = columnValues[20].textValue,
+                .logoPosition = static_cast<LogoPosition>(columnValues[21].intValue)
+            },
+            .gameDisplay = {
+                .id = columnValues[22].intValue,
+                .banner = columnValues[23].textValue,
+                .poster = columnValues[24].textValue,
+                .icon = columnValues[25].textValue,
+                .logo = columnValues[26].textValue,
+                .logoPosition = static_cast<LogoPosition>(columnValues[27].intValue)
+            }
         };
-
-        return queryData->callback(queryData->userData, meta);
+        return queryData->callback(queryData->userData, details);
 
     }, &queryData);
 }
-
-nbl::Result nbl::getInstallationCommand(DatabaseConnection* connection, i64 installationId, InstallationCallback callback, void* userData) {
-
-    static nbl::PreparedStatement _getInstallationMetaStmt;
-    if(!_getInstallationMetaStmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-SELECT installation.iId, installation.command
-FROM installation
-WHERE installation.iId = ?1;
-        )", &_getInstallationMetaStmt));
-    }
-
-    NBL_CHECK(_getInstallationMetaStmt.bindUint(1, installationId));
-
-    struct _InstallationMetaQueryData {
-        InstallationCallback callback;
-        void* userData;
-    } queryData{ callback, userData };
-
-    return connection->execute(&_getInstallationMetaStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        if(columnCount != 2) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 2 columns in installation meta query result, but got ", columnCount);
-            return nbl::error::IO_ERROR;
-        }
-
-        _InstallationMetaQueryData* queryData = static_cast<_InstallationMetaQueryData*>(userData);
-
-        InstallationMeta meta = {
-            .id = columnValues[0].intValue,
-            .command = columnValues[1].textValue
-        };
-
-        return queryData->callback(queryData->userData, meta);
-
-    }, &queryData);
-}
-
 
 nbl::Result nbl::lookupInstallations(
         DatabaseConnection* connection, 
         const InstallationSearchCriteria& criteria,
-        InstallationCallback callback,
+        InstallationLookupCallback callback,
         void* userData) {
 
     
@@ -201,7 +236,11 @@ WITH
         WHERE NOT ?2 IS NULL
           AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
     )
-SELECT installation.iId, installation.dId, display.title, display.poster, display.icon, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, game.releaseDate, game.rating
+SELECT 
+installation.iId, installation.dId, installation.gId,
+IFNULL(installation.title, game.title), installation.playTime, installation.playCount, installation.lastPlayed, installation.added, 
+display.poster, display.icon, 
+game.releaseDate, game.rating
 FROM installation
 JOIN game ON installation.gId = game.gId
 JOIN display ON display.dId = IFNULL(installation.dId, game.dId)
@@ -215,7 +254,7 @@ WHERE game.releaseDate >= ?3
   AND (?8 = 0 OR installation.playTime <= ?8)
   AND (?1 IS NULL OR installation_tag.tId IN all_tags OR game_tag.tId IN all_tags)
   AND (?2 IS NULL OR NOT (installation_tag.tId IN excluded_tags OR game_tag.tId IN excluded_tags))
-  AND (?9 IS NULL OR display.title LIKE '%' || ?9 || '%')
+  AND (?9 IS NULL OR installation.title LIKE '%' || ?9 || '%')
 GROUP BY installation.iId
 )";
 
@@ -309,7 +348,7 @@ OFFSET ?10;
 
 
     struct _InstallationQueryData {
-        InstallationCallback callback;
+        InstallationLookupCallback callback;
         void* userData;
     } queryData{ callback, userData };
 
@@ -320,29 +359,30 @@ OFFSET ?10;
         const char** columnNames, 
         i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount < 11) {
+        if(columnCount < 12) {
             return nbl::error::IO_ERROR;
         }
 
         _InstallationQueryData* queryData = static_cast<_InstallationQueryData*>(userData);
 
-        InstallationMeta meta = {
-            .id = columnValues[0].intValue,
-            .dId = columnValues[1].intValue,
-            .title = columnValues[2].textValue,
-            .poster = columnValues[3].textValue,
-            .icon = columnValues[4].textValue,
-            .playTime = columnValues[5].uintValue(),
-            .playCount = columnValues[6].uintValue(),
-            .lastPlayed = columnValues[7].uintValue(),
-            .added = columnValues[8].uintValue(),
-            .releaseDate = columnValues[9].uintValue(),
-            .rating = columnValues[10].floatValue
+        InstallationLookupResult res = {
+            .installationId = columnValues[0].intValue,
+            .displayId = columnValues[1].intValue,
+            .gameId = columnValues[2].intValue,
+            .title = columnValues[3].textValue,
+            .playTime = columnValues[4].uintValue(),
+            .playCount = columnValues[5].uintValue(),
+            .lastPlayed = columnValues[6].uintValue(),
+            .added = columnValues[7].uintValue(),
+            .poster = columnValues[8].textValue,
+            .icon = columnValues[9].textValue,
+            .releaseDate = columnValues[10].uintValue(),
+            .rating = columnValues[11].floatValue
         };
 
         return queryData->callback(
             queryData->userData,
-            meta
+            res
         );
     }, &queryData));
 

@@ -7,8 +7,6 @@ namespace {
 
 nbl::DisplayMeta _displayMeta = {
     .id = 0,
-    .title = "Test Game",
-    .description = "A test game",
     .banner = "banner.jpg",
     .poster = "poster.jpg",
     .icon = "icon.jpg",
@@ -17,6 +15,8 @@ nbl::DisplayMeta _displayMeta = {
 
 nbl::GameMeta _gameMeta = {
     .id = 0,
+    .title = "Test Game",
+    .description = "A test game",
     .releaseDate = 1600000000,
     .rating = 4.5
 };
@@ -29,7 +29,7 @@ TEST(Game, AddGame) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -42,7 +42,7 @@ TEST(Game, RemoveGame) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -56,7 +56,7 @@ TEST(Game, AddGameTag) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -72,7 +72,7 @@ TEST(Game, RemoveGameTag) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -90,7 +90,7 @@ TEST(Game, GetGameTags) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -128,7 +128,7 @@ TEST(Game, GetGameMeta) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -136,15 +136,15 @@ TEST(Game, GetGameMeta) {
 
 
     bool found = false;
-    ASSERT_TRUE(nbl::getGameMeta(&connection, gameId, [](void* userData, const nbl::GameMeta& meta) -> nbl::Result {
-        if(meta.title == "Test Game" 
-        && meta.description == "A test game" 
-        && meta.poster == "poster.jpg" 
-        && meta.banner == "banner.jpg" 
-        && meta.icon == "icon.jpg" 
-        && meta.logo == "logo.jpg" 
-        && meta.releaseDate == 1600000000 
-        && meta.rating == 4.5) {
+    ASSERT_TRUE(nbl::getGameDetails(&connection, gameId, [](void* userData, const nbl::GameDetails& details) -> nbl::Result {
+        if(details.game.title == "Test Game" 
+        && details.game.description == "A test game" 
+        && details.display.poster == "poster.jpg" 
+        && details.display.banner == "banner.jpg" 
+        && details.display.icon == "icon.jpg" 
+        && details.display.logo == "logo.jpg" 
+        && details.game.releaseDate == 1600000000 
+        && details.game.rating == 4.5) {
 
             *static_cast<bool*>(userData) = true;
         }
@@ -161,7 +161,7 @@ TEST(Game, LookupSingleGame) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -170,18 +170,15 @@ TEST(Game, LookupSingleGame) {
     i64 foundId = 0;
     ASSERT_TRUE(nbl::lookupGames(
         &connection, {}, 
-        [](void* userData, const nbl::GameMeta& meta) -> nbl::Result {
+        [](void* userData, const nbl::GameLookupResult& res) -> nbl::Result {
 
-        if(meta.title == "Test Game" 
-        && meta.description == "A test game" 
-        && meta.poster == "poster.jpg" 
-        && meta.banner == "banner.jpg" 
-        && meta.icon == "icon.jpg" 
-        && meta.logo == "logo.jpg" 
-        && meta.releaseDate == 1600000000 
-        && meta.rating == 4.5) {
+        if(res.title == "Test Game" 
+        && res.poster == "poster.jpg" 
+        && res.icon == "icon.jpg" 
+        && res.releaseDate == 1600000000 
+        && res.rating == 4.5) {
 
-            *static_cast<i64*>(userData) = meta.id;
+            *static_cast<i64*>(userData) = res.id;
         }
         return nbl::Result::SUCCESS;
     }, &foundId).success());
@@ -197,7 +194,7 @@ TEST(Game, LookupSingleGameByName) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -212,20 +209,17 @@ TEST(Game, LookupSingleGameByName) {
 
     ASSERT_TRUE(nbl::lookupGames(
         &connection, criteria, 
-        [](void* userData, const nbl::GameMeta& meta) -> nbl::Result {
+        [](void* userData, const nbl::GameLookupResult& details) -> nbl::Result {
 
-        nbl::log(nbl::LogLevel::INFO, "Found game: ", meta.title);
+        nbl::log(nbl::LogLevel::INFO, "Found game: ", details.title);
 
-        if(meta.title == "Test Game" 
-        && meta.description == "A test game" 
-        && meta.poster == "poster.jpg" 
-        && meta.banner == "banner.jpg" 
-        && meta.icon == "icon.jpg" 
-        && meta.logo == "logo.jpg" 
-        && meta.releaseDate == 1600000000 
-        && meta.rating == 4.5) {
+        if(details.title == "Test Game" 
+        && details.poster == "poster.jpg" 
+        && details.icon == "icon.jpg" 
+        && details.releaseDate == 1600000000 
+        && details.rating == 4.5) {
 
-            *static_cast<i64*>(userData) = meta.id;
+            *static_cast<i64*>(userData) = details.id;
         }
         return nbl::Result::SUCCESS;
     }, &foundId).success());
@@ -239,7 +233,7 @@ TEST(Game, LookupSingleGameByTag) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.dId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -259,18 +253,15 @@ TEST(Game, LookupSingleGameByTag) {
 
     ASSERT_TRUE(nbl::lookupGames(
         &connection, criteria, 
-        [](void* userData, const nbl::GameMeta& meta) -> nbl::Result {
+        [](void* userData, const nbl::GameLookupResult& res) -> nbl::Result {
 
-        if(meta.title == "Test Game" 
-        && meta.description == "A test game" 
-        && meta.poster == "poster.jpg" 
-        && meta.banner == "banner.jpg" 
-        && meta.icon == "icon.jpg" 
-        && meta.logo == "logo.jpg" 
-        && meta.releaseDate == 1600000000 
-        && meta.rating == 4.5) {
+        if(res.title == "Test Game" 
+        && res.poster == "poster.jpg" 
+        && res.icon == "icon.jpg" 
+        && res.releaseDate == 1600000000 
+        && res.rating == 4.5) {
 
-            *static_cast<i64*>(userData) = meta.id;
+            *static_cast<i64*>(userData) = res.id;
         }
         return nbl::Result::SUCCESS;
     }, &foundId).success());

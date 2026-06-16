@@ -72,11 +72,11 @@ void NblFilterModel::_fetchPageData() {
     
     QList<NblInstallationRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::lookupInstallationsForFilter(db, _mFilterId, [](void* userData, const nbl::InstallationMeta& meta) -> nbl::Result {
-        NblInstallationRef ref(meta.id, 
-            QString::fromUtf8(meta.title.data, meta.title.length), 
-            QString::fromUtf8(meta.poster.data, meta.poster.length),
-            QString::fromUtf8(meta.icon.data, meta.icon.length)
+    if(nbl::lookupInstallationsForFilter(db, _mFilterId, [](void* userData, const nbl::InstallationLookupResult& res) -> nbl::Result {
+        NblInstallationRef ref(res.installationId,
+            fromNbl(res.title),
+            fromNbl(res.poster),
+            fromNbl(res.icon)
         );
         static_cast<QList<NblInstallationRef>*>(userData)->append(ref);
         return nbl::Result::SUCCESS;

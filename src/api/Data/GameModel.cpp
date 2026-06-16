@@ -14,61 +14,20 @@
 #include <Data/Model.hpp>
 
 
-namespace {
-
-    struct _GameQueryUserData {
-        nbl::GameCallback callback;
-        void* userData;
-    } queryData;
-
-
-    nbl::Result _gameMetaCallback(void* userData, i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) {
-
-        if(argc != 10) {
-            return nbl::error::ILLEGAL_STATE;
-        }
-
-        _GameQueryUserData* queryData = static_cast<_GameQueryUserData*>(userData);
-
-        nbl::GameMeta meta = {
-            .id = values[0].intValue,
-            .title = values[1].textValue,
-            .description = values[2].textValue,
-            .poster = values[3].textValue,
-            .banner = values[4].textValue,
-            .icon = values[5].textValue,
-            .logo = values[6].textValue,
-            .logoPosition = nbl::byId(values[7].uintValue()),
-            .releaseDate = values[8].uintValue(),
-            .rating = values[9].floatValue
-        };
-
-        return queryData->callback(
-            queryData->userData, 
-            meta
-        );
-    }
-
-
-}
-
-
 nbl::Result nbl::addDisplay(DatabaseConnection *connection, const DisplayMeta &meta, i64 *outDisplayId) {
 
     static nbl::PreparedStatement _displayStmt;
     if(!_displayStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO display (title, description, poster, banner, icon, logo, logoPosition) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
+INSERT INTO display (poster, banner, icon, logo, logoPosition) VALUES (?1, ?2, ?3, ?4, ?5);
         )", &_displayStmt));
     }
 
-    NBL_CHECK(_displayStmt.bindString(1, meta.title));
-    NBL_CHECK(_displayStmt.bindStringOrNull(2, meta.description));
-    NBL_CHECK(_displayStmt.bindStringOrNull(3, meta.poster));
-    NBL_CHECK(_displayStmt.bindStringOrNull(4, meta.banner));
-    NBL_CHECK(_displayStmt.bindStringOrNull(5, meta.icon));
-    NBL_CHECK(_displayStmt.bindStringOrNull(6, meta.logo));
-    NBL_CHECK(_displayStmt.bindInt(7, static_cast<i32>(meta.logoPosition)));
+    NBL_CHECK(_displayStmt.bindStringOrNull(1, meta.poster));
+    NBL_CHECK(_displayStmt.bindStringOrNull(2, meta.banner));
+    NBL_CHECK(_displayStmt.bindStringOrNull(3, meta.icon));
+    NBL_CHECK(_displayStmt.bindStringOrNull(4, meta.logo));
+    NBL_CHECK(_displayStmt.bindInt(5, static_cast<i32>(meta.logoPosition)));
 
     return connection->execute(&_displayStmt, nullptr, nullptr, outDisplayId);
 }
@@ -92,18 +51,16 @@ nbl::Result nbl::updateDisplay(DatabaseConnection* connection, i64 displayId, co
     static nbl::PreparedStatement _updateDisplayStmt;
     if(!_updateDisplayStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-UPDATE display SET title=?1, description=?2, poster=?3, banner=?4, icon=?5, logo=?6, logoPosition=?7 WHERE dId=?8;
+UPDATE display SET poster=?1, banner=?2, icon=?3, logo=?4, logoPosition=?5 WHERE dId=?6;
         )", &_updateDisplayStmt));
     }
 
-    NBL_CHECK(_updateDisplayStmt.bindString(1, meta.title));
-    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(2, meta.description));
-    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(3, meta.poster));
-    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(4, meta.banner));
-    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(5, meta.icon));
-    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(6, meta.logo));
-    NBL_CHECK(_updateDisplayStmt.bindInt(7, static_cast<i32>(meta.logoPosition)));
-    NBL_CHECK(_updateDisplayStmt.bindInt(8, displayId));
+    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(1, meta.poster));
+    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(2, meta.banner));
+    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(3, meta.icon));
+    NBL_CHECK(_updateDisplayStmt.bindStringOrNull(4, meta.logo));
+    NBL_CHECK(_updateDisplayStmt.bindInt(5, static_cast<i32>(meta.logoPosition)));
+    NBL_CHECK(_updateDisplayStmt.bindInt(6, displayId));
 
 
     return connection->execute(&_updateDisplayStmt, nullptr, nullptr);
@@ -121,14 +78,14 @@ INSERT INTO game (steamId, igdbId, releaseDate, rating, dId) VALUES (?1, ?2, ?3,
         )", &_addGameStmt));
     }
 
-    if(meta.dId == 0) {
+    if(meta.displayId == 0) {
         return nbl::error::ILLEGAL_ARGUMENT;
     }
     NBL_CHECK(_addGameStmt.bindUint(1, meta.steamId));
     NBL_CHECK(_addGameStmt.bindUint(2, meta.igdbId));
     NBL_CHECK(_addGameStmt.bindUint(3, meta.releaseDate));
     NBL_CHECK(_addGameStmt.bindFloat(4, meta.rating));
-    NBL_CHECK(_addGameStmt.bindInt(5, meta.dId));
+    NBL_CHECK(_addGameStmt.bindInt(5, meta.displayId));
 
     return connection->execute(&_addGameStmt, nullptr, nullptr, outGameId); 
 }
@@ -156,14 +113,14 @@ UPDATE game SET steamId=?1, igdbId=?2, releaseDate=?3, rating=?4, dId=?5 WHERE g
         )", &_updateGameStmt));
     }
 
-    if(meta.dId == 0) {
+    if(meta.displayId == 0) {
         return nbl::error::ILLEGAL_ARGUMENT;
     }
     NBL_CHECK(_updateGameStmt.bindUint(1, meta.steamId));
     NBL_CHECK(_updateGameStmt.bindUint(2, meta.igdbId));
     NBL_CHECK(_updateGameStmt.bindUint(3, meta.releaseDate));
     NBL_CHECK(_updateGameStmt.bindFloat(4, meta.rating));
-    NBL_CHECK(_updateGameStmt.bindInt(5, meta.dId));
+    NBL_CHECK(_updateGameStmt.bindInt(5, meta.displayId));
     NBL_CHECK(_updateGameStmt.bindInt(6, gameId));
 
     return connection->execute(&_updateGameStmt, nullptr, nullptr); 
@@ -237,28 +194,96 @@ WHERE game_tag.gId = ?1;
 }
 
 
-nbl::Result nbl::getGameMeta(DatabaseConnection* connection, i64 gameId, GameCallback callback, void* userData) {
 
-    static nbl::PreparedStatement _getGameMetaStmt;
-    if(!_getGameMetaStmt.isValid(connection)) {
+nbl::Result nbl::getGameMeta(DatabaseConnection* connection, i64 gameId, GameMetaCallback callback, void* userData) {
+
+ static nbl::PreparedStatement _getGameDetailsStmt;
+    if(!_getGameDetailsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT game.gId, display.title, display.description, display.poster, display.banner, display.icon, display.logo, display.logoPosition, game.releaseDate, game.rating
+SELECT 
+game.gId, game.displayId, game.steamId, game.igdbId, game.releaseDate, game.rating, 
+FROM game
+WHERE game.gId = ?1;
+        )", &_getGameDetailsStmt));
+    }
+
+    NBL_CHECK(_getGameDetailsStmt.bindUint(1, gameId));
+ 
+    struct _GameMetaQueryData {
+        GameMetaCallback callback;
+        void* userData;
+    } queryData { callback, userData };
+
+    return connection->execute(&_getGameDetailsStmt, [](void* userData, i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        _GameMetaQueryData* data = static_cast<_GameMetaQueryData*>(userData);
+        GameMeta meta = {
+            .id = values[0].intValue,
+            .displayId = values[1].intValue,
+            .steamId = values[2].uintValue(),
+            .igdbId = values[3].uintValue(),
+            .releaseDate = values[4].uintValue(),
+            .rating = values[5].floatValue
+        };
+        return data->callback(data->userData, meta);
+
+    }, &queryData);
+}
+
+nbl::Result nbl::getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCallback callback, void* userData) {
+
+    static nbl::PreparedStatement _getGameDetailsStmt;
+    if(!_getGameDetailsStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT 
+game.gId, game.title, game.description, game.steamId, game.igdbId, game.releaseDate, game.rating, 
+display.dId, display.banner, display.poster, display.icon, display.logo, display.logoPosition
 FROM game
 JOIN display ON display.dId = game.dId
 WHERE game.gId = ?1;
-        )", &_getGameMetaStmt));
+        )", &_getGameDetailsStmt));
     }
 
-    NBL_CHECK(_getGameMetaStmt.bindUint(1, gameId));
+    NBL_CHECK(_getGameDetailsStmt.bindUint(1, gameId));
 
-    _GameQueryUserData queryData{ callback, userData };
-    return connection->execute(&_getGameMetaStmt, _gameMetaCallback, &queryData);
+    struct _GameDetailsQueryData {
+        GameDetailsCallback callback;
+        void* userData;
+    } queryData { callback, userData };
+
+    return connection->execute(&_getGameDetailsStmt, [](void* userData, i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        _GameDetailsQueryData* data = static_cast<_GameDetailsQueryData*>(userData);
+
+        GameDetails details = {
+            .game = {
+                .id = values[0].intValue,
+                .displayId = values[5].intValue,
+                .title = values[1].textValue,
+                .description = values[2].textValue,
+                .steamId = values[3].uintValue(),
+                .igdbId = values[4].uintValue(),
+                .releaseDate = values[5].uintValue(),
+                .rating = values[6].floatValue
+            },
+            .display = {
+                .id = values[7].intValue,
+                .banner = values[8].textValue,
+                .poster = values[9].textValue,
+                .icon = values[10].textValue,
+                .logo = values[11].textValue,
+                .logoPosition = static_cast<LogoPosition>(values[12].intValue)
+            }
+        };
+        return data->callback(data->userData, details);
+
+    }, &queryData);
     
 }
 
 
 
-nbl::Result nbl::lookupGames(DatabaseConnection *connection, const GameSearchCriteria& criteria, GameCallback callback, void *userData) {
+nbl::Result nbl::lookupGames(DatabaseConnection *connection, const GameSearchCriteria& criteria, GameLookupCallback callback, void *userData) {
 
     usize sortByIndex = static_cast<usize>(criteria.sortBy);
     usize sortOrderIndex = static_cast<usize>(criteria.sortOrder);
@@ -388,8 +413,24 @@ OFFSET ?8;
         NBL_CHECK(lookupGamesStmt.bindUint(9, criteria.limit == 0 ? 10 : criteria.limit));
     }
 
-    _GameQueryUserData queryData{ callback, userData };
-    return connection->execute(&lookupGamesStmt, _gameMetaCallback, &queryData);
+    struct _GameLookupQueryData {
+        GameLookupCallback callback;
+        void* userData;
+    } queryData { callback, userData };
 
+    return connection->execute(&lookupGamesStmt, [](void* userData, i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        _GameLookupQueryData* data = static_cast<_GameLookupQueryData*>(userData);
+        GameLookupResult res = {
+            .id = values[0].intValue,
+            .releaseDate = values[1].uintValue(),
+            .rating = values[2].floatValue,
+            .title = values[3].textValue,
+            .poster = values[4].textValue,
+            .icon = values[5].textValue,
+        };
+        return data->callback(data->userData, res);
+
+    }, &queryData);
 }
 

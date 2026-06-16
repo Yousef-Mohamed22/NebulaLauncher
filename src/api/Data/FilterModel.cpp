@@ -253,11 +253,11 @@ UPDATE filter SET criteria = ?1 WHERE fId = ?2;
     return connection->execute(&_setFilterCriteriaStmt, nullptr, nullptr);
 }
 
-nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i64 tabId, InstallationCallback callback, u64 offset, u64 limit, void* userData) {
+nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i64 tabId, InstallationLookupCallback callback, u64 offset, u64 limit, void* userData) {
 
     struct _GetFilterQueryData {
         DatabaseConnection* connection;
-        InstallationCallback callback;
+        InstallationLookupCallback callback;
         u64 offset;
         u64 limit;
         void* userData;

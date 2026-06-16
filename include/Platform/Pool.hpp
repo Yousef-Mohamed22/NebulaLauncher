@@ -238,7 +238,6 @@ public:
                     _mIndex = _pView->_mPool._mArena.index() / _pView->_mPool._mStride;
                     return *this;
                 }
-                nbl::log(nbl::LogLevel::DEBUG, "Iterator increment: index=", _mIndex);
             } while(_isFree(ptr));
             return *this;
         }

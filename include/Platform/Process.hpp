@@ -24,6 +24,12 @@ StringView getEnv(StringView name);
 
 
 /**
+ * \brief Retrieves the path to the binary executable being run.
+ * \return A StringView containing the path of the binary executable being run.
+ */
+StringView getBinaryPath();
+
+/**
  * \brief A class representing a thread of execution in the program. This class provides methods for creating, joining, and detaching threads, as well as checking if a thread is currently running.
  */ 
 class Thread {

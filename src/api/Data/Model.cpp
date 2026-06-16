@@ -123,8 +123,6 @@ PRAGMA foreign_keys = ON;
 BEGIN EXCLUSIVE TRANSACTION;
 CREATE TABLE IF NOT EXISTS display (
     dId INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    description TEXT,
     poster TEXT,
     banner TEXT,
     icon TEXT,
@@ -133,6 +131,8 @@ CREATE TABLE IF NOT EXISTS display (
 );
 CREATE TABLE IF NOT EXISTS game (
     gId INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
     steamId INTEGER,
     igdbId INTEGER,
     dId INTEGER NOT NULL,
@@ -143,8 +143,11 @@ CREATE TABLE IF NOT EXISTS game (
 CREATE TABLE IF NOT EXISTS installation (
     iId INTEGER PRIMARY KEY AUTOINCREMENT,
     gId INTEGER NOT NULL,
-    command TEXT NOT NULL,
     dId INTEGER,
+    title TEXT NOT NULL,
+    description TEXT,
+    type TEXT NOT NULL,
+    command TEXT NOT NULL,
     playTime INTEGER NOT NULL DEFAULT 0,
     playCount INTEGER NOT NULL DEFAULT 0,
     added INTEGER NOT NULL,

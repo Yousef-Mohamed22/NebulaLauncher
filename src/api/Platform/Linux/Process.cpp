@@ -6,11 +6,20 @@
  * \brief Partial implementation of Platform/Process.hpp for Linux. Includes process creation and management functions.
  */
 
-#include "Core/Array.hpp"
-#include "Platform/Arena.hpp"
-#include "Platform/Linux/LinuxUtil.hpp"
-#include <Platform/Process.hpp>
+#include <Platform/PlatformDefines.hpp>
+#ifdef NBL_PLATFORM_LINUX
 
+#include <Core/Result.hpp>
+#include <Core/Array.hpp>
+#include <Core/String.hpp>
+#include <Platform/Arena.hpp>
+#include <Platform/Process.hpp>
+#include <Platform/StringBuilder.hpp>
+
+#include "Platform/Linux/LinuxUtil.hpp"
+
+#include <cstdlib>
+#include <linux/limits.h>
 #include <sys/wait.h>
 #include <fcntl.h>
 
@@ -27,6 +36,27 @@ void _setHandle(void* handle, int value) {
 }
 
 }
+
+
+nbl::StringView nbl::getEnv(nbl::StringView name) {
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::StringView data;
+    if(nbl::StringBuilder::nullTerminate(name, &data, &frame).error()) return "";
+    return ::getenv(data.data);
+}
+
+
+nbl::StringView nbl::getBinaryPath() {
+
+    static char path[PATH_MAX];
+    ssize_t len = ::readlink("/proc/self/exe", path, PATH_MAX - 1);
+    NBL_ASSERT(len != -1);
+
+    path[len] = '\0';
+    return nbl::StringView(len, path);
+}
+
+
 
 
 nbl::Result nbl::ProcessHandle::wait(i32* exitCode) const {
@@ -107,21 +137,23 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
         nbl::ArenaFrame frame = nbl::ArenaFrame(nbl::Arena::threadLocal());
 
         char** argv;
-        NBL_ASSERT(frame.allocate(&argv, sizeof(const char**) * (args.length + 2)).success());
+        NBL_CHECK(frame.allocate(&argv, sizeof(const char**) * (args.length + 2)));
 
-        NBL_ASSERT(frame.allocate(&argv[0], path.length + 1).success());
+        NBL_CHECK(frame.allocate(&argv[0], path.length + 1));
         memcpy(argv[0], path.data, path.length);
         argv[0][path.length] = '\0';
 
         for(usize i = 0; i < args.length; i++) {
-            NBL_ASSERT(frame.allocate(&argv[i + 1], args[i].length + 1).success());
+            NBL_CHECK(frame.allocate(&argv[i + 1], args[i].length + 1));
 
             memcpy(argv[i + 1], args[i].data, args[i].length);
             argv[i + 1][args[i].length] = '\0';
         }
         argv[args.length + 1] = nullptr;
 
-        NBL_ASSERT(execvp(argv[0], argv) == 0);
+        if(execvp(argv[0], argv) != 0) {
+            return nbl::error::PROCESS_ERROR;
+        }
 
     } else {
 
@@ -134,3 +166,5 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
 
     return Result::SUCCESS;
 }
+
+#endif
