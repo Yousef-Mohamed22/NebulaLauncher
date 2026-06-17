@@ -9,6 +9,7 @@
 #include <Platform/File.hpp>
 #include <Platform/Pool.hpp>
 #include <Plugin/PluginContext.hpp>
+#include <Plugin/PluginLoader.hpp>
 
 #include "NblTabRef.hpp"
 #include "NblInstallationDetails.hpp"
@@ -17,38 +18,6 @@
 inline QString fromNbl(nbl::StringView sv) {
     return QString::fromUtf8(sv.data, sv.length);
 }
-
-
-// class NblRunningInstallation : public QObject {
-//
-//     Q_OBJECT
-//     QML_ELEMENT
-//
-// public:
-//
-//     NblRunningInstallation(QObject* parent = nullptr) : 
-//         QObject(parent),
-//         _mProcess(this),
-//         _mInstallationId(0),
-//         _mStartTime(0)
-//     {
-//         QObject::connect(&_mProcess, &QProcess::finished, this, &NblRunningInstallation::_finished);
-//     }
-//
-//     void launch(i64 installationId, nbl::StringView command);
-//
-//     const QProcess* process() const { return &_mProcess; }
-//
-// private:
-//
-//     QProcess _mProcess;
-//     i64 _mInstallationId;
-//     u64 _mStartTime;
-//
-//     void _finished(int exitCode, QProcess::ExitStatus exitStatus);
-//
-// };
-//
 
 class ApplicationContext : public QObject {
 
@@ -139,6 +108,7 @@ private:
     QList<NblTabRef> _mAllTabs;
 
     nbl::PluginContext _mContext;
+    nbl::PluginLoader _mLoader;
 
     nbl::Arena _mProcessArena;
     nbl::PoolView<nbl::ProcessHandle> _mRunningInstallations;

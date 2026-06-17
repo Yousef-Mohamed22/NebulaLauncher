@@ -8,5 +8,7 @@
 
 #pragma once
 
-extern "C" void initPlugin();
+#include <Plugin/PluginContext.hpp>
+
+extern "C" i32 initPlugin(nbl::PluginContext* context);
 

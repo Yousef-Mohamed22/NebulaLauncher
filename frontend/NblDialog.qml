@@ -112,7 +112,7 @@ Item {
                             anchors.centerIn: parent
                             font.pixelSize: 16
                             font.weight: 500
-                            color: Theme.colors.text
+                            color: Theme.colors.textOnAccent
                             text: root.okText
                         }
 

@@ -6,20 +6,28 @@
  * \brief Implementation of Platform/File.hpp for Linux.
  */
 
+
+#include <Platform/PlatformDefines.hpp>
+#ifdef NBL_PLATFORM_LINUX
+
 #include <Platform/Assert.hpp>
 #include <Platform/File.hpp>
 #include <Platform/Socket.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/StringBuilder.hpp>
 
+#include "Core/Result.hpp"
 #include "LinuxUtil.hpp"
 
+#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <dirent.h>
+#include <errno.h>
 
 namespace {
 
@@ -89,7 +97,7 @@ nbl::Result nbl::FileChannel::open(StringView path, FileChannel* outChannel, Fil
 
     if(flags & FileOpenFlag::READ && flags & FileOpenFlag::WRITE) {
         openFlags |= O_RDWR;
-    } else if(flags & FileOpenFlag::READ) {
+} else if(flags & FileOpenFlag::READ) {
         openFlags |= O_RDONLY;
     } else if(flags & FileOpenFlag::WRITE) {
         openFlags |= O_WRONLY;    
@@ -207,3 +215,85 @@ nbl::Result nbl::Socket::connectIPv4(u32 address, u16 port, SocketType type, Soc
     outSocket->_mHandle = reinterpret_cast<void*>(static_cast<intptr_t>(fd));
     return nbl::Result::SUCCESS;
 }
+
+bool nbl::FolderIterator::next(StringView* name) {
+
+    struct dirent* entry = ::readdir(static_cast<DIR*>(_mHandle));
+    if(entry == nullptr) return false;
+
+    *name = entry->d_name;
+    return true;
+}
+
+nbl::Result nbl::FolderIterator::create(StringView path, FolderIterator* outIterator) {
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::StringView nullPath;
+    NBL_CHECK(nbl::StringBuilder(&frame).append(path).buildNullTerminated(&nullPath));
+
+    DIR* handle = ::opendir(nullPath.data);
+    if(handle == nullptr) {
+        return nbl::error::IO_ERROR;
+    }
+
+    outIterator->_mHandle = handle;
+    return nbl::Result::SUCCESS;
+}
+
+nbl::Result nbl::makeDirectories(StringView path) {
+
+    nbl::log(nbl::LogLevel::INFO, "Attempting to make directories up to ", path);
+    if(path.length >= PATH_MAX) return nbl::error::ILLEGAL_ARGUMENT;
+
+    char temp[PATH_MAX] = {};
+    memcpy(temp, path.data, path.length);
+
+    StringView stackPath = StringView(path.length, temp);
+
+    usize index = 0;
+    Result rc = nbl::Result::SUCCESS;
+    while(true) {
+
+        rc = stackPath.findFirst('/', &index, index);
+        if(rc.error() && rc != nbl::error::NOT_FOUND) {
+            nbl::log(nbl::LogLevel::INFO, "RC: ", rc);
+            return rc;
+        }
+        if(rc == nbl::error::NOT_FOUND) {
+            index = path.length;
+        }
+
+        if(index == 0) {
+            index += 1;
+            continue;
+        }
+
+        nbl::log(nbl::LogLevel::INFO, "found folder to make at index ", index);
+
+        temp[index] = 0;
+
+        nbl::log(nbl::LogLevel::INFO, "Attempting to make directory ", nbl::StringView(index, temp));
+        if(::mkdir(temp, 0775) == -1) {
+            if(errno != EEXIST) {
+                nbl::log(nbl::LogLevel::ERROR, "Could not mkdir! ", errno);
+                return nbl::error::IO_ERROR;
+            }
+        }
+        temp[index] = '/';
+        index += 1;
+
+        if(index >= path.length) break;
+    }
+
+    return nbl::Result::SUCCESS;
+}
+
+void nbl::FolderIterator::_close() {
+    ::closedir(static_cast<DIR*>(_mHandle));
+}
+
+void nbl::FolderIterator::_rewind() {
+    ::rewinddir(static_cast<DIR*>(_mHandle));
+}
+
+#endif

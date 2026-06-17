@@ -97,6 +97,7 @@ namespace error {
         UNEXPECTED_TOKEN = -8,
         THREAD_ERROR = -9,
         PROCESS_ERROR = -10,
+        PLUGIN_ERROR = -11,
         UNIMPLEMENTED = -998,
         UNEXPECTED_ERROR = -999
     };

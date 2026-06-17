@@ -167,8 +167,8 @@ struct StringView {
         return StringView(length, data + start);
     }
 
-    constexpr Result findFirst(char c, usize* outIndex) const {
-        for (usize i = 0; i < length; i++) {
+    constexpr Result findFirst(char c, usize* outIndex, usize startIndex = 0) const {
+        for (usize i = startIndex; i < length; i++) {
             if (data[i] == c) {
                 if(outIndex) *outIndex = i;
                 return nbl::Result::SUCCESS;

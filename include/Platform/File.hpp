@@ -83,6 +83,76 @@ private:
     void* _mHandle;
 };
 
+struct FileInfo {
+    StringView name;
+    bool isDirectory;
+};
+
+class FolderIterator {
+public:
+
+    FolderIterator() = default;
+    ~FolderIterator() { _close(); }
+
+    bool next(StringView* name);
+
+    static Result create(StringView path, FolderIterator* outIterator);
+
+private:
+
+    void _rewind();
+    void _close();
+    void* _mHandle;
+
+public:
+
+    struct Iterator {
+        StringView currentName;
+        FolderIterator* it;
+
+        StringView operator*() {
+            return currentName;
+        }
+
+        Iterator& operator++() {
+            if(!it->next(&currentName)) {
+                currentName = {};
+            }
+            return *this;
+        }
+
+        Iterator operator++(int) {
+            Iterator out = *this;
+            operator++();
+            return out;
+        }
+
+        bool operator!=(const Iterator& other) {
+            return other.it == it && other.currentName == currentName;
+        }
+
+    };
+
+    Iterator begin() {
+        _rewind();
+        Iterator out = {
+            .currentName{},
+            .it = this
+        };
+        out++;
+        return out;
+    }
+
+    Iterator end() {
+        return {
+            .currentName{},
+            .it = this
+        };
+    }
+
+};
+
+Result makeDirectories(StringView path);
 
 StringView getWorkingDirectory();
 

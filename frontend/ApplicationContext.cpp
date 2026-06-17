@@ -1,6 +1,7 @@
 #include "ApplicationContext.hpp"
 #include "NblInstallationDetails.hpp"
 #include "Platform/Arena.hpp"
+#include "Platform/Assert.hpp"
 #include "Platform/File.hpp"
 #include "Platform/Process.hpp"
 #include "Plugin/InstallationType.hpp"
@@ -131,35 +132,6 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
 
 }
 
-// void NblRunningInstallation::launch(i64 installationId, nbl::StringView command) {
-//
-//     _mInstallationId = installationId;
-//     _mStartTime = nbl::getCurrentTime();
-//
-//     nbl::log(nbl::LogLevel::INFO, "Launching game with command: ", command);
-//
-//     QString qCommand = QString::fromUtf8(command.data, command.length);
-//
-//     _mProcess.startCommand(qCommand);
-//
-// }
-//
-// void NblRunningInstallation::_finished(int exitCode, QProcess::ExitStatus exitStatus) {
-//
-//     nbl::LogLevel lvl = exitCode == 0 ? nbl::LogLevel::INFO : nbl::LogLevel::ERROR;
-//     nbl::log(lvl, "Subprocess exited with code ", exitCode);
-//
-//     ApplicationContext* context = ApplicationContext::instance();
-//     nbl::DatabaseConnection* connection = context->connection();
-//
-//     u64 playTime = nbl::getCurrentTime() - _mStartTime;
-//     nbl::bumpInstallationPlayTime(connection, _mInstallationId, playTime);
-//
-//     context->_mRunningInstallations.pop(this);
-//
-// }
-
-
 
 void ApplicationContext::_initialize() {
 
@@ -170,12 +142,27 @@ void ApplicationContext::_initialize() {
     ).success());
 
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    nbl::StringView path;
 
-    NBL_ASSERT(nbl::StringBuilder(&frame).append(nbl::getDataDirectory()).append("/NebulaLauncher/nebula.db").build(&path).success());
+    nbl::StringView dataDir;
+    NBL_ASSERT(nbl::StringBuilder(&frame).append(nbl::getDataDirectory()).append("/NebulaLauncher").build(&dataDir).success());
+    NBL_ASSERT(nbl::makeDirectories(dataDir).success());
+
+    nbl::StringView path;
+    NBL_ASSERT(nbl::StringBuilder(&frame).append(dataDir).append("/nebula.db").build(&path).success());
 
     NBL_ASSERT(nbl::PluginContext::create(path, &_mContext).success());
     _mContext.registerInstallationType(nbl::InstallationType::COMMAND);
+
+    nbl::StringView applicationPath = nbl::getBinaryPath();
+    usize lastSlash = 0;
+    NBL_ASSERT(applicationPath.findLast('/', &lastSlash).success());
+
+    nbl::StringView pluginFolder;
+    NBL_ASSERT(nbl::StringBuilder(&frame).append(applicationPath.slice(0, lastSlash)).append("/plugins").buildNullTerminated(&pluginFolder).success());
+    NBL_ASSERT(nbl::makeDirectories(pluginFolder).success());
+
+    NBL_ASSERT(nbl::PluginLoader::create(&_mContext, pluginFolder, &_mLoader).success());
+    NBL_ASSERT(_mLoader.loadAll().success());
 
 }
 
@@ -271,8 +258,6 @@ void ApplicationContext::launchInstallation(i64 installationId) {
                 }
             }
         }
-
-        nbl::log(nbl::LogLevel::DEBUG, "Launching a ", installType->id, " type installation. args[0] = ", values[0].stringValue);
 
         return installType->launch(&context->_mContext, { .data = values.data(), .length = static_cast<usize>(values.length()) }, meta.id, runningInstallation);
         
