@@ -9,8 +9,25 @@ Item {
     required property bool multiLine
     required property bool showTitles
     required property bool useIcons
-    
-    property real rowHeight: (useIcons ? 180 : 270) + (showTitles ? 24 : 0)
+
+    property real requestedWidth: 180
+
+    readonly property real aspectRatio: useIcons ? 1 : (2/3)
+    readonly property real itemWidth: calculateWidth(width, requestedWidth)
+    readonly property real rowHeight: (itemWidth / aspectRatio) + (showTitles ? 24 : 0)
+
+    function calculateWidth(rootWidth, itemWidth) {
+
+        let idealWidth = itemWidth + 16 // Account for spacing
+        let numItems = rootWidth / idealWidth
+        let wholeNumItems = Math.round(numItems)
+
+        let remainingSpace = numItems - wholeNumItems
+        let spacePerItem = remainingSpace / wholeNumItems
+
+        let realWidth = (idealWidth - 16) * (1 + spacePerItem)
+        return realWidth
+    }
 
     signal installationClicked(int id)
 
@@ -30,7 +47,7 @@ Item {
             NblInstallationButton {
                 required property var modelData
 
-                width: 180
+                width: root.itemWidth
                 height: root.rowHeight
 
                 installationId: modelData.id
