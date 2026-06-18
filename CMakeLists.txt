@@ -8,6 +8,9 @@ project(Nebula LANGUAGES C CXX)
 
 set(NBL_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+option(NBL_BUILD_FRONTEND "Build Frontend" ON)
+option(NBL_BUILD_TESTS "Build Tests" ON)
+option(NBL_BUILD_TEST_PLUGIN "Build Test Plugin" ON)
 
 
 #
@@ -69,12 +72,35 @@ add_executable(Nebula_Wrapper ${NBL_WRAPPER_SOURCES})
 target_include_directories(Nebula_Wrapper PRIVATE ${NBL_SRC_DIR}/wrapper)
 target_link_libraries(Nebula_Wrapper PRIVATE Nebula_Api)
 
+if(${NBL_BUILD_TESTS}) 
+    file(GLOB_RECURSE NBL_TEST_SOURCES ${NBL_SRC_DIR}/test/**.cpp)
+    add_executable(Nebula_Test ${NBL_TEST_SOURCES})
+    target_link_libraries(Nebula_Test PRIVATE Nebula_Api)
+    target_link_libraries(Nebula_Test PRIVATE GTest::gtest_main)
+endif()
 
-file(GLOB_RECURSE NBL_TEST_SOURCES ${NBL_SRC_DIR}/test/**.cpp)
+if(${NBL_BUILD_TEST_PLUGIN}) 
 
-add_executable(Nebula_Test ${NBL_TEST_SOURCES})
-target_link_libraries(Nebula_Test PRIVATE Nebula_Api)
-target_link_libraries(Nebula_Test PRIVATE GTest::gtest_main)
+    file(GLOB_RECURSE NBL_TEST_PLUGIN_SOURCES ${NBL_SRC_DIR}/test_plugin/**.cpp)
+    add_library(Nebula_TestPlugin SHARED ${NBL_TEST_PLUGIN_SOURCES})
+    target_link_libraries(Nebula_TestPlugin PRIVATE Nebula_Api)
+    set_target_properties(Nebula_TestPlugin PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/test_plugin"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/test_plugin"
+        PREFIX ""
+        OUTPUT_NAME "plugin"
+    )
 
-add_subdirectory(frontend)
+    add_custom_command(
+        TARGET Nebula_TestPlugin
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/test_plugin/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/test_plugin"
+        VERBATIM
+    )
+
+endif()
+
+if(${NBL_BUILD_FRONTEND}) 
+    add_subdirectory(frontend)
+endif()
 

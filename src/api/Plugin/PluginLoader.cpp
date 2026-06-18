@@ -11,16 +11,23 @@ nbl::Result nbl::PluginLoader::loadAll() {
 
     nbl::FolderIterator it = {};
     NBL_CHECK(nbl::FolderIterator::create(_mPluginFolder, &it));
-    for(auto pluginFolder : it) {
+
+    StringView pluginFolder;
+    while(it.next(&pluginFolder)) {
+
+        if(pluginFolder == "." || pluginFolder == "..") continue;
+
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
         nbl::StringView fullPath = {};
         NBL_CHECK(nbl::StringBuilder(&frame).append(_mPluginFolder).append('/').append(pluginFolder).build(&fullPath));
 
-        nbl::Result res = _load(pluginFolder);
+        nbl::Result res = _load(fullPath);
         if(res.error()) {
             nbl::log(nbl::LogLevel::WARN, "Unable to load plugin at ", pluginFolder, " (error ", res, ")");
         }
     }
+
+    nbl::log(nbl::LogLevel::INFO, "Loaded ", _mPluginRefs.length, " plugins");
 
     return nbl::Result::SUCCESS;
 }
@@ -54,29 +61,33 @@ nbl::Result nbl::PluginLoader::_load(StringView folder) {
         return nbl::error::ILLEGAL_ARGUMENT;
     }
 
-    LoadedPlugin* info = nullptr;
-    NBL_CHECK(_mMetaArena.allocate(&info));
+    LoadedPlugin info = {};
 
     nbl::ArenaFrame dataFrame(&_mDataArena);
-    NBL_CHECK(StringBuilder(&dataFrame).append(idValue->string).buildNullTerminated(&info->id));
-    NBL_CHECK(StringBuilder(&dataFrame).append(nameValue->string).buildNullTerminated(&info->name));
-    NBL_CHECK(StringBuilder(&dataFrame).append(descriptionValue->string).buildNullTerminated(&info->description));
-    NBL_CHECK(StringBuilder(&dataFrame).append(versionValue->string).buildNullTerminated(&info->version));
+    NBL_CHECK(StringBuilder(&dataFrame).append(idValue->string).buildNullTerminated(&info.id));
+    NBL_CHECK(StringBuilder(&dataFrame).append(nameValue->string).buildNullTerminated(&info.name));
+    NBL_CHECK(StringBuilder(&dataFrame).append(descriptionValue->string).buildNullTerminated(&info.description));
+    NBL_CHECK(StringBuilder(&dataFrame).append(versionValue->string).buildNullTerminated(&info.version));
     dataFrame.release();
 
-    StringView libraryPath;
-    NBL_CHECK(StringBuilder(&frame).append(folder).append("/plugin").append(dynamicLibraryFileExt()).build(&manifestPath));
+    StringView libraryPath = {};
+    NBL_CHECK(StringBuilder(&frame).append(folder).append("/plugin").append(dynamicLibraryFileExt()).build(&libraryPath));
 
-    NBL_CHECK(nbl::DynamicLibrary::load(libraryPath, &info->lib));
+    NBL_CHECK(nbl::DynamicLibrary::load(libraryPath, &info.lib));
 
     i32(*initFunc)(nbl::PluginContext*);
-    NBL_CHECK(info->lib.findSymbol("initPlugin", &initFunc));
+    NBL_CHECK(info.lib.findSymbol("initPlugin", &initFunc));
 
     i32 rc = initFunc(_pContext);
     if(rc != 0) {
         nbl::log(nbl::LogLevel::ERROR, "An error occurred while initializing a plugin! ", rc);
         return nbl::error::PLUGIN_ERROR;
     }
+
+    LoadedPlugin* ref = nullptr;
+    NBL_CHECK(_mMetaArena.allocate(&ref));
+    *ref = info;
+    _mPluginRefs.length++;
 
     return nbl::Result::SUCCESS;
 }
@@ -89,6 +100,8 @@ nbl::Result nbl::PluginLoader::create(PluginContext* context, StringView pluginF
 
     nbl::ArenaFrame frame(&out->_mDataArena);
     NBL_CHECK(nbl::StringBuilder(&frame).append(pluginFolder).build(&out->_mPluginFolder));
+
+    out->_mPluginRefs.data = static_cast<LoadedPlugin*>(out->_mMetaArena.current());
 
     out->_pContext = context;
 

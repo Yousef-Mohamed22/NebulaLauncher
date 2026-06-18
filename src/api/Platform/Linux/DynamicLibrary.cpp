@@ -53,6 +53,11 @@ nbl::Result nbl::DynamicLibrary::_findSymbol(StringView name, void** outSym) {
 
 nbl::Result nbl::DynamicLibrary::load(StringView path, DynamicLibrary* outLibrary) {
 
+    if(path.length == 0) {
+        return nbl::error::ILLEGAL_ARGUMENT;
+    }
+
+
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
     nbl::StringView zPath;
     NBL_CHECK(nbl::StringBuilder::nullTerminate(path, &zPath, &frame));

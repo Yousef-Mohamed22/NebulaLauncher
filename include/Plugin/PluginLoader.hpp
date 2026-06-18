@@ -27,6 +27,7 @@ private:
 
     Arena _mMetaArena;
     Arena _mDataArena;
+    Span<LoadedPlugin> _mPluginRefs;
 
     StringView _mPluginFolder;
     PluginContext* _pContext;

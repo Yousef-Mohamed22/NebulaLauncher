@@ -16,7 +16,7 @@
 #include <Platform/Process.hpp>
 #include <Platform/StringBuilder.hpp>
 
-#include "Platform/Linux/LinuxUtil.hpp"
+#include "LinuxUtil.hpp"
 
 #include <cstdlib>
 #include <linux/limits.h>

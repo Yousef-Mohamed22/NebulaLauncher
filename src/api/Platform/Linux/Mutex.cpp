@@ -6,11 +6,11 @@
  * \brief Implementation of Platform/Mutex.cpp for Linux
  */
 
-#include "Core/Result.hpp"
 #include <Platform/PlatformDefines.hpp>
 
 #ifdef NBL_PLATFORM_LINUX
 
+#include <Core/Result.hpp>
 #include <Platform/Mutex.hpp>
 
 #include <pthread.h>

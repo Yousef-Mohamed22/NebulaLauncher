@@ -4,7 +4,7 @@
 #include <Core/Result.hpp>
 #include <Platform/Pipe.hpp>
   
-#include "Platform/Linux/LinuxUtil.hpp"
+#include "LinuxUtil.hpp"
 
 #include <unistd.h>
 

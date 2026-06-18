@@ -13,7 +13,7 @@
 #include <Core/Math.hpp>
 #include <Core/Result.hpp>
 
-#include "Platform/Memory.hpp"
+#include "../Memory.hpp"
 
 
 #include <unistd.h>

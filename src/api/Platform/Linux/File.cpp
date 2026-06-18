@@ -10,13 +10,13 @@
 #include <Platform/PlatformDefines.hpp>
 #ifdef NBL_PLATFORM_LINUX
 
+#include <Core/Result.hpp>
 #include <Platform/Assert.hpp>
 #include <Platform/File.hpp>
 #include <Platform/Socket.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/StringBuilder.hpp>
 
-#include "Core/Result.hpp"
 #include "LinuxUtil.hpp"
 
 #include <sys/stat.h>
@@ -242,7 +242,6 @@ nbl::Result nbl::FolderIterator::create(StringView path, FolderIterator* outIter
 
 nbl::Result nbl::makeDirectories(StringView path) {
 
-    nbl::log(nbl::LogLevel::INFO, "Attempting to make directories up to ", path);
     if(path.length >= PATH_MAX) return nbl::error::ILLEGAL_ARGUMENT;
 
     char temp[PATH_MAX] = {};
@@ -268,11 +267,8 @@ nbl::Result nbl::makeDirectories(StringView path) {
             continue;
         }
 
-        nbl::log(nbl::LogLevel::INFO, "found folder to make at index ", index);
-
         temp[index] = 0;
 
-        nbl::log(nbl::LogLevel::INFO, "Attempting to make directory ", nbl::StringView(index, temp));
         if(::mkdir(temp, 0775) == -1) {
             if(errno != EEXIST) {
                 nbl::log(nbl::LogLevel::ERROR, "Could not mkdir! ", errno);
