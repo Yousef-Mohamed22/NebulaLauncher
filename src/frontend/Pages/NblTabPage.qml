@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 
 import Nebula.Controls
 
@@ -11,36 +12,91 @@ Item {
     required property NblTabRef tab
     required property MainWindow mainWindow
 
-    ListView {
+    ScrollView {
 
-        width: 1000
-        height: 1000
+        id: scrollView
+        anchors.fill: parent
 
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+        contentHeight: content.height
 
-        model: NblTabModel {
-            id: tabModel
-            pageSize: 10
-            tabId: root.tab.tabId
-        }
+        Flickable {
 
-        delegate: NblFilterRow {
-            required property var model
-            width: parent.width
-            filterId: model.id
-            name: model.name
-            icon: model.icon
-            multiLine: model.multiLine
-            showTitles: model.showTitles
-            useIcons: model.useIcons
+            anchors.fill: parent
+            interactive: true
+            clip: true
 
-            mainWindow: root.mainWindow
-        }
+            id: flickable
 
-        onAtYEndChanged: {
-            if(atYEnd && !tabModel.isLoading) {
-                tabModel.loadNextPage()
+            Column {
+
+                id: content
+
+                width: root.width
+                spacing: 8
+
+                Repeater {
+                    model: NblTabModel {
+                        id: tabModel
+                        pageSize: 10
+                        tabId: root.tab.tabId
+                    }
+                    delegate: NblFilterRow {
+
+                        id: row
+                        required property var model
+                        width: root.width - 8
+
+                        filterId: model.id
+                        name: model.name
+                        icon: model.icon
+                        multiLine: model.multiLine
+                        showTitles: model.showTitles
+                        useIcons: model.useIcons
+
+                        onInstallationClicked: id => {
+                            root.mainWindow.openInstallationDetails(id)
+                        }
+
+                        Connections {
+                            target: flickable
+                            function onContentYChanged() {
+                                row.scrolled()
+                            }
+                        }
+                    }
+                }
             }
         }
+
+        // onAtYEndChanged: {
+        //     if(atYEnd && !tabModel.isLoading) {
+        //         tabModel.loadNextPage()
+        //     }
+        // }
+
+        // delegate: NblFilterRow {
+        //
+        //     required property var model
+        //
+        //     width: parent.width
+        //     height: 500
+        //
+        //     filterId: model.id
+        //     name: model.name
+        //     icon: model.icon
+        //     multiLine: model.multiLine
+        //     showTitles: model.showTitles
+        //     useIcons: model.useIcons
+        //
+        //     mainWindow: root.mainWindow
+        // }
+
+        // onAtYEndChanged: {
+        //     if(atYEnd && !tabModel.isLoading) {
+        //         tabModel.loadNextPage()
+        //     }
+        // }
     }
 
     function refresh() {

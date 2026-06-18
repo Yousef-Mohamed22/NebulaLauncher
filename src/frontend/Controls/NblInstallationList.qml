@@ -10,124 +10,242 @@ Item {
     required property bool showTitles
     required property bool useIcons
     
-    required property MainWindow mainWindow
-
-
     property real rowHeight: (useIcons ? 180 : 270) + (showTitles ? 24 : 0)
 
+    signal installationClicked(int id)
+
     implicitHeight: content.height
-    width: parent.width
 
     Item {
-
-        anchors.fill: root
         id: content
-        height: loader.item != null ? loader.item.height : 0
+        width: root.width
+        height: loader.item == null ? 0 : loader.item.height
+
+        property NblFilterModel filterModel: NblFilterModel {
+            pageSize: 10
+            filterId: root.filterId
+        }
+
+        property Component buttonDelegate: Component {
+            NblInstallationButton {
+                required property var modelData
+
+                width: 180
+                height: root.rowHeight
+
+                installationId: modelData.id
+                imageSource: root.getImageSource(modelData)
+                title: modelData.title
+                aspectRatio: root.useIcons ? 1 : (2/3)
+                showTitle: root.showTitles
+                titleAlignment: root.useIcons ? Qt.AlignHCenter : Qt.AlignLeft
+
+                onClicked: {
+                    root.installationClicked(modelData.id)
+                }
+            }
+        }
 
         Loader {
-
-            anchors.fill: parent
             id: loader
+            width: root.width
             sourceComponent: root.multiLine ? multiLineComponent : singleLineComponent
             active: true
         }
 
         Component {
             id: singleLineComponent
+            Flickable {
+                function scrolled() {}
 
-            ListView {
-                id: singleLineList
+                width: parent.width
+                height: root.rowHeight + 16
 
-                x: 8
-                spacing: 16
+                contentHeight: singleLineList.height
+                contentWidth: singleLineList.width
+                
+                clip: true
+                Row {
 
-                height: root.rowHeight
-                width: root.width
+                    id: singleLineList
 
-                orientation: ListView.Horizontal
+                    spacing: 16
+                    padding: 8
 
-                model: NblFilterModel {
-                    id: filterModel
-                    pageSize: 10
-                    filterId: root.filterId
-                }
-
-                delegate: NblInstallationButton {
-                    required property var modelData
-
-                    width: 180
-                    height: singleLineList.height
-
-                    installationId: modelData.id
-                    imageSource: root.getImageSource(modelData)
-                    title: modelData.title
-                    aspectRatio: root.useIcons ? 1 : (2/3)
-                    showTitle: root.showTitles
-                    titleAlignment: root.useIcons ? Qt.AlignHCenter : Qt.AlignLeft
-
-                    onClicked: {
-                        root.mainWindow.openInstallationDetails(modelData.id)
+                    Repeater {
+                        model: content.filterModel
+                        delegate: content.buttonDelegate
                     }
                 }
 
                 onAtXEndChanged: {
-                    if(atXEnd && !filterModel.isLoading) {
-                        filterModel.loadNextPage()
+                    if(atXEnd && !content.filterModel.isLoading) {
+                        content.filterModel.loadNextPage()
                     }
                 }
             }
         }
-
         Component {
             id: multiLineComponent
 
-            GridView {
+            Flow {
+
+                function scrolled() {
+                    if(triggerItem.isOnScreen()) {
+                        content.filterModel.loadNextPage()
+                    }
+                }
+
                 id: multiLineList
-                width: root.width
-                height: contentHeight
-                interactive: false
 
-                cellWidth: 180 + 16
-                cellHeight: root.rowHeight + 16
+                width: parent.width
+                padding: 8
+                spacing: 16
 
-                model: NblFilterModel {
-                    id: filterModel
-                    pageSize: 10
-                    filterId: root.filterId
+                Repeater {
+                    model: content.filterModel
+                    delegate: content.buttonDelegate
                 }
 
-                delegate: Item {
-                    required property var modelData
+                Item {
+                    id: triggerItem
+                    function isOnScreen() {
 
-                    width: multiLineList.cellWidth
-                    height: multiLineList.cellHeight
+                        let globalPos = mapToItem(null, 0, 0);
 
-                    NblInstallationButton {
+                        let itemLeft = globalPos.x;
+                        let itemRight = globalPos.x + width;
+                        let itemTop = globalPos.y;
+                        let itemBottom = globalPos.y + height;
 
-                        anchors.fill: parent
-                        anchors.margins: 8
+                        let insideX = (itemRight > 0) && (itemLeft < root.Window.width);
+                        let insideY = (itemBottom > 0) && (itemTop < root.Window.height);
 
-                        installationId: parent.modelData.id
-                        imageSource: root.getImageSource(parent.modelData)
-                        title: parent.modelData.title
-                        aspectRatio: root.useIcons ? 1 : (2/3)
-                        showTitle: root.showTitles
-                        titleAlignment: root.useIcons ? Qt.AlignHCenter : Qt.AlignLeft
-
-                        onClicked: {
-                            root.mainWindow.openInstallationDetails(parent.modelData.id)
-                        }
+                        return insideX && insideY;
                     }
                 }
-
-                onAtYEndChanged: {
-                    if(atYEnd && !filterModel.isLoading) {
-                        filterModel.loadNextPage()
-                    }
-                }
-
             }
         }
+
+    }
+
+
+    // Item {
+    //
+    //     anchors.fill: root
+    //     id: content
+    //     height: loader.item != null ? loader.item.height : 0
+    //
+    //     Loader {
+    //
+    //         anchors.fill: parent
+    //         id: loader
+    //         sourceComponent: root.multiLine ? multiLineComponent : singleLineComponent
+    //         active: true
+    //     }
+    //
+    //     Component {
+    //         id: singleLineComponent
+    //
+    //         ListView {
+    //             id: singleLineList
+    //
+    //             spacing: 16
+    //             anchors.margins: 8
+    //
+    //             height: root.rowHeight
+    //             width: root.width
+    //             clip: true
+    //
+    //             orientation: ListView.Horizontal
+    //
+    //             model: NblFilterModel {
+    //                 id: filterModel
+    //                 pageSize: 10
+    //                 filterId: root.filterId
+    //             }
+    //
+    //             delegate: NblInstallationButton {
+    //                 required property var modelData
+    //
+    //                 width: 180
+    //                 height: singleLineList.height
+    //
+    //                 installationId: modelData.id
+    //                 imageSource: root.getImageSource(modelData)
+    //                 title: modelData.title
+    //                 aspectRatio: root.useIcons ? 1 : (2/3)
+    //                 showTitle: root.showTitles
+    //                 titleAlignment: root.useIcons ? Qt.AlignHCenter : Qt.AlignLeft
+    //
+    //                 onClicked: {
+    //                     root.mainWindow.openInstallationDetails(modelData.id)
+    //                 }
+    //             }
+    //
+    //             onAtXEndChanged: {
+    //                 if(atXEnd && !filterModel.isLoading) {
+    //                     filterModel.loadNextPage()
+    //                 }
+    //             }
+    //         }
+    //     }
+    //
+    //     Component {
+    //         id: multiLineComponent
+    //
+    //         GridView {
+    //             id: multiLineList
+    //             width: root.width
+    //             height: contentHeight
+    //             interactive: false
+    //
+    //             cellWidth: 180 + 16
+    //             cellHeight: root.rowHeight + 16
+    //
+    //             model: NblFilterModel {
+    //                 id: filterModel
+    //                 pageSize: 10
+    //                 filterId: root.filterId
+    //             }
+    //
+    //             delegate: Item {
+    //                 required property var modelData
+    //
+    //                 width: multiLineList.cellWidth
+    //                 height: multiLineList.cellHeight
+    //
+    //                 NblInstallationButton {
+    //
+    //                     anchors.fill: parent
+    //                     anchors.margins: 8
+    //
+    //                     installationId: parent.modelData.id
+    //                     imageSource: root.getImageSource(parent.modelData)
+    //                     title: parent.modelData.title
+    //                     aspectRatio: root.useIcons ? 1 : (2/3)
+    //                     showTitle: root.showTitles
+    //                     titleAlignment: root.useIcons ? Qt.AlignHCenter : Qt.AlignLeft
+    //
+    //                     onClicked: {
+    //                         root.mainWindow.openInstallationDetails(parent.modelData.id)
+    //                     }
+    //                 }
+    //             }
+    //
+    //             onAtYEndChanged: {
+    //                 if(atYEnd && !filterModel.isLoading) {
+    //                     filterModel.loadNextPage()
+    //                 }
+    //             }
+    //
+    //         }
+    //     }
+    //}
+
+
+    function scrolled() {
+        loader.item.scrolled()
     }
 
     function getImageSource(modelData) {

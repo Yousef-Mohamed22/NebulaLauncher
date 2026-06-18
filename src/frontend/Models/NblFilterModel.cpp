@@ -96,6 +96,7 @@ void NblFilterModel::_fetchPageData() {
 
     if(found.size() < limit) {
         _mAllLoaded = true;
+        emit allLoadedChanged();
     }
 
     _mIsLoading = false;

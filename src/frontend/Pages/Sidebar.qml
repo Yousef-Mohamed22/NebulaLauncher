@@ -38,6 +38,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            interactive: false
 
             contentWidth: width
             contentHeight: tabList.height

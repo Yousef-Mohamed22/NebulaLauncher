@@ -14,21 +14,20 @@ Item {
 
     property bool showRowTitle: true
 
-    required property MainWindow mainWindow
-
     implicitHeight: content.height
+
+    signal installationClicked(int id)
 
     Column {
 
         id: content
-
         width: parent.width
 
         Row {
 
-            visible: root.showRowTitle
+            x: 8
 
-            padding: 8
+            visible: root.showRowTitle
             spacing: 8
 
             Label {
@@ -49,15 +48,22 @@ Item {
         NblInstallationList {
 
             id: list
+            width: content.width
 
             filterId: root.filterId
             multiLine: root.multiLine
-            mainWindow: root.mainWindow
             useIcons: root.useIcons
             showTitles: root.showTitles
+
+            onInstallationClicked: id => {
+                root.installationClicked(id)
+            }
         }
         
     }
 
+    function scrolled() {
+        list.scrolled()
+    }
 
 }

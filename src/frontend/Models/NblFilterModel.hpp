@@ -18,6 +18,7 @@ class NblFilterModel : public QAbstractListModel {
     Q_PROPERTY(int currentPage READ currentPage NOTIFY currentPageChanged)
     Q_PROPERTY(int pageSize READ pageSize WRITE setPageSize NOTIFY pageSizeChanged)
     Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
+    Q_PROPERTY(bool allLoaded READ allLoaded NOTIFY allLoadedChanged)
 
 public:
 
@@ -56,6 +57,7 @@ public:
     quint64 currentPage() const { return _mCurrentPage; }
     quint64 pageSize() const { return _mPageSize; }
     bool isLoading() const { return _mIsLoading; }
+    bool allLoaded() const { return _mAllLoaded; }
 
     void setPageSize(int size) { 
         _mPageSize = nbl::max(1, size);
@@ -78,10 +80,10 @@ public:
 signals:
 
     void filterIdChanged();
-    void totalRowsChanged();
     void currentPageChanged();
     void pageSizeChanged();
     void isLoadingChanged();
+    void allLoadedChanged();
 
 private:
 
