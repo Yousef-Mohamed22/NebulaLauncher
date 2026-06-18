@@ -1,6 +1,5 @@
-#include "NblTabModel.hpp"
-
-#include "ApplicationContext.hpp"
+#include <Models/NblTabModel.hpp>
+#include <ApplicationContext.hpp>
 
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>

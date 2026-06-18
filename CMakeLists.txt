@@ -101,6 +101,6 @@ if(${NBL_BUILD_TEST_PLUGIN})
 endif()
 
 if(${NBL_BUILD_FRONTEND}) 
-    add_subdirectory(frontend)
+    add_subdirectory(src/frontend)
 endif()
 

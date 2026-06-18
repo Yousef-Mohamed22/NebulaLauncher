@@ -1,17 +1,16 @@
 #include "ApplicationContext.hpp"
-#include "NblInstallationDetails.hpp"
-#include "Platform/Arena.hpp"
-#include "Platform/Assert.hpp"
-#include "Platform/File.hpp"
-#include "Platform/Process.hpp"
-#include "Plugin/InstallationType.hpp"
-#include "Plugin/PluginContext.hpp"
 
 #include <Core/Result.hpp>
 #include <Core/String.hpp>
 #include <Platform/Logging.hpp>
 #include <Platform/Time.hpp>
+#include <Platform/Arena.hpp>
+#include <Platform/Assert.hpp>
+#include <Platform/File.hpp>
+#include <Platform/Process.hpp>
 #include <Data/Model.hpp>
+#include <Plugin/InstallationType.hpp>
+#include <Plugin/PluginContext.hpp>
 
 #include <QString>
 #include <qcontainerfwd.h>
@@ -20,6 +19,7 @@
 
 #include <openssl/evp.h>
 
+#include "Models/NblInstallationDetails.hpp"
 
 namespace {
 

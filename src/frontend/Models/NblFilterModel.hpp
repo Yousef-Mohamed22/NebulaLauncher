@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QtQml>
 
-#include "NblInstallationRef.hpp"
+#include <Models/NblInstallationRef.hpp>
 
 class NblFilterModel : public QAbstractListModel {
 

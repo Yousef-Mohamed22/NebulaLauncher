@@ -11,8 +11,8 @@
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/PluginLoader.hpp>
 
-#include "NblTabRef.hpp"
-#include "NblInstallationDetails.hpp"
+#include "Models/NblTabRef.hpp"
+#include "Models/NblInstallationDetails.hpp"
 
 
 inline QString fromNbl(nbl::StringView sv) {

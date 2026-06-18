@@ -2,6 +2,7 @@
 
 #include <Plugin/PluginContext.hpp>
 #include <Core/String.hpp>
+
 #include "Platform/DynamicLibrary.hpp"
 
 namespace nbl {

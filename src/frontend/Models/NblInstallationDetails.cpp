@@ -1,5 +1,5 @@
-#include "NblInstallationDetails.hpp"
-#include "ApplicationContext.hpp"
+#include <Models/NblInstallationDetails.hpp>
+#include <ApplicationContext.hpp>
 
 QString NblInstallationDetails::posterPath() {
     return "file://" + ApplicationContext::instance()->dataFolder() + "/media/poster/" + poster();

@@ -3,6 +3,8 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import QtQuick.Controls
 
+import Nebula.Controls
+
 Item {
 
     id: root

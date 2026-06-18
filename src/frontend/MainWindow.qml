@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import Nebula.Pages
+
 Window {
     visible: true
     title: "Nebula"
@@ -100,7 +102,7 @@ Window {
     }
 
     function beginAddGame() {
-        modalLoader.setSource("AddGameDialog.qml", { 
+        modalLoader.setSource("Pages/AddGameDialog.qml", { 
             "mainWindow": root,
             "showApplyButton": false
         })
@@ -109,7 +111,7 @@ Window {
     }
 
     function openSettings() {
-        modalLoader.setSource("AppSettingsDialog.qml", { 
+        modalLoader.setSource("Pages/AppSettingsDialog.qml", { 
             "mainWindow": root
         })
         modalConnections.applyAction = function() { 
@@ -124,7 +126,7 @@ Window {
     }
 
     function beginEditGame(details) {
-        modalLoader.setSource("AddGameDialog.qml", {
+        modalLoader.setSource("Pages/AddGameDialog.qml", {
             "mainWindow": root,
             "activeInstallation": details
         })
@@ -153,7 +155,7 @@ Window {
             return
         }
 
-        pageLoader.replace("NblTabPage.qml", {
+        pageLoader.replace("Pages/NblTabPage.qml", {
             tab: ref,
             mainWindow: root
         })
@@ -168,7 +170,7 @@ Window {
 
         let details = ApplicationContext.getInstallationDetails(installationId)
 
-        pageLoader.push("NblInstallationPage.qml", {
+        pageLoader.push("Pages/NblInstallationPage.qml", {
             details: details,
             mainWindow: root
         })

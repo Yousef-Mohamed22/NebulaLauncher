@@ -6,7 +6,7 @@
 #include <QObject>
 #include <QtQml>
 
-#include "NblFilterRef.hpp"
+#include <Models/NblFilterRef.hpp>
 
 class NblTabModel : public QAbstractListModel {
 

@@ -1,6 +1,5 @@
-#include "NblInstallationTagModel.hpp"
-
-#include "ApplicationContext.hpp"
+#include <Models/NblInstallationTagModel.hpp>
+#include <ApplicationContext.hpp>
 
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>

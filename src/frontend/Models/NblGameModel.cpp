@@ -1,32 +1,31 @@
-#include "NblFilterModel.hpp"
-
-#include "ApplicationContext.hpp"
+#include <Models/NblGameModel.hpp>
+#include <ApplicationContext.hpp>
 
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
 
-QVariant NblFilterModel::data(const QModelIndex& index, int role) const {
+QVariant NblGameModel::data(const QModelIndex& index, int role) const {
 
     if(!index.isValid() || index.row() >= _mData.size()) return QVariant();
 
-    NblInstallationRef ref = _mData.at(index.row());
+    NblGameRef ref = _mData.at(index.row());
 
     switch(role) {
         case IdRole:
-            return static_cast<qint64>(ref.installationId());
+            return ref.gId;
         case TitleRole:
-            return ref.title();
+            return ref.title;
         case PosterRole:
-            return ref.poster();
+            return ref.poster;
         case IconRole:
-            return ref.icon();
+            return ref.icon;
         default:
             return QVariant();
     }
 }
 
-QHash<int, QByteArray> NblFilterModel::roleNames() const {
+QHash<int, QByteArray> NblGameModel::roleNames() const {
     QHash<int, QByteArray> roles = {};
     roles[IdRole] = "id";
     roles[TitleRole] = "title";
@@ -36,7 +35,7 @@ QHash<int, QByteArray> NblFilterModel::roleNames() const {
 }
 
 
-void NblFilterModel::loadNextPage() {
+void NblGameModel::loadNextPage() {
 
     if(!_mAllLoaded && !_mIsLoading) {
         _mCurrentPage++;
@@ -45,24 +44,29 @@ void NblFilterModel::loadNextPage() {
     }
 }
 
-void NblFilterModel::refresh() {
+void NblGameModel::refresh() {
 
     beginResetModel();
 
     _mData.clear();
-    _mAllLoaded = false;
+    if(_mIncludeNewGame) {
+        beginInsertRows(QModelIndex(), 0, 0);
+        _mData.append(NblGameRef(0, "New Game", "", ""));
+        endInsertRows();
+    }
+
     _mCurrentPage = 1;
+    _mAllLoaded = false;
     _fetchPageData();
 
     endResetModel();
 
 }
 
-void NblFilterModel::_fetchPageData() {
+void NblGameModel::_fetchPageData() {
 
     if(_mAllLoaded || _mIsLoading) return;
     _mIsLoading = true;
-
     emit isLoadingChanged();
 
     u64 offset = (_mCurrentPage - 1) * _mPageSize;
@@ -70,17 +74,27 @@ void NblFilterModel::_fetchPageData() {
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
     
-    QList<NblInstallationRef> found = {};
+    nbl::GameSearchCriteria criteria = {
+        .sortBy = nbl::GameSortBy::TITLE,
+        .offset = offset,
+        .limit = limit,
+        .titleFilter = nbl::StringView(_mQuery.length(), _mQuery.data())
+    };
+
+    QList<NblGameRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::lookupInstallationsForFilter(db, _mFilterId, [](void* userData, const nbl::InstallationLookupResult& res) -> nbl::Result {
-        NblInstallationRef ref(res.installationId,
-            fromNbl(res.title),
-            fromNbl(res.poster),
-            fromNbl(res.icon)
-        );
-        static_cast<QList<NblInstallationRef>*>(userData)->append(ref);
+    if(nbl::lookupGames(db, criteria, [](void* userData, const nbl::GameLookupResult& res) -> nbl::Result {
+        NblGameRef ref(
+                res.id,
+                fromNbl(res.title),
+                fromNbl(res.poster),
+                fromNbl(res.icon)
+        ); 
+        static_cast<QList<NblGameRef>*>(userData)->append(ref);
         return nbl::Result::SUCCESS;
-    }, offset, limit, &found).error()) {
+    }, &found).error()) {
+        nbl::log(nbl::LogLevel::ERROR, "An error occurred while loading games!");
+        _mAllLoaded = true;
         _mIsLoading = false;
         emit isLoadingChanged();
         return;

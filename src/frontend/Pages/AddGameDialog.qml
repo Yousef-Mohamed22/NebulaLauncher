@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Layouts
 
+import Nebula.Controls
+
 NblDialog {
 
     id: root
