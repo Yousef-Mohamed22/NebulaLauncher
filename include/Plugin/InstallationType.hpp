@@ -10,6 +10,7 @@ enum FieldType {
     STRING,
     INTEGER,
     FLOAT,
+    BOOLEAN,
     ENUM
 };
 
@@ -18,6 +19,7 @@ struct FieldValue {
         StringView stringValue;
         i64 integerValue;
         f64 floatValue;
+        bool booleanValue;
         u32 enumValue;
     };
 };
@@ -41,13 +43,27 @@ struct Field {
             u32 (*pfnCount)(void* userData);
             void* userData;
 
-            u32 count() { return pfnCount(userData); }
-            u32 index(StringView name) { return pfnIndex(name, userData); }
-            StringView name(u32 index) { return pfnName(index, userData); }
+            u32 count() const { 
+                if(pfnCount) { 
+                    return pfnCount(userData); 
+                } 
+                return 0;
+            }
+            u32 index(StringView name) const { 
+                if(pfnIndex) {
+                    return pfnIndex(name, userData); 
+                }
+                return 0;
+            }
+            StringView name(u32 index) const { 
+                if(pfnIndex) {
+                    return pfnName(index, userData);
+                }
+                return "";
+            }
         } enumData;
     };
     FieldValue defaultValue;
-    bool hasDefaultValue;
 };
 
 struct InstallationType;
@@ -73,6 +89,7 @@ struct InstallationType {
     }
 
     static InstallationType COMMAND;
+    static InstallationType TEST;
 };
 
 }

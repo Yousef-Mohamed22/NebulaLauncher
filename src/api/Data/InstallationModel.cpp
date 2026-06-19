@@ -254,7 +254,7 @@ WHERE game.releaseDate >= ?3
   AND (?8 = 0 OR installation.playTime <= ?8)
   AND (?1 IS NULL OR installation_tag.tId IN all_tags OR game_tag.tId IN all_tags)
   AND (?2 IS NULL OR NOT (installation_tag.tId IN excluded_tags OR game_tag.tId IN excluded_tags))
-  AND (?9 IS NULL OR installation.title LIKE '%' || ?9 || '%')
+  AND (?9 IS NULL OR IFNULL(installation.title, game.title) LIKE '%' || ?9 || '%')
 GROUP BY installation.iId
 )";
 
@@ -268,7 +268,7 @@ OFFSET ?10;
 
         switch(criteria.sortBy) {
             case InstallationSortBy::TITLE:
-                stmtBuilder.append("ORDER BY display.title");
+                stmtBuilder.append("ORDER BY IFNULL(installation.title, game.title)");
                 break;
             case InstallationSortBy::LAST_PLAYED:
                 stmtBuilder.append("ORDER BY installation.lastPlayed");

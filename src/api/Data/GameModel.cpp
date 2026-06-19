@@ -74,18 +74,20 @@ nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& me
     static nbl::PreparedStatement _addGameStmt;
     if(!_addGameStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO game (steamId, igdbId, releaseDate, rating, dId) VALUES (?1, ?2, ?3, ?4, ?5);
+INSERT INTO game (title, description, steamId, igdbId, releaseDate, rating, dId) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
         )", &_addGameStmt));
     }
 
     if(meta.displayId == 0) {
         return nbl::error::ILLEGAL_ARGUMENT;
     }
-    NBL_CHECK(_addGameStmt.bindUint(1, meta.steamId));
-    NBL_CHECK(_addGameStmt.bindUint(2, meta.igdbId));
-    NBL_CHECK(_addGameStmt.bindUint(3, meta.releaseDate));
-    NBL_CHECK(_addGameStmt.bindFloat(4, meta.rating));
-    NBL_CHECK(_addGameStmt.bindInt(5, meta.displayId));
+    NBL_CHECK(_addGameStmt.bindStringOrNull(1, meta.title));
+    NBL_CHECK(_addGameStmt.bindStringOrNull(2, meta.description));
+    NBL_CHECK(_addGameStmt.bindUint(3, meta.steamId));
+    NBL_CHECK(_addGameStmt.bindUint(4, meta.igdbId));
+    NBL_CHECK(_addGameStmt.bindUint(5, meta.releaseDate));
+    NBL_CHECK(_addGameStmt.bindFloat(6, meta.rating));
+    NBL_CHECK(_addGameStmt.bindInt(7, meta.displayId));
 
     return connection->execute(&_addGameStmt, nullptr, nullptr, outGameId); 
 }
@@ -312,7 +314,7 @@ WITH
         WHERE NOT ?2 IS NULL
           AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
     )
-SELECT game.gId, display.title, display.description, display.poster, display.banner, display.icon, display.logo, display.logoPosition, game.releaseDate, game.rating
+SELECT game.gId, game.title, game.releaseDate, game.rating, display.poster, display.icon
 FROM game
 JOIN display ON display.dId = game.dId
 LEFT JOIN game_tag ON game_tag.gId = game.gId
@@ -322,7 +324,7 @@ WHERE game.releaseDate >= ?3
   AND (?6 = 0 OR game.rating <= ?6)
   AND (?1 IS NULL OR game_tag.tId IN all_tags)
   AND (?2 IS NULL OR NOT game_tag.tId IN excluded_tags)
-  AND (?7 IS NULL OR display.title LIKE '%' || ?7 || '%')
+  AND (?7 IS NULL OR game.title LIKE '%' || ?7 || '%')
 GROUP BY game.gId
 )";
 
@@ -339,7 +341,7 @@ OFFSET ?8;
 
         switch(criteria.sortBy) {
             case GameSortBy::TITLE:
-                stmtBuilder.append("ORDER BY display.title");
+                stmtBuilder.append("ORDER BY game.title");
                 break;
             case GameSortBy::RELEASE_DATE:
                 stmtBuilder.append("ORDER BY game.releaseDate");
@@ -423,9 +425,9 @@ OFFSET ?8;
         _GameLookupQueryData* data = static_cast<_GameLookupQueryData*>(userData);
         GameLookupResult res = {
             .id = values[0].intValue,
-            .releaseDate = values[1].uintValue(),
-            .rating = values[2].floatValue,
-            .title = values[3].textValue,
+            .title = values[1].textValue,
+            .releaseDate = values[2].uintValue(),
+            .rating = values[3].floatValue,
             .poster = values[4].textValue,
             .icon = values[5].textValue,
         };

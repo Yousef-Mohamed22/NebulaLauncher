@@ -14,6 +14,7 @@ Item {
     required property string title
     required property real aspectRatio
     required property bool showTitle
+    property string fallbackSource
     property var titleAlignment: Qt.AlignLeft
 
     signal clicked
@@ -86,6 +87,20 @@ Item {
             source: root.imageSource
             visible: false
             layer.enabled: true
+
+            property bool loadFailed: false
+
+            onStatusChanged: {
+                if (status === Image.Error) {
+                    if (!loadFailed) {
+                        loadFailed = true
+                        source = ""
+                        source = root.fallbackSource
+                    }
+                } else if (status === Image.Ready) {
+                    loadFailed = false
+                }
+            }
         }
 
         Item {

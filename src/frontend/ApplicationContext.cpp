@@ -230,10 +230,6 @@ void ApplicationContext::launchInstallation(i64 installationId) {
             QJsonValue val = doc[qKey];
 
             if(val.isNull()) {
-                if(!field.hasDefaultValue) {
-                    nbl::log(nbl::LogLevel::ERROR, "Missing required command value: ", field.key);
-                    return nbl::error::ILLEGAL_STATE;
-                }
                 values.append(field.defaultValue);            
             } else {
 
@@ -241,7 +237,8 @@ void ApplicationContext::launchInstallation(i64 installationId) {
                     case nbl::FieldType::STRING: {
                         QByteArray str = val.toString().toUtf8();
                         strings.append(str);
-                        values.append(nbl::FieldValue { .stringValue = nbl::StringView(str.length(), str.data()) } );
+                        QByteArray& realStr = strings.last();
+                        values.append(nbl::FieldValue { .stringValue = nbl::StringView(realStr.length(), realStr.data()) } );
                         break;
                     }
                     case nbl::FieldType::FLOAT: {
@@ -252,8 +249,16 @@ void ApplicationContext::launchInstallation(i64 installationId) {
                         values.append(nbl::FieldValue { .integerValue = val.toInteger() } );
                         break;
                     }
+                    case nbl::FieldType::BOOLEAN: {
+                        values.append(nbl::FieldValue { .booleanValue = val.toBool() } );
+                        break;
+                    }
                     case nbl::FieldType::ENUM: {
-                        return nbl::error::UNIMPLEMENTED;
+                        QByteArray name = val.toString().toUtf8();
+                        nbl::StringView nameView = nbl::StringView(name.length(), name.data());
+                        u32 index = field.enumData.index(nameView);
+                        values.append(nbl::FieldValue { .enumValue = index });
+                        break;
                     }
                 }
             }
@@ -279,6 +284,7 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installat
             details.installation.id,
             details.display.id,
             details.game.id,
+            fromNbl(details.installation.type),
             fromNbl(details.installation.command),
             fromNbl(details.installation.title),
             fromNbl(details.installation.description),
@@ -361,8 +367,8 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
     i64 realGId = gId;
     if(gId == 0) {
         // Add a new game
-        QByteArray title = params.find("title")->toString().toUtf8();
-        QByteArray description = params.find("description")->toString().toUtf8();
+        QByteArray title = params.find("gameTitle")->toString().toUtf8();
+        QByteArray description = params.find("gameDescription")->toString().toUtf8();
         u64 steamId = params.find("steamId")->toUInt();
         u64 igdbId = params.find("igdbId")->toUInt();
         u64 releaseDate = params.find("releaseDate")->toUInt();
@@ -370,6 +376,7 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
 
         nbl::GameMeta meta = {
             .id = 0,
+            .displayId = dId,
             .title = nbl::StringView(title.length(), title.constData()),
             .description = nbl::StringView(description.length(), description.constData()),
             .steamId = steamId,
@@ -390,16 +397,14 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
         .displayId = gId == 0 ? 0 : dId,
         .gameId = realGId,
         .type = nbl::StringView(type.length(), type.data()),
-        .command = nbl::StringView(type.length(), type.data()),
+        .command = nbl::StringView(command.length(), command.data()),
     };
 
-    if(gId != 0) {
-        QByteArray installationTitle = params.find("installationTitle")->toString().toUtf8();
-        QByteArray installationDesc = params.find("installationDescription")->toString().toUtf8();
+    QByteArray installationTitle = params.find("title")->toString().toUtf8();
+    QByteArray installationDesc = params.find("description")->toString().toUtf8();
 
-        meta.title = nbl::StringView(installationTitle.length(), installationTitle.data());
-        meta.description = nbl::StringView(installationDesc.length(), installationDesc.data());
-    }
+    meta.title = nbl::StringView(installationTitle.length(), installationTitle.data());
+    meta.description = nbl::StringView(installationDesc.length(), installationDesc.data());
 
     NBL_CHECK(nbl::addInstallation(&_mConnection, meta, nullptr));
     NBL_CHECK(_mConnection.commitTransaction());
@@ -459,7 +464,7 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
         .title = nbl::StringView(installationTitle.length(), installationTitle.data()),
         .description = nbl::StringView(installationDesc.length(), installationDesc.data()),
         .type = nbl::StringView(type.length(), type.data()),
-        .command = nbl::StringView(type.length(), type.data())
+        .command = nbl::StringView(cmd.length(), cmd.data())
     };
 
     nbl::updateInstallation(&_mConnection, meta);

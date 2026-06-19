@@ -15,8 +15,8 @@
 #include "Models/NblInstallationDetails.hpp"
 
 
-inline QString fromNbl(nbl::StringView sv) {
-    return QString::fromUtf8(sv.data, sv.length);
+inline QByteArray fromNbl(nbl::StringView sv) {
+    return QByteArray(sv.data, sv.length);
 }
 
 class ApplicationContext : public QObject {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qstringview.h>
 #include <qtmetamacros.h>
 #include <QObject>
 #include <QtQml>
@@ -14,13 +15,14 @@ class NblInstallationDetails : public QObject {
     Q_PROPERTY(int64_t installationId READ installationId CONSTANT)
     Q_PROPERTY(int64_t displayId READ displayId CONSTANT)
     Q_PROPERTY(int64_t gameId READ gameId CONSTANT)
-    Q_PROPERTY(QString command READ command CONSTANT)
-    Q_PROPERTY(QString title READ title CONSTANT)
-    Q_PROPERTY(QString description READ description CONSTANT)
-    Q_PROPERTY(QString poster READ poster CONSTANT)
-    Q_PROPERTY(QString banner READ banner CONSTANT)
-    Q_PROPERTY(QString icon READ icon CONSTANT)
-    Q_PROPERTY(QString logo READ logo CONSTANT)
+    Q_PROPERTY(QByteArray type READ type CONSTANT)
+    Q_PROPERTY(QByteArray command READ command CONSTANT)
+    Q_PROPERTY(QByteArray title READ title CONSTANT)
+    Q_PROPERTY(QByteArray description READ description CONSTANT)
+    Q_PROPERTY(QByteArray poster READ poster CONSTANT)
+    Q_PROPERTY(QByteArray banner READ banner CONSTANT)
+    Q_PROPERTY(QByteArray icon READ icon CONSTANT)
+    Q_PROPERTY(QByteArray logo READ logo CONSTANT)
     Q_PROPERTY(uint64_t logoPosition READ logoPosition CONSTANT)
     Q_PROPERTY(uint64_t playTime READ playTime CONSTANT)
     Q_PROPERTY(uint64_t playCount READ playCount CONSTANT)
@@ -30,8 +32,8 @@ class NblInstallationDetails : public QObject {
     Q_PROPERTY(uint64_t steamId READ steamId CONSTANT)
     Q_PROPERTY(uint64_t igdbId READ igdbId CONSTANT)
     Q_PROPERTY(double rating READ rating CONSTANT)
-    Q_PROPERTY(QString gameTitle READ gameTitle CONSTANT)
-    Q_PROPERTY(QString gameDescription READ gameDescription CONSTANT)
+    Q_PROPERTY(QByteArray gameTitle READ gameTitle CONSTANT)
+    Q_PROPERTY(QByteArray gameDescription READ gameDescription CONSTANT)
 
 public:
 
@@ -40,6 +42,7 @@ public:
         _mInstallationId(0),
         _mDisplayId(0),
         _mGameId(0),
+        _mType{},
         _mCommand{},
         _mTitle{},
         _mDescription{},
@@ -62,13 +65,14 @@ public:
         i64 installationId,
         i64 displayId,
         i64 gameId,
-        QString command,
-        QString title,
-        QString description,
-        QString poster,
-        QString banner,
-        QString icon,
-        QString logo,
+        QByteArray type,
+        QByteArray command,
+        QByteArray title,
+        QByteArray description,
+        QByteArray poster,
+        QByteArray banner,
+        QByteArray icon,
+        QByteArray logo,
         u64 logoPosition,
         u64 playTime,
         u64 playCount,
@@ -78,14 +82,15 @@ public:
         f64 rating,
         u64 steamId,
         u64 igdbId,
-        QString gameTitle,
-        QString gameDescription,
+        QByteArray gameTitle,
+        QByteArray gameDescription,
         QObject* parent = nullptr
     ) : 
         QObject(parent),
         _mInstallationId(installationId),
         _mDisplayId(displayId),
         _mGameId(gameId),
+        _mType(type),
         _mCommand(command),
         _mTitle(title),
         _mDescription(description),
@@ -111,6 +116,7 @@ public:
         _mInstallationId(other._mInstallationId),
         _mDisplayId(other._mDisplayId),
         _mGameId(other._mGameId),
+        _mType(other._mType),
         _mCommand(other._mCommand),
         _mTitle(other._mTitle),
         _mDescription(other._mDescription),
@@ -137,6 +143,7 @@ public:
         _mInstallationId = other._mInstallationId;
         _mDisplayId = other._mDisplayId;
         _mGameId = other._mGameId;
+        _mType = other._mType;
         _mCommand = other._mCommand;
         _mTitle = other._mTitle;
         _mDescription = other._mDescription;
@@ -161,13 +168,14 @@ public:
     i64 installationId() const { return _mInstallationId; }
     i64 displayId() const { return _mDisplayId; }
     i64 gameId() const { return _mGameId; }
-    QString command() const { return _mCommand; }
-    QString title() const { return _mTitle; }
-    QString description() const { return _mDescription; }
-    QString poster() const { return _mPoster; }
-    QString banner() const { return _mBanner; }
-    QString icon() const { return _mIcon; }
-    QString logo() const { return _mLogo; }
+    QByteArray type() const { return _mType; }
+    QByteArray command() const { return _mCommand; }
+    QByteArray title() const { return _mTitle; }
+    QByteArray description() const { return _mDescription; }
+    QByteArray poster() const { return _mPoster; }
+    QByteArray banner() const { return _mBanner; }
+    QByteArray icon() const { return _mIcon; }
+    QByteArray logo() const { return _mLogo; }
     u64 logoPosition() const { return _mLogoPosition; }
     u64 playTime() const { return _mPlayTime; }
     u64 playCount() const { return _mPlayCount; }
@@ -177,26 +185,27 @@ public:
     f64 rating() const { return _mRating; }
     u64 steamId() const { return _mSteamId; }
     u64 igdbId() const { return _mIgdbId; }
-    QString gameTitle() const { return _mGameTitle; }
-    QString gameDescription() const { return _mGameDescription; }
+    QByteArray gameTitle() const { return _mGameTitle; }
+    QByteArray gameDescription() const { return _mGameDescription; }
 
-    Q_INVOKABLE QString posterPath();
-    Q_INVOKABLE QString bannerPath();
-    Q_INVOKABLE QString iconPath();
-    Q_INVOKABLE QString logoPath();
+    Q_INVOKABLE QByteArray posterPath();
+    Q_INVOKABLE QByteArray bannerPath();
+    Q_INVOKABLE QByteArray iconPath();
+    Q_INVOKABLE QByteArray logoPath();
 
 private:
 
     i64 _mInstallationId;
     i64 _mDisplayId;
     i64 _mGameId;
-    QString _mCommand;
-    QString _mTitle;
-    QString _mDescription;
-    QString _mPoster;
-    QString _mBanner;
-    QString _mIcon;
-    QString _mLogo;
+    QByteArray _mType;
+    QByteArray _mCommand;
+    QByteArray _mTitle;
+    QByteArray _mDescription;
+    QByteArray _mPoster;
+    QByteArray _mBanner;
+    QByteArray _mIcon;
+    QByteArray _mLogo;
     u64 _mLogoPosition;
     u64 _mPlayTime;
     u64 _mPlayCount;
@@ -206,7 +215,7 @@ private:
     f64 _mRating;
     u64 _mSteamId;
     u64 _mIgdbId;
-    QString _mGameTitle;
-    QString _mGameDescription;
+    QByteArray _mGameTitle;
+    QByteArray _mGameDescription;
 
 };

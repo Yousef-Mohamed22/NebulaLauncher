@@ -11,6 +11,10 @@ Item {
     required property MainWindow mainWindow
     required property NblInstallationDetails details
 
+    function refresh() {
+        details = ApplicationContext.getInstallationDetails(details.installationId)
+    }
+
     ColumnLayout {
 
         width: parent.width

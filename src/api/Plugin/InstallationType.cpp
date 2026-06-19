@@ -33,3 +33,4 @@ nbl::InstallationType nbl::InstallationType::COMMAND = {
         .userData = nullptr
     }
 };
+

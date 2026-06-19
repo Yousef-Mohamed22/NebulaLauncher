@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 
@@ -50,12 +52,17 @@ NblDialog {
     Repeater {
         id: fieldRepeater
         model: NblFieldModel {
+            id: fieldModel
             typeId: commandTypeBox.currentValue
         }
         NblFieldInput {
-            width: parent.width
             required property var modelData
+            required property var index
+
+            width: parent.width
             field: modelData
+            fieldIndex: index
+            typeId: fieldRepeater.model.typeId
         }
     }
 
@@ -196,14 +203,20 @@ NblDialog {
             let dateObj = new Date()
             dateObj.setTime(details.releaseDate)
 
-            let fields = JSON.parse(details.command)
-            for (const [key, value] of Object.entries(fields)) {
-                for(let i = 0 ; i < fieldRepeater.count ; i++) {
-                    let item = fieldRepeater.itemAt(0)
-                    if(item.modelData.key == key) {
-                        item.value = value
+            commandTypeBox.currentValue = details.type
+
+            try {
+                let fields = JSON.parse(details.command)
+                for (const [key, value] of Object.entries(fields)) {
+                    for(let i = 0 ; i < fieldRepeater.count ; i++) {
+                        let item = fieldRepeater.itemAt(i)
+                        if(item.modelData.key == key) {
+                            item.setValue(value)
+                        }
                     }
                 }
+            } catch(ex) { 
+                console.warn("Invalid json: ", details.command)
             }
 
             titleField.text = details.title
@@ -280,13 +293,13 @@ NblDialog {
         let fields = {}
         for(let i = 0 ; i < fieldRepeater.count ; i++) {
             let field = fieldRepeater.itemAt(i)
-            fields[field.modelData.name] = field.value
+            fields[field.modelData.key] = field.value
         }
 
         let params = {
             game: gId,
-            type: commandTypeBox.currentIndex,
-            command: JSON.toString(fields),
+            type: commandTypeBox.currentValue,
+            command: JSON.stringify(fields),
             displayOverride: overrideBox.checked,
             displayId: root.activeInstallation ? root.activeInstallation.displayId : 0,
             title: titleField.text,

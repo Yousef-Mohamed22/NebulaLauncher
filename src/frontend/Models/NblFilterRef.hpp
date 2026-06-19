@@ -12,8 +12,8 @@ class NblFilterRef : public QObject {
     QML_ELEMENT
 
     Q_PROPERTY(qint64 filterId READ filterId CONSTANT)
-    Q_PROPERTY(QString name READ name CONSTANT)
-    Q_PROPERTY(QString icon READ icon CONSTANT)
+    Q_PROPERTY(QByteArray name READ name CONSTANT)
+    Q_PROPERTY(QByteArray icon READ icon CONSTANT)
     Q_PROPERTY(bool multiLine READ multiLine CONSTANT)
     Q_PROPERTY(bool showTitles READ showTitles CONSTANT)
     Q_PROPERTY(bool useIcons READ useIcons CONSTANT)
@@ -30,7 +30,7 @@ public:
         _mUseIcons(false)
     {}
 
-    NblFilterRef(i64 id, QString name, QString icon, bool multiLine, bool showTitles, bool useIcons, QObject* parent = nullptr) :
+    NblFilterRef(i64 id, QByteArray name, QByteArray icon, bool multiLine, bool showTitles, bool useIcons, QObject* parent = nullptr) :
         QObject(parent),
         _mFilterId(id),
         _mName(name),
@@ -64,8 +64,8 @@ public:
     }
 
     qint64 filterId() { return _mFilterId; }
-    QString name() { return _mName; }
-    QString icon() { return _mIcon; }
+    QByteArray name() { return _mName; }
+    QByteArray icon() { return _mIcon; }
     bool multiLine() { return _mMultiLine; }
     bool showTitles() { return _mShowTitles; }
     bool useIcons() { return _mUseIcons; }
@@ -73,8 +73,8 @@ public:
 private:
     
     i64 _mFilterId;
-    QString _mName;
-    QString _mIcon;
+    QByteArray _mName;
+    QByteArray _mIcon;
     bool _mMultiLine;
     bool _mShowTitles;
     bool _mUseIcons;

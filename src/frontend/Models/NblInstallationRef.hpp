@@ -11,9 +11,9 @@ class NblInstallationRef : public QObject {
     QML_ELEMENT
 
     Q_PROPERTY(int64_t installationId READ installationId CONSTANT)
-    Q_PROPERTY(QString title READ title CONSTANT)
-    Q_PROPERTY(QString poster READ poster CONSTANT)
-    Q_PROPERTY(QString icon READ icon CONSTANT)
+    Q_PROPERTY(QByteArray title READ title CONSTANT)
+    Q_PROPERTY(QByteArray poster READ poster CONSTANT)
+    Q_PROPERTY(QByteArray icon READ icon CONSTANT)
 
 public:
 
@@ -24,7 +24,7 @@ public:
         _mPoster{}
     {}
     
-    NblInstallationRef(i64 id, QString title, QString poster, QString icon, QObject* parent = nullptr) :
+    NblInstallationRef(i64 id, QByteArray title, QByteArray poster, QByteArray icon, QObject* parent = nullptr) :
         QObject(parent),
         _mInstallationId(id),
         _mTitle(title),
@@ -52,16 +52,16 @@ public:
     }
 
     i64 installationId() { return _mInstallationId; }
-    QString title() { return _mTitle; }
-    QString poster() { return _mPoster; }
-    QString icon() { return _mIcon; }
+    QByteArray title() { return _mTitle; }
+    QByteArray poster() { return _mPoster; }
+    QByteArray icon() { return _mIcon; }
 
 private:
 
     i64 _mInstallationId;
-    QString _mTitle;
-    QString _mPoster;
-    QString _mIcon;
+    QByteArray _mTitle;
+    QByteArray _mPoster;
+    QByteArray _mIcon;
 
 };
 

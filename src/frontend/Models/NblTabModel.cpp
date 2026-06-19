@@ -79,8 +79,8 @@ void NblTabModel::_fetchPageData() {
     found.reserve(_mPageSize);
     if(nbl::getFiltersForTab(db, _mTabId, offset, limit, [](void* userData, const nbl::FilterMeta& meta) -> nbl::Result {
         NblFilterRef ref(meta.filterId, 
-            QString::fromUtf8(meta.name.data, meta.name.length), 
-            QString::fromUtf8(meta.icon.data, meta.icon.length),
+            QByteArray(meta.name.data, meta.name.length), 
+            QByteArray(meta.icon.data, meta.icon.length),
             meta.multiLine,
             meta.showTitles,
             meta.useIcons

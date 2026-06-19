@@ -105,7 +105,11 @@ Window {
             "mainWindow": root,
             "showApplyButton": false
         })
-        modalConnections.applyAction = function() { reloadTab() }
+        modalConnections.applyAction = function() { 
+            if(pageLoader.currentItem instanceof NblTabPage) {
+                pageLoader.currentItem.refresh()
+            }
+        }
         modalLoader.active = true
     }
 
@@ -129,14 +133,12 @@ Window {
             "mainWindow": root,
             "activeInstallation": details
         })
-        modalConnections.applyAction = function() { reloadTab() }
-        modalLoader.active = true
-    }
-
-    function reloadTab() {
-        if(pageLoader.depth == 1 && pageLoader.currentItem.tabId) {
-            pageLoader.currentItem.refresh()
+        modalConnections.applyAction = function() { 
+            if(pageLoader.currentItem instanceof NblInstallationPage) {
+                pageLoader.currentItem.refresh()
+            }
         }
+        modalLoader.active = true
     }
 
     function openTab(ref) {

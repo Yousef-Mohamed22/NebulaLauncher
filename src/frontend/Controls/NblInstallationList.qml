@@ -52,6 +52,7 @@ Item {
 
                 installationId: modelData.id
                 imageSource: root.getImageSource(modelData)
+                fallbackSource: "qrc:/qt/qml/Nebula/images/" + (root.useIcons ? "UnknownIcon.png" : "UnknownPoster.png")
                 title: modelData.title
                 aspectRatio: root.useIcons ? 1 : (2/3)
                 showTitle: root.showTitles

@@ -11,6 +11,8 @@ NblTextBox {
     property var min: -100
     property var max: 100
 
+    property var lastText: text
+
     inputMethodHints: allowDecimal ? Qt.ImhFormattedNumbersOnly : Qt.ImhDigitsOnly
 
     signal valueModified
@@ -19,6 +21,10 @@ NblTextBox {
 
     rightPadding: root.background.height
     text: "0"
+
+    onValueChanged: {
+        text = value
+    }
 
     Item {
         width: root.background.height - 16
@@ -79,21 +85,35 @@ NblTextBox {
 
     }
 
+    onCursorVisibleChanged: {
+        if(value == null) return
+        text = value
+        lastText = text
+    }
+
     onTextEdited: {
         if(text.length == 0 || (text.length == 1 && text == "-" && min < 0)) {
             value = 0
+            lastText = ""
             return
         }
-        let parsed = allowDecimal ? parseFloat(text) : parseInt(text)
-        if(isNaN(parsed)) {
-            parsed = 0
+
+        if(!allowDecimal && text.includes('.')) {
+            text = lastText
+            return
+        }
+
+        let parsed = Number(text)
+        if(isNaN(parsed) || (!allowDecimal && !Number.isInteger(parsed))) {
+            text = lastText
+            return
         }
 
         value = Math.max(root.min, Math.min(parsed, root.max))
-
-        // TODO: Allow entering decimals
-        text = value
-
+        if(parsed != value) {
+            text = value
+        }
+        lastText = text
         valueModified()
     }
 

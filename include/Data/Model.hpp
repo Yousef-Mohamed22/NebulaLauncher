@@ -216,9 +216,9 @@ struct GameDetails {
 
 struct GameLookupResult {
     i64 id;
+    StringView title;
     u64 releaseDate;
     f64 rating;
-    StringView title;
     StringView poster;
     StringView icon;
 };
