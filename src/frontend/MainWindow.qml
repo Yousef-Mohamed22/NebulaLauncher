@@ -55,7 +55,6 @@ Window {
                 mainWindow: root
                 Layout.fillHeight: true
             }
-
         }
     }
 

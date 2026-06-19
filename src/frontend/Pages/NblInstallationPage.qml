@@ -136,11 +136,10 @@ Item {
                     font.pixelSize: 24
                     font.weight: 500
                     color: Theme.colors.text
-                    text: root.details.title
+                    text: root.details.gameTitle + (root.details.title.length > 0 ? (" - " + root.details.title) : "")
                 }
 
                 Label {
-
                     width: parent.width
 
                     font.family: Theme.font
@@ -150,6 +149,19 @@ Item {
 
                     color: Theme.colors.textDim
                     text: root.details.description
+                    visible: root.details.description.length > 0
+                }
+
+                Label {
+                    width: parent.width
+
+                    font.family: Theme.font
+                    font.pixelSize: 16
+                    font.weight: 400
+                    wrapMode: Text.WordWrap
+
+                    color: Theme.colors.textDim
+                    text: root.details.gameDescription
                 }
             }
 

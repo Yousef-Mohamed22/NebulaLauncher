@@ -15,6 +15,7 @@ Item {
 
     implicitWidth: collapsed ? 64 : 240
 
+
     Rectangle {
         id: background
         anchors.fill: parent

@@ -20,6 +20,7 @@ NblDialog {
         highlightFirst: true
 
         textRole: "title"
+        valueRole: "id"
 
         model: NblGameModel {
             includeNewGame: true
@@ -41,12 +42,46 @@ NblDialog {
         id: commandTypeBox
         label: "Type"
         width: parent.width
-        model: [ "Command" ]
+        model: NblInstallationTypeModel { }
+        textRole: "name"
+        valueRole: "id"
+    }
+
+    Repeater {
+        id: fieldRepeater
+        model: NblFieldModel {
+            typeId: commandTypeBox.currentValue
+        }
+        NblFieldInput {
+            width: parent.width
+            required property var modelData
+            field: modelData
+        }
     }
 
     NblTextBox {
-        id: commandField
-        label: "Command"
+        id: gameTitleField
+        label: "Game Title"
+        width: parent.width
+    }
+
+    NblTextBox {
+        id: gameDescriptionField
+        label: "Game Description"
+        width: parent.width
+    }
+
+    NblTextBox {
+        id: titleField
+        label: "Installation Title"
+        placeholderText: "Optional"
+        width: parent.width
+    }
+
+    NblTextBox {
+        id: descriptionField
+        label: "Installation Description"
+        placeholderText: "Optional"
         width: parent.width
     }
 
@@ -61,17 +96,6 @@ NblDialog {
 
         width: parent.width
         spacing: 8
-
-        NblTextBox {
-            id: titleField
-            label: "Title"
-            width: parent.width
-        }
-        NblTextBox {
-            id: descriptionField
-            label: "Description"
-            width: parent.width
-        }
 
         RowLayout {
 
@@ -131,47 +155,36 @@ NblDialog {
                 regularExpression: /^\d{4}\/(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])$/ 
             }
         }
-        NblTextBox {
+        NblNumberInput {
             id: ratingField
             label: "Rating"
             width: parent.width
 
-            placeholderText: "100.0"
-            text: "0.0"
-            inputMethodHints: Qt.ImhFormattedNumbersOnly
+            allowDecimal: true
+            min: 0
+            max: 100
 
-            validator: DoubleValidator {
-                bottom: 0.0
-                top: 100.0
-                decimals: 1                
-                notation: DoubleValidator.StandardNotation
-            }
+            placeholderText: "100.0"
         }
-        NblTextBox {
+        NblNumberInput {
             id: steamIdField
             label: "Steam ID"
             width: parent.width
 
-            placeholderText: "620"
-            text: "0"
-            inputMethodHints: Qt.ImhDigitsOnly
+            min: 0
+            max: 2147483647
 
-            validator: IntValidator {
-                bottom: 0
-            }
+            placeholderText: "620"
         }
-        NblTextBox {
+        NblNumberInput {
             id: igdbIdField
             label: "IGDB ID"
             width: parent.width
 
-            placeholderText: "7346"
-            text: "0"
-            inputMethodHints: Qt.ImhDigitsOnly
+            min: 0
+            max: 2147483647
 
-            validator: IntValidator {
-                bottom: 0
-            }
+            placeholderText: "7346"
         }
     }
 
@@ -183,11 +196,27 @@ NblDialog {
             let dateObj = new Date()
             dateObj.setTime(details.releaseDate)
 
-            // TODO: Game box (e.g. gameBox.currentIndex = details.gameId)
-            commandField.text = details.command
-            overrideBox.checked = details.displayId != 0
+            let fields = JSON.parse(details.command)
+            for (const [key, value] of Object.entries(fields)) {
+                for(let i = 0 ; i < fieldRepeater.count ; i++) {
+                    let item = fieldRepeater.itemAt(0)
+                    if(item.modelData.key == key) {
+                        item.value = value
+                    }
+                }
+            }
+
             titleField.text = details.title
+            titleField.cursorPosition = 0
             descriptionField.text = details.description
+            descriptionField.cursorPosition = 0
+
+            gameTitleField.text = details.gameTitle
+            gameTitleField.cursorPosition = 0
+            gameDescriptionField.text = details.gameDescription
+            gameDescriptionField.cursorPosition = 0
+
+            overrideBox.checked = details.displayId != 0
             posterPicker.imageSource = details.posterPath()
             bannerPicker.imageSource = details.bannerPath()
             iconPicker.imageSource = details.iconPath()
@@ -218,27 +247,23 @@ NblDialog {
             }
 
             if(ratingField.text.length != 0) {
-                rating = Math.max(0.0, Math.min(100.0, parseFloat(ratingField.text)))
+                rating = ratingField.value
             }
 
             if(steamIdField.text.length != 0) {
-                steamId = Math.max(0, parseInt(steamIdField.text))
+                steamId = steamIdField.value
             }
 
             if(igdbIdField.text.length != 0) {
-                igdbId = Math.max(0, parseInt(igdbIdField.text))
+                igdbId = igdbIdField.value
             }
         }
 
-        let title = null
-        let description = null
         let poster = null
         let icon = null
         let logo = null
         let banner = null
         if(root.newGame || overrideBox.checked) {
-            title = titleField.text
-            description = descriptionField.text
             poster = posterPicker.imageSource
             icon = iconPicker.imageSource
             logo = logoPicker.imageSource
@@ -249,17 +274,25 @@ NblDialog {
         if(root.activeInstallation != null) {
             gId = root.activeInstallation.gameId
         } else {
-            gId = gameBox.model.data(gameBox.model.index(gameBox.currentIndex, 0), 0); // 0 == IdRole
+            gId = gameBox.currentValue;
+        }
+
+        let fields = {}
+        for(let i = 0 ; i < fieldRepeater.count ; i++) {
+            let field = fieldRepeater.itemAt(i)
+            fields[field.modelData.name] = field.value
         }
 
         let params = {
             game: gId,
             type: commandTypeBox.currentIndex,
-            command: commandField.text,
+            command: JSON.toString(fields),
             displayOverride: overrideBox.checked,
             displayId: root.activeInstallation ? root.activeInstallation.displayId : 0,
-            title: title,
-            description: description,
+            title: titleField.text,
+            description: descriptionField.text,
+            gameTitle: gameTitleField.text,
+            gameDescription: gameDescriptionField.text,
             banner: banner,
             poster: poster,
             icon: icon,

@@ -92,6 +92,10 @@ public:
         return &_mConnection;
     }
 
+    nbl::PluginContext* pluginContext() {
+        return &_mContext;
+    }
+
 signals:
 
     void tabsUpdated();

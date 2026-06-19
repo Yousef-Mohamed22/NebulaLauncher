@@ -413,8 +413,8 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
     i64 dId = params.find("displayId")->toLongLong(&okay);
     if(okay && params.find("displayOverride")->toBool()) {
 
-        QByteArray title = params.find("title")->toString().toUtf8();
-        QByteArray description = params.find("description")->toString().toUtf8();
+        QByteArray title = params.find("gameTitle")->toString().toUtf8();
+        QByteArray description = params.find("gameDescription")->toString().toUtf8();
         QString posterUrl = params.find("poster")->toString();
         QString bannerUrl = params.find("banner")->toString();
         QString logoUrl = params.find("logo")->toString();
@@ -449,8 +449,8 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
 
     QByteArray type = params.find("type")->toString().toUtf8();
     QByteArray cmd = params.find("command")->toString().toUtf8();
-    QByteArray installationTitle = params.find("installationTitle")->toString().toUtf8();
-    QByteArray installationDesc = params.find("installationDescription")->toString().toUtf8();
+    QByteArray installationTitle = params.find("title")->toString().toUtf8();
+    QByteArray installationDesc = params.find("description")->toString().toUtf8();
 
     nbl::InstallationMeta meta = {
         .id = installationId,

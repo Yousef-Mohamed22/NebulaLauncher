@@ -15,7 +15,9 @@ Item {
     ScrollView {
 
         id: scrollView
-        anchors.fill: parent
+        width: parent.width
+        height: parent.height - 8
+        y: 8
 
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
         contentHeight: content.height
@@ -68,35 +70,6 @@ Item {
                 }
             }
         }
-
-        // onAtYEndChanged: {
-        //     if(atYEnd && !tabModel.isLoading) {
-        //         tabModel.loadNextPage()
-        //     }
-        // }
-
-        // delegate: NblFilterRow {
-        //
-        //     required property var model
-        //
-        //     width: parent.width
-        //     height: 500
-        //
-        //     filterId: model.id
-        //     name: model.name
-        //     icon: model.icon
-        //     multiLine: model.multiLine
-        //     showTitles: model.showTitles
-        //     useIcons: model.useIcons
-        //
-        //     mainWindow: root.mainWindow
-        // }
-
-        // onAtYEndChanged: {
-        //     if(atYEnd && !tabModel.isLoading) {
-        //         tabModel.loadNextPage()
-        //     }
-        // }
     }
 
     function refresh() {
