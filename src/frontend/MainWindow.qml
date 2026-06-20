@@ -78,7 +78,6 @@ Window {
         function onApply() {
             applyAction()
         }
-        
     }
 
     Component.onCompleted: {

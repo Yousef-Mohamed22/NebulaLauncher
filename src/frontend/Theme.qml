@@ -19,6 +19,10 @@ QtObject {
             return brightness
         }
 
+        function readableOn(color) {
+            return color.hslLightness == 0 ? "#696969" : (color.hslLightness < 0.5 ? color.lighter(1.5) : color.darker(1.5))
+        }
+
         property bool lightMode: false
         property color activeColor: "#d658fc"
 

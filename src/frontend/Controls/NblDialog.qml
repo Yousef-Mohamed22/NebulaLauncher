@@ -9,6 +9,8 @@ Item {
     required property MainWindow mainWindow
     default property alias content: contentContainer.children
 
+    property list<QtObject> above: []
+
     property string applyText: "Apply"
     property string okText: "OK"
     property string cancelText: "Cancel"
@@ -196,4 +198,9 @@ Item {
             }
         }
     }
+
+    Item {
+        children: root.above
+    }
+
 }
