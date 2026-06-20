@@ -51,8 +51,8 @@ Item {
                 height: root.rowHeight
 
                 installationId: modelData.id
-                imageSource: root.getImageSource(modelData)
                 fallbackSource: "qrc:/qt/qml/Nebula/images/" + (root.useIcons ? "UnknownIcon.png" : "UnknownPoster.png")
+                imageSource: root.getImageSource(modelData) ?? fallbackSource
                 title: modelData.title
                 aspectRatio: root.useIcons ? 1 : (2/3)
                 showTitle: root.showTitles
@@ -153,7 +153,11 @@ Item {
 
     function getImageSource(modelData) {
 
-        if(root.useIcons) return "file://" + ApplicationContext.dataFolder + "/media/icon/" + modelData.icon
+        if(root.useIcons) {
+            if(modelData.icon.byteLength == 0) return null
+            return "file://" + ApplicationContext.dataFolder + "/media/icon/" + modelData.icon
+        }
+        if(modelData.poster.byteLength == 0) return null
         return "file://" + ApplicationContext.dataFolder + "/media/poster/" + modelData.poster
 
     }

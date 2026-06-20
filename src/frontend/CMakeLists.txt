@@ -4,7 +4,7 @@ set(QT_QML_GENERATE_QMLLS_INI ON)
 
 project(Nebula_App LANGUAGES CXX)
 
-find_package(Qt6 6.11.1 COMPONENTS Quick REQUIRED)
+find_package(Qt6 6.11.1 COMPONENTS Quick ShaderTools REQUIRED)
 qt_standard_project_setup(REQUIRES 6.11.1)
 
 file(GLOB_RECURSE NBL_APP_FONTS RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/fonts/*.ttf")
@@ -25,8 +25,16 @@ qt_add_qml_module(Nebula_App
     SOURCES ${NBL_APP_SOURCES}
 )
 
+file(GLOB NBL_APP_SHADERS RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/shaders/*")
+
+message(${NBL_APP_SHADERS})
+
+qt_add_shaders(Nebula_App "/"
+    FILES ${NBL_APP_SHADERS}
+)
+
 target_include_directories(Nebula_App PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_include_directories(Nebula_App PRIVATE "${CMAKE_CURRENT_LIST_DIR}/Models")
 target_link_libraries(Nebula_App PRIVATE Nebula_Api)
-target_link_libraries(Nebula_App PRIVATE Qt6::Quick)
+target_link_libraries(Nebula_App PRIVATE Qt6::Quick Qt6::ShaderTools)
 target_link_libraries(Nebula_App PRIVATE CURL::libcurl)

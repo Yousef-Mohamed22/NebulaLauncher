@@ -193,6 +193,11 @@ public:
     Q_INVOKABLE QByteArray iconPath();
     Q_INVOKABLE QByteArray logoPath();
 
+    Q_INVOKABLE QUrl posterUrl() { return QUrl::fromEncoded(posterPath()); }
+    Q_INVOKABLE QUrl bannerUrl() { return QUrl::fromEncoded(bannerPath()); }
+    Q_INVOKABLE QUrl iconUrl() { return QUrl::fromEncoded(iconPath()); }
+    Q_INVOKABLE QUrl logoUrl() { return QUrl::fromEncoded(logoPath()); }
+
 private:
 
     i64 _mInstallationId;

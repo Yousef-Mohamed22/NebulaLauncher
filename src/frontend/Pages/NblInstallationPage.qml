@@ -30,7 +30,7 @@ Item {
 
             Image {
                 id: banner
-                source: "file://" + ApplicationContext.dataFolder + "/media/banner/" + root.details.banner
+                source: root.details.bannerUrl()
                 fillMode: Image.PreserveAspectCrop
                 width: parent.width
                 height: parent.height
@@ -72,7 +72,7 @@ Item {
 
                 Image {
                     id: logo
-                    source: "file://" + ApplicationContext.dataFolder + "/media/logo/" + root.details.logo
+                    source: root.details.logoUrl()
                     anchors.centerIn: parent
                     width: parent.width - 16
                     height: parent.height - 16
@@ -140,7 +140,7 @@ Item {
                     font.pixelSize: 24
                     font.weight: 500
                     color: Theme.colors.text
-                    text: root.details.gameTitle + (root.details.title.length > 0 ? (" - " + root.details.title) : "")
+                    text: root.details.gameTitle + (root.details.title.byteLength > 0 ? (" - " + root.details.title) : "")
                 }
 
                 Label {
@@ -153,7 +153,7 @@ Item {
 
                     color: Theme.colors.textDim
                     text: root.details.description
-                    visible: root.details.description.length > 0
+                    visible: root.details.description.byteLength > 0
                 }
 
                 Label {

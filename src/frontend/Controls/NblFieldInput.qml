@@ -54,7 +54,7 @@ Item {
             } else if(root.field.type == 4) {
                 loader.item.currentValue = root.value
                 loader.item.activated.connect(() => {
-                    root.value = loader.item.currentValue
+                    root.value = loader.item.currentValue.toString()
                 })
             }
         }

@@ -35,7 +35,6 @@ NblDialog {
 
                 id: repeater
 
-                // Built-in swatches
                 model: [...layout.swatches, "#000000" ]
 
                 Item {

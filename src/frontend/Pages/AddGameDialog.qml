@@ -296,10 +296,11 @@ NblDialog {
             fields[field.modelData.key] = field.value
         }
 
+        let command = JSON.stringify(fields)
         let params = {
             game: gId,
             type: commandTypeBox.currentValue,
-            command: JSON.stringify(fields),
+            command: command,
             displayOverride: overrideBox.checked,
             displayId: root.activeInstallation ? root.activeInstallation.displayId : 0,
             title: titleField.text,

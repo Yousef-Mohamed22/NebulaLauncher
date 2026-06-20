@@ -2,14 +2,22 @@
 #include <ApplicationContext.hpp>
 
 QByteArray NblInstallationDetails::posterPath() {
-    return ("file://" + ApplicationContext::instance()->dataFolder() + "/media/poster/" + poster()).toUtf8();
+    QByteArray rel = poster();
+    if(rel.length() == 0) return {};
+    return ("file://" + ApplicationContext::instance()->dataFolder() + "/media/poster/" + rel).toUtf8();
 }
 QByteArray NblInstallationDetails::bannerPath() {
-    return ("file://" + ApplicationContext::instance()->dataFolder() + "/media/banner/" + banner()).toUtf8();
+    QByteArray rel = banner();
+    if(rel.length() == 0) return {};
+    return ("file://" + ApplicationContext::instance()->dataFolder() + "/media/banner/" + rel).toUtf8();
 }
 QByteArray NblInstallationDetails::iconPath() {
-    return ("file://" + ApplicationContext::instance()->dataFolder() + "/media/icon/" + icon()).toUtf8();
+    QByteArray rel = icon();
+    if(rel.length() == 0) return {};
+    return ("file://" + ApplicationContext::instance()->dataFolder() + "/media/icon/" + rel).toUtf8();
 }
 QByteArray NblInstallationDetails::logoPath() {
-    return ("file://" + ApplicationContext::instance()->dataFolder() + "/media/logo/" + logo()).toUtf8();
+    QByteArray rel = logo();
+    if(rel.length() == 0) return {};
+    return ("file://" + ApplicationContext::instance()->dataFolder() + "/media/logo/" + rel).toUtf8();
 }

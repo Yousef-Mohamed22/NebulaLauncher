@@ -1,16 +1,13 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Shapes
+import QtQuick.Effects
 
 Item {
 
     id: root
 
     property color color
-
-    onColorChanged: {
-        canvas.requestPaint()
-    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -27,8 +24,11 @@ Item {
 
                 Canvas {
 
-                    id: canvas
+                    id: gridCanvas
                     anchors.fill: parent
+
+                    visible: false
+                    layer.enabled: true
 
                     onPaint: {
 
@@ -42,7 +42,7 @@ Item {
                                 let sat = (x / imageData.width) 
                                 let val = (y / imageData.height)
 
-                                let color = Qt.hsva(root.color.hsvHue, sat, val, 1.0)
+                                let color = Qt.hsva(0.0, sat, val, 1.0)
                                 let offset = (x + (y * imageData.width)) * 4
 
                                 imageData.data[offset] = color.r * 255
@@ -54,6 +54,13 @@ Item {
 
                         ctx.drawImage(imageData, 0, 0)
                     }
+                }
+
+                ShaderEffect {
+                    anchors.fill: parent
+                    property variant source: gridCanvas
+                    property real uHue: root.color.hsvHue * (2 * Math.PI)
+                    fragmentShader: "qrc:/shaders/hueShift.frag.qsb"
                 }
 
                 MouseArea {
@@ -154,12 +161,12 @@ Item {
                     onPositionChanged: ev => {
                         if(pressed) {
                             root.color.hsvHue = Math.min(height, Math.max(ev.y, 0)) / height
-                            canvas.requestPaint()
+                            //canvas.requestPaint()
                         }
                     }
                     onClicked: ev => {
                         root.color.hsvHue = Math.min(height, Math.max(ev.y, 0)) / height
-                        canvas.requestPaint()
+                        //canvas.requestPaint()
                     }
                 }
 
