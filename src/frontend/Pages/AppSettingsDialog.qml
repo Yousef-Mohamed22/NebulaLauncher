@@ -81,19 +81,19 @@ NblDialog {
                         onClicked: {
                             layout.selectedIndex = parent.index
                             if(parent.isCustom) {
-                                if(colorPickerWindow.visible) {
-                                    colorPickerWindow.visible = false
-                                } else {
-                                    let globalPos = root.mapFromItem(this, x, y)
 
-                                    let maxX = root.width - colorPickerWindow.width
-                                    let maxY = root.height - colorPickerWindow.height
-                                    colorPickerWindow.x = Math.min(maxX, globalPos.x)
-                                    colorPickerWindow.y = Math.min(maxY, globalPos.y + parent.height)
-                                    colorPickerWindow.visible = true
-                                }
+                                let globalPos = root.mapFromItem(this, x, y)
+                                let maxPos = Qt.point(root.width - width, root.height - height)
+                                let targetPos = Qt.point(
+                                    globalPos.x + (width / 2) - (colorPickerDialog.width / 2),
+                                    globalPos.y + height + 8
+                                )
+
+                                colorPickerDialog.x = Math.min(maxPos.x, targetPos.x)
+                                colorPickerDialog.y = Math.min(maxPos.y, targetPos.y)
+
+                                colorPickerWindow.visible = true
                             } else {
-                                colorPickerWindow.visible = false
                                 root.selectedColor = parent.modelData
                                 colorPicker.color = parent.modelData
                             }
@@ -123,49 +123,64 @@ NblDialog {
         Theme.colors.activeColor = root.selectedColor
     }
 
-    above: [ Item {
+    above: [ 
+        Item {
 
-        id: colorPickerWindow
-
-        visible: false
-
-        width: 300
-        height: 300
-
-        Rectangle {
-            id: background
             anchors.fill: parent
-            color: Theme.colors.layer0
-            border.width: 2
-            border.color: Theme.colors.border
-            radius: 8
-        }
 
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            propagateComposedEvents: false
-        }
+            id: colorPickerWindow
+            visible: false
 
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 8
-
-            NblColorPicker {
-
-                id: colorPicker
-
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                color: root.selectedColor
-
-                onColorChanged: {
-                    root.selectedColor = color
+            MouseArea {
+                anchors.fill: parent
+                propagateComposedEvents: true
+                onClicked: {
+                    colorPickerWindow.visible = false
                 }
             }
-        }
-    } ]
+
+            Item {
+                id: colorPickerDialog
+
+                width: 250
+                height: 250      
+
+                Rectangle {
+                    id: background
+                    anchors.fill: parent
+                    color: Theme.colors.layer0
+                    border.width: 2
+                    border.color: Theme.colors.border
+                    radius: 8
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    propagateComposedEvents: false
+                }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 8
+
+                    NblColorPicker {
+
+                        id: colorPicker
+
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        color: root.selectedColor
+
+                        onColorChanged: {
+                            root.selectedColor = color
+                        }
+                    }
+                }
+            }
+        } 
+    ]
 
 
 }

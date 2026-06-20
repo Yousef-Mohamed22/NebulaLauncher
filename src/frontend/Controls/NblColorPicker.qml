@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Shapes
-import QtQuick.Effects
 
 Item {
 
@@ -161,17 +160,15 @@ Item {
                     onPositionChanged: ev => {
                         if(pressed) {
                             root.color.hsvHue = Math.min(height, Math.max(ev.y, 0)) / height
-                            //canvas.requestPaint()
                         }
                     }
                     onClicked: ev => {
                         root.color.hsvHue = Math.min(height, Math.max(ev.y, 0)) / height
-                        //canvas.requestPaint()
                     }
                 }
 
                 Canvas {
-                    y: root.hue * parent.height - (height / 2)
+                    y: root.color.hsvHue * parent.height - (height / 2)
                     anchors.right: parent.right
                     width: 10
                     height: 8

@@ -200,6 +200,7 @@ Item {
     }
 
     Item {
+        anchors.fill: parent
         children: root.above
     }
 

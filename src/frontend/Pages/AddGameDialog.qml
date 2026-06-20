@@ -49,21 +49,9 @@ NblDialog {
         valueRole: "id"
     }
 
-    Repeater {
-        id: fieldRepeater
-        model: NblFieldModel {
-            id: fieldModel
-            typeId: commandTypeBox.currentValue
-        }
-        NblFieldInput {
-            required property var modelData
-            required property var index
-
-            width: parent.width
-            field: modelData
-            fieldIndex: index
-            typeId: fieldRepeater.model.typeId
-        }
+    NblFieldList { 
+        id: fieldList
+        typeId: commandTypeBox.currentValue
     }
 
     NblTextBox {
@@ -204,21 +192,8 @@ NblDialog {
             dateObj.setTime(details.releaseDate)
 
             commandTypeBox.currentValue = details.type
-
-            try {
-                let fields = JSON.parse(details.command)
-                for (const [key, value] of Object.entries(fields)) {
-                    for(let i = 0 ; i < fieldRepeater.count ; i++) {
-                        let item = fieldRepeater.itemAt(i)
-                        if(item.modelData.key == key) {
-                            item.setValue(value)
-                        }
-                    }
-                }
-            } catch(ex) { 
-                console.warn("Invalid json: ", details.command)
-            }
-
+            fieldList.loadFromJson(details.command)
+            
             titleField.text = details.title
             titleField.cursorPosition = 0
             descriptionField.text = details.description
@@ -290,13 +265,7 @@ NblDialog {
             gId = gameBox.currentValue;
         }
 
-        let fields = {}
-        for(let i = 0 ; i < fieldRepeater.count ; i++) {
-            let field = fieldRepeater.itemAt(i)
-            fields[field.modelData.key] = field.value
-        }
-
-        let command = JSON.stringify(fields)
+        let command = fieldList.saveToJson()
         let params = {
             game: gId,
             type: commandTypeBox.currentValue,

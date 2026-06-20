@@ -19,13 +19,24 @@ Item {
     function setValue(newValue) {
         value = newValue
         if(root.field.type == 0) {
-            loader.item.text = root.value
+
+            let textBox = loader.item as NblTextBox
+            textBox.text = root.value
+
         } else if(root.field.type == 1 || root.field.type == 2) {
-            loader.item.value = root.value
+
+            let numberBox = loader.item as NblNumberInput
+            numberBox.value = root.value
+
         } else if(root.field.type == 3) {
-            loader.item.checked = root.value
+
+            let checkBox = loader.item as NblCheckBox
+            checkBox.checked = root.value
+
         } else if(root.field.type == 4) {
-            loader.item.currentIndex = enumModel.indexOf(root.value)
+
+            let comboBox = loader.item as NblComboBox
+            comboBox.currentIndex = enumModel.indexOf(root.value)
         }
     }
 
@@ -37,24 +48,34 @@ Item {
         onLoaded: {
 
             if(root.field.type == 0) {
-                loader.item.text = root.value
-                loader.item.textEdited.connect(() => {
-                    root.value = loader.item.text
+
+                let textBox = loader.item as NblTextBox
+                textBox.text = root.value
+                textBox.textEdited.connect(() => {
+                    root.value = textBox.text
                 })
+
             } else if(root.field.type == 1 || root.field.type == 2) {
-                loader.item.value = root.value
-                loader.item.valueModified.connect(() => {
-                    root.value = loader.item.value
+
+                let numberBox = loader.item as NblNumberInput
+                numberBox.value = root.value
+                numberBox.valueModified.connect(() => {
+                    root.value = numberBox.value
                 })
+
             } else if(root.field.type == 3) {
-                loader.item.checked = root.value
-                loader.item.toggled.connect(() => {
-                    root.value = loader.item.checked
+
+                let checkBox = loader.item as NblCheckBox
+                checkBox.checked = root.value
+                checkBox.toggled.connect(() => {
+                    root.value = checkBox.checked
                 })
             } else if(root.field.type == 4) {
-                loader.item.currentValue = root.value
-                loader.item.activated.connect(() => {
-                    root.value = loader.item.currentValue.toString()
+
+                let comboBox = loader.item as NblComboBox
+                comboBox.currentValue = root.value
+                comboBox.activated.connect(() => {
+                    root.value = comboBox.currentValue.toString()
                 })
             }
         }

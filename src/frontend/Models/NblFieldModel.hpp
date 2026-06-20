@@ -124,7 +124,7 @@ private:
     void _reload() {
         beginResetModel();
         _mType = ApplicationContext::instance()->pluginContext()->getInstallationType(nbl::StringView(_mTypeId.length(), _mTypeId.data()));
-        if(_mType->fields.length > 0) {
+        if(_mType && _mType->fields.length > 0) {
             beginInsertRows(QModelIndex(), 0, _mType->fields.length - 1);
             endInsertRows();
         }

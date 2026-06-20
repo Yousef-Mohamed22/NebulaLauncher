@@ -105,8 +105,9 @@ Window {
             "showApplyButton": false
         })
         modalConnections.applyAction = function() { 
-            if(pageLoader.currentItem instanceof NblTabPage) {
-                pageLoader.currentItem.refresh()
+            let tabPage = pageLoader.currentItem as NblTabPage
+            if(tabPage) {
+                tabPage.refresh()
             }
         }
         modalLoader.active = true
@@ -133,8 +134,9 @@ Window {
             "activeInstallation": details
         })
         modalConnections.applyAction = function() { 
-            if(pageLoader.currentItem instanceof NblInstallationPage) {
-                pageLoader.currentItem.refresh()
+            let installationPage = pageLoader.currentItem as NblInstallationPage
+            if(installationPage) {
+                installationPage.refresh()
             }
         }
         modalLoader.active = true
