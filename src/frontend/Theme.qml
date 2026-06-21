@@ -20,7 +20,19 @@ QtObject {
         }
 
         function readableOn(color) {
-            return color.hslLightness == 0 ? "#696969" : (color.hslLightness < 0.5 ? color.lighter(1.5) : color.darker(1.5))
+
+            let adjustedSaturation = 0.0
+            let adjustedLightness = 0.0
+
+            if(color.hslLightness > 0.5) {
+                adjustedSaturation = color.hslSaturation * 0.5
+                adjustedLightness = 0.25
+            } else {
+                adjustedSaturation = color.hslSaturation * 1.5
+                adjustedLightness = 0.85
+            }
+
+            return Qt.hsla(color.hslHue, color.hslSaturation, adjustedLightness)
         }
 
         property bool lightMode: false

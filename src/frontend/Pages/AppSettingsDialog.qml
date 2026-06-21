@@ -83,16 +83,13 @@ NblDialog {
                             if(parent.isCustom) {
 
                                 let globalPos = root.mapFromItem(this, x, y)
-                                let maxPos = Qt.point(root.width - width, root.height - height)
                                 let targetPos = Qt.point(
-                                    globalPos.x + (width / 2) - (colorPickerDialog.width / 2),
+                                    globalPos.x + (width / 2) - (colorPickerPopup.popupWidth / 2),
                                     globalPos.y + height + 8
                                 )
 
-                                colorPickerDialog.x = Math.min(maxPos.x, targetPos.x)
-                                colorPickerDialog.y = Math.min(maxPos.y, targetPos.y)
+                                colorPickerPopup.open(targetPos)
 
-                                colorPickerWindow.visible = true
                             } else {
                                 root.selectedColor = parent.modelData
                                 colorPicker.color = parent.modelData
@@ -124,63 +121,49 @@ NblDialog {
     }
 
     above: [ 
-        Item {
+        NblPopupWindow {
+            
+            id: colorPickerPopup
 
-            anchors.fill: parent
+            width: root.width
+            height: root.height
 
-            id: colorPickerWindow
-            visible: false
+            popupWidth: 250
+            popupHeight: 250      
+
+            Rectangle {
+                id: background
+                anchors.fill: parent
+                color: Theme.colors.layer0
+                border.width: 2
+                border.color: Theme.colors.border
+                radius: 8
+            }
 
             MouseArea {
                 anchors.fill: parent
-                propagateComposedEvents: true
-                onClicked: {
-                    colorPickerWindow.visible = false
-                }
+                hoverEnabled: true
+                propagateComposedEvents: false
             }
 
-            Item {
-                id: colorPickerDialog
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 8
 
-                width: 250
-                height: 250      
+                NblColorPicker {
 
-                Rectangle {
-                    id: background
-                    anchors.fill: parent
-                    color: Theme.colors.layer0
-                    border.width: 2
-                    border.color: Theme.colors.border
-                    radius: 8
-                }
+                    id: colorPicker
 
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    propagateComposedEvents: false
-                }
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 8
+                    color: root.selectedColor
 
-                    NblColorPicker {
-
-                        id: colorPicker
-
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-
-                        color: root.selectedColor
-
-                        onColorChanged: {
-                            root.selectedColor = color
-                        }
+                    onColorChanged: {
+                        root.selectedColor = color
                     }
                 }
             }
         } 
     ]
-
-
 }
