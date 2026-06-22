@@ -100,46 +100,35 @@ Window {
     }
 
     function beginAddGame() {
-        modalLoader.setSource("Pages/AddGameDialog.qml", { 
-            "mainWindow": root,
-            "showApplyButton": false
-        })
-        modalConnections.applyAction = function() { 
+        openDialog("Pages/AddGameDialog.qml", {}, function() {
             let tabPage = pageLoader.currentItem as NblTabPage
             if(tabPage) {
                 tabPage.refresh()
             }
-        }
-        modalLoader.active = true
+        })
     }
 
     function openSettings() {
-        modalLoader.setSource("Pages/AppSettingsDialog.qml", { 
-            "mainWindow": root
-        })
-        modalConnections.applyAction = function() { 
+        openDialog("Pages/AppSettingsDialog.qml", {}, function() { 
             ApplicationContext.saveSettings({
                 theme: {
                     activeColor: Theme.colors.activeColor, 
                     lightTheme: Theme.colors.lightMode
                 }
             })
-        }
-        modalLoader.active = true
+        })
     }
 
     function beginEditGame(details) {
-        modalLoader.setSource("Pages/AddGameDialog.qml", {
-            "mainWindow": root,
+
+        openDialog("Pages/AddGameDialog.qml", {
             "activeInstallation": details
-        })
-        modalConnections.applyAction = function() { 
+        }, function() {
             let installationPage = pageLoader.currentItem as NblInstallationPage
             if(installationPage) {
                 installationPage.refresh()
             }
-        }
-        modalLoader.active = true
+        })
     }
 
     function openTab(ref) {
@@ -166,16 +155,38 @@ Window {
 
     function openInstallationDetails(installationId) {
 
-        while(pageLoader.depth > 1) {
+        while (pageLoader.depth > 1) {
             pageLoader.pop()
         }
-
         let details = ApplicationContext.getInstallationDetails(installationId)
 
         pageLoader.push("Pages/NblInstallationPage.qml", {
             details: details,
             mainWindow: root
         })
+    }
+
+    function closeInstallationDetails() {
+        while (pageLoader.depth > 1) {
+            pageLoader.pop()
+        }
+
+        let tabPage = pageLoader.currentItem as NblTabPage
+        if(tabPage) {
+            tabPage.refresh()
+        }
+    }
+
+    function openDialog(file, options, applyAction) {
+
+        let realOptions = Object.assign({}, options)
+        realOptions.mainWindow = this
+
+        modalLoader.setSource(file, realOptions)
+        modalConnections.applyAction = applyAction
+
+        modalLoader.active = true
+
     }
 
 }

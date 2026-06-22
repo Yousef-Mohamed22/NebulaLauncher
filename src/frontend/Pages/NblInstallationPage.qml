@@ -132,6 +132,18 @@ Item {
                             root.mainWindow.beginEditGame(root.details)
                         }
                     }
+
+                    NblIconButton {
+                        icon: ""
+                        onClicked: {
+                            root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
+                                "text": "Are you sure you want to delete this installation?"
+                            }, function() {
+                                ApplicationContext.deleteInstallation(root.details.installationId)
+                                root.mainWindow.closeInstallationDetails()
+                            })
+                        }
+                    }
                 }
 
 

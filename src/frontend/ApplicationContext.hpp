@@ -83,6 +83,8 @@ public:
     Q_INVOKABLE int addInstallation(const QVariantMap& params);
     
     Q_INVOKABLE int updateInstallation(int64_t id, const QVariantMap& params);
+    
+    Q_INVOKABLE int deleteInstallation(int64_t id);
 
     Q_INVOKABLE void saveSettings(const QVariantMap& settings);
 

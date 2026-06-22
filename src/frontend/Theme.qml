@@ -35,6 +35,10 @@ QtObject {
             return Qt.hsla(color.hslHue, color.hslSaturation, adjustedLightness)
         }
 
+        function blackOrWhite(color) {
+            return calculateBrightness(color) > 200 ? "#000000" : "#ffffff"
+        }
+
         property bool lightMode: false
         property color activeColor: "#d658fc"
 
@@ -45,7 +49,8 @@ QtObject {
         property color border: Qt.hsla(activeColor.hslHue, 0.3, lightMode ? 0.8 : 0.228, 1.0)
         property color text: lightMode ? "#000000" : "#ffffff"
         property color textDim: Qt.hsla(activeColor.hslHue, 0.3, lightMode ? 0.2 : 0.75, 1.0)
-        property color textOnAccent: calculateBrightness(activeColor) > 200 ? "#000000" : "#ffffff"
+        property color textOnAccent: blackOrWhite(accent)
+
         property color shadow: lightMode ? "#99000000" : "#FF000000"
     }
 

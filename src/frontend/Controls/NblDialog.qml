@@ -16,6 +16,10 @@ Item {
     property string cancelText: "Cancel"
 
     property bool showApplyButton: true
+    property color okButtonColor: Theme.colors.accent
+
+    property int targetWidth: 800
+    property int targetHeight: 600
 
     width: parent.width
     height: parent.height
@@ -36,8 +40,8 @@ Item {
     }
 
     Item {
-        width: Math.min(parent.width - 16, 800)
-        height: Math.min(parent.height - 16, 600)
+        width: Math.min(parent.width - 16, root.targetWidth)
+        height: Math.min(parent.height - 16, root.targetHeight)
 
         anchors.centerIn: parent
 
@@ -106,7 +110,7 @@ Item {
 
                         Rectangle {
                             anchors.fill: parent
-                            color: Theme.colors.accent
+                            color: root.okButtonColor
                             radius: 8
                         }
 
@@ -114,7 +118,7 @@ Item {
                             anchors.centerIn: parent
                             font.pixelSize: 16
                             font.weight: 500
-                            color: Theme.colors.textOnAccent
+                            color: Theme.colors.blackOrWhite(root.okButtonColor)
                             text: root.okText
                         }
 

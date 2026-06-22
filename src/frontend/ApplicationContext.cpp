@@ -471,6 +471,10 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
     return nbl::Result::SUCCESS;
 }
 
+int ApplicationContext::deleteInstallation(int64_t installationId) {
+    return nbl::removeInstallation(&_mConnection, installationId);
+}
+
 void ApplicationContext::saveSettings(const QVariantMap& settings) {
 
     QJsonObject obj = QJsonObject::fromVariantMap(settings);

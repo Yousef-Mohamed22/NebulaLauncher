@@ -12,6 +12,8 @@ NblDialog {
 
     property bool newGame: root.activeInstallation == null && gameBox.currentIndex == 0
 
+    showApplyButton: activeInstallation != null
+
     NblComboBox {
 
         visible: root.activeInstallation == null
