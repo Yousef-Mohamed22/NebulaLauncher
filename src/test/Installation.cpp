@@ -26,7 +26,7 @@ nbl::InstallationMeta _installMeta = {
     .displayId = 0,
     .gameId = 0,
     .type = "dummy",
-    .command = "C:/Games/Test game"
+    .command = "C:/Games/Test Game"
 };
 
 }
@@ -38,7 +38,7 @@ TEST(Installation, AddInstallation) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
     ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
@@ -50,7 +50,7 @@ TEST(Installation, RemoveInstallation) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
     ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
@@ -63,7 +63,7 @@ TEST(Installation, GetInstallationMeta) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
     ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());

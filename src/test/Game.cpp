@@ -29,7 +29,7 @@ TEST(Game, AddGame) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -42,7 +42,7 @@ TEST(Game, RemoveGame) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -56,7 +56,7 @@ TEST(Game, AddGameTag) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -72,7 +72,7 @@ TEST(Game, RemoveGameTag) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -90,7 +90,7 @@ TEST(Game, GetGameTags) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -128,7 +128,7 @@ TEST(Game, GetGameMeta) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -161,7 +161,7 @@ TEST(Game, LookupSingleGame) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -194,7 +194,7 @@ TEST(Game, LookupSingleGameByName) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
@@ -233,7 +233,7 @@ TEST(Game, LookupSingleGameByTag) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId));
+    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     i64 gameId = 0;
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());

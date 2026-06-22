@@ -193,4 +193,76 @@ private:
     }
 };
 
+
+class BufferedWriter {
+public:
+
+    BufferedWriter(Writer sink, void* buffer, usize bufLen) :
+        _mSink(sink),
+        _mPos(0),
+        _mBufLen(bufLen),
+        _pBuffer(static_cast<u8*>(buffer))
+    { }
+
+    ~BufferedWriter() {
+        flush();
+    }
+
+    operator Writer() { 
+        return Writer{this, _write};
+    }
+
+    Result flush();
+
+    Result write(const void* data, usize length, usize* bytesWritten);
+
+    Result writeAll(const void* data, usize length) {
+        return operator Writer().writeAll(data, length);
+    }
+
+private:
+    static Result _write(void* impl, const void* data, usize length, usize* bytesWritten) {
+        BufferedWriter* writer = static_cast<BufferedWriter*>(impl);
+        return writer->write(data, length, bytesWritten);
+    }
+
+    Writer _mSink;
+    usize _mPos;
+    usize _mBufLen;
+    u8* _pBuffer;
+};
+
+class BufferedReader {
+public:
+
+    BufferedReader(Reader source, void* buffer, usize bufLen) :
+        _mSource(source),
+        _mPos(0),
+        _mBufLen(bufLen),
+        _pBuffer(static_cast<u8*>(buffer))
+    { }
+
+    operator Reader() { 
+        return Reader{ this, _read };
+    }
+
+    Result read(void* data, usize length, usize* bytesRead);
+
+    inline Result readAll(void* data, usize length) {
+        return operator Reader().readAll(data, length);
+    }
+
+private:
+    static Result _read(void* impl, void* data, usize length, usize* bytesRead) {
+        BufferedReader* reader = static_cast<BufferedReader*>(impl);
+        return reader->read(data, length, bytesRead);
+    }
+
+    Reader _mSource;
+    usize _mPos;
+    usize _mAvailable;
+    usize _mBufLen;
+    u8* _pBuffer;
+};
+
 }

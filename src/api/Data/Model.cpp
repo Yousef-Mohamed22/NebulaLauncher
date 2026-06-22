@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS installation (
     iId INTEGER PRIMARY KEY AUTOINCREMENT,
     gId INTEGER NOT NULL,
     dId INTEGER,
-    title TEXT NOT NULL,
+    title TEXT,
     description TEXT,
     type TEXT NOT NULL,
     command TEXT NOT NULL,
