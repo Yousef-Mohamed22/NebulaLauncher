@@ -98,7 +98,7 @@ Window {
             openTab(ApplicationContext.allTabs[0])
         }
     }
-
+    
     function beginAddGame() {
         openDialog("Pages/AddGameDialog.qml", {}, function() {
             let tabPage = pageLoader.currentItem as NblTabPage
@@ -162,7 +162,8 @@ Window {
 
         pageLoader.push("Pages/NblInstallationPage.qml", {
             details: details,
-            mainWindow: root
+            mainWindow: root,
+            handle: ApplicationContext.getRunningInstallation(installationId)
         })
     }
 

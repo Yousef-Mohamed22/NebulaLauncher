@@ -19,10 +19,15 @@
 #include "LinuxUtil.hpp"
 
 #include <cstdlib>
+
+#include <fcntl.h>
+#include <unistd.h>
+#include <poll.h>
+
 #include <linux/limits.h>
 #include <sys/wait.h>
-#include <fcntl.h>
-
+#include <sys/syscall.h>
+#include <sys/prctl.h>
 
 namespace {
 
@@ -57,14 +62,45 @@ nbl::StringView nbl::getBinaryPath() {
 }
 
 
+nbl::ProcessHandle::~ProcessHandle() {
+    if(_pHandle != nullptr) {
+        pid_t pid = _getHandle(_pHandle);
+        close(pid);
+        _pHandle = nullptr;
+    }
+    if(captureOutput()) {
+        int fd = _getHandle(_pOutputHandle);
+        close(fd);
+        _pOutputHandle = nullptr;
+    }
+}
 
 
 nbl::Result nbl::ProcessHandle::wait(i32* exitCode) const {
-    pid_t rc = waitpid(_getHandle(_pHandle), exitCode ? reinterpret_cast<int*>(exitCode) : nullptr, 0);
-    if(rc == -1) {
+
+    int pid = _getHandle(_pHandle);
+    if(waitpid(pid, exitCode, 0) == -1) {
         return nbl::error::PROCESS_ERROR;
     }
     return nbl::Result::SUCCESS;
+}
+
+bool nbl::ProcessHandle::isRunning() const {
+    if(_pHandle == nullptr) return false;
+
+    int pid = _getHandle(_pHandle);
+    return waitpid(pid, nullptr, WNOHANG) == 0;
+}
+
+void nbl::ProcessHandle::kill() {
+    if(_pHandle == nullptr) return;
+
+    int pid = _getHandle(_pHandle);
+    ::kill(pid, SIGKILL);
+}
+
+i32 nbl::ProcessHandle::getPid() const {
+    return _getHandle(_pHandle);
 }
 
 nbl::Reader nbl::ProcessHandle::stdoutReader() const {
@@ -101,6 +137,9 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
 
     if(pid == 0) {
 
+        if(flags & ProcessCreateFlag::KILL_ON_PARENT_EXIT) {
+            prctl(PR_SET_PDEATHSIG, SIGKILL);
+        }
         // Handle standard IO
         if(flags & ProcessCreateFlag::CAPTURE_OUTPUT) {
             int outputHandle = _getHandle(outHandle->_pOutputHandle);
@@ -158,13 +197,20 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
     } else {
 
         // Parent process
-        close(pipefd[1]);
-        _setHandle(outHandle->_pOutputHandle, pipefd[0]);
+        if(flags & ProcessCreateFlag::CAPTURE_OUTPUT) {
+            close(pipefd[1]);
+            _setHandle(outHandle->_pOutputHandle, pipefd[0]);
+        }
 
         outHandle->_pHandle = reinterpret_cast<void*>(static_cast<intptr_t>(pid));
     }
 
     return Result::SUCCESS;
+}
+
+nbl::Result nbl::ProcessHandle::fromPid(i32 pid, nbl::ProcessHandle* out) {
+    out->_pHandle = reinterpret_cast<void*>(static_cast<intptr_t>(pid));
+    return nbl::Result::SUCCESS;
 }
 
 #endif

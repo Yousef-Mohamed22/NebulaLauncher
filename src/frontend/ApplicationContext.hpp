@@ -13,7 +13,7 @@
 
 #include "Models/NblTabRef.hpp"
 #include "Models/NblInstallationDetails.hpp"
-
+#include "NblProcessHandle.hpp"
 
 inline QByteArray fromNbl(nbl::StringView sv) {
     return QByteArray(sv.data, sv.length);
@@ -76,7 +76,7 @@ public:
         return _reload().value;
     }
 
-    Q_INVOKABLE void launchInstallation(i64 installationId);
+    Q_INVOKABLE NblProcessHandle* launchInstallation(i64 installationId);
 
     Q_INVOKABLE NblInstallationDetails* getInstallationDetails(i64 installationId);
 
@@ -89,6 +89,8 @@ public:
     Q_INVOKABLE void saveSettings(const QVariantMap& settings);
 
     Q_INVOKABLE QVariantMap loadSettings();
+
+    Q_INVOKABLE NblProcessHandle* getRunningInstallation(i64 installationId);
 
     nbl::DatabaseConnection* connection() {
         return &_mConnection;
@@ -115,9 +117,6 @@ private:
 
     nbl::PluginContext _mContext;
     nbl::PluginLoader _mLoader;
-
-    nbl::Arena _mProcessArena;
-    nbl::PoolView<nbl::ProcessHandle> _mRunningInstallations;
 
     friend class NblRunningInstallation;
 

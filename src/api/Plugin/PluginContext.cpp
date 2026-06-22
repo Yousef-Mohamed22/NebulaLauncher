@@ -85,7 +85,7 @@ nbl::Result nbl::PluginContext::runCommand(i64 installationId, StringView comman
         command
     };
 
-    nbl::ProcessHandle::spawn(_mWrapperPath, args, handle, nbl::ProcessCreateFlag::CAPTURE_OUTPUT);
+    nbl::ProcessHandle::spawn(_mWrapperPath, args, handle);
 
     return nbl::Result::SUCCESS;
 }

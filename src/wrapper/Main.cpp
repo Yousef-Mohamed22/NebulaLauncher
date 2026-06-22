@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
 
     u64 startTime = nbl::getCurrentTime();
     nbl::ProcessHandle proc;
-    res = nbl::ProcessHandle::run(argv[3], &proc, nbl::ProcessCreateFlag::CAPTURE_OUTPUT);
+    res = nbl::ProcessHandle::run(argv[3], &proc, nbl::ProcessCreateFlag::CAPTURE_OUTPUT | nbl::ProcessCreateFlag::KILL_ON_PARENT_EXIT);
     if(res.error()) {
         nbl::log(nbl::LogLevel::ERROR, "Unable to start the program!");
         return 1;
@@ -60,6 +60,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    return exitCode;
-
+    nbl::log(nbl::LogLevel::INFO, "Exiting wrapper...");
+    exit(exitCode);
 }

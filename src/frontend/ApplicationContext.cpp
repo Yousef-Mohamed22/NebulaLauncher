@@ -20,6 +20,7 @@
 #include <openssl/evp.h>
 
 #include "Models/NblInstallationDetails.hpp"
+#include "NblProcessHandle.hpp"
 
 namespace {
 
@@ -135,12 +136,6 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
 
 void ApplicationContext::_initialize() {
 
-    NBL_ASSERT(nbl::Arena::create(1024 * 1024 * 10, &_mProcessArena).success());
-    NBL_ASSERT(nbl::PoolView<nbl::ProcessHandle>::create(
-        &_mProcessArena,
-        &_mRunningInstallations
-    ).success());
-
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 
     nbl::StringView dataDir;
@@ -197,19 +192,25 @@ nbl::Result ApplicationContext::_reload() {
 
 }
 
-void ApplicationContext::launchInstallation(i64 installationId) {
+NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
 
     if(!_mConnection.isValid()) {
         nbl::log(nbl::LogLevel::ERROR, "Cannot launch installation, database connection is not valid");
-        return;
+        return nullptr;
     }
 
-    nbl::getInstallationMeta(&_mConnection, installationId, [](void* userData, const nbl::InstallationMeta& meta) -> nbl::Result {
+    NblProcessHandle* handle = new NblProcessHandle();
 
-        ApplicationContext* context = static_cast<ApplicationContext*>(userData);
+    struct _LaunchData {
+        ApplicationContext* context;
+        NblProcessHandle* handle;
+    } launchData { .context = this, .handle = handle };
 
-        nbl::ProcessHandle* runningInstallation;
-        NBL_CHECK(context->_mRunningInstallations.push(&runningInstallation));
+    nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [](void* userData, const nbl::InstallationMeta& meta) -> nbl::Result {
+
+        _LaunchData* data = static_cast<_LaunchData*>(userData);
+        ApplicationContext* context = data->context;
+        NblProcessHandle* handle = data->handle;
 
         const nbl::InstallationType* installType = context->_mContext.getInstallationType(meta.type);
         if(installType == nullptr) {
@@ -264,9 +265,15 @@ void ApplicationContext::launchInstallation(i64 installationId) {
             }
         }
 
-        return installType->launch(&context->_mContext, { .data = values.data(), .length = static_cast<usize>(values.length()) }, meta.id, runningInstallation);
+        return installType->launch(&context->_mContext, { .data = values.data(), .length = static_cast<usize>(values.length()) }, meta.id, handle->handle());
         
-    }, this);
+    }, &launchData);
+    if(res.error()) {
+        nbl::log(nbl::LogLevel::ERROR, "Unable to launch installation. Error ", res);
+        return nullptr;
+    }
+
+    return handle;
 }
 
 NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installationId) {
@@ -513,4 +520,10 @@ QVariantMap ApplicationContext::loadSettings() {
     }
 
     return doc.object().toVariantMap();
+}
+
+NblProcessHandle* ApplicationContext::getRunningInstallation(i64 installationId) {
+
+    // TODO
+    return nullptr;
 }

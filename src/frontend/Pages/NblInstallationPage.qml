@@ -11,6 +11,8 @@ Item {
     required property MainWindow mainWindow
     required property NblInstallationDetails details
 
+    property NblProcessHandle handle
+
     function refresh() {
         details = ApplicationContext.getInstallationDetails(details.installationId)
     }
@@ -107,7 +109,8 @@ Item {
 
                     NblLaunchButton {
                         Layout.topMargin: -24
-                        details: root.details
+                        installationId: root.details.installationId
+                        handle: root.handle
                     }
 
                     Item { Layout.fillWidth: true }

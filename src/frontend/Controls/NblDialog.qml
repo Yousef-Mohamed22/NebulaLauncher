@@ -33,10 +33,17 @@ Item {
         color: "#AA000000"
     }
 
+    WheelHandler {
+        blocking: true 
+    }
+
     MouseArea {
         anchors.fill: parent
         propagateComposedEvents: false
         hoverEnabled: true
+        onWheel: wheel => { wheel.accepted = true; }
+        onPressed: mouse => { mouse.accepted = true; }
+        onReleased: mouse => { mouse.accepted = true; }
     }
 
     Item {

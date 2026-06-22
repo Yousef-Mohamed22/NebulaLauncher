@@ -78,7 +78,8 @@ private:
 
 
 enum class ProcessCreateFlag : u32 {
-    CAPTURE_OUTPUT = 1
+    CAPTURE_OUTPUT = 1,
+    KILL_ON_PARENT_EXIT = 2
 };
 
 
@@ -106,6 +107,32 @@ inline ProcessCreateFlags operator&(ProcessCreateFlags a, ProcessCreateFlag b) {
 class ProcessHandle {
 public:
 
+    ProcessHandle() = default;
+    ProcessHandle(const ProcessHandle& other) = delete;
+    ProcessHandle(ProcessHandle&& other) :
+        _pHandle(other._pHandle),
+        _pOutputHandle(other._pOutputHandle)
+    { 
+        other._pHandle = nullptr;
+        other._pOutputHandle = nullptr;
+    }
+
+    ~ProcessHandle();
+
+    ProcessHandle& operator=(const ProcessHandle& other) = delete;
+    ProcessHandle& operator=(ProcessHandle&& other) {
+
+        if(&other == this) return *this;
+
+        _pHandle = other._pHandle;
+        _pOutputHandle = other._pOutputHandle;
+
+        other._pHandle = nullptr;
+        other._pOutputHandle = nullptr;
+
+        return *this;
+    }
+
     /**
      * \brief Waits for the subprocess to finish execution and retrieves its exit code.
      * \param exitCode Pointer to a variable that will receive the subprocess's exit code. Can be nullptr if the exit code is not needed.
@@ -119,6 +146,13 @@ public:
      */
     bool isRunning() const;
 
+    void kill();
+
+    /**
+     * \brief Gets the process id (PID) for the subprocess
+     * \return The subprocess's PID
+     */
+    i32 getPid() const;
 
     /**
      * \brief Determines if the subprocess was created with the CAPTURE_OUTPUT flag, which allows capturing its standard output. If this method returns true, you can use the stdoutReader() method to read the subprocess's output.
@@ -158,6 +192,10 @@ public:
     static Result spawn(StringView path, Span<StringView> args, ProcessHandle* outHandle, ProcessCreateFlag flag) {
         return spawn(path, args, outHandle, static_cast<ProcessCreateFlags>(flag));
     }
+
+
+    static Result fromPid(i32 pid, ProcessHandle* outHandle);
+
 private:
     void* _pHandle;
     void* _pOutputHandle;
