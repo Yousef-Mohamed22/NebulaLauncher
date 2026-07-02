@@ -163,7 +163,6 @@ Window {
         pageLoader.push("Pages/NblInstallationPage.qml", {
             details: details,
             mainWindow: root,
-            handle: ApplicationContext.getRunningInstallation(installationId)
         })
     }
 

@@ -35,7 +35,11 @@ int main(int argc, char** argv) {
 
     u64 startTime = nbl::getCurrentTime();
     nbl::ProcessHandle proc;
-    res = nbl::ProcessHandle::run(argv[3], &proc, nbl::ProcessCreateFlag::CAPTURE_OUTPUT | nbl::ProcessCreateFlag::KILL_ON_PARENT_EXIT);
+    res = nbl::ProcessHandle::run(argv[3], &proc, {
+        .outputMode = nbl::ProcessOutputMode::INHERIT,
+        .outputRedirectFile = {},
+        .killOnParentExit = true
+    });
     if(res.error()) {
         nbl::log(nbl::LogLevel::ERROR, "Unable to start the program!");
         return 1;

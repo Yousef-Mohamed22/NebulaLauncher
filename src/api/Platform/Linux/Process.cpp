@@ -36,8 +36,8 @@ int _getHandle(void* handle) {
     return static_cast<int>(reinterpret_cast<intptr_t>(handle));
 }
 
-void _setHandle(void* handle, int value) {
-    handle = reinterpret_cast<void*>(static_cast<intptr_t>(value));
+void _setHandle(void** handle, int value) {
+    *handle = reinterpret_cast<void*>(static_cast<intptr_t>(value));
 }
 
 }
@@ -113,20 +113,24 @@ nbl::Reader nbl::ProcessHandle::stdoutReader() const {
     };
 }
 
-nbl::Result nbl::ProcessHandle::run(StringView commandLine, ProcessHandle* outHandle, ProcessCreateFlags flags) {
+nbl::Result nbl::ProcessHandle::run(StringView commandLine, ProcessHandle* outHandle, const ProcessCreateOptions& options) {
     nbl::Array<StringView, 2> args = {
         "-c",
         commandLine
     };
-    return spawn("/bin/sh", args, outHandle, flags);
+    return spawn("/bin/sh", args, outHandle, options);
 }
 
-nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, ProcessHandle* outHandle, ProcessCreateFlags flags) {
+nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, ProcessHandle* outHandle, const ProcessCreateOptions& options) {
 
     int pipefd[2];
-    if(flags & ProcessCreateFlag::CAPTURE_OUTPUT) {
+    if(options.outputMode == ProcessOutputMode::PIPE) {
         if(pipe(pipefd) == -1) {
             return nbl::error::PROCESS_ERROR;
+        }
+    } else if(options.outputMode == ProcessOutputMode::REDIRECT) {
+        if(options.outputRedirectFile.empty() || options.outputRedirectFile.length + 1 >= PATH_MAX) {
+            return nbl::error::ILLEGAL_ARGUMENT;
         }
     }
 
@@ -137,53 +141,84 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
 
     if(pid == 0) {
 
-        if(flags & ProcessCreateFlag::KILL_ON_PARENT_EXIT) {
-            prctl(PR_SET_PDEATHSIG, SIGKILL);
+        if(options.killOnParentExit) {
+            if(prctl(PR_SET_PDEATHSIG, SIGKILL) == -1) {
+                exit(1);
+            }
         }
+
         // Handle standard IO
-        if(flags & ProcessCreateFlag::CAPTURE_OUTPUT) {
-            int outputHandle = _getHandle(outHandle->_pOutputHandle);
-            close(pipefd[0]);
-            if(dup2(outputHandle, STDOUT_FILENO) == -1 || dup2(outputHandle, STDERR_FILENO) == -1) {
-                close(outputHandle);
-                exit(1);
-            }
-            int nullfd = open("/dev/null", O_RDWR);
-            if(nullfd == -1) {
-                close(outputHandle);
-                exit(1);
-            }
-            if(dup2(nullfd, STDIN_FILENO) == -1) {
-                close(outputHandle);
-                close(nullfd);
-                exit(1);
-            }
-
-        } else {
-
-            int fd = open("/dev/null", O_RDWR);
-            if(fd == -1) {
-                exit(1);
-            }
-
-            if(dup2(fd, STDIN_FILENO) == -1 || dup2(fd, STDOUT_FILENO) == -1 || dup2(fd, STDERR_FILENO) == -1) {
-                close(fd);
-                exit(1);
-            }
+        int nullfd = open("/dev/null", O_RDWR);
+        if(nullfd == -1) {
+            exit(1);
         }
+        if(dup2(nullfd, STDIN_FILENO) == -1) {
+            close(nullfd);
+            exit(1);
+        }
+
+        switch(options.outputMode) {
+            case ProcessOutputMode::PIPE: {
+                if(dup2(pipefd[1], STDOUT_FILENO) == -1 || dup2(pipefd[1], STDERR_FILENO) == -1) {
+                    close(nullfd);
+                    close(pipefd[0]);
+                    close(pipefd[1]);
+                    exit(1);
+                }
+                close(pipefd[0]);
+                close(pipefd[1]);
+                break;
+            }
+            case ProcessOutputMode::NULLIFY: {
+                if(dup2(nullfd, STDOUT_FILENO) == -1 || dup2(nullfd, STDERR_FILENO) == -1) {
+                    close(nullfd);
+                    exit(1);
+                }
+                break;
+            }
+            case ProcessOutputMode::REDIRECT: {
+                char nullPath[PATH_MAX];
+                memcpy(nullPath, options.outputRedirectFile.data, options.outputRedirectFile.length);
+                nullPath[options.outputRedirectFile.length] = '\0';
+
+                int fd = ::open(nullPath, O_WRONLY | O_CREAT);
+                if(fd == -1) {
+                    close(nullfd);
+                    exit(1);
+                }
+
+                if(dup2(fd, STDOUT_FILENO) == -1 || dup2(fd, STDERR_FILENO) == -1) {
+                    close(fd);
+                    close(nullfd);
+                    exit(1);
+                }
+                break;
+            }
+            case ProcessOutputMode::INHERIT:
+            default:
+                break;
+        }
+
+        close(nullfd);
 
         // Start the process
         nbl::ArenaFrame frame = nbl::ArenaFrame(nbl::Arena::threadLocal());
 
         char** argv;
-        NBL_CHECK(frame.allocate(&argv, sizeof(const char**) * (args.length + 2)));
+        if(frame.allocate(&argv, sizeof(const char**) * (args.length + 2)).error()) {
+            exit(1);
+        }
 
-        NBL_CHECK(frame.allocate(&argv[0], path.length + 1));
+        if(frame.allocate(&argv[0], path.length + 1).error()) {
+            exit(1);
+        }
         memcpy(argv[0], path.data, path.length);
         argv[0][path.length] = '\0';
 
         for(usize i = 0; i < args.length; i++) {
-            NBL_CHECK(frame.allocate(&argv[i + 1], args[i].length + 1));
+            if(frame.allocate(&argv[i + 1], args[i].length + 1).error()) {
+                exit(1);
+            }
 
             memcpy(argv[i + 1], args[i].data, args[i].length);
             argv[i + 1][args[i].length] = '\0';
@@ -191,18 +226,18 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
         argv[args.length + 1] = nullptr;
 
         if(execvp(argv[0], argv) != 0) {
-            return nbl::error::PROCESS_ERROR;
+            exit(1);
         }
 
     } else {
 
         // Parent process
-        if(flags & ProcessCreateFlag::CAPTURE_OUTPUT) {
-            close(pipefd[1]);
-            _setHandle(outHandle->_pOutputHandle, pipefd[0]);
+        if(options.outputMode == ProcessOutputMode::PIPE) {
+            _setHandle(&outHandle->_pOutputHandle, pipefd[0]);
+            ::close(pipefd[1]);
         }
 
-        outHandle->_pHandle = reinterpret_cast<void*>(static_cast<intptr_t>(pid));
+        _setHandle(&outHandle->_pHandle, pid);
     }
 
     return Result::SUCCESS;

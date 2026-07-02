@@ -10,12 +10,16 @@ Item {
     default property alias content: contentContainer.children
 
     property list<QtObject> above: []
+    property list<QtObject> navigation: []
 
     property string applyText: "Apply"
     property string okText: "OK"
     property string cancelText: "Cancel"
 
     property bool showApplyButton: true
+    property bool showOkButton: true
+    property bool showCancelButton: true
+
     property color okButtonColor: Theme.colors.accent
 
     property int targetWidth: 800
@@ -64,37 +68,10 @@ Item {
             anchors.margins: 16
             spacing: 8
 
-            Flickable {
+            Item {
+                id: contentContainer
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.topMargin: 16
-                id: flickable
-
-                contentWidth: width - 48
-                contentHeight: contentContainer.height
-                flickableDirection: Flickable.VerticalFlick
-                clip: true
-
-                Column {
-
-                    id: contentContainer
-                    width: flickable.contentWidth
-                    x: 24
-
-                    spacing: 8
-
-                    
-                }
-
-                ScrollBar.horizontal: null
-                ScrollBar.vertical: ScrollBar {
-                    parent: flickable
-                    anchors.top: flickable.top
-                    anchors.bottom: flickable.bottom
-                    anchors.right: flickable.right
-                    active: flickable.movingVertically
-                }
-
             }
 
             Item {
@@ -102,7 +79,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
 
-                Row {
+                RowLayout {
 
                     anchors.fill: parent
 
@@ -112,8 +89,10 @@ Item {
                     Item {
 
                         id: okBtn
-                        width: 128
-                        height: parent.height
+                        visible: root.showOkButton
+
+                        Layout.preferredWidth: 128
+                        Layout.fillHeight: true
 
                         Rectangle {
                             anchors.fill: parent
@@ -143,11 +122,11 @@ Item {
 
                     Item {
 
+                        id: applyBtn
                         visible: root.showApplyButton
 
-                        id: applyBtn
-                        width: 128
-                        height: parent.height
+                        Layout.preferredWidth: 128
+                        Layout.fillHeight: true
 
                         Rectangle {
                             anchors.fill: parent
@@ -177,8 +156,10 @@ Item {
                     Item {
 
                         id: cancelBtn
-                        width: 128
-                        height: parent.height
+                        visible: root.showCancelButton
+
+                        Layout.preferredWidth: 128
+                        Layout.fillHeight: true
 
                         Rectangle {
                             anchors.fill: parent
@@ -204,6 +185,12 @@ Item {
                                 root.close()
                             }
                         }
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        children: root.navigation
                     }
                 }
             }

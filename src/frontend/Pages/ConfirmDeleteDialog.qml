@@ -33,6 +33,7 @@ NblDialog {
     Label {
 
         width: parent.width
+        anchors.centerIn: parent
 
         wrapMode: Text.WordWrap
 

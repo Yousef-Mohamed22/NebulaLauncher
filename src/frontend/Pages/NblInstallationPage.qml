@@ -11,24 +11,30 @@ Item {
     required property MainWindow mainWindow
     required property NblInstallationDetails details
 
-    property NblProcessHandle handle
-
     function refresh() {
         details = ApplicationContext.getInstallationDetails(details.installationId)
     }
 
-    ColumnLayout {
+    GridLayout {
 
         width: parent.width
         height: parent.height
-        spacing: 8
 
+        rows: 3
+        columns: 2
+
+        columnSpacing: 8
+        rowSpacing: 8
+
+        uniformCellWidths: false
+        uniformCellHeights: false
+
+        // Banner
         Item {
 
+            Layout.columnSpan: 2
             Layout.fillWidth: true
             Layout.preferredHeight: 240
-
-            implicitHeight: 240
 
             Image {
                 id: banner
@@ -51,7 +57,6 @@ Item {
                     radius: 8
                 }
             }
-
 
             MultiEffect {
                 source: banner
@@ -80,74 +85,94 @@ Item {
                     height: parent.height - 16
                     fillMode: Image.PreserveAspectFit
                 }
-
             }
         }
 
+        // Launch Button
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 48
 
-        RowLayout {
+            NblLaunchButton {
+                id: launchBtn
+                x: 12
+                y: -24
+                installationId: root.details.installationId
+            }
+        }
 
-            Layout.leftMargin: 8
+        // Actions
+        Item {
+
+            Layout.preferredWidth: 272
+            Layout.preferredHeight: 48
+
+            RowLayout {
+                anchors.fill: parent
+
+                spacing: 8
+
+                NblIconButton {
+                    Layout.fillWidth: true
+                    icon: ""
+                    onClicked: {
+                        console.log("Clicked favorite")
+                    }
+                }
+
+                NblIconButton {
+                    Layout.fillWidth: true
+                    icon: ""
+                    onClicked: {
+                        console.log("Clicked Folder")
+                    }
+                }
+
+                NblIconButton {
+                    Layout.fillWidth: true
+                    icon: "󰆍"
+                    onClicked: {
+                        root.mainWindow.openDialog("Pages/StdoutDialog.qml", {
+                            process: launchBtn.handle
+                        })
+                    }
+                }
+
+                NblIconButton {
+                    Layout.fillWidth: true
+                    icon: ""
+                    onClicked: {
+                        root.mainWindow.beginEditGame(root.details)
+                    }
+                }
+
+                NblIconButton {
+                    Layout.fillWidth: true
+                    icon: ""
+                    onClicked: {
+                        root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
+                            "text": "Are you sure you want to delete this installation?"
+                        }, function() {
+                            ApplicationContext.deleteInstallation(root.details.installationId)
+                            root.mainWindow.closeInstallationDetails()
+                        })
+                    }
+                }
+            }
+        }
+
+        // Title / Description
+        Item {
+
             Layout.fillHeight: true
-
-            spacing: 8
+            Layout.fillWidth: true
 
             Column {
 
-                Layout.fillHeight: true
-                Layout.fillWidth: true
+                anchors.fill: parent
+                anchors.margins: 16
 
                 spacing: 16
-
-                RowLayout {
-
-                    width: parent.width
-                    height: 48
-
-                    anchors.leftMargin: 8
-                    spacing: 8
-
-                    NblLaunchButton {
-                        Layout.topMargin: -24
-                        installationId: root.details.installationId
-                        handle: root.handle
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    NblIconButton {
-                        icon: ""
-                        onClicked: {
-                            console.log("Clicked favorite")
-                        }
-                    }
-
-                    NblIconButton {
-                        icon: ""
-                        onClicked: {
-                            console.log("Clicked Folder")
-                        }
-                    }
-
-                    NblIconButton {
-                        icon: ""
-                        onClicked: {
-                            root.mainWindow.beginEditGame(root.details)
-                        }
-                    }
-
-                    NblIconButton {
-                        icon: ""
-                        onClicked: {
-                            root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
-                                "text": "Are you sure you want to delete this installation?"
-                            }, function() {
-                                ApplicationContext.deleteInstallation(root.details.installationId)
-                                root.mainWindow.closeInstallationDetails()
-                            })
-                        }
-                    }
-                }
 
 
                 Label {
@@ -183,50 +208,50 @@ Item {
                     text: root.details.gameDescription
                 }
             }
+        }
 
-            Item {
+        // Tags and other details
+        Item { 
+            Layout.fillHeight: true
+            Layout.preferredWidth: 272
 
-                Layout.fillHeight: true
-                Layout.preferredWidth: 300
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.colors.layer1
+                border.width: 2
+                border.color: Theme.colors.border
+                radius: 8
+            }
 
-                Rectangle {
-                    anchors.fill: parent
-                    color: Theme.colors.layer1
-                    border.width: 2
-                    border.color: Theme.colors.border
-                    radius: 8
+            Column {
+
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 8
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 16
+                    font.weight: 600
+                    color: Theme.colors.text
+                    text: "Tags"
                 }
 
-                Column {
+                Flow {
 
-                    anchors.fill: parent
-                    anchors.margins: 16
+                    width: parent.width
                     spacing: 8
 
-                    Label {
-                        font.family: Theme.font
-                        font.pixelSize: 16
-                        font.weight: 600
-                        color: Theme.colors.text
-                        text: "Tags"
-                    }
+                    Repeater {
+                        model: NblInstallationTagModel {
+                            installationId: root.details.installationId;
+                            pageSize: 8
+                        }
 
-                    Flow {
-
-                        width: parent.width
-                        spacing: 8
-
-                        Repeater {
-                            model: NblInstallationTagModel {
-                                installationId: root.details.installationId;
-                                pageSize: 8
-                            }
-                        
-                            NblTag {
-                                required property var model;
-                                color: model.color
-                                text: model.name
-                            }
+                        NblTag {
+                            required property var model;
+                            color: model.color
+                            text: model.name
                         }
                     }
                 }

@@ -7,6 +7,7 @@ QtObject {
     property string font: _private.mainFont.name
     property string italicFont: _private.italicFont.name
     property string nerdFont: _private.nerdFont.name
+    property string monospaceFont: "monospace"
 
 
     property var colors: QtObject {

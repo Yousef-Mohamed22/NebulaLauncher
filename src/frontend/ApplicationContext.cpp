@@ -138,12 +138,13 @@ void ApplicationContext::_initialize() {
 
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 
-    nbl::StringView dataDir;
-    NBL_ASSERT(nbl::StringBuilder(&frame).append(nbl::getDataDirectory()).append("/NebulaLauncher").build(&dataDir).success());
-    NBL_ASSERT(nbl::makeDirectories(dataDir).success());
+    QByteArray qDataDir = dataFolder().toUtf8();
+    nbl::StringView nblDataDir = nbl::StringView(qDataDir.length(), qDataDir.data());
+
+    NBL_ASSERT(nbl::makeDirectories(nblDataDir).success());
 
     nbl::StringView path;
-    NBL_ASSERT(nbl::StringBuilder(&frame).append(dataDir).append("/nebula.db").build(&path).success());
+    NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/nebula.db").build(&path).success());
 
     NBL_ASSERT(nbl::PluginContext::create(path, &_mContext).success());
     _mContext.registerInstallationType(nbl::InstallationType::COMMAND);
@@ -161,6 +162,15 @@ void ApplicationContext::_initialize() {
 
 }
 
+
+QString ApplicationContext::dataFolder() const {
+    if(qEnvironmentVariableIsSet("NBL_DATA_FOLDER")) {
+        return qEnvironmentVariable("NBL_DATA_FOLDER");
+    } else {
+        nbl::StringView dataDir = nbl::getDataDirectory();
+        return QString::fromUtf8(dataDir.data, dataDir.length).append("/NebulaLauncher");
+    }
+}
 
 
 nbl::Result ApplicationContext::_reload() {
@@ -271,6 +281,10 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
     if(res.error()) {
         nbl::log(nbl::LogLevel::ERROR, "Unable to launch installation. Error ", res);
         return nullptr;
+    }
+
+    if(handle->initLogging().error()) {
+        nbl::log(nbl::LogLevel::WARN, "Failed to initialize log capture for process");
     }
 
     return handle;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qtenvironmentvariables.h>
 #include <qtmetamacros.h>
 #include <QObject>
 #include <QtQml>
@@ -66,10 +67,7 @@ public:
     }
 
 
-    QString dataFolder() const {
-        nbl::StringView dataDir = nbl::getDataDirectory();
-        return QString::fromUtf8(dataDir.data, dataDir.length).append("/NebulaLauncher");
-    }
+    QString dataFolder() const;
 
     // Functions
     Q_INVOKABLE i32 reload() {

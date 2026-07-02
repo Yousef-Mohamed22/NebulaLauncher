@@ -77,29 +77,18 @@ private:
 };
 
 
-enum class ProcessCreateFlag : u32 {
-    CAPTURE_OUTPUT = 1,
-    KILL_ON_PARENT_EXIT = 2
+enum class ProcessOutputMode {
+    INHERIT,
+    PIPE,
+    NULLIFY,
+    REDIRECT
 };
 
-
-typedef u32 ProcessCreateFlags;
-inline ProcessCreateFlags operator|(ProcessCreateFlag a, ProcessCreateFlag b) {
-    return static_cast<ProcessCreateFlags>(static_cast<u32>(a) | static_cast<u32>(b));
-}
-
-inline ProcessCreateFlags operator&(ProcessCreateFlag a, ProcessCreateFlag b) {
-    return static_cast<ProcessCreateFlags>(static_cast<u32>(a) & static_cast<u32>(b));
-}
-
-inline ProcessCreateFlags operator|(ProcessCreateFlags a, ProcessCreateFlag b) {
-    return static_cast<ProcessCreateFlags>(static_cast<u32>(a) | static_cast<u32>(b));
-}
-
-inline ProcessCreateFlags operator&(ProcessCreateFlags a, ProcessCreateFlag b) {
-    return static_cast<ProcessCreateFlags>(static_cast<u32>(a) & static_cast<u32>(b));
-}
-
+struct ProcessCreateOptions {
+    ProcessOutputMode outputMode;
+    StringView outputRedirectFile;
+    bool killOnParentExit;
+};
 
 /**
  * \brief A class representing a handle to a subprocess. This class provides methods for waiting for the subprocess to finish execution and checking if it is still running, as well as a static method for spawning new subprocesses.
@@ -174,11 +163,8 @@ public:
      * \param outHandle Pointer to a ProcessHandle variable that will receive the handle to the newly spawned subprocess.
      * \return A Result indicating success or failure of the subprocess creation operation.
      */
-    static Result run(StringView commandLine, ProcessHandle* outHandle, ProcessCreateFlags flags = 0);
+    static Result run(StringView commandLine, ProcessHandle* outHandle, const ProcessCreateOptions& options = {});
 
-    static Result run(StringView commandLine, ProcessHandle* outHandle, ProcessCreateFlag flag) {
-        return run(commandLine, outHandle, static_cast<ProcessCreateFlags>(flag));
-    }
 
     /**
      * \brief Spawns a new subprocess with the specified executable path and arguments. The subprocess will start running immediately after creation.
@@ -187,11 +173,7 @@ public:
      * \param outHandle Pointer to a ProcessHandle variable that will receive the handle to the newly spawned subprocess. This can be used to manage the subprocess's lifecycle, such as waiting for it to finish or checking if it is still running.
      * \return A Result indicating success or failure of the subprocess creation operation.
      */
-    static Result spawn(StringView path, Span<StringView> args, ProcessHandle* outHandle, ProcessCreateFlags flags = 0);
-
-    static Result spawn(StringView path, Span<StringView> args, ProcessHandle* outHandle, ProcessCreateFlag flag) {
-        return spawn(path, args, outHandle, static_cast<ProcessCreateFlags>(flag));
-    }
+    static Result spawn(StringView path, Span<StringView> args, ProcessHandle* outHandle, const ProcessCreateOptions& options = {});
 
 
     static Result fromPid(i32 pid, ProcessHandle* outHandle);

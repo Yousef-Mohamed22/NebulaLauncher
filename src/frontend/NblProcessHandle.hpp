@@ -5,6 +5,7 @@
 #include <QtQml>
 
 #include <Platform/Process.hpp>
+#include <Core/RingBuffer.hpp>
 
 class NblProcessHandle : public QObject {
 
@@ -14,6 +15,7 @@ class NblProcessHandle : public QObject {
     Q_PROPERTY(bool hasStarted READ hasStarted NOTIFY hasStartedUpdated)
     Q_PROPERTY(bool isRunning READ isRunning NOTIFY isRunningUpdated)
     Q_PROPERTY(bool isStopping READ isStopping NOTIFY isStoppingUpdated)
+    Q_PROPERTY(QString logs READ logs NOTIFY logsUpdated)
 
 public:
 
@@ -22,8 +24,14 @@ public:
         _bHasStarted(false),
         _bWasRunning(false),
         _bIsStopping(false),
-        _mHandle{}
+        _mHandle{},
+        _mWatcherThread{},
+        _mLogs("")
     { }
+
+    ~NblProcessHandle() {
+        _mWatcherThread.join(nullptr);
+    }
 
     inline bool hasStarted() {
         return _bHasStarted;
@@ -63,11 +71,23 @@ public:
 
     inline nbl::ProcessHandle* handle() { return &_mHandle; } 
 
+    inline QString logs() {
+        return _mLogs;
+    }
+
+    inline void appendLine(QString logLine) {
+        _mLogs += logLine + '\n';
+        logsUpdated();
+    }
+
+    nbl::Result initLogging();
+
 signals:
 
     void hasStartedUpdated();
     void isRunningUpdated();
     void isStoppingUpdated();
+    void logsUpdated();
 
 private:
 
@@ -75,5 +95,7 @@ private:
     bool _bWasRunning;
     bool _bIsStopping;
     nbl::ProcessHandle _mHandle;
+    nbl::Thread _mWatcherThread;
+    QString _mLogs;
 
 };

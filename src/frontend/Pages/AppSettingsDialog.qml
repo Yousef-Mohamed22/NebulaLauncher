@@ -11,88 +11,118 @@ NblDialog {
     id: root
     property color selectedColor: Theme.colors.activeColor
 
-    NblCheckBox {
-        id: darkThemeBox
-        text: "Dark Theme"
-        checked: !Theme.colors.lightMode
-    }
+    Flickable {
 
-    Item {
+        anchors.fill: parent
+        anchors.topMargin: 16
 
-        width: parent.width
-        height: 48
+        id: flickable
 
-        RowLayout {
+        contentWidth: width - 48
+        contentHeight: controls.height
+        flickableDirection: Flickable.VerticalFlick
+        clip: true
 
-            id: layout
-            anchors.fill: parent
-            spacing: 8
+        ScrollBar.horizontal: null
+        ScrollBar.vertical: ScrollBar {
+            parent: flickable
+            anchors.top: flickable.top
+            anchors.bottom: flickable.bottom
+            anchors.right: flickable.right
+            active: flickable.movingVertically
+        }
 
-            property int selectedIndex: 0
-            property list<color> swatches: [ "#d658fc", "#4083ef", "#40efe4", "#4af755", "#f2ec3a", "#f2b43a", "#f23a65", "#f96bdf" ]
+        Column {
 
-            Repeater {
+            id: controls
+            x: 24
+            width: parent.width
+            spacing: 16
 
-                id: repeater
+            NblCheckBox {
+                id: darkThemeBox
+                text: "Dark Theme"
+                checked: !Theme.colors.lightMode
+            }
 
-                model: [...layout.swatches, "#000000" ]
+            Item {
 
-                Item {
+                width: parent.width
+                height: 48
 
-                    required property color modelData
-                    required property int index
+                RowLayout {
 
-                    property bool isCustom: index == layout.swatches.length
+                    id: layout
+                    anchors.fill: parent
+                    spacing: 8
 
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    property int selectedIndex: 0
+                    property list<color> swatches: [ "#d658fc", "#4083ef", "#40efe4", "#4af755", "#f2ec3a", "#f2b43a", "#f23a65", "#f96bdf" ]
 
-                    Rectangle {
-                        visible: parent.index == layout.selectedIndex
-                        anchors.fill: parent
-                        color: "transparent"
-                        border.width: 2
-                        radius: 8
-                        border.color: swatch.color
-                    }
+                    Repeater {
 
-                    Rectangle {
-                        id: swatch
-                        anchors.fill: parent
-                        anchors.margins: 4
-                        color: parent.isCustom ? root.selectedColor : parent.modelData
-                        radius: 4
-                    }
+                        id: repeater
 
-                    Label {
-                        visible: parent.isCustom
-                        text: "Custom"
-                        font.family: Theme.font
-                        font.pixelSize: 14
-                        font.weight: 600
-                        color: Theme.colors.readableOn(root.selectedColor)
-                        anchors.centerIn: parent
-                    }
+                        model: [...layout.swatches, "#000000" ]
 
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            layout.selectedIndex = parent.index
-                            if(parent.isCustom) {
+                        Item {
 
-                                let globalPos = root.mapFromItem(this, x, y)
-                                let targetPos = Qt.point(
-                                    globalPos.x + (width / 2) - (colorPickerPopup.popupWidth / 2),
-                                    globalPos.y + height + 8
-                                )
+                            required property color modelData
+                            required property int index
 
-                                colorPickerPopup.open(targetPos)
+                            property bool isCustom: index == layout.swatches.length
 
-                            } else {
-                                root.selectedColor = parent.modelData
-                                colorPicker.color = parent.modelData
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+
+                            Rectangle {
+                                visible: parent.index == layout.selectedIndex
+                                anchors.fill: parent
+                                color: "transparent"
+                                border.width: 2
+                                radius: 8
+                                border.color: swatch.color
+                            }
+
+                            Rectangle {
+                                id: swatch
+                                anchors.fill: parent
+                                anchors.margins: 4
+                                color: parent.isCustom ? root.selectedColor : parent.modelData
+                                radius: 4
+                            }
+
+                            Label {
+                                visible: parent.isCustom
+                                text: "Custom"
+                                font.family: Theme.font
+                                font.pixelSize: 14
+                                font.weight: 600
+                                color: Theme.colors.readableOn(root.selectedColor)
+                                anchors.centerIn: parent
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    layout.selectedIndex = parent.index
+                                    if(parent.isCustom) {
+
+                                        let globalPos = root.mapFromItem(this, x, y)
+                                        let targetPos = Qt.point(
+                                            globalPos.x + (width / 2) - (colorPickerPopup.popupWidth / 2),
+                                            globalPos.y + height + 8
+                                        )
+
+                                        colorPickerPopup.open(targetPos)
+
+                                    } else {
+                                        root.selectedColor = parent.modelData
+                                        colorPicker.color = parent.modelData
+                                    }
+                                }
                             }
                         }
                     }
