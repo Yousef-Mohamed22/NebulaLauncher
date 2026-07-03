@@ -36,6 +36,28 @@ int _databaseCallback(void* userData, int argc, char** argv, char** colNames) {
     return 0;
 }
 
+void _strDistance(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
+
+    nbl::StringView str1 = {};
+    nbl::StringView str2 = {};
+
+    if(argc > 0) {
+        const unsigned char* data1 = sqlite3_value_text(argv[0]);
+        if(data1) {
+            str1.length = strlen(reinterpret_cast<const char*>(data1));
+            str1.data = reinterpret_cast<const char*>(data1);
+        }
+    }
+    if(argc > 1) {
+        const unsigned char* data2 = sqlite3_value_text(argv[1]);
+        if(data2) {
+            str2.length = strlen(reinterpret_cast<const char*>(data2));
+            str2.data = reinterpret_cast<const char*>(data2);
+        }
+    }
+    sqlite3_result_int64(ctx, str1.distance(str2));
+}
+
 }
 
 
@@ -316,6 +338,16 @@ nbl::Result nbl::DatabaseConnection::open(nbl::StringView path, DatabaseConnecti
         nbl::log(nbl::LogLevel::ERROR, "Failed to open database: ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(outConnection->_pHandle)));
         return nbl::error::IO_ERROR;
     }
+
+    sqlite3_create_function(
+            static_cast<sqlite3*>(outConnection->_pHandle),
+            "nbl_str_distance",
+            2,
+            SQLITE_UTF8,
+            nullptr,
+            _strDistance,
+            nullptr,
+            nullptr);
 
     return nbl::Result::SUCCESS;
 }

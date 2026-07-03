@@ -162,6 +162,11 @@ struct StringView {
         return length == 0;
     }
 
+    constexpr StringView tail(usize start) const {
+        NBL_ASSERT(start <= this->length);
+        return StringView(length - start, data + start);
+    }
+
     constexpr StringView slice(usize start, usize length) const {
         NBL_ASSERT(start + length <= this->length);
         return StringView(length, data + start);
@@ -186,6 +191,25 @@ struct StringView {
             }
         }
         return nbl::error::NOT_FOUND;
+    }
+
+    constexpr usize distance(StringView other) const {
+
+        if(other.length == 0) return length;
+        if(length == 0) return other.length;
+
+        if(data[0] == other.data[0]) {
+            return tail(1).distance(other.tail(1));
+        }
+
+        usize v1 = tail(1).distance(other);
+        usize v2 = distance(other.tail(1));
+        usize v3 = tail(1).distance(other.tail(1));
+
+        if(v1 <= v2 && v1 <= v3) return 1 + v1;
+        if(v2 <= v1 && v2 <= v3) return 1 + v2;
+
+        return 1 + v3;
     }
 };
 

@@ -7,11 +7,7 @@
 #include <QColor>
 #include <QtQml>
 
-struct NblTagRef {
-    QString name;
-    QColor color;
-};
-
+#include "NblTagRef.hpp"
 
 class NblInstallationTagModel : public QAbstractListModel {
 

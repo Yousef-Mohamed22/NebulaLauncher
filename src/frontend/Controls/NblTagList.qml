@@ -1,0 +1,363 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls
+
+Item {
+
+    id: root
+    implicitHeight: column.height
+
+    enum TagState {
+        INITIAL,
+        ADDED,
+        REMOVED,
+        IGNORED
+    }
+
+    property string label
+    property list<var> tags: []
+    property list<var> initialTags: []
+
+    onInitialTagsChanged: {
+        tags = []
+        for(let i = 0 ; i < initialTags.length ; i++) {
+            tags[i] = {
+                "index": i,
+                "name": initialTags[i].name,
+                "color": initialTags[i].color,
+                "state": NblTagList.TagState.INITIAL
+            }
+        }
+    }
+
+    function getTags(state) {
+        let out = []
+        for(let i = 0 ; i < tags.length ; i++) {
+            if(tags[i].state == state) {
+                out.push(tags[i].name)
+            }
+        }
+        return out
+    }
+
+
+    function getAddedTags() {
+        return getTags(NblTagList.TagState.ADDED)
+    }
+
+    function getRemovedTags() {
+        return getTags(NblTagList.TagState.REMOVED)
+    }
+
+    function resetTagStates() {
+        for(let i = 0 ; i < tags.length ; i++) {
+            tags[i].state = NblTagList.TagState.INITIAL
+        }
+    }
+
+    Column {
+
+        id: column
+
+        width: parent.width
+        spacing: 8
+
+        Flow {
+
+            id: tagList
+            width: parent.width
+            spacing: 4
+
+            Label {
+                height: 24
+                visible: root.tags.length == (root.getRemovedTags().length + root.getTags(NblTagList.TagState.IGNORED).length)
+
+                color: Theme.colors.text
+                font.family: Theme.font
+                font.pixelSize: 16
+                text: "No tags"
+            }
+
+            Repeater {
+                model: root.tags
+
+                NblTag {
+
+                    id: existingTag
+                    visible: modelData.state != NblTagList.TagState.REMOVED && modelData.state != NblTagList.TagState.IGNORED
+
+                    required property var modelData
+                    text: modelData.name
+                    color: modelData.color
+
+                    MouseArea {
+                        id: tagListArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                    }
+
+                    Rectangle {
+
+                        visible: tagListArea.containsMouse
+
+                        height: parent.height - 4
+                        width: height
+                        radius: height / 2
+
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                        anchors.rightMargin: 2
+
+                        color: Theme.colors.layer0
+
+                        Text {
+                            anchors.fill: parent
+                            verticalAlignment: Qt.AlignVCenter
+                            horizontalAlignment: Qt.AlignHCenter
+                            color: Theme.colors.text
+                            text: ""
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.tags[existingTag.modelData.index].state = 
+                                    existingTag.modelData.state == NblTagList.ADDED ?
+                                        NblTagList.TagState.IGNORED :
+                                        NblTagList.TagState.REMOVED
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
+        NblTextBox {
+            id: tagInput
+            width: parent.width
+            label: root.label
+
+            Keys.onReturnPressed: event => {
+                // Add tag
+                if(tagSearchModel.exactMatch) {
+                    popup.addTop()
+                } else {
+                    popup.addNew()
+                }
+                event.accepted = true
+            }
+
+            onTextEdited: {
+                text = text.toLowerCase().replace(' ', '_')
+            }
+
+            onPressed: {
+                popup.visible = true
+            }
+        }
+    }
+
+    Popup {
+
+        id: popup
+
+        visible: false
+        width: parent.width
+        height: 128
+
+        y: tagInput.y + tagInput.height
+        modal: false
+        clip: true
+
+        contentHeight: tagResults.height
+
+        background: null
+        margins: 0
+        padding: 0
+
+        function addTag(name, color) {
+            tagInput.text = ""
+
+            for(let i = 0 ; i < root.tags.length ; i++) {
+                if(root.tags[i].name == name) {
+                    if(root.tags[i].state != NblTagList.TagState.INITIAL) {
+                        root.tags[i].state = NblTagList.TagState.ADDED
+                    }
+                    return
+                }
+            }
+            
+            let index = root.tags.length
+
+            root.tags.push({
+                index: index,
+                name: name,
+                color: color,
+                state: NblTagList.TagState.ADDED
+            })
+        }
+
+        function addTop() {
+            let name = tagSearchModel.data(tagSearchModel.index(0, 0), 0);
+            let color = tagSearchModel.data(tagSearchModel.index(0, 0), 1);
+
+            addTag(name, color)
+        }
+
+        function addNew() {
+
+            let name = tagInput.text
+            tagInput.text = ""
+
+            for(let i = 0 ; i < root.tags.length ; i++) {
+                if(root.tags[i].name == name) {
+                    if(root.tags[i].state != NblTagList.TagState.INITIAL) {
+                        root.tags[i].state = NblTagList.TagState.ADDED
+                    }
+                    return
+                }
+            }
+
+            let color = Qt.hsva(Math.random(), 0.6 + Math.random() * 0.3, 0.4 + Math.random() * 0.5)
+            let index = root.tags.length
+
+            ApplicationContext.addTag(name, color)
+
+            root.tags.push({
+                index: index,
+                name: name,
+                color: color,
+                state: NblTagList.TagState.ADDED
+            })
+        }
+
+        contentItem: Item {
+            id: tagResults
+
+            Rectangle {
+                width: parent.width
+                height: Math.min(128, resultsColumn.height + 8)
+                color: Theme.colors.layer1
+                border.width: 2
+                border.color: Theme.colors.border
+                radius: 8
+            }
+
+            ScrollView {
+
+                width: parent.width
+                height: parent.height - 8
+                y: 4
+
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                contentHeight: resultsColumn.height
+
+                Flickable {
+
+                    anchors.fill: parent
+                    interactive: true
+                    clip: true
+
+                    onAtYEndChanged: {
+                        if(atYEnd) {
+                            tagSearchModel.loadNextPage()
+                        }
+                    }
+
+                    Column {
+
+                        id: resultsColumn
+                        width: parent.width - 8
+                        x: 4
+
+                        Item {
+
+                            visible: tagInput.text.length > 0 && !tagSearchModel.exactMatch
+
+                            width: parent.width
+                            height: 32
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: newTagMouseArea.containsMouse ? Theme.colors.border : Theme.colors.layer1
+                                radius: 4
+                            }
+
+                            Label {
+                                width: parent.width - 32
+                                x: 16
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "+ New Tag"
+                                font.pixelSize: 16
+                                font.weight: 600
+                                font.family: Theme.font
+                                color: Theme.colors.text
+                            }
+
+                            MouseArea {
+                                id: newTagMouseArea
+                                anchors.fill: parent
+                                propagateComposedEvents: false
+                                cursorShape: Qt.PointingHandCursor
+                                hoverEnabled: true
+                                onClicked: {
+                                    popup.addNew()
+                                }
+                            }
+                        }
+
+                        Repeater {
+
+                            model: NblTagSearchModel {
+                                id: tagSearchModel
+                                searchQuery: tagInput.text
+                                pageSize: 5
+                            }
+
+                            Item {
+
+                                required property var modelData
+
+                                property string tagName: modelData.name
+                                property string tagColor: modelData.color
+
+                                width: parent.width
+                                height: 32
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: tagArea.containsMouse ? Theme.colors.border : Theme.colors.layer1
+                                    radius: 4
+                                }
+
+                                Label {
+                                    width: parent.width - 32
+                                    x: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: parent.modelData.name
+                                    font.pixelSize: 16
+                                    font.family: Theme.font
+                                    color: Theme.colors.text
+                                }
+
+                                MouseArea {
+                                    id: tagArea
+                                    anchors.fill: parent
+                                    propagateComposedEvents: false
+                                    cursorShape: Qt.PointingHandCursor
+                                    hoverEnabled: true
+                                    onClicked: {
+                                        popup.addTag(parent.tagName, parent.tagColor)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

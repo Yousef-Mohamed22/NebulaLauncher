@@ -9,6 +9,7 @@
 #include <Core/Array.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include "Core/Result.hpp"
 
 
 namespace {
@@ -276,4 +277,62 @@ nbl::Result nbl::renameTag(DatabaseConnection* connection, StringView oldName, S
     NBL_CHECK(_renameTagStmt.bindString(2, oldName));
 
     return connection->execute(&_renameTagStmt, nullptr, nullptr);
+}
+
+nbl::Result nbl::enumerateTags(DatabaseConnection *connection, u32 limit, u32 offset, TagCallback callback, void* userData) {
+
+    static nbl::PreparedStatement _enumerateStmt;
+    if(!_enumerateStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare("SELECT name, color FROM tag ORDER BY name ASC LIMIT ?1 OFFSET ?2;", &_enumerateStmt));
+    }
+
+    NBL_CHECK(_enumerateStmt.bindUint(1, limit));
+    NBL_CHECK(_enumerateStmt.bindUint(2, offset));
+
+    struct _QueryData {
+        TagCallback callback;
+        void* userData;
+    } queryData { callback, userData };
+
+    return connection->execute(&_enumerateStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount != 2) return nbl::error::UNEXPECTED_ERROR;
+
+        _QueryData* data = static_cast<_QueryData*>(userData);
+        return data->callback(data->userData, columnValues[0].textValue, columnValues[1].uintValue());
+
+    }, &queryData);
+
+}
+
+nbl::Result nbl::searchTags(DatabaseConnection *connection, StringView query, u32 limit, u32 offset, TagCallback callback, void* userData) {
+
+    static nbl::PreparedStatement searchStmt;
+    if(!searchStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT name, color FROM tag 
+WHERE ?3 IS NULL OR name LIKE '%' || ?3 || '%' 
+ORDER BY nbl_str_distance(name, ?3)
+LIMIT ?1 OFFSET ?2
+        )", &searchStmt));
+    }
+
+    NBL_CHECK(searchStmt.bindUint(1, limit));
+    NBL_CHECK(searchStmt.bindUint(2, offset));
+    NBL_CHECK(searchStmt.bindStringOrNull(3, query));
+
+    struct _QueryData {
+        TagCallback callback;
+        void* userData;
+    } queryData { callback, userData };
+
+    return connection->execute(&searchStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount != 2) return nbl::error::UNEXPECTED_ERROR;
+
+        _QueryData* data = static_cast<_QueryData*>(userData);
+        return data->callback(data->userData, columnValues[0].textValue, columnValues[1].uintValue());
+
+    }, &queryData);
+
 }

@@ -6,7 +6,7 @@
  * \brief Implementation of JSON data structures and builders.
  */
 
-#include "Core/Span.hpp"
+#include <Core/Span.hpp>
 #include <Core/Result.hpp>
 #include <Platform/Logging.hpp>
 #include <Codec/Json.hpp>

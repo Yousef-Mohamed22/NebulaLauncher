@@ -13,6 +13,7 @@
 #include <Plugin/PluginContext.hpp>
 
 #include <QString>
+#include <QColor>
 #include <qcontainerfwd.h>
 #include <qjsonparseerror.h>
 #include <qprocess.h>
@@ -163,16 +164,6 @@ void ApplicationContext::_initialize() {
 }
 
 
-QString ApplicationContext::dataFolder() const {
-    if(qEnvironmentVariableIsSet("NBL_DATA_FOLDER")) {
-        return qEnvironmentVariable("NBL_DATA_FOLDER");
-    } else {
-        nbl::StringView dataDir = nbl::getDataDirectory();
-        return QString::fromUtf8(dataDir.data, dataDir.length).append("/NebulaLauncher");
-    }
-}
-
-
 nbl::Result ApplicationContext::_reload() {
 
     if(!_mConnection.isValid()) {
@@ -201,6 +192,17 @@ nbl::Result ApplicationContext::_reload() {
     return nbl::Result::SUCCESS;
 
 }
+
+
+QString ApplicationContext::dataFolder() const {
+    if(qEnvironmentVariableIsSet("NBL_DATA_FOLDER")) {
+        return qEnvironmentVariable("NBL_DATA_FOLDER");
+    } else {
+        nbl::StringView dataDir = nbl::getDataDirectory();
+        return QString::fromUtf8(dataDir.data, dataDir.length).append("/NebulaLauncher");
+    }
+}
+
 
 NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
 
@@ -428,8 +430,21 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
     meta.description = nbl::StringView(installationDesc.length(), installationDesc.data());
 
     NBL_CHECK(nbl::addInstallation(&_mConnection, meta, nullptr));
-    NBL_CHECK(_mConnection.commitTransaction());
 
+    for(QString& qs : params.find("addedInstallationTags")->toStringList()) {
+        tagInstallation(meta.id, qs);
+    }
+    for(QString& qs : params.find("removedInstallationTags")->toStringList()) {
+        untagInstallation(meta.id, qs);
+    }
+    for(QString& qs : params.find("addedGameTags")->toStringList()) {
+        tagGame(meta.id, qs);
+    }
+    for(QString& qs : params.find("removedGameTags")->toStringList()) {
+        untagGame(meta.id, qs);
+    }
+
+    NBL_CHECK(_mConnection.commitTransaction());
     return 0;
 }
 
@@ -489,6 +504,20 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
     };
 
     nbl::updateInstallation(&_mConnection, meta);
+
+    for(QString& qs : params.find("addedInstallationTags")->toStringList()) {
+        tagInstallation(meta.id, qs);
+    }
+    for(QString& qs : params.find("removedInstallationTags")->toStringList()) {
+        untagInstallation(meta.id, qs);
+    }
+    for(QString& qs : params.find("addedGameTags")->toStringList()) {
+        tagGame(meta.id, qs);
+    }
+    for(QString& qs : params.find("removedGameTags")->toStringList()) {
+        untagGame(meta.id, qs);
+    }
+
     return nbl::Result::SUCCESS;
 }
 
@@ -540,4 +569,83 @@ NblProcessHandle* ApplicationContext::getRunningInstallation(i64 installationId)
 
     // TODO
     return nullptr;
+}
+
+
+// Tags
+int ApplicationContext::addTag(QString name, QColor color) {
+    QByteArray arr = name.toUtf8();
+    nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
+    return nbl::addTag(&_mConnection, nblName, color.rgba());
+}
+
+int ApplicationContext::removeTag(QString name) {
+    QByteArray arr = name.toUtf8();
+    nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
+    return nbl::removeTag(&_mConnection, nblName);
+}
+
+int ApplicationContext::renameTag(QString name, QStringView newName) {
+    QByteArray arr = name.toUtf8();
+    nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
+    QByteArray newArr = newName.toUtf8();
+    nbl::StringView nblNewName = nbl::StringView(newArr.length(), newArr.data());
+    return nbl::renameTag(&_mConnection, nblName, nblNewName);
+}
+
+int ApplicationContext::recolorTag(QString name, QColor color) {
+    QByteArray arr = name.toUtf8();
+    nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
+    return nbl::setTagColor(&_mConnection, nblName, color.rgba());
+}
+
+int ApplicationContext::tagGame(int64_t gameId, QString name) {
+    QByteArray arr = name.toUtf8();
+    nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
+    return nbl::addGameTag(&_mConnection, gameId, nblName);
+}
+
+int ApplicationContext::untagGame(int64_t gameId, QString name) {
+    QByteArray arr = name.toUtf8();
+    nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
+    return nbl::removeGameTag(&_mConnection, gameId, nblName);
+}
+
+int ApplicationContext::tagInstallation(int64_t installationId, QString name) {
+    QByteArray arr = name.toUtf8();
+    nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
+    return nbl::addInstallationTag(&_mConnection, installationId, nblName);
+}
+
+int ApplicationContext::untagInstallation(int64_t installationId, QString name) {
+    QByteArray arr = name.toUtf8();
+    nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
+    return nbl::removeInstallationTag(&_mConnection, installationId, nblName);
+}
+
+QList<QVariant> ApplicationContext::getGameTags(int64_t gameId) {
+    QList<QVariant> out = {};
+    nbl::getGameTags(&_mConnection, gameId, [](void* userData, nbl::StringView name, u32 color) {
+        QMap<QString, QVariant> tag = {};
+        tag["name"] = fromNbl(name);
+        tag["color"] = QColor(color);
+
+        static_cast<QList<QVariant>*>(userData)->append(tag);
+        return nbl::Result::SUCCESS;
+    }, &out);
+    return out;
+}
+
+QList<QVariant> ApplicationContext::getInstallationTags(int64_t installationId) {
+    QList<QVariant> out = {};
+    nbl::getDirectInstallationTags(&_mConnection, installationId, [](void* userData, nbl::StringView name, u32 color) {
+        QMap<QString, QVariant> tag = {};
+        tag["name"] = fromNbl(name);
+        tag["color"] = QColor(color);
+
+        static_cast<QList<QVariant>*>(userData)->append(tag);
+        return nbl::Result::SUCCESS;
+    }, &out);
+
+    return out;
 }

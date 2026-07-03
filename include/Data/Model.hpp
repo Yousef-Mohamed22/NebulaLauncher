@@ -170,6 +170,11 @@ Result setTagColor(DatabaseConnection* connection, StringView tag, u32 color);
 Result renameTag(DatabaseConnection* connection, StringView oldName, StringView newName);
 
 
+Result enumerateTags(DatabaseConnection* connection, u32 limit, u32 offset, TagCallback callback,  void* userData);
+
+Result searchTags(DatabaseConnection* connection, StringView query, u32 limit, u32 offset, TagCallback callback,  void* userData);
+
+
 //
 // Display
 //
@@ -430,8 +435,12 @@ Result getInstallationDetails(DatabaseConnection* connection, i64 installationId
 
 Result updateInstallation(DatabaseConnection* connection, const InstallationMeta& meta);
 
+Result addInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag);
+Result removeInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag);
+
 Result countInstallationTags(DatabaseConnection* connection, i64 installationId, u64* outCount);
 Result getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback, void* userData);
+Result getDirectInstallationTags(DatabaseConnection* connection, i64 installationId, TagCallback callback, void* userData);
 
 /**
  * \brief Looks up installations in the database that match the specified criteria and invokes a callback for each matching installation

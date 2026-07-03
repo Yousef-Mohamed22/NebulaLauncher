@@ -8,7 +8,7 @@ Item {
     required property string text
     required property color color
 
-    implicitWidth: 130
+    implicitWidth: 98
     implicitHeight: 24
 
     Rectangle {

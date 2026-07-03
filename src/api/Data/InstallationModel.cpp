@@ -390,6 +390,38 @@ OFFSET ?10;
 }
 
 
+nbl::Result nbl::addInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag) {
+
+    static nbl::PreparedStatement _addTagStmt;
+    if(!_addTagStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+INSERT INTO installation_tag (iId, tId) VALUES (?1, (SELECT tId FROM tag WHERE name = ?2));
+        )", &_addTagStmt));
+    }
+
+    NBL_CHECK(_addTagStmt.bindInt(1, installationId));
+    NBL_CHECK(_addTagStmt.bindString(2, tag));
+
+    return connection->execute(&_addTagStmt, nullptr, nullptr);
+}
+
+nbl::Result nbl::removeInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag) {
+
+    static nbl::PreparedStatement _removeTagStmt;
+    if(!_removeTagStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+DELETE FROM installation_tag WHERE iId = ?1 AND tId = (SELECT tId FROM tag WHERE name = ?2);
+        )", &_removeTagStmt));
+    }
+
+    NBL_CHECK(_removeTagStmt.bindInt(1, installationId));
+    NBL_CHECK(_removeTagStmt.bindString(2, tag));
+
+    return connection->execute(&_removeTagStmt, nullptr, nullptr);
+
+}
+
+
 nbl::Result nbl::countInstallationTags(nbl::DatabaseConnection* connection, i64 installationId, u64* outCount) {
 
     static nbl::PreparedStatement _countInstallationTagsStmt;
@@ -454,6 +486,40 @@ LIMIT ?2 OFFSET ?3;
     _QueryData queryData{callback, userData};
 
     return connection->execute(&_getInstallationTagsStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount != 2) {
+            return nbl::error::IO_ERROR;
+        }
+        if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
+            return nbl::error::IO_ERROR;
+        }
+        _QueryData* data = static_cast<_QueryData*>(userData);
+        return data->callback(data->userData, columnValues[0].textValue, columnValues[1].intValue);
+    }, &queryData);
+}
+
+nbl::Result nbl::getDirectInstallationTags(DatabaseConnection* connection, i64 installationId, TagCallback callback, void* userData) {
+
+    static nbl::PreparedStatement _getDirectInstallationTagsStmt;
+    if(!_getDirectInstallationTagsStmt.isValid(connection)) {
+
+        NBL_CHECK(connection->prepare(R"(
+SELECT tag.name, tag.color
+FROM tag
+JOIN installation_tag ON installation_tag.tId = tag.tId
+WHERE installation_tag.iId = ?1;
+        )", &_getDirectInstallationTagsStmt));
+    }
+
+    NBL_CHECK(_getDirectInstallationTagsStmt.bindInt(1, installationId));
+
+    struct _QueryData {
+        nbl::TagCallback callback;
+        void* userData;
+    };
+    _QueryData queryData{callback, userData};
+
+    return connection->execute(&_getDirectInstallationTagsStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 2) {
             return nbl::error::IO_ERROR;

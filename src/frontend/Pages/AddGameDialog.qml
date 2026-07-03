@@ -14,202 +14,210 @@ NblDialog {
 
     showApplyButton: activeInstallation != null
 
-    Flickable {
+    ScrollView {
 
-        anchors.fill: parent
-        anchors.topMargin: 16
+        width: parent.width
+        height: parent.height - 16
+        y: 16
 
-        id: flickable
-
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
         contentWidth: width - 48
         contentHeight: controls.height
-        flickableDirection: Flickable.VerticalFlick
-        clip: true
 
-        ScrollBar.horizontal: null
-        ScrollBar.vertical: ScrollBar {
-            parent: flickable
-            anchors.top: flickable.top
-            anchors.bottom: flickable.bottom
-            anchors.right: flickable.right
-            active: flickable.movingVertically
-        }
+        Flickable {
 
-        Column {
-
-            id: controls
-            x: 24
-            width: parent.width
-            spacing: 16
-
-            NblComboBox {
-
-                visible: root.activeInstallation == null
-
-                id: gameBox
-                label: "Game"
-                width: parent.width
-                highlightFirst: true
-
-                textRole: "title"
-                valueRole: "id"
-
-                model: NblGameModel {
-                    includeNewGame: true
-                    pageSize: 10
-                }
-            }
-
-            NblTextBox {
-
-                visible: root.activeInstallation != null
-
-                width: parent.width
-                enabled: false
-                label: "Game"
-                text: visible ? root.activeInstallation.gameTitle : ""
-            }
-
-            NblComboBox {
-                id: commandTypeBox
-                label: "Type"
-                width: parent.width
-                model: NblInstallationTypeModel { }
-                textRole: "name"
-                valueRole: "id"
-            }
-
-            NblFieldList { 
-                id: fieldList
-                typeId: commandTypeBox.currentValue
-            }
-
-            NblTextBox {
-                id: gameTitleField
-                label: "Game Title"
-                width: parent.width
-            }
-
-            NblTextBox {
-                id: gameDescriptionField
-                label: "Game Description"
-                width: parent.width
-            }
-
-            NblTextBox {
-                id: titleField
-                label: "Installation Title"
-                placeholderText: "Optional"
-                width: parent.width
-            }
-
-            NblTextBox {
-                id: descriptionField
-                label: "Installation Description"
-                placeholderText: "Optional"
-                width: parent.width
-            }
-
-            NblCheckBox {
-                id: overrideBox
-                text: "Override display assets for this installation"
-                visible: !root.newGame
-            }
+            anchors.fill: parent
+            id: flickable
+            clip: true
 
             Column {
-                visible: overrideBox.checked || root.newGame
 
+                id: controls
+                x: 24
                 width: parent.width
-                spacing: 8
+                spacing: 16
 
-                RowLayout {
+                NblComboBox {
 
+                    visible: root.activeInstallation == null
+
+                    id: gameBox
+                    label: "Game"
                     width: parent.width
-                    height: 200
+                    highlightFirst: true
 
-                    NblImagePicker {
-                        id: posterPicker
-                        label: "Poster"
-                        implicitHeight: parent.height
-                        Layout.fillWidth: true
-                        aspectRatio: 2.0 / 3.0
-                    }
-                    NblImagePicker {
-                        id: iconPicker
-                        label: "Icon"
-                        implicitHeight: parent.height
-                        Layout.fillWidth: true
-                    }
-                    NblImagePicker {
-                        id: logoPicker
-                        label: "Logo"
-                        implicitHeight: parent.height
-                        Layout.fillWidth: true
-                        fillMode: Image.PreserveAspectFit
+                    textRole: "title"
+                    valueRole: "id"
+
+                    model: NblGameModel {
+                        includeNewGame: true
+                        pageSize: 10
                     }
                 }
 
-                NblImagePicker {
-                    id: bannerPicker
-                    label: "Banner"
-                    height: 200
+                NblTextBox {
+
+                    visible: root.activeInstallation != null
+
                     width: parent.width
-                    aspectRatio: 96.0 / 31.0
+                    enabled: false
+                    label: "Game"
+                    text: visible ? root.activeInstallation.gameTitle : ""
                 }
 
                 NblComboBox {
-                    id: logoPositionBox
-                    label: "Logo Position"
+                    id: commandTypeBox
+                    label: "Type"
                     width: parent.width
-                    model: [ "Left", "Center", "Right", "Hidden" ]
+                    model: NblInstallationTypeModel { }
+                    textRole: "name"
+                    valueRole: "id"
                 }
 
-            }
+                NblFieldList { 
+                    id: fieldList
+                    typeId: commandTypeBox.currentValue
+                }
 
-            Column {
-                visible: root.newGame
-                spacing: 8
-                width: parent.width
                 NblTextBox {
-                    id: releaseDateField
-                    label: "Release Date"
+                    id: gameTitleField
+                    label: "Game Title"
                     width: parent.width
-                    placeholderText: "YYYY/MM/DD"
-                    text: Qt.formatDate(new Date(), "yyyy/MM/dd")
-                    validator: RegularExpressionValidator { 
-                        regularExpression: /^\d{4}\/(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])$/ 
+                }
+
+                NblTextBox {
+                    id: gameDescriptionField
+                    label: "Game Description"
+                    width: parent.width
+                }
+
+                NblTextBox {
+                    id: titleField
+                    label: "Installation Title"
+                    placeholderText: "Optional"
+                    width: parent.width
+                }
+
+                NblTextBox {
+                    id: descriptionField
+                    label: "Installation Description"
+                    placeholderText: "Optional"
+                    width: parent.width
+                }
+
+                NblTagList {
+                    id: gameTags
+                    label: "Game Tags"
+                    width: parent.width
+                }
+
+                NblTagList {
+                    id: installationTags
+                    label: "Installation Tags"
+                    width: parent.width
+                }
+
+                NblCheckBox {
+                    id: overrideBox
+                    text: "Override display assets for this installation"
+                    visible: !root.newGame
+                }
+
+                Column {
+                    visible: overrideBox.checked || root.newGame
+
+                    width: parent.width
+                    spacing: 8
+
+                    RowLayout {
+
+                        width: parent.width
+                        height: 200
+
+                        NblImagePicker {
+                            id: posterPicker
+                            label: "Poster"
+                            implicitHeight: parent.height
+                            Layout.fillWidth: true
+                            aspectRatio: 2.0 / 3.0
+                        }
+                        NblImagePicker {
+                            id: iconPicker
+                            label: "Icon"
+                            implicitHeight: parent.height
+                            Layout.fillWidth: true
+                        }
+                        NblImagePicker {
+                            id: logoPicker
+                            label: "Logo"
+                            implicitHeight: parent.height
+                            Layout.fillWidth: true
+                            fillMode: Image.PreserveAspectFit
+                        }
                     }
+
+                    NblImagePicker {
+                        id: bannerPicker
+                        label: "Banner"
+                        height: 200
+                        width: parent.width
+                        aspectRatio: 96.0 / 31.0
+                    }
+
+                    NblComboBox {
+                        id: logoPositionBox
+                        label: "Logo Position"
+                        width: parent.width
+                        model: [ "Left", "Center", "Right", "Hidden" ]
+                    }
+
                 }
-                NblNumberInput {
-                    id: ratingField
-                    label: "Rating"
+
+                Column {
+                    visible: root.newGame
+                    spacing: 8
                     width: parent.width
+                    NblTextBox {
+                        id: releaseDateField
+                        label: "Release Date"
+                        width: parent.width
+                        placeholderText: "YYYY/MM/DD"
+                        text: Qt.formatDate(new Date(), "yyyy/MM/dd")
+                        validator: RegularExpressionValidator { 
+                            regularExpression: /^\d{4}\/(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])$/ 
+                        }
+                    }
+                    NblNumberInput {
+                        id: ratingField
+                        label: "Rating"
+                        width: parent.width
 
-                    allowDecimal: true
-                    min: 0
-                    max: 100
+                        allowDecimal: true
+                        min: 0
+                        max: 100
 
-                    placeholderText: "100.0"
-                }
-                NblNumberInput {
-                    id: steamIdField
-                    label: "Steam ID"
-                    width: parent.width
+                        placeholderText: "100.0"
+                    }
+                    NblNumberInput {
+                        id: steamIdField
+                        label: "Steam ID"
+                        width: parent.width
 
-                    min: 0
-                    max: 2147483647
+                        min: 0
+                        max: 2147483647
 
-                    placeholderText: "620"
-                }
-                NblNumberInput {
-                    id: igdbIdField
-                    label: "IGDB ID"
-                    width: parent.width
+                        placeholderText: "620"
+                    }
+                    NblNumberInput {
+                        id: igdbIdField
+                        label: "IGDB ID"
+                        width: parent.width
 
-                    min: 0
-                    max: 2147483647
+                        min: 0
+                        max: 2147483647
 
-                    placeholderText: "7346"
+                        placeholderText: "7346"
+                    }
                 }
             }
         }
@@ -235,6 +243,9 @@ NblDialog {
             gameTitleField.cursorPosition = 0
             gameDescriptionField.text = details.gameDescription
             gameDescriptionField.cursorPosition = 0
+
+            gameTags.initialTags = ApplicationContext.getGameTags(root.activeInstallation.gameId);
+            installationTags.initialTags = ApplicationContext.getInstallationTags(root.activeInstallation.installationId);
 
             overrideBox.checked = details.displayId != 0
             posterPicker.imageSource = details.posterPath()
@@ -316,7 +327,11 @@ NblDialog {
             releaseDate: dateObj.getTime(),
             rating: rating,
             steamId: steamId,
-            igdbId: igdbId
+            igdbId: igdbId,
+            addedInstallationTags: installationTags.getAddedTags(),
+            removedInstallationTags: installationTags.getRemovedTags(),
+            addedGameTags: gameTags.getAddedTags(),
+            removedGameTags: gameTags.getRemovedTags()
         }
 
         if(root.activeInstallation) {
