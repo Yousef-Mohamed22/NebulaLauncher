@@ -30,10 +30,11 @@ Item {
             visible: root.showRowTitle
             spacing: 8
 
-            Label {
-                text: root.icon
-                font.family: Theme.nerdFont
-                font.pixelSize: 20
+            NblInlineIcon {
+                width: 20
+                height: 20
+                anchors.verticalCenter: parent.verticalCenter
+                icon: root.icon
                 color: Theme.colors.text
             }
             Label {

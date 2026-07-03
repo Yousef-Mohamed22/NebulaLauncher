@@ -89,7 +89,6 @@ struct InstallationType {
     }
 
     static InstallationType COMMAND;
-    static InstallationType TEST;
 };
 
 }

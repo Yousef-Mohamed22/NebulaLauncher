@@ -43,11 +43,12 @@ Item {
             implicitWidth: 32
             implicitHeight: 32
 
-            Label {
-                text: root.icon
+            NblInlineIcon {
+                width: 24
+                height: 24
                 anchors.centerIn: parent
-                font.family: Theme.nerdFont
-                font.pixelSize: 24
+
+                icon: root.icon
                 color: mouseArea.containsMouse ? Theme.colors.text : Theme.colors.textDim
             }
         }

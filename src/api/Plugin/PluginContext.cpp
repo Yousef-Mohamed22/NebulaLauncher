@@ -73,7 +73,7 @@ nbl::Result nbl::PluginContext::create(StringView databasePath, PluginContext* c
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::PluginContext::runCommand(i64 installationId, StringView command, ProcessHandle* handle) {
+nbl::Result nbl::PluginContext::runCommand(i64 installationId, StringView command, StringView workingDir, ProcessHandle* handle) {
 
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
     nbl::StringView idString;
@@ -86,7 +86,8 @@ nbl::Result nbl::PluginContext::runCommand(i64 installationId, StringView comman
     };
 
     nbl::ProcessHandle::spawn(_mWrapperPath, args, handle, {
-        .outputMode = ProcessOutputMode::PIPE
+        .outputMode = ProcessOutputMode::PIPE,
+        .workingDir = workingDir
     });
 
     return nbl::Result::SUCCESS;

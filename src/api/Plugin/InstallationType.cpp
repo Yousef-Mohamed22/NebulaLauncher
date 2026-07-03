@@ -8,6 +8,11 @@ nbl::Array _fields = {
         .type = nbl::FieldType::STRING,
         .key = "command",
         .name = "Command"
+    },
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "working_dir",
+        .name = "Working Directory"
     }
 };
 
@@ -19,7 +24,7 @@ nbl::Result _launch(
         nbl::ProcessHandle* handle, 
         void* userData) {
 
-    return ctx->runCommand(installationId, fields[0].stringValue, handle);
+    return ctx->runCommand(installationId, fields[0].stringValue, fields[1].stringValue, handle);
 }
 
 }

@@ -238,7 +238,7 @@ WITH
     )
 SELECT 
 installation.iId, installation.dId, installation.gId,
-IFNULL(installation.title, game.title), installation.playTime, installation.playCount, installation.lastPlayed, installation.added, 
+IIF(installation.title IS NULL, game.title, game.title || ' - ' || installation.title) as resolved_title, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, 
 display.poster, display.icon, 
 game.releaseDate, game.rating
 FROM installation
@@ -268,7 +268,11 @@ OFFSET ?10;
 
         switch(criteria.sortBy) {
             case InstallationSortBy::TITLE:
-                stmtBuilder.append("ORDER BY IFNULL(installation.title, game.title)");
+                if(criteria.titleFilter.empty()) {
+                    stmtBuilder.append("ORDER BY resolved_title");
+                } else {
+                    stmtBuilder.append("ORDER BY nbl_str_distance(resolved_title, ?9)");
+                }
                 break;
             case InstallationSortBy::LAST_PLAYED:
                 stmtBuilder.append("ORDER BY installation.lastPlayed");

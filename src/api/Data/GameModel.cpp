@@ -341,7 +341,11 @@ OFFSET ?8;
 
         switch(criteria.sortBy) {
             case GameSortBy::TITLE:
-                stmtBuilder.append("ORDER BY game.title");
+                if(criteria.titleFilter.empty()) {
+                    stmtBuilder.append("ORDER BY game.title");
+                } else {
+                    stmtBuilder.append("ORDER BY nbl_str_distance(game.title, ?7)");
+                }
                 break;
             case GameSortBy::RELEASE_DATE:
                 stmtBuilder.append("ORDER BY game.releaseDate");

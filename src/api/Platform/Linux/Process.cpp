@@ -147,6 +147,17 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
             }
         }
 
+        if(!options.workingDir.empty()) {
+
+            nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+            nbl::StringView path;
+            if(nbl::StringBuilder::nullTerminate(options.workingDir, &path, &frame).error()) {
+                exit(1);
+            }
+
+            chdir(path.data);
+        }
+
         // Handle standard IO
         int nullfd = open("/dev/null", O_RDWR);
         if(nullfd == -1) {

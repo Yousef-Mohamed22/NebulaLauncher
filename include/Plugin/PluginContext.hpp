@@ -18,7 +18,7 @@ public:
 
     Span<InstallationType> types() const;
 
-    Result runCommand(i64 installationId, StringView commandLine, ProcessHandle* handle);
+    Result runCommand(i64 installationId, StringView commandLine, StringView workingDir, ProcessHandle* handle);
 
     StringView databasePath() const { return _mDatabasePath; }
 

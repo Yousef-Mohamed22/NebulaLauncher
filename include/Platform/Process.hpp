@@ -87,6 +87,7 @@ enum class ProcessOutputMode {
 struct ProcessCreateOptions {
     ProcessOutputMode outputMode;
     StringView outputRedirectFile;
+    StringView workingDir;
     bool killOnParentExit;
 };
 
