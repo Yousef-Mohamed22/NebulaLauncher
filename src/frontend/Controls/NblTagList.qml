@@ -16,6 +16,7 @@ Item {
     }
 
     property string label
+    property int labelIndent: 12
     property list<var> tags: []
     property list<var> initialTags: []
 
@@ -41,7 +42,14 @@ Item {
         return out
     }
 
+    function getListedTags() {
+        return [...getInitialTags(), ...getAddedTags()]
+    }
 
+    function getInitialTags() {
+        return getTags(NblTagList.TagState.INITIAL)
+    }
+    
     function getAddedTags() {
         return getTags(NblTagList.TagState.ADDED)
     }
@@ -57,6 +65,37 @@ Item {
     }
 
     Column {
+
+        Item {
+            width: parent.width
+            height: 30
+
+            Rectangle {
+                width: parent.width
+                height: 2
+                y: (parent.height / 2) - 1
+                color: Theme.colors.border
+            }
+
+            Rectangle {
+                id: labelBg
+                width: labelLabel.width + 12
+                height: parent.height
+                x: root.labelIndent
+                color: Theme.colors.layer0
+            }
+
+            Label {
+                id: labelLabel
+                anchors.centerIn: labelBg
+                font.family: Theme.font
+                font.pixelSize: 16
+                font.weight: 500
+                text: root.label
+                color: Theme.colors.textDim
+            }
+        }
+
 
         id: column
 
@@ -138,7 +177,6 @@ Item {
         NblTextBox {
             id: tagInput
             width: parent.width
-            label: root.label
 
             Keys.onReturnPressed: event => {
                 // Add tag
@@ -152,6 +190,7 @@ Item {
 
             onTextEdited: {
                 text = text.toLowerCase().replace(' ', '_')
+                if(text.length > 0) popup.visible = true
             }
 
             onPressed: {
@@ -249,8 +288,8 @@ Item {
             ScrollView {
 
                 width: parent.width
-                height: parent.height - 8
-                y: 4
+                height: parent.height - 4
+                y: 2
 
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 contentHeight: resultsColumn.height
@@ -270,8 +309,8 @@ Item {
                     Column {
 
                         id: resultsColumn
-                        width: parent.width - 8
-                        x: 4
+                        width: parent.width - 4
+                        x: 2
 
                         Item {
 
@@ -282,8 +321,8 @@ Item {
 
                             Rectangle {
                                 anchors.fill: parent
-                                color: newTagMouseArea.containsMouse ? Theme.colors.border : Theme.colors.layer1
-                                radius: 4
+                                color: newTagMouseArea.containsMouse ? Theme.colors.border : "transparent"
+                                radius: 2
                             }
 
                             Label {

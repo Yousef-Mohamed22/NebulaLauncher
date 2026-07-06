@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic
 TextField {
 
     id: root
-    required property string label
+    property string label
 
     color: enabled ? Theme.colors.text : Theme.colors.textDim
     placeholderTextColor: Theme.colors.border
@@ -28,6 +28,8 @@ TextField {
     }
 
     Item {
+
+        visible: root.label && root.label.length > 0
 
         width: 0
         height: 0

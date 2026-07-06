@@ -3,7 +3,7 @@
 /**
  * \file Utf8.hpp
  * \author jwall64
- * \brief Utility functions for working with UTF-8 encoded strings, including functions for encoding and decoding Unicode code points, as well as validating UTF-8 sequences.
+ * \brief Utility functions for working with UTF-8 encoded strings.
  */
 
 #pragma once
@@ -14,6 +14,12 @@
 
 namespace nbl {
 
+/**
+ * \brief Encodes the given Unicode code point to a writer in UTF-8 format
+ * \param writer The writer to write the code point to
+ * \param codePoint The code point to encode
+ * \return A result indicating the success or failure of the operation
+ */
 nbl::Result writeCodePoint(Writer writer, u32 codePoint);
 
 }

@@ -162,16 +162,25 @@ struct StringView {
         return length == 0;
     }
 
+    /**
+     * \brief Returns the end of the string, starting at the given index
+     */
     constexpr StringView tail(usize start) const {
         NBL_ASSERT(start <= this->length);
         return StringView(length - start, data + start);
     }
 
+    /**
+     * \brief Creates a substring with the given start position and length
+     */
     constexpr StringView slice(usize start, usize length) const {
         NBL_ASSERT(start + length <= this->length);
         return StringView(length, data + start);
     }
 
+    /**
+     * \brief Finds the first occurrance of a given character in the string
+     */
     constexpr Result findFirst(char c, usize* outIndex, usize startIndex = 0) const {
         for (usize i = startIndex; i < length; i++) {
             if (data[i] == c) {
@@ -182,6 +191,9 @@ struct StringView {
         return nbl::error::NOT_FOUND;
     }
 
+    /**
+     * \brief Finds the final occurrance of a given character in the string
+     */
     constexpr Result findLast(char c, usize* outIndex) const {
         if(length == 0) return nbl::error::NOT_FOUND;
         for (usize i = length - 1; i > 0; i--) {
@@ -193,6 +205,9 @@ struct StringView {
         return nbl::error::NOT_FOUND;
     }
 
+    /**
+     * \brief Computes the Levenshtein distance between this string and another string
+     */
     constexpr usize distance(StringView other) const {
 
         if(other.length == 0) return length;

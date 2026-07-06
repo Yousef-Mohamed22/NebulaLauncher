@@ -15,16 +15,6 @@
 #include <Codec/Json.hpp>
 #include <Platform/Logging.hpp>
 
-#define NBL_CHECK_OR_ROLLBACK(dbc, expr) \
-    { \
-        nbl::Result _res = (expr); \
-        if(_res.error()) { \
-            nbl::log(nbl::LogLevel::DEBUG, "Database error: ", _res, " at ", __FILE__, ":", __LINE__); \
-            (dbc)->rollbackTransaction(); \
-            return _res; \
-        } \
-    }
-
 namespace nbl {
 
 /**

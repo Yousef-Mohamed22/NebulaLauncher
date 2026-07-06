@@ -169,9 +169,14 @@ Result setTagColor(DatabaseConnection* connection, StringView tag, u32 color);
  */
 Result renameTag(DatabaseConnection* connection, StringView oldName, StringView newName);
 
+/**
+ * \brief Enumerates all tags in the database
+ */
+Result enumerateTags(DatabaseConnection* connection, u32 limit, u32 offset, TagCallback callback, void* userData);
 
-Result enumerateTags(DatabaseConnection* connection, u32 limit, u32 offset, TagCallback callback,  void* userData);
-
+/**
+ * \brief Searches for tags in the database by name
+ */
 Result searchTags(DatabaseConnection* connection, StringView query, u32 limit, u32 offset, TagCallback callback,  void* userData);
 
 

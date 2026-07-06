@@ -9,6 +9,8 @@ Item {
     required property string icon
     required property string text
 
+    property int radius: 8
+
     signal clicked
 
     implicitHeight: 48
@@ -16,8 +18,8 @@ Item {
     Rectangle {
         id: background
         anchors.fill: parent
-        color: mouseArea.containsMouse ? Theme.colors.border : Theme.colors.layer1
-        radius: 8
+        color: mouseArea.containsMouse ? Theme.colors.border : "transparent"
+        radius: root.radius
     }
 
     MouseArea {
@@ -32,10 +34,12 @@ Item {
 
     RowLayout {
 
-        anchors.centerIn: parent
+        anchors.fill: parent
+        anchors.leftMargin: 8
         spacing: 8
 
         Label {
+            Layout.preferredWidth: 24
             text: root.icon
             font.family: Theme.nerdFont
             font.pixelSize: 24
@@ -43,6 +47,7 @@ Item {
         }
 
         Label {
+            Layout.fillWidth: true
             text: root.text
             font.family: Theme.font
             font.pixelSize: 16

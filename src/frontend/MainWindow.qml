@@ -108,6 +108,15 @@ Window {
         })
     }
 
+    function beginAddTab() {
+        openDialog("Pages/AddTabDialog.qml", {}, function() {
+            let tabPage = pageLoader.currentItem as NblTabPage
+            if(tabPage) {
+                tabPage.refresh()
+            }
+        })
+    }
+
     function openSettings() {
         openDialog("Pages/AppSettingsDialog.qml", {}, function() { 
             ApplicationContext.saveSettings({

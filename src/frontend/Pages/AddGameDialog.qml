@@ -177,15 +177,10 @@ NblDialog {
                     visible: root.newGame
                     spacing: 8
                     width: parent.width
-                    NblTextBox {
+                    NblDateInput {
                         id: releaseDateField
                         label: "Release Date"
                         width: parent.width
-                        placeholderText: "YYYY/MM/DD"
-                        text: Qt.formatDate(new Date(), "yyyy/MM/dd")
-                        validator: RegularExpressionValidator { 
-                            regularExpression: /^\d{4}\/(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])$/ 
-                        }
                     }
                     NblNumberInput {
                         id: ratingField
@@ -263,20 +258,11 @@ NblDialog {
     onApply: {
 
         // Validate
-        let dateObj = new Date()
         let rating = 0.0
         let steamId = 0
         let igdbId = 0
 
         if(root.newGame) {
-            if(releaseDateField.text.length != 0) {
-                dateObj = Date.fromLocaleDateString(Qt.locale(), releaseDateField.text, "yyyy/MM/dd")
-                if (isNaN(dateObj.getTime())) {
-                    console.log("Invalid date entered!")
-                    return; // TODO: Report errors in UI
-                } 
-            }
-
             if(ratingField.text.length != 0) {
                 rating = ratingField.value
             }
@@ -324,7 +310,7 @@ NblDialog {
             icon: icon,
             logo: logo,
             logoPosition: logoPositionBox.currentIndex,
-            releaseDate: dateObj.getTime(),
+            releaseDate: releaseDateField.getTime(),
             rating: rating,
             steamId: steamId,
             igdbId: igdbId,

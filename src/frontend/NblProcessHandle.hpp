@@ -5,7 +5,6 @@
 #include <QtQml>
 
 #include <Platform/Process.hpp>
-#include <Core/RingBuffer.hpp>
 
 class NblProcessHandle : public QObject {
 

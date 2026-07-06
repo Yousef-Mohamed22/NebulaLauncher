@@ -165,6 +165,9 @@ private:
 
 };
 
+/**
+ * \brief A dummy stream that disards bytes written to it and is always at the end of file when reading
+ */
 class NullStream {
 public:
 
@@ -193,7 +196,9 @@ private:
     }
 };
 
-
+/**
+ * \brief A writer which first writes to a buffer in memory, then flushes data to the underlying writer in batches
+ */
 class BufferedWriter {
 public:
 
@@ -232,6 +237,9 @@ private:
     u8* _pBuffer;
 };
 
+/**
+ * \brief A writer which batch reads from some underlying reader into to a buffer in memory 
+ */
 class BufferedReader {
 public:
 

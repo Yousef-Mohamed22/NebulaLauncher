@@ -7,7 +7,7 @@ QtObject {
     property string font: _private.mainFont.name
     property string italicFont: _private.italicFont.name
     property string nerdFont: _private.nerdFont.name
-    property string monospaceFont: "monospace"
+    property string monospaceFont: _private.monoFont.name
 
 
     property var colors: QtObject {
@@ -65,6 +65,9 @@ QtObject {
         }
         property FontLoader nerdFont: FontLoader {
             source: "qrc:/qt/qml/Nebula/fonts/NotoSansMNerdFontPropo-Regular.ttf"
+        }
+        property FontLoader monoFont: FontLoader {
+            source: "qrc:/qt/qml/Nebula/fonts/NotoSansMono-VariableFont_wdth,wght.ttf"
         }
     }
 

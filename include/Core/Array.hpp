@@ -23,14 +23,10 @@ struct Array {
 
     T data[Length];
 
-    // constexpr Array(
-    //
-    // constexpr Array(const T (&array)[Length]) {
-    //     for(usize i = 0 ; i < Length ; ++i) {
-    //         data[i] = array[i];
-    //     }
-    // }
-
+    /**
+     * \brief Returns the size (length) of the array
+     * \return The length of the array
+     */
     constexpr usize size() const { return Length; }
 
     /**

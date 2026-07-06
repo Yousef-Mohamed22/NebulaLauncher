@@ -160,6 +160,8 @@ CREATE TABLE IF NOT EXISTS tag (
     name TEXT NOT NULL UNIQUE,
     color INTEGER NOT NULL DEFAULT 0xFFFFFFFF
 );
+CREATE UNIQUE INDEX idx_tag_name ON tag(name);
+
 CREATE TABLE IF NOT EXISTS tag_closure (
     ancestorId INTEGER NOT NULL,
     descendantId INTEGER NOT NULL,
@@ -226,7 +228,6 @@ VALUES
 
 PRAGMA user_version = 1;
 COMMIT;
-
 )";
 
         NBL_CHECK(connection->execute(initQuery, nullptr, nullptr));
@@ -242,5 +243,3 @@ COMMIT;
         return nbl::error::ILLEGAL_STATE;
     }
 }
-
-

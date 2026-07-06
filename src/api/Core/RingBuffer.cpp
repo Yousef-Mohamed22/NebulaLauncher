@@ -1,7 +1,8 @@
-#include <Core/RingBuffer.hpp>
+#include <Core/Ring.hpp>
 
 #include <Core/Types.hpp>
 #include <Core/Math.hpp>
+#include <Platform/Logging.hpp>
 
 #include <cstring>
 
@@ -57,7 +58,16 @@ nbl::Result nbl::RingBuffer::write(const void* data, usize dataLength, usize* by
 }
 
 nbl::Result nbl::RingBuffer::read(void* buffer, usize bufferLength, usize* bytesRead) {
+    return _peek(buffer, bufferLength, bytesRead, &_mReaderIndex);
+}
 
+nbl::Result nbl::RingBuffer::peek(void* buffer, usize bufferLength, usize* bytesRead) const {
+    return _peek(buffer, bufferLength, bytesRead, nullptr);
+}
+
+nbl::Result nbl::RingBuffer::_peek(void* buffer, usize bufferLength, usize* bytesRead, usize* newReaderIndex) const {
+
+    usize peekIndex = _mReaderIndex;
     if(_mWriterIndex < _mReaderIndex) {
         usize readable = (_mLength - _mReaderIndex) + _mWriterIndex;
         usize toRead = nbl::min(readable, bufferLength);
@@ -67,12 +77,12 @@ nbl::Result nbl::RingBuffer::read(void* buffer, usize bufferLength, usize* bytes
 
             usize toReadFromEnd = nbl::min(toRead, remainingInBuffer);
             memcpy(buffer, _pBuffer + _mReaderIndex, nbl::min(toRead, remainingInBuffer));
-            _mReaderIndex = _mReaderIndex + toReadFromEnd;
+            peekIndex = _mReaderIndex + toReadFromEnd;
 
             if(toRead > remainingInBuffer) {
                 usize toReadFromBeginning = nbl::min(_mWriterIndex, toRead - remainingInBuffer);
                 memcpy(static_cast<u8*>(buffer) + remainingInBuffer, _pBuffer, toReadFromBeginning);
-                _mReaderIndex = toReadFromBeginning;
+                peekIndex = toReadFromBeginning;
             }
         }
 
@@ -85,12 +95,14 @@ nbl::Result nbl::RingBuffer::read(void* buffer, usize bufferLength, usize* bytes
         if(toRead > 0) {
             memcpy(buffer, _pBuffer + _mReaderIndex, toRead);
         }
-        _mReaderIndex += toRead;
+        peekIndex += toRead;
 
         if(bytesRead) *bytesRead = toRead;
     }
 
+    if(newReaderIndex) *newReaderIndex = peekIndex;
     return nbl::Result::SUCCESS;
+
 }
 
 nbl::Result nbl::RingBuffer::overwrite(const void* data, usize dataLength) {

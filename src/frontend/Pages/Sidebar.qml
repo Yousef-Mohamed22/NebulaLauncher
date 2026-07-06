@@ -112,13 +112,57 @@ Item {
                     alignment: Text.AlignHCenter
 
                     onClicked: { 
-                        root.mainWindow.beginAddGame()
+                        addMenu.open()
+                    }
+
+                    Popup {
+                        id: addMenu
+                        visible: false
+
+                        width: 200
+                        height: 96
+
+                        x: parent.width + 16
+                        y: parent.height - height + 8
+
+                        margins: 0
+                        padding: 2
+
+                        background: Rectangle {
+                            color: Theme.colors.layer1
+                            border.width: 2
+                            border.color: Theme.colors.border
+                            radius: 8
+                        }
+
+                        contentItem: ColumnLayout {
+                            spacing: 0
+                            NblButton {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                icon: "󰮂"
+                                text: "Add Installation"
+                                onClicked: {
+                                    addMenu.close()
+                                    root.mainWindow.beginAddGame()
+                                }
+                                radius: 2
+                            }
+                            NblButton {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                icon: "󰓩"
+                                text: "Add Tab"
+                                onClicked: {
+                                    addMenu.close()
+                                    root.mainWindow.beginAddTab()
+                                }
+                                radius: 2
+                            }
+                        }
                     }
                 }
-
             }
         }
-
     }
-
 }

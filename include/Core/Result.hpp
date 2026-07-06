@@ -10,17 +10,6 @@
 
 #include <Core/Types.hpp>
 
-/**
- * \brief Macro to check the result of an expression and return if it indicates an error.
- * \param expr The expression to check, which should evaluate to a nbl::Result.
- */
-#define NBL_CHECK(expr) { \
-    nbl::Result _result = (expr); \
-    if(_result.error()) { \
-        nbl::log(nbl::LogLevel::DEBUG, "Check failed: ", _result.value, " at ", __FILE__, ":", __LINE__); \
-        return _result; \
-    } \
-}
 
 namespace nbl {
 
@@ -98,10 +87,29 @@ namespace error {
         THREAD_ERROR = -9,
         PROCESS_ERROR = -10,
         PLUGIN_ERROR = -11,
+        OUT_OF_SPACE = -12,
         UNIMPLEMENTED = -998,
         UNEXPECTED_ERROR = -999
     };
 }
 
+
+#ifndef NDEBUG 
+void _reportCheckFailed(nbl::Result res, const char* file, i32 line);
+#else
+inline void _reportCheckFailed(nbl::Result, const char*, i32) {}
+#endif
+
+/**
+ * \brief Macro to check the result of an expression and return if it indicates an error.
+ * \param expr The expression to check, which should evaluate to a nbl::Result.
+ */
+#define NBL_CHECK(expr) { \
+    nbl::Result _result = (expr); \
+    if(_result.error()) { \
+        nbl::_reportCheckFailed(_result.value, __FILE__, __LINE__); \
+        return _result; \
+    } \
+}
 
 }
