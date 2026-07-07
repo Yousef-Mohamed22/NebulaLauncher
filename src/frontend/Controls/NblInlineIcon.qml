@@ -15,7 +15,11 @@ Item {
 
     property string dbIcon: ""
     onDbIconChanged: {
-        icon = getDbIconImage(dbIcon)
+        if(dbIcon.endsWith(".png") || dbIcon.endsWith(".svg")) {
+            icon = getDbIconImage(dbIcon)
+        } else {
+            icon = dbIcon
+        }
     }
 
     readonly property bool useImage: icon.endsWith(".png") || icon.endsWith(".svg")
@@ -59,7 +63,7 @@ Item {
     }
 
     function getDbIconImage(icon) {
-        return root.useImage ? "file://" + ApplicationContext.dataFolder + "/media/inline_icon/" + icon : icon
+        return "file://" + ApplicationContext.dataFolder + "/media/inline_icon/" + icon
     }
 
 }

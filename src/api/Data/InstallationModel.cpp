@@ -224,36 +224,64 @@ nbl::Result nbl::lookupInstallations(
 
         static StringView _stmtBegin = R"(
 WITH 
-    all_tags AS (
-        SELECT descendantId
-        FROM tag_closure
-        WHERE ?1 IS NULL
-           OR tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?1)))
-    ),
-    excluded_tags AS (
-        SELECT descendantId
-        FROM tag_closure
-        WHERE NOT ?2 IS NULL
-          AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
-    )
-SELECT 
+search_sets AS (
+	SELECT
+		outer.key AS setId,
+		(SELECT tId FROM tag WHERE tag.name = inner.value) AS tId
+	FROM json_each(?1) AS outer
+	JOIN json_each(outer.value) AS inner
+),
+set_sizes AS (
+	SELECT
+		setId,
+		COUNT(*) AS requiredTags
+	FROM search_sets
+	GROUP BY setId
+),
+all_installation_tags AS (
+	SELECT installation.iId, tag.tId
+	FROM installation, tag
+	WHERE tag.tId IN (SELECT installation_tag.tId FROM installation_tag WHERE installation_tag.iId = installation.iId)
+	   OR tag.tId IN (SELECT game_tag.tId FROM game_tag WHERE game_tag.gId = installation.gId)
+),
+matching_sets AS (
+	SELECT 
+		all_installation_tags.iId,
+		search_sets.setId,
+		COUNT(DISTINCT search_sets.tId) AS matchedTags
+	FROM all_installation_tags
+	JOIN search_sets 
+	  ON search_sets.tId = all_installation_tags.tId
+	GROUP BY
+		all_installation_tags.iId,
+		search_sets.setId
+),
+excluded_tags AS (
+	SELECT descendantId
+	FROM tag_closure
+	WHERE NOT ?2 IS NULL
+	  AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
+)
+SELECT DISTINCT 
 installation.iId, installation.dId, installation.gId,
 IIF(installation.title IS NULL, game.title, game.title || ' - ' || installation.title) as resolved_title, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, 
 display.poster, display.icon, 
 game.releaseDate, game.rating
 FROM installation
+LEFT JOIN matching_sets ON matching_sets.iId = installation.iId
+LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId
 JOIN game ON installation.gId = game.gId
 JOIN display ON display.dId = IFNULL(installation.dId, game.dId)
 LEFT JOIN installation_tag ON installation_tag.iId = installation.iId
 LEFT JOIN game_tag ON game_tag.gId = installation.gId
-WHERE game.releaseDate >= ?3
-  AND (?4 = 0 OR game.releaseDate <= ?4)
-  AND game.rating >= ?5
-  AND (?6 = 0 OR game.rating <= ?6)
-  AND installation.playTime >= ?7
-  AND (?8 = 0 OR installation.playTime <= ?8)
-  AND (?1 IS NULL OR installation_tag.tId IN all_tags OR game_tag.tId IN all_tags)
+WHERE (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
   AND (?2 IS NULL OR NOT (installation_tag.tId IN excluded_tags OR game_tag.tId IN excluded_tags))
+  AND game.releaseDate >= ?3
+  AND (?4 = 0 OR game.releaseDate < ?4)
+  AND game.rating >= ?5
+  AND (?6 = 0 OR game.rating < ?6)
+  AND installation.playTime >= ?7
+  AND (?8 = 0 OR installation.playTime < ?8)
   AND (?9 IS NULL OR IFNULL(installation.title, game.title) LIKE '%' || ?9 || '%')
 GROUP BY installation.iId
 )";
@@ -313,9 +341,16 @@ OFFSET ?10;
     if(criteria.tags.length() == 0) {
         NBL_CHECK(lookupInstallationsStmt.bindNull(1));
     } else {
-        for(const JsonValue& tag : criteria.tags) {
-            if(tag.type != JsonType::STRING) {
+        for(const JsonValue& tagSet : criteria.tags) {
+            if(tagSet.type != JsonType::ARRAY) {
+                nbl::log(nbl::LogLevel::WARN, "Tag set is not an array! ", tagSet);
                 return nbl::error::ILLEGAL_ARGUMENT;
+            }
+            for(const JsonValue& tag : tagSet.array) {
+                if(tag.type != JsonType::STRING) {
+                    nbl::log(nbl::LogLevel::WARN, "Tag set contains non-string! ", tag);
+                    return nbl::error::ILLEGAL_ARGUMENT;
+                }
             }
         }
         StringView tagsJson;

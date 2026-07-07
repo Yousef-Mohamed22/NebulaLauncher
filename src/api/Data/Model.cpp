@@ -43,6 +43,7 @@ nbl::Result nbl::byName(StringView name, InstallationSortBy* outSortBy) {
             return nbl::Result::SUCCESS;
         }
     }
+    nbl::log(nbl::LogLevel::WARN, "Unknown installation sort by: ", name);
     return nbl::error::ILLEGAL_ARGUMENT;
 }
 
@@ -65,6 +66,7 @@ nbl::Result nbl::byName(StringView name, GameSortBy* outSortBy) {
             return nbl::Result::SUCCESS;
         }
     }
+    nbl::log(nbl::LogLevel::WARN, "Unknown game sort by: ", name);
     return nbl::error::ILLEGAL_ARGUMENT;
 }
 
@@ -86,6 +88,7 @@ nbl::Result nbl::byName(StringView name, SortOrder* outSortOrder) {
         *outSortOrder = SortOrder::DESCENDING;
         return nbl::Result::SUCCESS;
     }
+    nbl::log(nbl::LogLevel::WARN, "Unknown sort order: ", name);
     return nbl::error::ILLEGAL_ARGUMENT;
 }
 

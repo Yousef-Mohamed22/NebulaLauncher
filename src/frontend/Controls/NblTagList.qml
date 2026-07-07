@@ -368,7 +368,7 @@ Item {
 
                                 Rectangle {
                                     anchors.fill: parent
-                                    color: tagArea.containsMouse ? Theme.colors.border : Theme.colors.layer1
+                                    color: tagArea.containsMouse ? Theme.colors.border : "transparent"
                                     radius: 4
                                 }
 

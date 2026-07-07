@@ -9,6 +9,7 @@ Item {
     property int count: 0
 
     property string label
+    property list<var> initialItems
 
     required property var createNew
     required property Component delegate
@@ -20,6 +21,21 @@ Item {
     signal itemPopped(int index)
 
     implicitHeight: contentColumn.height
+
+    onInitialItemsChanged: {
+        for(let i = 0 ; i < count ; i++) {
+            itemPopped(i)
+            itemAt(i).destroy()
+            count--
+        }
+        for(let i = 0 ; i < initialItems.length ; i++) {
+            let item = initialItems[i]
+            delegate.createObject(itemsColumn, {
+                "modelData": item
+            })
+            count++
+        }
+    }
 
     Column {
         id: contentColumn
@@ -143,10 +159,10 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                     let item = root.createNew(root.count)
-                    root.count++
                     root.delegate.createObject(itemsColumn, {
                         "modelData": item
                     })
+                    root.count++
                 }
             }
         }

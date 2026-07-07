@@ -80,7 +80,25 @@ NblDialog {
                     width: parent.width
 
                     createNew: function(index) {
-                        return "Filter"
+                        return {
+                            id: 0,
+                            name: "Filter",
+                            icon: "󰊗",
+                            colorizeIcon: true,
+                            multiLine: true,
+                            useIcons: false,
+                            showTitles: false,
+                            sortBy: 0,
+                            sortOrder: 0,
+                            tags: [],
+                            excludeTags: [],
+                            minReleaseDate: 0,
+                            maxReleaseDate: 0,
+                            minRating: 0,
+                            maxRating: 0,
+                            minTime: 0,
+                            maxTime: 0
+                        }
                     }
 
                     delegate: NblDropdown {
@@ -95,6 +113,7 @@ NblDialog {
 
                         function encode() {
                             return {
+                                id: modelData.id,
                                 name: filterNameBox.text,
                                 icon: filterIconPicker.icon,
                                 colorizeIcon: filterIconPicker.colorize,
@@ -126,11 +145,13 @@ NblDialog {
                                 id: filterNameBox
                                 width: parent.width
                                 label: "Name"
-                                text: dropdown.modelData
+                                text: dropdown.modelData.name
                             }
 
                             NblIconPicker {
                                 id: filterIconPicker
+                                icon: dropdown.modelData.icon
+                                colorize: dropdown.modelData.colorizeIcon
                             }
 
                             RowLayout {
@@ -140,16 +161,19 @@ NblDialog {
                                     id: multiLineBox
                                     Layout.fillWidth: true
                                     text: "Multi-line"
+                                    checked: dropdown.modelData.multiLine
                                 }
                                 NblCheckBox {
                                     id: useIconsBox
                                     Layout.fillWidth: true
                                     text: "Use Icons"
+                                    checked: dropdown.modelData.useIcons
                                 }
                                 NblCheckBox {
                                     id: showTitlesBox
                                     Layout.fillWidth: true
                                     text: "Show Titles"
+                                    checked: dropdown.modelData.showTitles
                                 }
                             }
 
@@ -158,6 +182,7 @@ NblDialog {
                                 width: parent.width
                                 label: "Sort By"
                                 model: [ "Title", "Last Played", "Added", "Play Count", "Play Time", "Release Date", "Rating" ]
+                                currentIndex: dropdown.modelData.sortBy
                             }
 
                             NblComboBox {
@@ -165,20 +190,39 @@ NblDialog {
                                 width: parent.width
                                 label: "Sort Order"
                                 model: [ "Ascending", "Descending" ]
+                                currentIndex: dropdown.modelData.sortOrder
                             }
 
                             NblListInput {
                                 id: tagSetsList
                                 label: "Tag Sets"
                                 width: parent.width
+
+                                initialItems: getInitialItems()
+
+                                function getInitialItems() {
+                                    let tagLists = dropdown.modelData.tags
+                                    let out = []
+                                    for(let i = 0 ; i < tagLists.length ; i++) {
+                                        out.push({
+                                            index: i + 1,
+                                            initialTags: tagLists[i]
+                                        })
+                                    }
+                                    return out
+                                }
+
                                 createNew: function(i) {
-                                    return i + 1
+                                    return {
+                                        index: i + 1,
+                                        initialTags: []
+                                    }
                                 }
                                 delegate: NblTagList {
                                     required property var modelData
                                     width: parent.width
                                     labelIndent: 24
-                                    label: "Tag Set " + modelData
+                                    label: "Tag Set " + modelData.index
                                 }
 
                                 function encode() {
@@ -206,6 +250,7 @@ NblDialog {
                                 id: excludeTagsList
                                 width: parent.width
                                 label: "Exclude Tags"
+                                initialTags: dropdown.modelData.excludeTags
 
                                 function encode() {
 
@@ -219,16 +264,24 @@ NblDialog {
                                 }
                             }
 
+                            function getDate(time) {
+                                let out = new Date()
+                                out.setTime(time)
+                                return out
+                            }
+
                             NblDateInput {
                                 id: minReleaseBox
                                 width: parent.width
                                 label: "Minimum Release Date"
+                                date: parent.getDate(dropdown.modelData.minReleaseDate)
                             }
 
                             NblDateInput {
                                 id: maxReleaseBox
                                 width: parent.width
-                                label: "Maximum Release Date"
+                                label: "Maximum Release Date (exclusive)"
+                                date: parent.getDate(dropdown.modelData.maxReleaseDate)
                             }
 
                             NblNumberInput {
@@ -236,15 +289,19 @@ NblDialog {
                                 width: parent.width
                                 label: "Minimum Rating"
                                 min: 0
-                                value: 0
+                                max: 100
+                                allowDecimal: true
+                                value: dropdown.modelData.minRating
                             }
 
                             NblNumberInput {
                                 id: maxRatingBox
                                 width: parent.width
-                                label: "Maximum Rating"
-                                min: -1
-                                value: -1
+                                label: "Maximum Rating (exclusive)"
+                                min: 0
+                                max: 100
+                                allowDecimal: true
+                                value: dropdown.modelData.minRating
                             }
 
                             NblNumberInput {
@@ -252,15 +309,15 @@ NblDialog {
                                 width: parent.width
                                 label: "Minimum Play Time (ms)"
                                 min: 0
-                                value: 0
+                                value: dropdown.modelData.minTime
                             }
 
                             NblNumberInput {
                                 id: maxTimeBox
                                 width: parent.width
-                                label: "Maximum Play Time (ms)"
-                                min: -1
-                                value: -1
+                                label: "Maximum Play Time (ms) (exclusive)"
+                                min: 0
+                                value: dropdown.modelData.maxTime
                             }
                         }
                     }

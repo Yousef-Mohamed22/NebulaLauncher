@@ -39,6 +39,8 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* 
     nbl::JsonValue criteriaValue;
     NBL_CHECK(nbl::parseJson(nbl::StringReader(criteriaJson), frame, &criteriaValue, true));
 
+    nbl::log(nbl::LogLevel::DEBUG, "Parsing: ", criteriaJson, " as filter criteria");
+
     if(criteriaValue.type != nbl::JsonType::OBJECT) {
         nbl::log(nbl::LogLevel::ERROR, "Expected criteria JSON to be an object, but got ", criteriaValue.type);
         return nbl::error::ILLEGAL_ARGUMENT;
