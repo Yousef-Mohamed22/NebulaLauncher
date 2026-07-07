@@ -140,29 +140,32 @@ SELECT COUNT(fId) FROM filter;
 
 }
 
-nbl::Result nbl::addFilter(DatabaseConnection* connection, StringView name, StringView icon, const InstallationSearchCriteria& criteria, bool multiLine, i64* outFilterId) {
+nbl::Result nbl::addFilter(DatabaseConnection* connection, const FilterMeta& meta, i64* outFilterId) {
 
     static nbl::PreparedStatement _addFilterStmt;
     if(!_addFilterStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO filter (name, icon, criteria, multiLine) VALUES (?1, ?2, ?3, ?4);
+INSERT INTO filter (name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
         )", &_addFilterStmt));
     }
 
-    _addFilterStmt.bindString(1, name);
-    _addFilterStmt.bindString(2, icon);
+    _addFilterStmt.bindString(1, meta.name);
+    _addFilterStmt.bindString(2, meta.icon);
+    _addFilterStmt.bindInt(3, meta.colorizeIcon ? 1 : 0);
 
     {
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
         nbl::JsonObject criteriaObject;
-        NBL_CHECK(_serializeCriteria(criteria, &frame, &criteriaObject));
+        NBL_CHECK(_serializeCriteria(meta.criteria, &frame, &criteriaObject));
 
         StringView criteriaJson;
         NBL_CHECK(nbl::StringBuilder(&frame).append(criteriaObject).buildNullTerminated(&criteriaJson));
-        _addFilterStmt.bindString(3, criteriaJson);
+        _addFilterStmt.bindString(4, criteriaJson);
     }
 
-    _addFilterStmt.bindInt(4, multiLine ? 1 : 0);
+    _addFilterStmt.bindInt(5, meta.multiLine ? 1 : 0);
+    _addFilterStmt.bindInt(6, meta.showTitles ? 1 : 0);
+    _addFilterStmt.bindInt(7, meta.useIcons ? 1 : 0);
 
     return connection->execute(&_addFilterStmt, nullptr, nullptr, outFilterId);
 
@@ -178,7 +181,7 @@ DELETE FROM filter WHERE fId = ?1;
         )", &_removeFilterStmt));
     }
 
-    NBL_CHECK(_removeFilterStmt.bindUint(1, filterId));
+    NBL_CHECK(_removeFilterStmt.bindInt(1, filterId));
 
     return connection->execute(&_removeFilterStmt, nullptr, nullptr);
 }
@@ -188,7 +191,7 @@ nbl::Result nbl::getFilter(DatabaseConnection* connection, i64 filterId, FilterC
     static nbl::PreparedStatement _getFilterStmt;
     if(!_getFilterStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT fId, name, icon, criteria, multiLine, showTitles, useIcons FROM filter WHERE fId = ?1;
+SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons FROM filter WHERE fId = ?1;
         )", &_getFilterStmt));
     }
 
@@ -201,8 +204,8 @@ SELECT fId, name, icon, criteria, multiLine, showTitles, useIcons FROM filter WH
 
     return connection->execute(&_getFilterStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 7) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 7 columns in getFilter query result, but got ", columnCount);
+        if(columnCount != 8) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 8 columns in getFilter query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
 
@@ -213,13 +216,14 @@ SELECT fId, name, icon, criteria, multiLine, showTitles, useIcons FROM filter WH
             .filterId = columnValues[0].intValue,
             .name = columnValues[1].textValue,
             .icon = columnValues[2].textValue,
-            .multiLine = columnValues[4].intValue != 0,
-            .showTitles = columnValues[5].intValue != 0,
-            .useIcons = columnValues[6].intValue != 0,
+            .colorizeIcon = columnValues[3].intValue != 0,
+            .multiLine = columnValues[5].intValue != 0,
+            .showTitles = columnValues[6].intValue != 0,
+            .useIcons = columnValues[7].intValue != 0,
             .criteria = {},
         };
 
-        NBL_CHECK(_deserializeCriteria(columnValues[3].textValue, &frame, &meta.criteria));
+        NBL_CHECK(_deserializeCriteria(columnValues[4].textValue, &frame, &meta.criteria));
         
         return queryData->callback(
             queryData->userData, 
@@ -248,9 +252,42 @@ UPDATE filter SET criteria = ?1 WHERE fId = ?2;
         _setFilterCriteriaStmt.bindString(1, criteriaJson);
     }
 
-    NBL_CHECK(_setFilterCriteriaStmt.bindUint(2, filterId));
+    NBL_CHECK(_setFilterCriteriaStmt.bindInt(2, filterId));
 
     return connection->execute(&_setFilterCriteriaStmt, nullptr, nullptr);
+}
+
+nbl::Result nbl::updateFilter(DatabaseConnection* connection, const FilterMeta& meta) {
+
+    static nbl::PreparedStatement _updateFilterStmt;
+    if(!_updateFilterStmt.isValid(connection)) {
+
+        NBL_CHECK(connection->prepare(R"(
+UPDATE filter SET name = ?1, icon = ?2, colorizeIcon = ?3, criteria = ?4, multiLine = ?5, showTitles = ?6, useIcons = ?7, WHERE fId = ?8;
+        )", &_updateFilterStmt));
+    }
+
+    _updateFilterStmt.bindString(1, meta.name);
+    _updateFilterStmt.bindString(2, meta.icon);
+    _updateFilterStmt.bindInt(3, meta.colorizeIcon ? 1 : 0);
+
+    {
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::JsonObject criteriaObject;
+        NBL_CHECK(_serializeCriteria(meta.criteria, &frame, &criteriaObject));
+
+        StringView criteriaJson;
+        NBL_CHECK(nbl::StringBuilder(&frame).append(criteriaObject).buildNullTerminated(&criteriaJson));
+        _updateFilterStmt.bindString(4, criteriaJson);
+    }
+
+    _updateFilterStmt.bindInt(5, meta.multiLine ? 1 : 0);
+    _updateFilterStmt.bindInt(6, meta.showTitles ? 1 : 0);
+    _updateFilterStmt.bindInt(7, meta.useIcons ? 1 : 0);
+
+    NBL_CHECK(_updateFilterStmt.bindInt(8, meta.filterId));
+
+    return connection->execute(&_updateFilterStmt, nullptr, nullptr);
 }
 
 nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i64 tabId, InstallationLookupCallback callback, u64 offset, u64 limit, void* userData) {

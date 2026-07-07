@@ -42,6 +42,7 @@ public:
         IdRole,
         NameRole,
         IconRole,
+        ColorizeRole,
         MultiLineRole,
         ShowTitlesRole,
         UseIconsRole

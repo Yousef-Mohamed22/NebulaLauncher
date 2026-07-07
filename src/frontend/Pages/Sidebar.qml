@@ -71,6 +71,7 @@ Item {
                         collapsed: root.collapsed
                         icon: modelData.icon
                         name: modelData.name
+                        colorize: modelData.colorizeIcon
 
                         onClicked: {
                             root.mainWindow.openTab(modelData)
@@ -123,7 +124,7 @@ Item {
                         height: 96
 
                         x: parent.width + 16
-                        y: parent.height - height + 8
+                        y: parent.height - height
 
                         margins: 0
                         padding: 2

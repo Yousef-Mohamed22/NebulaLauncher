@@ -8,6 +8,7 @@ Item {
     required property int filterId
     required property string name
     required property string icon
+    required property bool colorizeIcon
     required property bool multiLine
     required property bool useIcons
     required property bool showTitles
@@ -34,8 +35,9 @@ Item {
                 width: 20
                 height: 20
                 anchors.verticalCenter: parent.verticalCenter
-                icon: root.icon
+                dbIcon: root.icon
                 color: Theme.colors.text
+                colorize: root.colorizeIcon
             }
             Label {
                 text: root.name

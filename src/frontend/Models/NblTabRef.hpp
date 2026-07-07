@@ -10,9 +10,10 @@ class NblTabRef : public QObject {
     Q_OBJECT
     QML_ELEMENT
 
+    Q_PROPERTY(qint64 tabId READ tabId CONSTANT)
     Q_PROPERTY(QString name READ name CONSTANT)
     Q_PROPERTY(QString icon READ icon CONSTANT)
-    Q_PROPERTY(qint64 tabId READ tabId CONSTANT)
+    Q_PROPERTY(bool colorizeIcon READ colorizeIcon CONSTANT)
 
 public:
 
@@ -25,18 +26,20 @@ public:
 
     virtual ~NblTabRef() = default;
 
-    NblTabRef(qint64 id, QString name, QString icon, QObject* parent = nullptr) :
+    NblTabRef(qint64 id, QString name, QString icon, bool colorizeIcon, QObject* parent = nullptr) :
         QObject(parent),
         _mName(name),
         _mIcon(icon),
-        _mTabId(id)
+        _mTabId(id),
+        _mColorizeIcon(colorizeIcon)
     { }
 
     NblTabRef(const NblTabRef& other) :
         QObject(other.parent()),
         _mName(other._mName),
         _mIcon(other._mIcon),
-        _mTabId(other._mTabId)
+        _mTabId(other._mTabId),
+        _mColorizeIcon(other._mColorizeIcon)
     { }
 
     NblTabRef& operator=(const NblTabRef& other) {
@@ -44,19 +47,22 @@ public:
         _mName = other._mName;
         _mIcon = other._mIcon;
         _mTabId = other._mTabId;
+        _mColorizeIcon = other._mColorizeIcon;
 
         setParent(other.parent());
         return *this;
     }
 
+    qint64 tabId() { return _mTabId; }
     QString name() { return _mName; }
     QString icon() { return _mIcon; }
-    qint64 tabId() { return _mTabId; }
+    bool colorizeIcon() { return _mColorizeIcon; }
 
 private:
 
+    qint64 _mTabId;
     QString _mName;
     QString _mIcon;
-    qint64 _mTabId;
+    bool _mColorizeIcon;
 
 };

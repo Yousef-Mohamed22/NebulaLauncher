@@ -52,6 +52,7 @@ Item {
                         filterId: model.id
                         name: model.name
                         icon: model.icon
+                        colorizeIcon: model.colorizeIcon
                         multiLine: model.multiLine
                         showTitles: model.showTitles
                         useIcons: model.useIcons

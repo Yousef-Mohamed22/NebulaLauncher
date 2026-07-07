@@ -188,6 +188,7 @@ CREATE TABLE IF NOT EXISTS filter (
     fId INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     icon TEXT NOT NULL,
+    colorizeIcon BOOLEAN DEFAULT 1,
     criteria TEXT NOT NULL,
     multiLine BOOLEAN NOT NULL DEFAULT 0,
     useIcons BOOLEAN NOT NULL DEFAULT 0,
@@ -197,6 +198,7 @@ CREATE TABLE IF NOT EXISTS tab (
     tabId INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     icon TEXT NOT NULL,
+    colorizeIcon BOOLEAN DEFAULT 1,
     hidden BOOLEAN NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS tab_filter (
@@ -217,7 +219,7 @@ VALUES
 INSERT INTO filter 
 (fId,name,icon,criteria,multiLine) 
 VALUES
-(1,'All Installations','󰮂','{"sortBy":"title","sortOrder":"ascending"}',1),
+(1,'All Installations','󰊗','{"sortBy":"title","sortOrder":"ascending"}',1),
 (2,'Recently Played','','{"sortBy":"last_played","sortOrder":"descending"}',0);
 
 INSERT INTO tab_filter

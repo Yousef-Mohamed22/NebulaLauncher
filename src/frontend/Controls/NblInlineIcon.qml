@@ -11,6 +11,13 @@ Item {
     property string icon: ""
     property color color: Theme.colors.text
 
+    property bool colorize: true
+
+    property string dbIcon: ""
+    onDbIconChanged: {
+        icon = getDbIconImage(dbIcon)
+    }
+
     readonly property bool useImage: icon.endsWith(".png") || icon.endsWith(".svg")
 
     Label {
@@ -34,10 +41,12 @@ Item {
         Image {
             id: imageSource
             anchors.fill: parent
-            source: image.getImage()
+            source: root.useImage ? root.icon : ""
             fillMode: Image.PreserveAspectFit
             layer.enabled: true
-            visible: false
+            visible: !root.colorize
+            smooth: true
+            mipmap: true
         }
 
         MultiEffect {
@@ -45,14 +54,12 @@ Item {
             source: imageSource
             colorization: 1.0
             colorizationColor: root.color
-        }
-
-        function getImage() {
-            if(root.useImage) {
-                return "file://" + ApplicationContext.dataFolder + "/media/inline_icon/" + root.icon
-            } else {
-                return ""
-            }
+            visible: root.colorize
         }
     }
+
+    function getDbIconImage(icon) {
+        return root.useImage ? "file://" + ApplicationContext.dataFolder + "/media/inline_icon/" + icon : icon
+    }
+
 }

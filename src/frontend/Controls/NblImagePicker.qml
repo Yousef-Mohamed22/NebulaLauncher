@@ -113,7 +113,6 @@ Item {
         nameFilters: [ "Image files (*.png *.jpg *.jpeg)", "All files (*)" ]
 
         onAccepted: {
-            console.log("picked file: " + fileDialog.selectedFile)
             root.imageSource = fileDialog.selectedFile
         }
 

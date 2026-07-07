@@ -22,7 +22,8 @@ NblDialog {
 
         return {
             name: nameInput.text,
-            icon: null,
+            icon: iconPicker.icon,
+            colorizeIcon: iconPicker.colorize,
             hidden: hiddenBox.checked,
             filters: filters
         }
@@ -95,7 +96,8 @@ NblDialog {
                         function encode() {
                             return {
                                 name: filterNameBox.text,
-                                icon: null, // TODO
+                                icon: filterIconPicker.icon,
+                                colorizeIcon: filterIconPicker.colorize,
                                 multiLine: multiLineBox.checked,
                                 useIcons: useIconsBox.checked,
                                 showTitles: showTitlesBox.checked,
@@ -127,7 +129,9 @@ NblDialog {
                                 text: dropdown.modelData
                             }
 
-                            // TODO: Icon editor
+                            NblIconPicker {
+                                id: filterIconPicker
+                            }
 
                             RowLayout {
                                 width: parent.width
@@ -231,24 +235,32 @@ NblDialog {
                                 id: minRatingBox
                                 width: parent.width
                                 label: "Minimum Rating"
+                                min: 0
+                                value: 0
                             }
 
                             NblNumberInput {
                                 id: maxRatingBox
                                 width: parent.width
                                 label: "Maximum Rating"
+                                min: -1
+                                value: -1
                             }
 
                             NblNumberInput {
                                 id: minTimeBox
                                 width: parent.width
-                                label: "Minimum Play Time"
+                                label: "Minimum Play Time (ms)"
+                                min: 0
+                                value: 0
                             }
 
                             NblNumberInput {
                                 id: maxTimeBox
                                 width: parent.width
-                                label: "Maximum Play Time"
+                                label: "Maximum Play Time (ms)"
+                                min: -1
+                                value: -1
                             }
                         }
                     }

@@ -43,7 +43,7 @@ Item {
             text: root.icon
             font.family: Theme.nerdFont
             font.pixelSize: 24
-            color: mouseArea.containsMouse ? Theme.colors.text : Theme.colors.textDim
+            color: Theme.colors.text
         }
 
         Label {
@@ -51,8 +51,7 @@ Item {
             text: root.text
             font.family: Theme.font
             font.pixelSize: 16
-            color: mouseArea.containsMouse ? Theme.colors.text : Theme.colors.textDim
+            color: Theme.colors.text
         }
-
     }
 }

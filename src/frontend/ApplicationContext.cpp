@@ -175,11 +175,13 @@ nbl::Result ApplicationContext::_reload() {
     _mAllTabs.clear();
 
     // Get tabs from database
-    NBL_CHECK(nbl::enumerateTabs(&_mConnection, [](void* userData, i64 id, nbl::StringView name, nbl::StringView icon, bool hidden) {
+    NBL_CHECK(nbl::enumerateTabs(&_mConnection, [](void* userData, const nbl::TabMeta& meta) {
 
-        NblTabRef ref(id, 
-            QString::fromUtf8(name.data, name.length), 
-            QString::fromUtf8(icon.data, icon.length)
+        NblTabRef ref(
+            meta.tabId, 
+            QString::fromUtf8(meta.name.data, meta.name.length), 
+            QString::fromUtf8(meta.icon.data, meta.icon.length),
+            meta.colorizeIcon
         );
 
         static_cast<QList<NblTabRef>*>(userData)->append(ref);

@@ -487,6 +487,7 @@ struct FilterMeta {
     i64 filterId;
     StringView name;
     StringView icon;
+    bool colorizeIcon;
     bool multiLine;
     bool showTitles;
     bool useIcons;
@@ -497,7 +498,7 @@ typedef Result (*FilterCallback)(void* userData, const FilterMeta& meta);
 
 Result countFilters(DatabaseConnection* connection, u64* numFilters);
 
-Result addFilter(DatabaseConnection* connection, StringView name, StringView icon, const InstallationSearchCriteria& criteria, bool multiLine, i64* outFilterId);
+Result addFilter(DatabaseConnection* connection, const FilterMeta& meta, i64* outFilterId);
 
 Result removeFilter(DatabaseConnection* connection, i64 filterId);
 
@@ -505,18 +506,29 @@ Result getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback ca
 
 Result setFilterCriteria(DatabaseConnection* connection, i64 filterId, const InstallationSearchCriteria& criteria);
 
+Result updateFilter(DatabaseConnection* connection, const FilterMeta& meta);
+
 Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, InstallationLookupCallback callback, u64 offset, u64 limit, void* userData);
 
 
 //
 // Tabs
 //
+struct TabMeta {
+    i64 tabId;
+    StringView name;
+    StringView icon;
+    bool colorizeIcon;
+    bool hidden;
+};
 
-typedef Result (*TabCallback)(void* userData, i64 tabId, StringView name, StringView icon, bool hidden);
+typedef Result (*TabCallback)(void* userData, const TabMeta& meta);
 
 Result countTabs(DatabaseConnection* connection, u64* numTabs);
 
-Result addTab(DatabaseConnection* connection, StringView name, StringView icon, bool hidden, i64* outTabId);
+Result addTab(DatabaseConnection* connection, const TabMeta& meta, i64* outTabId);
+
+Result updateTab(DatabaseConnection* connection, const TabMeta& meta);
 
 Result removeTab(DatabaseConnection* connection, i64 tabId);
 

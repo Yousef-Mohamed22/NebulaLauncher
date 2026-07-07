@@ -18,6 +18,8 @@ QVariant NblTabModel::data(const QModelIndex& index, int role) const {
             return ref.name();
         case IconRole:
             return ref.icon();
+        case ColorizeRole:
+            return ref.colorizeIcon();
         case MultiLineRole:
             return ref.multiLine();
         case UseIconsRole:
@@ -34,6 +36,7 @@ QHash<int, QByteArray> NblTabModel::roleNames() const {
     roles[IdRole] = "id";
     roles[NameRole] = "name";
     roles[IconRole] = "icon";
+    roles[ColorizeRole] = "colorizeIcon";
     roles[MultiLineRole] = "multiLine";
     roles[ShowTitlesRole] = "showTitles";
     roles[UseIconsRole] = "useIcons";
@@ -81,6 +84,7 @@ void NblTabModel::_fetchPageData() {
         NblFilterRef ref(meta.filterId, 
             QByteArray(meta.name.data, meta.name.length), 
             QByteArray(meta.icon.data, meta.icon.length),
+            meta.colorizeIcon,
             meta.multiLine,
             meta.showTitles,
             meta.useIcons

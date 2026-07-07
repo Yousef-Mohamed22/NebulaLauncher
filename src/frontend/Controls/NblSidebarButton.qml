@@ -9,6 +9,7 @@ Item {
     required property string icon
     required property string name
     property var alignment: Text.AlignLeft
+    property bool colorize: true
 
     signal clicked
 
@@ -48,8 +49,9 @@ Item {
                 height: 24
                 anchors.centerIn: parent
 
-                icon: root.icon
+                dbIcon: root.icon
                 color: mouseArea.containsMouse ? Theme.colors.text : Theme.colors.textDim
+                colorize: root.colorize
             }
         }
 
