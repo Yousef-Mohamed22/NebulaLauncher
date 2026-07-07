@@ -29,7 +29,7 @@ INSERT INTO display (poster, banner, icon, logo, logoPosition) VALUES (?1, ?2, ?
     NBL_CHECK(_displayStmt.bindStringOrNull(4, meta.logo));
     NBL_CHECK(_displayStmt.bindInt(5, static_cast<i32>(meta.logoPosition)));
 
-    return connection->execute(&_displayStmt, nullptr, nullptr, outDisplayId);
+    return connection->execute(&_displayStmt, outDisplayId);
 }
 
 nbl::Result nbl::removeDisplay(nbl::DatabaseConnection* connection, i64 displayId) {
@@ -42,7 +42,7 @@ DELETE FROM display WHERE dId = ?;
     }
 
     NBL_CHECK(_removeDisplayStmt.bindInt(1, displayId));
-    return connection->execute(&_removeDisplayStmt, nullptr, nullptr);
+    return connection->execute(&_removeDisplayStmt);
 }
 
 
@@ -63,7 +63,7 @@ UPDATE display SET poster=?1, banner=?2, icon=?3, logo=?4, logoPosition=?5 WHERE
     NBL_CHECK(_updateDisplayStmt.bindInt(6, displayId));
 
 
-    return connection->execute(&_updateDisplayStmt, nullptr, nullptr);
+    return connection->execute(&_updateDisplayStmt);
 }
 
 
@@ -89,7 +89,7 @@ INSERT INTO game (title, description, steamId, igdbId, releaseDate, rating, dId)
     NBL_CHECK(_addGameStmt.bindFloat(6, meta.rating));
     NBL_CHECK(_addGameStmt.bindInt(7, meta.displayId));
 
-    return connection->execute(&_addGameStmt, nullptr, nullptr, outGameId); 
+    return connection->execute(&_addGameStmt, outGameId); 
 }
 
 nbl::Result nbl::removeGame(DatabaseConnection* connection, i64 gameId) {
@@ -102,7 +102,7 @@ DELETE FROM game WHERE gId = ?1;
     }
 
     NBL_CHECK(_removeGameStmt.bindUint(1, gameId));
-    return connection->execute(&_removeGameStmt, nullptr, nullptr);
+    return connection->execute(&_removeGameStmt);
 }
 
 
@@ -125,7 +125,7 @@ UPDATE game SET steamId=?1, igdbId=?2, releaseDate=?3, rating=?4, dId=?5 WHERE g
     NBL_CHECK(_updateGameStmt.bindInt(5, meta.displayId));
     NBL_CHECK(_updateGameStmt.bindInt(6, gameId));
 
-    return connection->execute(&_updateGameStmt, nullptr, nullptr); 
+    return connection->execute(&_updateGameStmt); 
 
 }
 
@@ -141,7 +141,7 @@ INSERT INTO game_tag (gId, tId) VALUES (?1, (SELECT tId FROM tag WHERE name = ?2
 
     NBL_CHECK(_addGameTagStmt.bindUint(1, gameId));
     NBL_CHECK(_addGameTagStmt.bindString(2, tag));
-    return connection->execute(&_addGameTagStmt, nullptr, nullptr);
+    return connection->execute(&_addGameTagStmt);
 }
 
 nbl::Result nbl::removeGameTag(DatabaseConnection* connection, i64 gameId, StringView tag) {
@@ -155,11 +155,11 @@ DELETE FROM game_tag WHERE gId = ?1 AND tId = (SELECT tId FROM tag WHERE name = 
     
     NBL_CHECK(_removeGameTagStmt.bindUint(1, gameId));
     NBL_CHECK(_removeGameTagStmt.bindString(2, tag));
-    return connection->execute(&_removeGameTagStmt, nullptr, nullptr);
+    return connection->execute(&_removeGameTagStmt);
 }
 
 
-nbl::Result nbl::getGameTags(DatabaseConnection* connection, i64 gameId, TagCallback callback, void* userData) {
+nbl::Result nbl::getGameTags(DatabaseConnection* connection, i64 gameId, TagCallback callback) {
 
     static nbl::PreparedStatement _getGameTagsStmt;
     if(!_getGameTagsStmt.isValid(connection)) {
@@ -173,12 +173,7 @@ WHERE game_tag.gId = ?1;
 
     NBL_CHECK(_getGameTagsStmt.bindUint(1, gameId));
 
-    struct _TagQueryData {
-        TagCallback callback;
-        void* userData;
-    } data{ callback, userData };
-
-    return connection->execute(&_getGameTagsStmt, [](void* userData, i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_getGameTagsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
 
         if(argc != 2) {
             return nbl::error::ILLEGAL_STATE;
@@ -187,17 +182,15 @@ WHERE game_tag.gId = ?1;
         if(values[0].type != nbl::DataType::TEXT || values[1].type != nbl::DataType::INTEGER) {
             return nbl::error::ILLEGAL_STATE;
         }
+        return callback(values[0].textValue, static_cast<u32>(values[1].intValue));
 
-        _TagQueryData* data = static_cast<_TagQueryData*>(userData);
-        return data->callback(data->userData, values[0].textValue, static_cast<u32>(values[1].intValue));
-
-    }, &data);
+    });
 
 }
 
 
 
-nbl::Result nbl::getGameMeta(DatabaseConnection* connection, i64 gameId, GameMetaCallback callback, void* userData) {
+nbl::Result nbl::getGameMeta(DatabaseConnection* connection, i64 gameId, GameMetaCallback callback) {
 
  static nbl::PreparedStatement _getGameDetailsStmt;
     if(!_getGameDetailsStmt.isValid(connection)) {
@@ -210,15 +203,9 @@ WHERE game.gId = ?1;
     }
 
     NBL_CHECK(_getGameDetailsStmt.bindUint(1, gameId));
- 
-    struct _GameMetaQueryData {
-        GameMetaCallback callback;
-        void* userData;
-    } queryData { callback, userData };
 
-    return connection->execute(&_getGameDetailsStmt, [](void* userData, i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_getGameDetailsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        _GameMetaQueryData* data = static_cast<_GameMetaQueryData*>(userData);
         GameMeta meta = {
             .id = values[0].intValue,
             .displayId = values[1].intValue,
@@ -227,12 +214,12 @@ WHERE game.gId = ?1;
             .releaseDate = values[4].uintValue(),
             .rating = values[5].floatValue
         };
-        return data->callback(data->userData, meta);
+        return callback(meta);
 
-    }, &queryData);
+    });
 }
 
-nbl::Result nbl::getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCallback callback, void* userData) {
+nbl::Result nbl::getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCallback callback) {
 
     static nbl::PreparedStatement _getGameDetailsStmt;
     if(!_getGameDetailsStmt.isValid(connection)) {
@@ -248,14 +235,7 @@ WHERE game.gId = ?1;
 
     NBL_CHECK(_getGameDetailsStmt.bindUint(1, gameId));
 
-    struct _GameDetailsQueryData {
-        GameDetailsCallback callback;
-        void* userData;
-    } queryData { callback, userData };
-
-    return connection->execute(&_getGameDetailsStmt, [](void* userData, i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        _GameDetailsQueryData* data = static_cast<_GameDetailsQueryData*>(userData);
+    return connection->execute(&_getGameDetailsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         GameDetails details = {
             .game = {
@@ -277,15 +257,15 @@ WHERE game.gId = ?1;
                 .logoPosition = static_cast<LogoPosition>(values[12].intValue)
             }
         };
-        return data->callback(data->userData, details);
+        return callback(details);
 
-    }, &queryData);
+    });
     
 }
 
 
 
-nbl::Result nbl::lookupGames(DatabaseConnection *connection, const GameSearchCriteria& criteria, GameLookupCallback callback, void *userData) {
+nbl::Result nbl::lookupGames(DatabaseConnection *connection, const GameSearchCriteria& criteria, GameLookupCallback callback) {
 
     usize sortByIndex = static_cast<usize>(criteria.sortBy);
     usize sortOrderIndex = static_cast<usize>(criteria.sortOrder);
@@ -419,14 +399,8 @@ OFFSET ?8;
         NBL_CHECK(lookupGamesStmt.bindUint(9, criteria.limit == 0 ? 10 : criteria.limit));
     }
 
-    struct _GameLookupQueryData {
-        GameLookupCallback callback;
-        void* userData;
-    } queryData { callback, userData };
+    return connection->execute(&lookupGamesStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-    return connection->execute(&lookupGamesStmt, [](void* userData, i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        _GameLookupQueryData* data = static_cast<_GameLookupQueryData*>(userData);
         GameLookupResult res = {
             .id = values[0].intValue,
             .title = values[1].textValue,
@@ -435,8 +409,8 @@ OFFSET ?8;
             .poster = values[4].textValue,
             .icon = values[5].textValue,
         };
-        return data->callback(data->userData, res);
+        return callback(res);
 
-    }, &queryData);
+    });
 }
 

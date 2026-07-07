@@ -131,14 +131,14 @@ SELECT COUNT(fId) FROM filter;
         )", &_countFiltersStmt));
     }
 
-    return connection->execute(&_countFiltersStmt, [](void* userData, i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_countFiltersStmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount == 0) return nbl::error::IO_ERROR;
 
-        *static_cast<u64*>(userData) = values[0].uintValue();
+        *numFilters = values[0].uintValue();
         return nbl::Result::SUCCESS;
 
-    }, numFilters);
+    });
 
 }
 
@@ -170,7 +170,7 @@ INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTi
     _addFilterStmt.bindInt(7, meta.showTitles ? 1 : 0);
     _addFilterStmt.bindInt(8, meta.useIcons ? 1 : 0);
 
-    return connection->execute(&_addFilterStmt, nullptr, nullptr, outFilterId);
+    return connection->execute(&_addFilterStmt, outFilterId);
 
 }
 
@@ -186,10 +186,10 @@ DELETE FROM filter WHERE fId = ?1;
 
     NBL_CHECK(_removeFilterStmt.bindInt(1, filterId));
 
-    return connection->execute(&_removeFilterStmt, nullptr, nullptr);
+    return connection->execute(&_removeFilterStmt);
 }
 
-nbl::Result nbl::getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback callback, void* userData) {
+nbl::Result nbl::getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback callback) {
 
     static nbl::PreparedStatement _getFilterStmt;
     if(!_getFilterStmt.isValid(connection)) {
@@ -200,20 +200,13 @@ SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons 
 
     NBL_CHECK(_getFilterStmt.bindInt(1, filterId));
 
-    struct _GetFilterQueryData {
-        FilterCallback callback;
-        void* userData;
-    } queryData{ callback, userData };
-
-    return connection->execute(&_getFilterStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_getFilterStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 8) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 8 columns in getFilter query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
 
-        _GetFilterQueryData* queryData = static_cast<_GetFilterQueryData*>(userData);
-    
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
         FilterMeta meta = {
             .filterId = columnValues[0].intValue,
@@ -228,11 +221,8 @@ SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons 
 
         NBL_CHECK(_deserializeCriteria(columnValues[4].textValue, &frame, &meta.criteria));
         
-        return queryData->callback(
-            queryData->userData, 
-            meta
-        );
-    }, &queryData);
+        return callback(meta);
+    });
 }
 
 nbl::Result nbl::setFilterCriteria(DatabaseConnection* connection, i64 filterId, const InstallationSearchCriteria& criteria) {
@@ -257,7 +247,7 @@ UPDATE filter SET criteria = ?1 WHERE fId = ?2;
 
     NBL_CHECK(_setFilterCriteriaStmt.bindInt(2, filterId));
 
-    return connection->execute(&_setFilterCriteriaStmt, nullptr, nullptr);
+    return connection->execute(&_setFilterCriteriaStmt);
 }
 
 nbl::Result nbl::updateFilter(DatabaseConnection* connection, const FilterMeta& meta) {
@@ -291,40 +281,35 @@ UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria 
 
     NBL_CHECK(_updateFilterStmt.bindInt(9, meta.filterId));
 
-    return connection->execute(&_updateFilterStmt, nullptr, nullptr);
+    return connection->execute(&_updateFilterStmt);
 }
 
-nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i64 tabId, InstallationLookupCallback callback, u64 offset, u64 limit, void* userData) {
+nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, InstallationLookupCallback callback) {
 
-    struct _GetFilterQueryData {
-        DatabaseConnection* connection;
-        InstallationLookupCallback callback;
-        u64 offset;
-        u64 limit;
-        void* userData;
-     } queryData{ connection, callback, offset, limit, userData };
-
-    NBL_CHECK(getFilter(connection, tabId, [](void* userData, const nbl::FilterMeta& meta) -> nbl::Result {
-
-        _GetFilterQueryData* queryData = static_cast<_GetFilterQueryData*>(userData);
+    NBL_CHECK(getFilter(connection, tabId, [&](const nbl::FilterMeta& meta) -> nbl::Result {
 
         InstallationSearchCriteria updatedCriteria = meta.criteria;
-        updatedCriteria.offset = queryData->offset;
+        updatedCriteria.offset = offset;
 
-        if(queryData->limit > 0) {
-            updatedCriteria.limit = updatedCriteria.limit > 0 ? nbl::min(queryData->limit, meta.criteria.limit) : queryData->limit;
+        if(limit > 0) {
+            updatedCriteria.limit = updatedCriteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
         }
 
         return lookupInstallations(
-            queryData->connection,
+            connection,
             updatedCriteria,
-            queryData->callback,
-            queryData->userData
+            callback
         );
 
-     }, &queryData));
+     }));
 
      return nbl::Result::SUCCESS;
-
 }
 
+
+nbl::Result nbl::getFilterCriteria(DatabaseConnection* connection, i64 filterId, FilterCriteriaCallback callback) {
+
+    return getFilter(connection, filterId, [&](const FilterMeta& meta) {
+        return callback(meta.criteria);
+    });
+}

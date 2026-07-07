@@ -98,22 +98,16 @@ nbl::Result nbl::initDatabase(DatabaseConnection* connection) {
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 
     i32 userVersion = 0;
-    void* userData = &userVersion;
-    NBL_CHECK(connection->execute(nbl::StringView("PRAGMA user_version;"), [](void* userData, i32 argc, const char** argv, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
-        if (argc != 1) {
-            return -1;
-        }
-        i32* outVersion = static_cast<i32*>(userData);
 
-        nbl::log(nbl::LogLevel::DEBUG, "Database user_version: ", argv[0]);
+    nbl::PreparedStatement stmt = {};
+    NBL_CHECK(connection->prepare("PRAGMA user_version;", &stmt));
 
-        nbl::JsonNumber number;
-        NBL_CHECK(nbl::parseJsonNumber(nbl::StringReader(argv[0]), &number));
+    NBL_CHECK(connection->execute(&stmt, [&](i32 argc, DataValue* argv, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+        userVersion = argv[0].intValue;
+        return nbl::Result::SUCCESS;
+    }));
 
-        *outVersion = number.asInt();
-        return 0;
-
-    }, userData));
+    nbl::log(nbl::LogLevel::DEBUG, "Database user_version: ", userVersion);
 
     if(userVersion == 0) {
         // Database is uninitialized
@@ -224,7 +218,7 @@ PRAGMA user_version = 1;
 COMMIT;
 )";
 
-        NBL_CHECK(connection->execute(initQuery, nullptr, nullptr));
+        NBL_CHECK(connection->execute(initQuery));
 
         return nbl::Result::SUCCESS;
 

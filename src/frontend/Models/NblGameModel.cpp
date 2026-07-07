@@ -83,16 +83,16 @@ void NblGameModel::_fetchPageData() {
 
     QList<NblGameRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::lookupGames(db, criteria, [](void* userData, const nbl::GameLookupResult& res) -> nbl::Result {
+    if(nbl::lookupGames(db, criteria, [&](const nbl::GameLookupResult& res) -> nbl::Result {
         NblGameRef ref(
                 res.id,
                 fromNbl(res.title),
                 fromNbl(res.poster),
                 fromNbl(res.icon)
         ); 
-        static_cast<QList<NblGameRef>*>(userData)->append(ref);
+        found.append(ref);
         return nbl::Result::SUCCESS;
-    }, &found).error()) {
+    }).error()) {
         nbl::log(nbl::LogLevel::ERROR, "An error occurred while loading games!");
         _mAllLoaded = true;
         _mIsLoading = false;

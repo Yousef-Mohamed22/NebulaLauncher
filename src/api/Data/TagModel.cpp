@@ -13,34 +13,22 @@
 
 
 namespace {
-
-
-    nbl::Result _processTagQuery(nbl::DatabaseConnection* connection, nbl::PreparedStatement* stmt, nbl::TagCallback callback, void* userData) {
-
-        struct _QueryData {
-            nbl::TagCallback callback;
-            void* userData;
-        };
-        _QueryData queryData{ callback, userData };
-        return connection->execute(stmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
+    nbl::Result _processTagQuery(nbl::DatabaseConnection* connection, nbl::PreparedStatement* stmt, nbl::TagCallback callback) {
+        return connection->execute(stmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
             if(columnCount != 2) {
                 return nbl::error::IO_ERROR;
             }
             if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
                 return nbl::error::IO_ERROR;
             }
-
-            _QueryData* data = static_cast<_QueryData*>(userData);
-            return data->callback(data->userData, columnValues[0].textValue, columnValues[1].intValue);
-
-        }, &queryData);
+            return callback(columnValues[0].textValue, columnValues[1].intValue);
+        });
     }
 }
 
 
 
-nbl::Result nbl::descendants(DatabaseConnection* connection, StringView tag, TagCallback callback, void* userData) {
+nbl::Result nbl::descendants(DatabaseConnection* connection, StringView tag, TagCallback callback) {
 
     static nbl::PreparedStatement _descendantsStmt;
     if(!_descendantsStmt.isValid(connection)) {
@@ -52,10 +40,10 @@ WHERE tag_closure.ancestorId = (SELECT tId FROM tag WHERE name = ?);)", &_descen
 
 
     NBL_CHECK(_descendantsStmt.bindString(1, tag));
-    return _processTagQuery(connection, &_descendantsStmt, callback, userData);
+    return _processTagQuery(connection, &_descendantsStmt, callback);
 }
 
-nbl::Result nbl::ancestors(DatabaseConnection* connection, StringView tag, TagCallback callback, void* userData) {
+nbl::Result nbl::ancestors(DatabaseConnection* connection, StringView tag, TagCallback callback) {
 
     static nbl::PreparedStatement _ancestorsStmt;
     if(!_ancestorsStmt.isValid(connection)) {
@@ -66,7 +54,7 @@ WHERE tag_closure.descendantId = (SELECT tId FROM tag WHERE name = ?);)", &_ance
     }
 
     NBL_CHECK(_ancestorsStmt.bindString(1, tag));
-    return _processTagQuery(connection, &_ancestorsStmt, callback, userData);
+    return _processTagQuery(connection, &_ancestorsStmt, callback);
 }
 
 nbl::Result nbl::addTag(DatabaseConnection* connection, StringView tag, u32 color) {
@@ -103,11 +91,10 @@ AND descendantId = (SELECT tId FROM tag WHERE name = ?);)", &_checkCycleStmt));
     NBL_CHECK(_checkCycleStmt.bindString(2, parentTag));
 
     bool cycleExists = false;
-    NBL_CHECK(connection->execute(&_checkCycleStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-        bool* cycleExists = static_cast<bool*>(userData);
-        *cycleExists = true;
+    NBL_CHECK(connection->execute(&_checkCycleStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+        cycleExists = true;
         return nbl::Result::SUCCESS;
-    }, &cycleExists));
+    }));
 
     if(cycleExists) {
         return nbl::error::ILLEGAL_STATE;
@@ -130,7 +117,7 @@ ON CONFLICT(ancestorId, descendantId) DO
     NBL_CHECK(_addParentClosureStmt.bindString(1, parentTag));
     NBL_CHECK(_addParentClosureStmt.bindString(2, childTag));
 
-    return connection->execute(&_addParentClosureStmt, nullptr, nullptr);
+    return connection->execute(&_addParentClosureStmt);
 }
 
 nbl::Result nbl::removeParentTag(DatabaseConnection* connection, StringView parentTag, StringView childTag) {
@@ -190,7 +177,7 @@ WHERE tc.ancestorId IN rIds
     NBL_CHECK(_removeParentClosureStmt.bindString(1, childTag));
     NBL_CHECK(_removeParentClosureStmt.bindString(2, parentTag));
 
-    return connection->execute(&_removeParentClosureStmt, nullptr, nullptr);
+    return connection->execute(&_removeParentClosureStmt);
 
 }
 
@@ -263,7 +250,7 @@ nbl::Result nbl::setTagColor(DatabaseConnection* connection, StringView tag, u32
     NBL_CHECK(_setTagColorStmt.bindUint(1, color));
     NBL_CHECK(_setTagColorStmt.bindString(2, tag));
 
-    return connection->execute(&_setTagColorStmt, nullptr, nullptr);
+    return connection->execute(&_setTagColorStmt);
 }
 
 nbl::Result nbl::renameTag(DatabaseConnection* connection, StringView oldName, StringView newName) {
@@ -276,10 +263,10 @@ nbl::Result nbl::renameTag(DatabaseConnection* connection, StringView oldName, S
     NBL_CHECK(_renameTagStmt.bindString(1, newName));
     NBL_CHECK(_renameTagStmt.bindString(2, oldName));
 
-    return connection->execute(&_renameTagStmt, nullptr, nullptr);
+    return connection->execute(&_renameTagStmt);
 }
 
-nbl::Result nbl::enumerateTags(DatabaseConnection *connection, u32 limit, u32 offset, TagCallback callback, void* userData) {
+nbl::Result nbl::enumerateTags(DatabaseConnection *connection, u32 limit, u32 offset, TagCallback callback) {
 
     static nbl::PreparedStatement _enumerateStmt;
     if(!_enumerateStmt.isValid(connection)) {
@@ -289,23 +276,15 @@ nbl::Result nbl::enumerateTags(DatabaseConnection *connection, u32 limit, u32 of
     NBL_CHECK(_enumerateStmt.bindUint(1, limit));
     NBL_CHECK(_enumerateStmt.bindUint(2, offset));
 
-    struct _QueryData {
-        TagCallback callback;
-        void* userData;
-    } queryData { callback, userData };
-
-    return connection->execute(&_enumerateStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_enumerateStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 2) return nbl::error::UNEXPECTED_ERROR;
-
-        _QueryData* data = static_cast<_QueryData*>(userData);
-        return data->callback(data->userData, columnValues[0].textValue, columnValues[1].uintValue());
-
-    }, &queryData);
+        return callback(columnValues[0].textValue, columnValues[1].uintValue());
+    });
 
 }
 
-nbl::Result nbl::searchTags(DatabaseConnection *connection, StringView query, u32 limit, u32 offset, TagCallback callback, void* userData) {
+nbl::Result nbl::searchTags(DatabaseConnection *connection, StringView query, u32 limit, u32 offset, TagCallback callback) {
 
     static nbl::PreparedStatement searchStmt;
     if(!searchStmt.isValid(connection)) {
@@ -321,18 +300,11 @@ LIMIT ?1 OFFSET ?2
     NBL_CHECK(searchStmt.bindUint(2, offset));
     NBL_CHECK(searchStmt.bindStringOrNull(3, query));
 
-    struct _QueryData {
-        TagCallback callback;
-        void* userData;
-    } queryData { callback, userData };
-
-    return connection->execute(&searchStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&searchStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 2) return nbl::error::UNEXPECTED_ERROR;
+        return callback(columnValues[0].textValue, columnValues[1].uintValue());
 
-        _QueryData* data = static_cast<_QueryData*>(userData);
-        return data->callback(data->userData, columnValues[0].textValue, columnValues[1].uintValue());
-
-    }, &queryData);
+    });
 
 }

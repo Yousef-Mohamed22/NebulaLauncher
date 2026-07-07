@@ -175,7 +175,7 @@ nbl::Result ApplicationContext::_reload() {
     _mAllTabs.clear();
 
     // Get tabs from database
-    NBL_CHECK(nbl::enumerateTabs(&_mConnection, [](void* userData, const nbl::TabMeta& meta) {
+    NBL_CHECK(nbl::enumerateTabs(&_mConnection, [&](const nbl::TabMeta& meta) {
 
         NblTabRef ref(
             meta.tabId, 
@@ -184,10 +184,10 @@ nbl::Result ApplicationContext::_reload() {
             meta.colorizeIcon
         );
 
-        static_cast<QList<NblTabRef>*>(userData)->append(ref);
+        _mAllTabs.append(ref);
 
         return nbl::Result::SUCCESS;
-    }, &_mAllTabs));
+    }));
 
     tabsUpdated();
 
@@ -215,16 +215,10 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
 
     NblProcessHandle* handle = new NblProcessHandle();
 
-    struct _LaunchData {
-        ApplicationContext* context;
-        NblProcessHandle* handle;
-    } launchData { .context = this, .handle = handle };
+    nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
-    nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [](void* userData, const nbl::InstallationMeta& meta) -> nbl::Result {
-
-        _LaunchData* data = static_cast<_LaunchData*>(userData);
-        ApplicationContext* context = data->context;
-        NblProcessHandle* handle = data->handle;
+        ApplicationContext* context = this;
+        NblProcessHandle* handle = handle;
 
         const nbl::InstallationType* installType = context->_mContext.getInstallationType(meta.type);
         if(installType == nullptr) {
@@ -281,7 +275,7 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
 
         return installType->launch(&context->_mContext, { .data = values.data(), .length = static_cast<usize>(values.length()) }, meta.id, handle->handle());
         
-    }, &launchData);
+    });
     if(res.error()) {
         nbl::log(nbl::LogLevel::ERROR, "Unable to launch installation. Error ", res);
         return nullptr;
@@ -301,11 +295,11 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installat
         return nullptr;
     }
 
-    NblInstallationDetails* details;
+    NblInstallationDetails* out;
 
-    if(nbl::getInstallationDetails(&_mConnection, installationId, [](void* userData, const nbl::InstallationDetails& details) {
+    if(nbl::getInstallationDetails(&_mConnection, installationId, [&](const nbl::InstallationDetails& details) {
 
-         *static_cast<NblInstallationDetails**>(userData) = new NblInstallationDetails(
+         out = new NblInstallationDetails(
             details.installation.id,
             details.display.id,
             details.game.id,
@@ -331,12 +325,12 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installat
         );
 
         return nbl::Result::SUCCESS;
-    }, &details).error()) {
+    }).error()) {
         nbl::log(nbl::LogLevel::ERROR, "Failed to get installation details for installation with ID ", installationId);
         return nullptr;
     }
 
-    return details;
+    return out;
 
 }
 
@@ -383,10 +377,10 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
 
     } else {
         // Get display id from game
-        NBL_CHECK(nbl::getGameDetails(&_mConnection, gId, [](void* userData, const nbl::GameDetails& meta) {
-            *static_cast<i64*>(userData) = meta.display.id;
+        NBL_CHECK(nbl::getGameDetails(&_mConnection, gId, [&](const nbl::GameDetails& meta) {
+            dId = meta.display.id;
             return nbl::Result::SUCCESS;
-        }, &dId));
+        }));
     }
 
     i64 realGId = gId;
@@ -579,13 +573,90 @@ int ApplicationContext::addTab(const QVariantMap& params) {
 
     return 0;
 }
-int ApplicationContext::updateTab(int64_t id, const QVariantMap& params) {
+int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
 
     return 0;
 }
-int ApplicationContext::deleteTab(int64_t id) { 
+int ApplicationContext::deleteTab(qint64 id) { 
 
     return nbl::removeTab(&_mConnection, id);
+}
+
+QVariantMap ApplicationContext::getTabMeta(qint64 id) {
+
+    QVariantMap out = {};
+    out["id"] = id;
+
+    if(nbl::getTabMeta(&_mConnection, static_cast<i64>(id), [&](const nbl::TabMeta& meta) -> nbl::Result {
+
+        out["name"] = fromNbl(meta.name);
+        out["icon"] = fromNbl(meta.icon);
+        out["colorizeIcon"] = meta.colorizeIcon;
+        out["hidden"] = meta.hidden;
+
+        return nbl::Result::SUCCESS;
+    }).error()) {
+        out["id"] = 0;
+        return out;
+    }
+
+    QVariantList filters = {};
+
+    if(nbl::getFiltersForTab(&_mConnection, id, 0, INT32_MAX, [&](const nbl::FilterMeta& meta) -> nbl::Result {
+
+        QVariantMap filter = {};
+
+        filter["id"] = static_cast<qint64>(meta.filterId);
+        filter["name"] = fromNbl(meta.name);
+        filter["icon"] = fromNbl(meta.icon);
+        filter["colorizeIcon"] = meta.colorizeIcon;
+        filter["multiLine"] = meta.multiLine;
+        filter["useIcons"] = meta.useIcons;
+        filter["showTitles"] = meta.showTitles;
+        
+
+        nbl::getFilterCriteria(&_mConnection, meta.filterId, [&](const nbl::InstallationSearchCriteria& criteria) -> nbl::Result {
+
+            filter["sortBy"] = static_cast<i32>(criteria.sortBy);
+            filter["sortOrder"] = static_cast<i32>(criteria.sortOrder);
+            filter["minReleaseDate"] = static_cast<quint64>(criteria.minReleaseDate);
+            filter["maxReleaseDate"] = static_cast<quint64>(criteria.maxReleaseDate);
+            filter["minRating"] = static_cast<quint64>(criteria.minRating);
+            filter["maxRating"] = static_cast<quint64>(criteria.maxRating);
+            filter["minTime"] = static_cast<quint64>(criteria.minPlayTime);
+            filter["maxTime"] = static_cast<quint64>(criteria.maxPlayTime);
+
+            QVariantList tags = {};
+            for(const nbl::JsonValue& tagSet : criteria.tags) {
+                QList<QString> tagsInSet = {};
+                for(const nbl::JsonValue& tag : tagSet.array) {
+                    tagsInSet.append(fromNbl(tag.string));
+                }
+                tags.append(tagsInSet);
+            }
+
+            QVariantList excludeTags = {};
+            for(const nbl::JsonValue& excluded : criteria.tags) {
+                excludeTags.append(fromNbl(excluded.string));
+            }
+
+            filter["tags"] = tags;
+            filter["excludeTags"] = excludeTags;
+
+            return nbl::Result::SUCCESS;
+        });
+
+        filters.append(filter);
+
+        return nbl::Result::SUCCESS;
+    }).error()) {
+        out["id"] = 0;
+        return out;
+    }
+
+    out["filters"] = filters;
+
+    return out;
 }
 
 
@@ -642,27 +713,27 @@ int ApplicationContext::untagInstallation(int64_t installationId, QString name) 
 
 QList<QVariant> ApplicationContext::getGameTags(int64_t gameId) {
     QList<QVariant> out = {};
-    nbl::getGameTags(&_mConnection, gameId, [](void* userData, nbl::StringView name, u32 color) {
+    nbl::getGameTags(&_mConnection, gameId, [&](nbl::StringView name, u32 color) {
         QMap<QString, QVariant> tag = {};
         tag["name"] = fromNbl(name);
         tag["color"] = QColor(color);
 
-        static_cast<QList<QVariant>*>(userData)->append(tag);
+        out.append(tag);
         return nbl::Result::SUCCESS;
-    }, &out);
+    });
     return out;
 }
 
 QList<QVariant> ApplicationContext::getInstallationTags(int64_t installationId) {
     QList<QVariant> out = {};
-    nbl::getDirectInstallationTags(&_mConnection, installationId, [](void* userData, nbl::StringView name, u32 color) {
+    nbl::getDirectInstallationTags(&_mConnection, installationId, [&](nbl::StringView name, u32 color) {
         QMap<QString, QVariant> tag = {};
         tag["name"] = fromNbl(name);
         tag["color"] = QColor(color);
 
-        static_cast<QList<QVariant>*>(userData)->append(tag);
+        out.append(tag);
         return nbl::Result::SUCCESS;
-    }, &out);
+    });
 
     return out;
 }

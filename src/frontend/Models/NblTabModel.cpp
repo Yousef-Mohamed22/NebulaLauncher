@@ -80,7 +80,7 @@ void NblTabModel::_fetchPageData() {
     
     QList<NblFilterRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::getFiltersForTab(db, _mTabId, offset, limit, [](void* userData, const nbl::FilterMeta& meta) -> nbl::Result {
+    if(nbl::getFiltersForTab(db, _mTabId, offset, limit, [&](const nbl::FilterMeta& meta) -> nbl::Result {
         NblFilterRef ref(meta.filterId, 
             QByteArray(meta.name.data, meta.name.length), 
             QByteArray(meta.icon.data, meta.icon.length),
@@ -89,9 +89,9 @@ void NblTabModel::_fetchPageData() {
             meta.showTitles,
             meta.useIcons
         );
-        static_cast<QList<NblFilterRef>*>(userData)->append(ref);
+        found.append(ref);
         return nbl::Result::SUCCESS;
-    }, &found).error()) {
+    }).error()) {
         _mIsLoading = false;
         emit isLoadingChanged();
         return;

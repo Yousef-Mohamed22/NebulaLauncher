@@ -87,8 +87,9 @@ public:
     Q_INVOKABLE int deleteInstallation(int64_t id);
 
     Q_INVOKABLE int addTab(const QVariantMap& params);
-    Q_INVOKABLE int updateTab(int64_t id, const QVariantMap& params);
-    Q_INVOKABLE int deleteTab(int64_t id);
+    Q_INVOKABLE int updateTab(qint64 id, const QVariantMap& params);
+    Q_INVOKABLE int deleteTab(qint64 id);
+    Q_INVOKABLE QVariantMap getTabMeta(qint64 id);
 
     Q_INVOKABLE int addTag(QString name, QColor color);
     Q_INVOKABLE int removeTag(QString name);

@@ -107,16 +107,15 @@ TEST(Game, GetGameTags) {
         bool adventure = false;
     } found;
 
-    ASSERT_TRUE(nbl::getGameTags(&connection, gameId, [](void* userData, nbl::StringView tagName, u32 tagColor) -> nbl::Result {
-        _FoundData* found = static_cast<_FoundData*>(userData);
+    ASSERT_TRUE(nbl::getGameTags(&connection, gameId, [&](nbl::StringView tagName, u32 tagColor) -> nbl::Result {
         if(tagName == "Action") {
-            found->action = true;
+            found.action = true;
         }
         if(tagName == "Adventure") {
-            found->adventure = true;
+            found.adventure = true;
         }
         return nbl::Result::SUCCESS;
-    }, &found).success());
+    }).success());
 
     ASSERT_TRUE(found.action);
     ASSERT_TRUE(found.adventure);
@@ -136,7 +135,7 @@ TEST(Game, GetGameMeta) {
 
 
     bool found = false;
-    ASSERT_TRUE(nbl::getGameDetails(&connection, gameId, [](void* userData, const nbl::GameDetails& details) -> nbl::Result {
+    ASSERT_TRUE(nbl::getGameDetails(&connection, gameId, [&](const nbl::GameDetails& details) -> nbl::Result {
         if(details.game.title == "Test Game" 
         && details.game.description == "A test game" 
         && details.display.poster == "poster.jpg" 
@@ -146,10 +145,10 @@ TEST(Game, GetGameMeta) {
         && details.game.releaseDate == 1600000000 
         && details.game.rating == 4.5) {
 
-            *static_cast<bool*>(userData) = true;
+            found = true;
         }
         return nbl::Result::SUCCESS;
-    }, &found).success());
+    }).success());
 
     ASSERT_TRUE(found);
 
@@ -170,7 +169,7 @@ TEST(Game, LookupSingleGame) {
     i64 foundId = 0;
     ASSERT_TRUE(nbl::lookupGames(
         &connection, {}, 
-        [](void* userData, const nbl::GameLookupResult& res) -> nbl::Result {
+        [&](const nbl::GameLookupResult& res) -> nbl::Result {
 
         if(res.title == "Test Game" 
         && res.poster == "poster.jpg" 
@@ -178,10 +177,10 @@ TEST(Game, LookupSingleGame) {
         && res.releaseDate == 1600000000 
         && res.rating == 4.5) {
 
-            *static_cast<i64*>(userData) = res.id;
+            foundId = res.id;
         }
         return nbl::Result::SUCCESS;
-    }, &foundId).success());
+    }).success());
 
     ASSERT_EQ(foundId, gameId);
 
@@ -209,9 +208,7 @@ TEST(Game, LookupSingleGameByName) {
 
     ASSERT_TRUE(nbl::lookupGames(
         &connection, criteria, 
-        [](void* userData, const nbl::GameLookupResult& details) -> nbl::Result {
-
-        nbl::log(nbl::LogLevel::INFO, "Found game: ", details.title);
+        [&](const nbl::GameLookupResult& details) -> nbl::Result {
 
         if(details.title == "Test Game" 
         && details.poster == "poster.jpg" 
@@ -219,10 +216,10 @@ TEST(Game, LookupSingleGameByName) {
         && details.releaseDate == 1600000000 
         && details.rating == 4.5) {
 
-            *static_cast<i64*>(userData) = details.id;
+            foundId = details.id;
         }
         return nbl::Result::SUCCESS;
-    }, &foundId).success());
+    }).success());
 
     ASSERT_EQ(foundId, gameId);
 }
@@ -253,7 +250,7 @@ TEST(Game, LookupSingleGameByTag) {
 
     ASSERT_TRUE(nbl::lookupGames(
         &connection, criteria, 
-        [](void* userData, const nbl::GameLookupResult& res) -> nbl::Result {
+        [&](const nbl::GameLookupResult& res) -> nbl::Result {
 
         if(res.title == "Test Game" 
         && res.poster == "poster.jpg" 
@@ -261,10 +258,10 @@ TEST(Game, LookupSingleGameByTag) {
         && res.releaseDate == 1600000000 
         && res.rating == 4.5) {
 
-            *static_cast<i64*>(userData) = res.id;
+            foundId = res.id;
         }
         return nbl::Result::SUCCESS;
-    }, &foundId).success());
+    }).success());
 
     ASSERT_EQ(foundId, gameId);
 

@@ -19,17 +19,12 @@
 
 namespace {
 
-struct _CallbackData {
-    void* userData;
-    nbl::DatabaseCallback callback;
-};
-
 int _databaseCallback(void* userData, int argc, char** argv, char** colNames) {
 
     i64 lastInsertRowId = sqlite3_last_insert_rowid(reinterpret_cast<sqlite3*>(userData));
 
-    _CallbackData* data = static_cast<_CallbackData*>(userData);
-    nbl::Result res = data->callback(data->userData, argc, const_cast<const char**>(argv), const_cast<const char**>(colNames), lastInsertRowId);
+    nbl::DatabaseCallback* callback = static_cast<nbl::DatabaseCallback*>(userData);
+    nbl::Result res = (*callback)(argc, const_cast<const char**>(argv), const_cast<const char**>(colNames), lastInsertRowId);
     if(!res.success()) {
         return -1;
     }
@@ -163,15 +158,30 @@ nbl::Result nbl::DatabaseConnection::prepare(nbl::StringView query, PreparedStat
 }
 
 
-nbl::Result nbl::DatabaseConnection::execute(nbl::StringView query, DatabaseCallback callback, void* userData) {
 
-    _CallbackData callbackData{ userData, callback };
+nbl::Result nbl::DatabaseConnection::execute(nbl::StringView query) {
 
     int rc = sqlite3_exec(
         reinterpret_cast<sqlite3*>(_pHandle), 
         query.data, 
-        callback ? _databaseCallback : nullptr, 
-        callback ? &callbackData : nullptr, 
+        nullptr,
+        nullptr,
+        nullptr);
+
+    if(rc != SQLITE_OK) {
+        nbl::log(nbl::LogLevel::ERROR, "Database execution error: ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
+        return nbl::error::IO_ERROR;
+    }
+    return nbl::Result::SUCCESS;
+}
+
+nbl::Result nbl::DatabaseConnection::execute(nbl::StringView query, DatabaseCallback callback) {
+
+    int rc = sqlite3_exec(
+        reinterpret_cast<sqlite3*>(_pHandle), 
+        query.data, 
+        _databaseCallback, 
+        &callback, 
         nullptr);
 
     if(rc != SQLITE_OK) {
@@ -182,7 +192,7 @@ nbl::Result nbl::DatabaseConnection::execute(nbl::StringView query, DatabaseCall
 }
 
 
-nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedDatabaseCallback callback, void* userData, i64* lastInsertRowId) {
+nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, i64* lastInsertRowId) {
 
     if(!query->isValid(this)) {
         nbl::log(nbl::LogLevel::ERROR, "Invalid prepared statement for this connection");
@@ -203,12 +213,43 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
 #endif
 
     int rc;
-    i64 lastId = 0;
-    while((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+    while((rc = sqlite3_step(stmt)) == SQLITE_ROW) { }
+    if(rc != SQLITE_DONE) {
+        nbl::log(nbl::LogLevel::ERROR, "Database execution error: (", rc, ") ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
+        return nbl::error::IO_ERROR;
+    }
 
-        if(!callback) {
-            continue;
-        }
+    if(lastInsertRowId) {
+        *lastInsertRowId = sqlite3_last_insert_rowid(reinterpret_cast<sqlite3*>(_pHandle));
+    }
+
+    NBL_CHECK(query->reset());
+    return nbl::Result::SUCCESS;
+}
+
+
+nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedDatabaseCallback callback, i64* lastInsertRowId) {
+
+    if(!query->isValid(this)) {
+        nbl::log(nbl::LogLevel::ERROR, "Invalid prepared statement for this connection");
+        return nbl::error::ILLEGAL_STATE;
+    }
+
+    sqlite3_stmt* stmt = reinterpret_cast<sqlite3_stmt*>(query->_pHandle);
+    
+#ifndef NDEBUG
+
+    char* stmtStr = sqlite3_expanded_sql(stmt);
+    StringView stmtView = stmtStr;
+
+    nbl::log(nbl::LogLevel::DEBUG, "Running SQL: ", stmtView);
+
+    sqlite3_free(stmtStr);
+
+#endif
+
+    int rc;
+    while((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
 
         const char** columnNames = nullptr;
         DataValue* columnValues = nullptr;
@@ -253,7 +294,6 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
         }
         
         NBL_CHECK(callback(
-                userData, 
                 columns,
                 columnValues, 
                 columnNames, 
@@ -281,7 +321,7 @@ nbl::Result nbl::DatabaseConnection::beginTransaction() {
     if(!stmt.isValid(this)) {
         NBL_CHECK(prepare("BEGIN TRANSACTION;", &stmt));
     }
-    NBL_CHECK(execute(&stmt, nullptr, nullptr));
+    NBL_CHECK(execute(&stmt));
     _bInTransaction = true;
     return nbl::Result::SUCCESS;
 }
@@ -293,7 +333,7 @@ nbl::Result nbl::DatabaseConnection::commitTransaction() {
     if(!stmt.isValid(this)) {
         NBL_CHECK(prepare("COMMIT;", &stmt));
     }
-    NBL_CHECK(execute(&stmt, nullptr, nullptr));
+    NBL_CHECK(execute(&stmt));
     _bInTransaction = false;
     return nbl::Result::SUCCESS;
 }
@@ -306,7 +346,7 @@ nbl::Result nbl::DatabaseConnection::rollbackTransaction() {
     if(!stmt.isValid(this)) {
         NBL_CHECK(prepare("ROLLBACK;", &stmt));
     }
-    return execute(&stmt, nullptr, nullptr);
+    return execute(&stmt);
     _bInTransaction = false;
     return nbl::Result::SUCCESS;
 }
@@ -315,7 +355,7 @@ nbl::Result nbl::DatabaseConnection::doTransaction(nbl::Span<PreparedStatement*>
 
     NBL_CHECK(beginTransaction());
     for(PreparedStatement* stmt : statements) {
-        NBL_CHECK(execute(stmt, nullptr, nullptr, lastInsertRowId));
+        NBL_CHECK(execute(stmt, lastInsertRowId));
     }
     return commitTransaction();
 }
@@ -366,6 +406,16 @@ nbl::Result nbl::DatabaseConnection::openInMemory(DatabaseConnection* outConnect
         nbl::log(nbl::LogLevel::ERROR, "Failed to open database: ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(outConnection->_pHandle)));
         return nbl::error::IO_ERROR;
     }
+
+    sqlite3_create_function(
+            static_cast<sqlite3*>(outConnection->_pHandle),
+            "nbl_str_distance",
+            2,
+            SQLITE_UTF8,
+            nullptr,
+            _strDistance,
+            nullptr,
+            nullptr);
 
     return nbl::Result::SUCCESS;
 }

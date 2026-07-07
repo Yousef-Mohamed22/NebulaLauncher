@@ -36,7 +36,7 @@ VALUES (?1, ?2, ?3, ?4, ?5, 0, 0, 0, ?6, ?7);
         NBL_CHECK(_addInstallationStmt.bindUint(7, meta.displayId));
     }
 
-    return connection->execute(&_addInstallationStmt, nullptr, nullptr, outInstallationId);
+    return connection->execute(&_addInstallationStmt, outInstallationId);
 }
 
 
@@ -50,7 +50,7 @@ DELETE FROM installation WHERE iId = ?1;
     }
 
     NBL_CHECK(_removeInstallationStmt.bindUint(1, installationId));
-    return connection->execute(&_removeInstallationStmt, nullptr, nullptr);
+    return connection->execute(&_removeInstallationStmt);
 }
 
 nbl::Result nbl::updateInstallation(DatabaseConnection* connection, const InstallationMeta& meta) {
@@ -74,11 +74,11 @@ UPDATE installation SET title=?1, description=?2, type=?3, command=?4, gId=?5, d
     }
     NBL_CHECK(_updateInstallationStmt.bindUint(7, meta.id));
 
-    return connection->execute(&_updateInstallationStmt, nullptr, nullptr);
+    return connection->execute(&_updateInstallationStmt);
 }
 
 
-nbl::Result nbl::getInstallationMeta(DatabaseConnection* connection, i64 installationid, InstallationMetaCallback callback, void* userData) {
+nbl::Result nbl::getInstallationMeta(DatabaseConnection* connection, i64 installationid, InstallationMetaCallback callback) {
 
     static PreparedStatement _getInstallationMetaStmt;
     if(!_getInstallationMetaStmt.isValid(connection)) {
@@ -91,14 +91,8 @@ WHERE iId = ?1;
 
     NBL_CHECK(_getInstallationMetaStmt.bindInt(1, installationid));
 
-    struct _InstallationMetaQueryData {
-        InstallationMetaCallback callback;
-        void* userData;
-    } queryData { callback, userData };
 
-    return connection->execute(&_getInstallationMetaStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        _InstallationMetaQueryData* data = static_cast<_InstallationMetaQueryData*>(userData);
+    return connection->execute(&_getInstallationMetaStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         InstallationMeta meta = {
             .id = columnValues[0].intValue,
@@ -112,14 +106,14 @@ WHERE iId = ?1;
             .added = columnValues[8].uintValue()
         };
 
-        return data->callback(data->userData, meta);
+        return callback(meta);
 
-    }, &queryData);
+    });
 
 }
 
 
-nbl::Result nbl::getInstallationDetails(DatabaseConnection* connection, i64 installationId, InstallationDetailsCallback callback, void* userData) {
+nbl::Result nbl::getInstallationDetails(DatabaseConnection* connection, i64 installationId, InstallationDetailsCallback callback) {
 
     static nbl::PreparedStatement _getInstallationDetailsStmt;
     if(!_getInstallationDetailsStmt.isValid(connection)) {
@@ -143,19 +137,12 @@ WHERE installation.iId = ?1;
 
     NBL_CHECK(_getInstallationDetailsStmt.bindUint(1, installationId));
 
-    struct _InstallationDetailsQueryData {
-        InstallationDetailsCallback callback;
-        void* userData;
-    } queryData{ callback, userData };
-
-    return connection->execute(&_getInstallationDetailsStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_getInstallationDetailsStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 28) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 28 columns in installation meta query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
-
-        _InstallationDetailsQueryData* queryData = static_cast<_InstallationDetailsQueryData*>(userData);
 
         InstallationDetails details = {
             .installation = {
@@ -197,16 +184,15 @@ WHERE installation.iId = ?1;
                 .logoPosition = static_cast<LogoPosition>(columnValues[27].intValue)
             }
         };
-        return queryData->callback(queryData->userData, details);
+        return callback(details);
 
-    }, &queryData);
+    });
 }
 
 nbl::Result nbl::lookupInstallations(
         DatabaseConnection* connection, 
         const InstallationSearchCriteria& criteria,
-        InstallationLookupCallback callback,
-        void* userData) {
+        InstallationLookupCallback callback) {
 
     
     ArenaFrame frame(Arena::threadLocal());
@@ -385,14 +371,7 @@ OFFSET ?10;
     NBL_CHECK(lookupInstallationsStmt.bindUint(10, criteria.offset));
     NBL_CHECK(lookupInstallationsStmt.bindUint(11, criteria.limit == 0 ? 10 : criteria.limit));
 
-
-    struct _InstallationQueryData {
-        InstallationLookupCallback callback;
-        void* userData;
-    } queryData{ callback, userData };
-
-    NBL_CHECK(connection->execute(&lookupInstallationsStmt, [](
-        void* userData, 
+    NBL_CHECK(connection->execute(&lookupInstallationsStmt, [&](
         i32 columnCount, 
         DataValue* columnValues, 
         const char** columnNames, 
@@ -401,9 +380,6 @@ OFFSET ?10;
         if(columnCount < 12) {
             return nbl::error::IO_ERROR;
         }
-
-        _InstallationQueryData* queryData = static_cast<_InstallationQueryData*>(userData);
-
         InstallationLookupResult res = {
             .installationId = columnValues[0].intValue,
             .displayId = columnValues[1].intValue,
@@ -419,11 +395,10 @@ OFFSET ?10;
             .rating = columnValues[11].floatValue
         };
 
-        return queryData->callback(
-            queryData->userData,
+        return callback(
             res
         );
-    }, &queryData));
+    }));
 
     return nbl::Result::SUCCESS;
 }
@@ -441,7 +416,7 @@ INSERT INTO installation_tag (iId, tId) VALUES (?1, (SELECT tId FROM tag WHERE n
     NBL_CHECK(_addTagStmt.bindInt(1, installationId));
     NBL_CHECK(_addTagStmt.bindString(2, tag));
 
-    return connection->execute(&_addTagStmt, nullptr, nullptr);
+    return connection->execute(&_addTagStmt);
 }
 
 nbl::Result nbl::removeInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag) {
@@ -456,7 +431,7 @@ DELETE FROM installation_tag WHERE iId = ?1 AND tId = (SELECT tId FROM tag WHERE
     NBL_CHECK(_removeTagStmt.bindInt(1, installationId));
     NBL_CHECK(_removeTagStmt.bindString(2, tag));
 
-    return connection->execute(&_removeTagStmt, nullptr, nullptr);
+    return connection->execute(&_removeTagStmt);
 
 }
 
@@ -481,20 +456,19 @@ WHERE descendantId IN (SELECT tId FROM installation_tag WHERE iId = ?1)
 
     NBL_CHECK(_countInstallationTagsStmt.bindInt(1, installationId));
 
-    return connection->execute(&_countInstallationTagsStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_countInstallationTagsStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount == 0) return nbl::error::IO_ERROR;
 
-        *static_cast<u64*>(userData) = columnValues[0].uintValue();
-
+        *outCount = columnValues[0].uintValue();
         return nbl::Result::SUCCESS;
-    }, outCount);
+    });
 
 
 }
 
 
-nbl::Result nbl::getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback, void* userData) {
+nbl::Result nbl::getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback) {
 
     static nbl::PreparedStatement _getInstallationTagsStmt;
     if(!_getInstallationTagsStmt.isValid(connection)) {
@@ -518,13 +492,7 @@ LIMIT ?2 OFFSET ?3;
     NBL_CHECK(_getInstallationTagsStmt.bindUint(2, limit));
     NBL_CHECK(_getInstallationTagsStmt.bindUint(3, offset));
 
-    struct _QueryData {
-        nbl::TagCallback callback;
-        void* userData;
-    };
-    _QueryData queryData{callback, userData};
-
-    return connection->execute(&_getInstallationTagsStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_getInstallationTagsStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 2) {
             return nbl::error::IO_ERROR;
@@ -532,12 +500,11 @@ LIMIT ?2 OFFSET ?3;
         if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
             return nbl::error::IO_ERROR;
         }
-        _QueryData* data = static_cast<_QueryData*>(userData);
-        return data->callback(data->userData, columnValues[0].textValue, columnValues[1].intValue);
-    }, &queryData);
+        return callback(columnValues[0].textValue, columnValues[1].intValue);
+    });
 }
 
-nbl::Result nbl::getDirectInstallationTags(DatabaseConnection* connection, i64 installationId, TagCallback callback, void* userData) {
+nbl::Result nbl::getDirectInstallationTags(DatabaseConnection* connection, i64 installationId, TagCallback callback) {
 
     static nbl::PreparedStatement _getDirectInstallationTagsStmt;
     if(!_getDirectInstallationTagsStmt.isValid(connection)) {
@@ -552,13 +519,7 @@ WHERE installation_tag.iId = ?1;
 
     NBL_CHECK(_getDirectInstallationTagsStmt.bindInt(1, installationId));
 
-    struct _QueryData {
-        nbl::TagCallback callback;
-        void* userData;
-    };
-    _QueryData queryData{callback, userData};
-
-    return connection->execute(&_getDirectInstallationTagsStmt, [](void* userData, i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_getDirectInstallationTagsStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 2) {
             return nbl::error::IO_ERROR;
@@ -566,9 +527,8 @@ WHERE installation_tag.iId = ?1;
         if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
             return nbl::error::IO_ERROR;
         }
-        _QueryData* data = static_cast<_QueryData*>(userData);
-        return data->callback(data->userData, columnValues[0].textValue, columnValues[1].intValue);
-    }, &queryData);
+        return callback(columnValues[0].textValue, columnValues[1].intValue);
+    });
 
 }
 
@@ -588,7 +548,7 @@ WHERE iId = ?2;
     NBL_CHECK(_markInstallationJustPlayedStmt.bindUint(1, nbl::getCurrentTime()));
     NBL_CHECK(_markInstallationJustPlayedStmt.bindUint(2, installationId));
 
-    return connection->execute(&_markInstallationJustPlayedStmt, nullptr, nullptr);
+    return connection->execute(&_markInstallationJustPlayedStmt);
 }
 
 nbl::Result nbl::bumpInstallationPlayTime(DatabaseConnection* connection, i64 installationId, u64 playTime) {
@@ -605,6 +565,6 @@ WHERE iId = ?2;
     NBL_CHECK(_incrementInstallationPlayTimeStmt.bindUint(1, playTime));
     NBL_CHECK(_incrementInstallationPlayTimeStmt.bindUint(2, installationId));
 
-    return connection->execute(&_incrementInstallationPlayTimeStmt, nullptr, nullptr);
+    return connection->execute(&_incrementInstallationPlayTimeStmt);
 
 }

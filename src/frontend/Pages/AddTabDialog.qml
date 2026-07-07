@@ -10,7 +10,20 @@ NblDialog {
     
     id: root
 
-    showApplyButton: false
+    property int tabId: 0
+
+    showApplyButton: tabId != 0
+
+    onTabIdChanged: {
+        if(tabId == 0) return
+        let encoded = ApplicationContext.getTabMeta(tabId)
+
+        nameInput.text = encoded.name
+        iconPicker.icon = encoded.icon
+        iconPicker.colorize = encoded.colorizeIcon
+        hiddenBox.checked = encoded.hidden
+        filterList.initialItems = encoded.filters
+    }
 
     function encode() {
 
@@ -21,6 +34,7 @@ NblDialog {
         }
 
         return {
+            id: tabId,
             name: nameInput.text,
             icon: iconPicker.icon,
             colorizeIcon: iconPicker.colorize,

@@ -69,12 +69,12 @@ TEST(Installation, GetInstallationMeta) {
     ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
 
     bool found = false;
-    ASSERT_TRUE(nbl::getInstallationDetails(&connection, _installMeta.id, [](void* userData, const nbl::InstallationDetails& details) -> nbl::Result {
+    ASSERT_TRUE(nbl::getInstallationDetails(&connection, _installMeta.id, [&](const nbl::InstallationDetails& details) -> nbl::Result {
         if(details.installation.command == "C:/Games/Test Game" && details.game.title == "Test Game") {
-            *static_cast<bool*>(userData) = true;
+            found = true;
         }
         return nbl::Result::SUCCESS;
-    }, &found).success());
+    }).success());
 
     ASSERT_TRUE(found);
 }

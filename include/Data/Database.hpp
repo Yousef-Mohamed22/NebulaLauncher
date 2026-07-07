@@ -14,6 +14,7 @@
 #include <Core/Span.hpp>
 #include <Codec/Json.hpp>
 #include <Platform/Logging.hpp>
+#include <functional>
 
 namespace nbl {
 
@@ -58,12 +59,12 @@ struct DataValue {
 /**
  * A callback called with untyped data from the database. The values might be numbers or null, but have all been cast to strings. 
  */
-typedef Result (*DatabaseCallback)(void* userData, i32 columnCount, const char** values, const char** columnNames, i64 lastInsertRowId);
+typedef std::function_ref<Result(i32,const char**,const char**,i64)> DatabaseCallback;
 
 /**
  * A callback called with typed data from the database.
  */
-typedef Result (*TypedDatabaseCallback)(void* userData, i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId);
+typedef std::function_ref<Result(i32,DataValue*,const char**,i64)> TypedDatabaseCallback; 
 
 
 class DatabaseConnection;
@@ -185,23 +186,37 @@ public:
      */
     Result prepare(StringView query, PreparedStatement* outStatement);
 
+
     /**
      * \brief Parses and executes an unprepeared SQL query
      * \param query The SQL query to parse and execute
-     * \param callback The function to call for each row of the query's output. May be nullptr
-     * \param userData The user data which will be passed into the callback function. May be nullptr
      * \return The result of the prepare operation
      */
-    Result execute(StringView query, DatabaseCallback callback, void* userData);
+    Result execute(StringView query);
+
+    /**
+     * \brief Parses and executes an unprepeared SQL query
+     * \param query The SQL query to parse and execute
+     * \param callback The function to call for each row of the query's output. 
+     * \return The result of the prepare operation
+     */
+    Result execute(StringView query, DatabaseCallback callback);
+
 
     /**
      * \brief Executes an prepeared SQL query
      * \param query The SQL query to execute
-     * \param callback The function to call for each row of the query's output. May be nullptr
-     * \param userData The user data which will be passed into the callback function. May be nullptr
      * \return The result of the prepare operation
      */
-    Result execute(PreparedStatement* query, TypedDatabaseCallback callback, void* userData, i64* lastInsertRowId = nullptr);
+    Result execute(PreparedStatement* query, i64* lastInsertRowId = nullptr);
+
+    /**
+     * \brief Executes an prepeared SQL query
+     * \param query The SQL query to execute
+     * \param callback The function to call for each row of the query's output
+     * \return The result of the prepare operation
+     */
+    Result execute(PreparedStatement* query, TypedDatabaseCallback callback, i64* lastInsertRowId = nullptr);
 
     /**
      * \brief Begins a new transaction. No changes will be committed until commitTransaction() is called

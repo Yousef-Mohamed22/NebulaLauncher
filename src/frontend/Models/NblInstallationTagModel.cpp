@@ -64,11 +64,11 @@ void NblInstallationTagModel::_fetchPageData() {
     
     QList<NblTagRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::getInstallationTags(db, _mInstallationId, offset, limit, [](void* userData,  nbl::StringView name, u32 color) -> nbl::Result {
+    if(nbl::getInstallationTags(db, _mInstallationId, offset, limit, [&](nbl::StringView name, u32 color) -> nbl::Result {
         NblTagRef ref(QString::fromUtf8(name.data, name.length), QColor::fromRgb(color)); 
-        static_cast<QList<NblTagRef>*>(userData)->append(ref);
+        found.append(ref);
         return nbl::Result::SUCCESS;
-    }, &found).error()) {
+    }).error()) {
         nbl::log(nbl::LogLevel::ERROR, "An error occurred while loading tags!");
         _mAllLoaded = true;
         _mIsLoading = false;

@@ -10,6 +10,7 @@
 
 #include <Data/Database.hpp>
 #include <Codec/Json.hpp>
+#include <functional>
 
 namespace nbl {
 
@@ -94,7 +95,7 @@ Result initDatabase(DatabaseConnection* connection);
  * \param tagColor The color of the tag being processed, represented as a 32-bit unsigned integer (e.g., 0xRRGGBBAA)
  * \return A Result indicating success or failure of the callback operation. If the callback returns a failure Result, the traversal will be aborted.
  */
-typedef Result (*TagCallback)(void* userData, StringView tagName, u32 tagColor);
+typedef std::function<Result(StringView,u32)> TagCallback; //Result (*TagCallback)(void* userData, StringView tagName, u32 tagColor);
 
 /**
  * \brief Retrieves the descendant tags of a given tag and invokes a callback for each descendant
@@ -104,7 +105,7 @@ typedef Result (*TagCallback)(void* userData, StringView tagName, u32 tagColor);
  * \param userData A pointer to user-defined data that will be passed to the callback function
  * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, the traversal will be aborted and this function will return that failure Result.
  */
-Result descendants(DatabaseConnection* connection, StringView tag, TagCallback callback, void* userData);
+Result descendants(DatabaseConnection* connection, StringView tag, TagCallback callback);
 
 /**
  * \brief Retrieves the ancestor tags of a given tag and invokes a callback for each ancestor
@@ -114,7 +115,7 @@ Result descendants(DatabaseConnection* connection, StringView tag, TagCallback c
  * \param userData A pointer to user-defined data that will be passed to the callback function
  * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, the traversal will be aborted and this function will return that failure Result.
  */
-Result ancestors(DatabaseConnection* connection, StringView tag, TagCallback callback, void* userData);
+Result ancestors(DatabaseConnection* connection, StringView tag, TagCallback callback);
 
 /**
  * \brief Adds a tag to the database with the specified name and color
@@ -172,12 +173,12 @@ Result renameTag(DatabaseConnection* connection, StringView oldName, StringView 
 /**
  * \brief Enumerates all tags in the database
  */
-Result enumerateTags(DatabaseConnection* connection, u32 limit, u32 offset, TagCallback callback, void* userData);
+Result enumerateTags(DatabaseConnection* connection, u32 limit, u32 offset, TagCallback callback);
 
 /**
  * \brief Searches for tags in the database by name
  */
-Result searchTags(DatabaseConnection* connection, StringView query, u32 limit, u32 offset, TagCallback callback,  void* userData);
+Result searchTags(DatabaseConnection* connection, StringView query, u32 limit, u32 offset, TagCallback callback);
 
 
 //
@@ -192,7 +193,7 @@ struct DisplayMeta {
     LogoPosition logoPosition;
 };
 
-typedef Result (*DisplayCallback)(void* userData, const DisplayMeta& meta);
+typedef std::function_ref<Result(const DisplayMeta& meta)> DisplayCallback; 
 
 
 Result addDisplay(DatabaseConnection* connection, const DisplayMeta& meta, i64* outDisplayId);
@@ -253,9 +254,9 @@ struct GameSearchCriteria {
  * \param meta A GameMeta struct containing the metadata of the game being processed
  * \return A Result indicating success or failure of the callback operation. If the callback returns a failure Result, the lookup will be aborted.
  */
-typedef Result (*GameMetaCallback)(void* userData, const GameMeta& meta);
-typedef Result (*GameDetailsCallback)(void* userData, const GameDetails& meta);
-typedef Result (*GameLookupCallback)(void* userData, const GameLookupResult& meta);
+typedef std::function_ref<Result(const GameMeta&)> GameMetaCallback;
+typedef std::function_ref<Result(const GameDetails&)> GameDetailsCallback;
+typedef std::function_ref<Result(const GameLookupResult&)> GameLookupCallback;
 
 /**
  * \brief Adds a game to the database with the specified information
@@ -300,35 +301,31 @@ Result removeGameTag(DatabaseConnection* connection, i64 gameId, StringView tag)
  * \param connection The database connection to use for the query
  * \param gameId The ID of the game whose tags are to be retrieved
  * \param callback The callback function to invoke for each tag found
- * \param userData A pointer to user-defined data that will be passed to the callback function
  */
-Result getGameTags(DatabaseConnection* connection, i64 gameId, TagCallback callback, void* userData);
+Result getGameTags(DatabaseConnection* connection, i64 gameId, TagCallback callback);
 
 /**
  * \brief Retrieves the metadata of a game by its ID and invokes a callback with the game's information
  * \param connection The database connection to use for the query
  * \param gameId The ID of the game whose metadata is to be retrieved
  * \param callback The callback function to invoke with the game's metadata
- * \param userData A pointer to user-defined data that will be passed to the callback function
  * \return A Result indicating success or failure of the operation.
  */
-Result getGameMeta(DatabaseConnection* connection, i64 gameId, GameMetaCallback callback, void* userData);
+Result getGameMeta(DatabaseConnection* connection, i64 gameId, GameMetaCallback callback);
 
-Result getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCallback callback, void* userData);
+Result getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCallback callback);
 
 /**
  * \brief Looks up games in the database that match the specified criteria and invokes a callback for each matching game
  * \param connection The database connection to use for the query
  * \param criteria A GameSearchCriteria struct containing the criteria for filtering and sorting the games to be retrieved
  * \param callback The callback function to invoke for each matching game found
- * \param userData A pointer to user-defined data that will be passed to the callback function
  * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, the lookup will be aborted and this function will return that failure Result.
  */
 Result lookupGames(
         DatabaseConnection* connection, 
         const GameSearchCriteria& criteria,
-        GameLookupCallback callback,
-        void* userData);
+        GameLookupCallback callback);
 
 
 //
@@ -396,11 +393,9 @@ struct InstallationSearchCriteria {
  * \param userData A pointer to user-defined data that will be passed to the callback
  * \return A Result indicating success or failure of the callback operation. If the callback returns a failure Result, the lookup will be aborted.
  */
-typedef Result (*InstallationLookupCallback)(void* userData, const InstallationLookupResult& result);
-
-typedef Result (*InstallationDetailsCallback)(void* userData, const InstallationDetails& details);
-
-typedef Result (*InstallationMetaCallback)(void* userData, const InstallationMeta& meta);
+typedef std::function_ref<Result(const InstallationLookupResult& result)> InstallationLookupCallback;
+typedef std::function_ref<Result(const InstallationDetails& details)> InstallationDetailsCallback;
+typedef std::function_ref<Result(const InstallationMeta& meta)> InstallationMetaCallback;
 
 /**
  * \brief Adds an installation of a game to the database with the specified information
@@ -427,7 +422,7 @@ Result removeInstallation(DatabaseConnection* connection, i64 installationId);
  * \param callback The callback function to invoke with the installation's metadata. 
  * \return A Result indicating success or failure of the operation.
  */
-Result getInstallationMeta(DatabaseConnection* connection, i64 installationId, InstallationMetaCallback callback, void* userData);
+Result getInstallationMeta(DatabaseConnection* connection, i64 installationId, InstallationMetaCallback callback);
 
 /**
  * \brief Retrieves all the details about an installation by its ID
@@ -436,7 +431,7 @@ Result getInstallationMeta(DatabaseConnection* connection, i64 installationId, I
  * \param callback The callback function to invoke with the installation's details. 
  * \return A Result indicating success or failure of the operation.
  */
-Result getInstallationDetails(DatabaseConnection* connection, i64 installationId, InstallationDetailsCallback callback, void* userData);
+Result getInstallationDetails(DatabaseConnection* connection, i64 installationId, InstallationDetailsCallback callback);
 
 Result updateInstallation(DatabaseConnection* connection, const InstallationMeta& meta);
 
@@ -444,8 +439,8 @@ Result addInstallationTag(DatabaseConnection* connection, i64 installationId, St
 Result removeInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag);
 
 Result countInstallationTags(DatabaseConnection* connection, i64 installationId, u64* outCount);
-Result getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback, void* userData);
-Result getDirectInstallationTags(DatabaseConnection* connection, i64 installationId, TagCallback callback, void* userData);
+Result getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback);
+Result getDirectInstallationTags(DatabaseConnection* connection, i64 installationId, TagCallback callback);
 
 /**
  * \brief Looks up installations in the database that match the specified criteria and invokes a callback for each matching installation
@@ -458,8 +453,7 @@ Result getDirectInstallationTags(DatabaseConnection* connection, i64 installatio
 Result lookupInstallations(
         DatabaseConnection* connection, 
         const InstallationSearchCriteria& criteria,
-        InstallationLookupCallback callback,
-        void* userData); 
+        InstallationLookupCallback callback); 
 
 
 /**
@@ -495,7 +489,8 @@ struct FilterMeta {
     InstallationSearchCriteria criteria;
 };
 
-typedef Result (*FilterCallback)(void* userData, const FilterMeta& meta);
+typedef std::function_ref<Result(const FilterMeta&)> FilterCallback;
+typedef std::function_ref<Result(const InstallationSearchCriteria&)> FilterCriteriaCallback;
 
 Result countFilters(DatabaseConnection* connection, u64* numFilters);
 
@@ -503,14 +498,15 @@ Result addFilter(DatabaseConnection* connection, const FilterMeta& meta, i64* ou
 
 Result removeFilter(DatabaseConnection* connection, i64 filterId);
 
-Result getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback callback, void* userData);
+Result getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback callback);
 
 Result setFilterCriteria(DatabaseConnection* connection, i64 filterId, const InstallationSearchCriteria& criteria);
 
 Result updateFilter(DatabaseConnection* connection, const FilterMeta& meta);
 
-Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, InstallationLookupCallback callback, u64 offset, u64 limit, void* userData);
+Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, u64 offset, u64 limit, InstallationLookupCallback callback);
 
+Result getFilterCriteria(DatabaseConnection* connection, i64 filterId, FilterCriteriaCallback callback);
 
 //
 // Tabs
@@ -523,7 +519,7 @@ struct TabMeta {
     bool hidden;
 };
 
-typedef Result (*TabCallback)(void* userData, const TabMeta& meta);
+typedef std::function_ref<Result(const TabMeta&)> TabCallback;
 
 Result countTabs(DatabaseConnection* connection, u64* numTabs);
 
@@ -533,15 +529,11 @@ Result updateTab(DatabaseConnection* connection, const TabMeta& meta);
 
 Result removeTab(DatabaseConnection* connection, i64 tabId);
 
-Result enumerateTabs(DatabaseConnection* connection, TabCallback callback, void* userData);
+Result enumerateTabs(DatabaseConnection* connection, TabCallback callback);
 
-//Result addFilterToTab(DatabaseConnection* connection, i64 tabId, i64 filterId, i64 priority);
+Result getTabMeta(DatabaseConnection* connection, i64 tabId, TabCallback callback);
 
-//Result removeFilterFromTab(DatabaseConnection* connection, i64 tabId, i64 filterId);
-
-Result getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback, void* userData);
-
-
+Result getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback);
 
 }
 

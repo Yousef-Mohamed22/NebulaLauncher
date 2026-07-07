@@ -18,14 +18,14 @@ SELECT COUNT(tId) FROM tab;
         )", &_countFiltersStmt));
     }
 
-    return connection->execute(&_countFiltersStmt, [](void* userData, i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_countFiltersStmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount == 0) return nbl::error::IO_ERROR;
 
-        *static_cast<u64*>(userData) = values[0].uintValue();
+        *numTabs = values[0].uintValue();
         return nbl::Result::SUCCESS;
 
-    }, numTabs);
+    });
 
 }
 
@@ -43,7 +43,7 @@ INSERT INTO tab (name, icon, colorizeIcon, hidden) VALUES (?1, ?2, ?3, ?4);
     NBL_CHECK(_addTabStmt.bindInt(3, meta.colorizeIcon ? 1 : 0));
     NBL_CHECK(_addTabStmt.bindInt(4, meta.hidden ? 1 : 0));
 
-    return connection->execute(&_addTabStmt, nullptr, nullptr, outTabId);
+    return connection->execute(&_addTabStmt, outTabId);
 }
 
 nbl::Result nbl::updateTab(DatabaseConnection* connection, const TabMeta& meta) {
@@ -61,7 +61,7 @@ UPDATE tab SET name=?1, icon=?2, colorizeIcon=?3, hidden=?4 WHERE tabId=?5;
     NBL_CHECK(_updateTabStmt.bindInt(4, meta.hidden ? 1 : 0));
     NBL_CHECK(_updateTabStmt.bindInt(5, meta.tabId));
 
-    return connection->execute(&_updateTabStmt, nullptr, nullptr, nullptr);
+    return connection->execute(&_updateTabStmt);
 }
 
 
@@ -76,10 +76,10 @@ DELETE FROM tab WHERE tabId = ?1;
     }
 
     NBL_CHECK(_removeTabStmt.bindUint(1, tabId));
-    return connection->execute(&_removeTabStmt, nullptr, nullptr);
+    return connection->execute(&_removeTabStmt);
 }
 
-nbl::Result nbl::enumerateTabs(DatabaseConnection* connection, TabCallback callback, void* userData) {
+nbl::Result nbl::enumerateTabs(DatabaseConnection* connection, TabCallback callback) {
 
     static nbl::PreparedStatement _enumerateTabsStmt;
     if(!_enumerateTabsStmt.isValid(connection)) {
@@ -88,22 +88,15 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab;
         )", &_enumerateTabsStmt));
     }
 
-    struct _EnumerateTabsQueryData {
-        TabCallback callback;
-        void* userData;
-    } queryData{ callback, userData };
-
-    return connection->execute(&_enumerateTabsStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_enumerateTabsStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 5) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in enumerate tabs query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
 
-        _EnumerateTabsQueryData* queryData = static_cast<_EnumerateTabsQueryData*>(userData);
-    
-        return queryData->callback(
-            queryData->userData,
+
+        return callback(
             TabMeta {
                 .tabId = columnValues[0].intValue,
                 .name = columnValues[1].textValue,
@@ -112,11 +105,41 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab;
                 .hidden = columnValues[4].intValue != 0
             }
         );
-    }, &queryData);
+    });
 
 }
 
-nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback, void* userData) {
+nbl::Result nbl::getTabMeta(DatabaseConnection* connection, i64 tabId, TabCallback callback) {
+
+    static nbl::PreparedStatement _getTabStmt;
+    if(!_getTabStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT tabId, name, icon, colorizeIcon, hidden FROM tab WHERE tabId=?1;
+        )", &_getTabStmt));
+    }
+
+    _getTabStmt.bindInt(1, tabId);
+
+    return connection->execute(&_getTabStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount != 5) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in enumerate tabs query result, but got ", columnCount);
+            return nbl::error::IO_ERROR;
+        }
+
+        return callback( 
+            TabMeta {
+                .tabId = columnValues[0].intValue,
+                .name = columnValues[1].textValue,
+                .icon = columnValues[2].textValue,
+                .colorizeIcon = columnValues[3].intValue != 0,
+                .hidden = columnValues[4].intValue != 0
+            }
+        );
+    });
+}
+
+nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback) {
 
     static nbl::PreparedStatement _getFiltersForTabStmt;
     if(!_getFiltersForTabStmt.isValid(connection)) {
@@ -133,22 +156,14 @@ OFFSET ?3;
     NBL_CHECK(_getFiltersForTabStmt.bindInt(1, tabId));
     NBL_CHECK(_getFiltersForTabStmt.bindUint(2, limit));
     NBL_CHECK(_getFiltersForTabStmt.bindUint(3, offset));
-    
-    struct _GetFiltersForTabQueryData {
-        FilterCallback callback;
-        void* userData;
-    } queryData{ callback, userData };
 
-
-    return connection->execute(&_getFiltersForTabStmt, [](void* userData, i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_getFiltersForTabStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 7) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 7 columns in get filters for tab query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
 
-        _GetFiltersForTabQueryData* queryData = static_cast<_GetFiltersForTabQueryData*>(userData);
-    
         nbl::FilterMeta meta = {
             .filterId = columnValues[0].intValue, 
             .name = columnValues[1].textValue, 
@@ -160,10 +175,7 @@ OFFSET ?3;
             .criteria = {}
         };
 
-        return queryData->callback(
-            queryData->userData, 
-            meta
-        );
-    }, &queryData);
+        return callback(meta);
+    });
 
 }
