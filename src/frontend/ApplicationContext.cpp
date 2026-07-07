@@ -574,6 +574,21 @@ NblProcessHandle* ApplicationContext::getRunningInstallation(i64 installationId)
 }
 
 
+// Tabs
+int ApplicationContext::addTab(const QVariantMap& params) {
+
+    return 0;
+}
+int ApplicationContext::updateTab(int64_t id, const QVariantMap& params) {
+
+    return 0;
+}
+int ApplicationContext::deleteTab(int64_t id) { 
+
+    return nbl::removeTab(&_mConnection, id);
+}
+
+
 // Tags
 int ApplicationContext::addTag(QString name, QColor color) {
     QByteArray arr = name.toUtf8();

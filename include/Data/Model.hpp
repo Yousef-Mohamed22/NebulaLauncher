@@ -485,6 +485,7 @@ Result bumpInstallationPlayTime(DatabaseConnection* connection, i64 installation
 
 struct FilterMeta {
     i64 filterId;
+    i64 tabId;
     StringView name;
     StringView icon;
     bool colorizeIcon;
@@ -534,9 +535,9 @@ Result removeTab(DatabaseConnection* connection, i64 tabId);
 
 Result enumerateTabs(DatabaseConnection* connection, TabCallback callback, void* userData);
 
-Result addFilterToTab(DatabaseConnection* connection, i64 tabId, i64 filterId, i64 priority);
+//Result addFilterToTab(DatabaseConnection* connection, i64 tabId, i64 filterId, i64 priority);
 
-Result removeFilterFromTab(DatabaseConnection* connection, i64 tabId, i64 filterId);
+//Result removeFilterFromTab(DatabaseConnection* connection, i64 tabId, i64 filterId);
 
 Result getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback, void* userData);
 

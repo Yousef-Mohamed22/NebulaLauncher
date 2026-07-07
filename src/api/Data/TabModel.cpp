@@ -116,37 +116,6 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab;
 
 }
 
-nbl::Result nbl::addFilterToTab(DatabaseConnection* connection, i64 tabId, i64 filterId, i64 priority) {
-
-    static nbl::PreparedStatement _addFilterToTabStmt;
-    if(!_addFilterToTabStmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-INSERT INTO tab_filter (tabId, fId, priority) VALUES (?1, ?2, ?3);
-        )", &_addFilterToTabStmt));
-    }
-
-    NBL_CHECK(_addFilterToTabStmt.bindUint(1, tabId));
-    NBL_CHECK(_addFilterToTabStmt.bindUint(2, filterId));
-    NBL_CHECK(_addFilterToTabStmt.bindUint(3, priority));
-
-    return connection->execute(&_addFilterToTabStmt, nullptr, nullptr);
-}
-
-nbl::Result nbl::removeFilterFromTab(DatabaseConnection* connection, i64 tabId, i64 filterId) {
-
-    static nbl::PreparedStatement _removeFilterFromTabStmt;
-    if(!_removeFilterFromTabStmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-DELETE FROM tab_filter WHERE tabId = ?1 AND fId = ?2;
-        )", &_removeFilterFromTabStmt));
-    }
-
-    NBL_CHECK(_removeFilterFromTabStmt.bindUint(1, tabId));
-    NBL_CHECK(_removeFilterFromTabStmt.bindUint(2, filterId));
-
-    return connection->execute(&_removeFilterFromTabStmt, nullptr, nullptr);
-}
-
 nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback, void* userData) {
 
     static nbl::PreparedStatement _getFiltersForTabStmt;
@@ -154,9 +123,8 @@ nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64
         NBL_CHECK(connection->prepare(R"(
 SELECT filter.fId, filter.name, filter.icon, filter.colorizeIcon, filter.multiLine, filter.showTitles, filter.useIcons
 FROM filter
-JOIN tab_filter ON filter.fId = tab_filter.fId
-WHERE tab_filter.tabId = ?1
-ORDER BY tab_filter.priority DESC, filter.fId ASC
+WHERE filter.tabId = ?1
+ORDER BY filter.priority DESC, filter.fId ASC
 LIMIT ?2
 OFFSET ?3;
         )", &_getFiltersForTabStmt));

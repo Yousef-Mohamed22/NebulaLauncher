@@ -187,16 +187,6 @@ CREATE TABLE IF NOT EXISTS installation_tag (
     FOREIGN KEY(iId) REFERENCES installation(iId) ON DELETE CASCADE,
     FOREIGN KEY(tId) REFERENCES tag(tId) ON DELETE CASCADE
 );
-CREATE TABLE IF NOT EXISTS filter (
-    fId INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    icon TEXT NOT NULL,
-    colorizeIcon BOOLEAN DEFAULT 1,
-    criteria TEXT NOT NULL,
-    multiLine BOOLEAN NOT NULL DEFAULT 0,
-    useIcons BOOLEAN NOT NULL DEFAULT 0,
-    showTitles BOOLEAN NOT NULL DEFAULT 0
-);
 CREATE TABLE IF NOT EXISTS tab (
     tabId INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -204,13 +194,18 @@ CREATE TABLE IF NOT EXISTS tab (
     colorizeIcon BOOLEAN DEFAULT 1,
     hidden BOOLEAN NOT NULL DEFAULT 0
 );
-CREATE TABLE IF NOT EXISTS tab_filter (
+CREATE TABLE IF NOT EXISTS filter (
+    fId INTEGER PRIMARY KEY AUTOINCREMENT,
     tabId INTEGER NOT NULL,
-    fId INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    colorizeIcon BOOLEAN NOT NULL DEFAULT 1,
+    criteria TEXT NOT NULL,
+    multiLine BOOLEAN NOT NULL DEFAULT 0,
+    useIcons BOOLEAN NOT NULL DEFAULT 0,
+    showTitles BOOLEAN NOT NULL DEFAULT 0,
     priority INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY(tabId, fId),
-    FOREIGN KEY(tabId) REFERENCES tab(tabId) ON DELETE CASCADE,
-    FOREIGN KEY(fId) REFERENCES filter(fId) ON DELETE CASCADE
+    FOREIGN KEY(tabId) REFERENCES tab(tabId) ON DELETE CASCADE
 );
 
 -- Default Rows
@@ -220,16 +215,10 @@ VALUES
 (1,'Home','',0);
 
 INSERT INTO filter 
-(fId,name,icon,criteria,multiLine) 
+(fId,tabId,name,icon,criteria,multiLine,priority) 
 VALUES
-(1,'All Installations','󰊗','{"sortBy":"title","sortOrder":"ascending"}',1),
-(2,'Recently Played','','{"sortBy":"last_played","sortOrder":"descending"}',0);
-
-INSERT INTO tab_filter
-(tabId,fId,priority)
-VALUES
-(1,1,0),
-(1,2,1);
+(1,1,'All Installations','󰊗','{"sortBy":"title","sortOrder":"ascending"}',1,0),
+(2,1,'Recently Played','','{"sortBy":"last_played","sortOrder":"descending"}',0,1);
 
 PRAGMA user_version = 1;
 COMMIT;
