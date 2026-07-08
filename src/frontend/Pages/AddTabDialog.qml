@@ -21,7 +21,7 @@ NblDialog {
         let encoded = ApplicationContext.getTabMeta(tabId)
 
         nameInput.text = encoded.name
-        iconPicker.icon = encoded.icon
+        iconPicker.dbIcon = encoded.icon
         iconPicker.colorize = encoded.colorizeIcon
         hiddenBox.checked = encoded.hidden
         filterList.initialItems = encoded.filters
@@ -181,7 +181,7 @@ NblDialog {
 
                             NblIconPicker {
                                 id: filterIconPicker
-                                icon: dropdown.modelData.icon
+                                dbIcon: dropdown.modelData.icon
                                 colorize: dropdown.modelData.colorizeIcon
                             }
 
@@ -237,7 +237,7 @@ NblDialog {
                                     for(let i = 0 ; i < tagLists.length ; i++) {
                                         out.push({
                                             index: i + 1,
-                                            initialTags: tagLists[i]
+                                            initialTagNames: tagLists[i]
                                         })
                                     }
                                     return out
@@ -254,6 +254,7 @@ NblDialog {
                                     width: parent.width
                                     labelIndent: 24
                                     label: "Tag Set " + modelData.index
+                                    initialTagNames: modelData.initialTagNames
                                 }
 
                                 function encode() {
@@ -281,7 +282,7 @@ NblDialog {
                                 id: excludeTagsList
                                 width: parent.width
                                 label: "Exclude Tags"
-                                initialTags: dropdown.modelData.excludeTags
+                                initialTagNames: dropdown.modelData.excludeTags
 
                                 function encode() {
 

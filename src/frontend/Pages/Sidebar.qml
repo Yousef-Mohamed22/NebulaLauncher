@@ -23,9 +23,6 @@ Item {
 
     function reloadTabs() {
         tabsModel.refresh()
-        if(tabRepeater.count > 0) {
-            mainWindow.openTab((tabRepeater.itemAt(0) as NblTabButton).tabId)
-        }
     }
 
     Rectangle {

@@ -19,6 +19,7 @@ Item {
     property int labelIndent: 12
     property list<var> tags: []
     property list<var> initialTags: []
+    property list<string> initialTagNames: []
 
     onInitialTagsChanged: {
         tags = []
@@ -30,6 +31,10 @@ Item {
                 "state": NblTagList.TagState.INITIAL
             }
         }
+    }
+
+    onInitialTagNamesChanged: {
+        initialTags = ApplicationContext.getTagsFromNames(initialTagNames)
     }
 
     function getTags(state) {

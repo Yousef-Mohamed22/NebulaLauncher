@@ -21,7 +21,13 @@ Item {
 
     property string dbIcon: ""
     onDbIconChanged: {
-        icon = iconDisplay.getDbIconImage(dbIcon);
+        if(dbIcon.endsWith(".png") || dbIcon.endsWith(".svg")) {
+            icon = iconDisplay.getDbIconImage(dbIcon)
+            isImage = true
+        } else {
+            isImage = false
+            icon = dbIcon
+        }
     }
 
     property list<string> presetIcons: [

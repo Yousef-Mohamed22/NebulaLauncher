@@ -180,6 +180,8 @@ Result enumerateTags(DatabaseConnection* connection, u32 limit, u32 offset, TagC
  */
 Result searchTags(DatabaseConnection* connection, StringView query, u32 limit, u32 offset, TagCallback callback);
 
+Result getTagsFromNames(DatabaseConnection* connection, StringView jsonNames, TagCallback callback);
+
 
 //
 // Display

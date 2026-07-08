@@ -660,19 +660,25 @@ int ApplicationContext::addTab(const QVariantMap& params) {
 int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
 
     QByteArray name = params["name"].toByteArray();
-    QByteArray icon = params["icon"].toByteArray();
+    QString icon = params["icon"].toString();
     bool colorizeIcon = params["colorizeIcon"].toBool();
     bool hidden = params["hidden"].toBool();
+
+    nbl::DatabaseConnection* c = &_mConnection;
+    if(icon.endsWith(".png") || icon.endsWith(".svg")) {
+        NBL_CHECK_OR_ROLLBACK(c, pushImage(icon, "inline_icon", &icon));
+    }
+
+    QByteArray realIcon = icon.toUtf8();
 
     nbl::TabMeta meta = {
         .tabId = static_cast<i64>(id),
         .name = nbl::StringView(name.length(), name.data()),
-        .icon = nbl::StringView(icon.length(), icon.data()),
+        .icon = nbl::StringView(realIcon.length(), realIcon.data()),
         .colorizeIcon = colorizeIcon,
         .hidden = hidden
     };
 
-    nbl::DatabaseConnection* c = &_mConnection;
     NBL_CHECK_OR_ROLLBACK(c, _mConnection.beginTransaction());
     NBL_CHECK_OR_ROLLBACK(c, nbl::updateTab(&_mConnection, meta));
 
@@ -744,7 +750,7 @@ QVariantMap ApplicationContext::getTabMeta(qint64 id) {
             }
 
             QVariantList excludeTags = {};
-            for(const nbl::JsonValue& excluded : criteria.tags) {
+            for(const nbl::JsonValue& excluded : criteria.excludedTags) {
                 excludeTags.append(fromNbl(excluded.string));
             }
 
@@ -817,6 +823,23 @@ int ApplicationContext::untagInstallation(int64_t installationId, QString name) 
     QByteArray arr = name.toUtf8();
     nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
     return nbl::removeInstallationTag(&_mConnection, installationId, nblName);
+}
+
+
+QVariantList ApplicationContext::getTagsFromNames(QList<QString> names) {
+    QList<QVariant> out = {};
+
+    QByteArray namesJson = QJsonDocument(QJsonArray::fromStringList(names)).toJson(QJsonDocument::JsonFormat::Compact);
+
+    nbl::getTagsFromNames(&_mConnection, nbl::StringView(namesJson.length(), namesJson.data()), [&](nbl::StringView name, u32 color) {
+        QMap<QString, QVariant> tag = {};
+        tag["name"] = fromNbl(name);
+        tag["color"] = QColor(color);
+
+        out.append(tag);
+        return nbl::Result::SUCCESS;
+    });
+    return out;
 }
 
 QList<QVariant> ApplicationContext::getGameTags(int64_t gameId) {

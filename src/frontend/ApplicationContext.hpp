@@ -71,6 +71,7 @@ public:
     Q_INVOKABLE int tagInstallation(int64_t installationId, QString name);
     Q_INVOKABLE int untagInstallation(int64_t installationId, QString name);
 
+    Q_INVOKABLE QVariantList getTagsFromNames(QList<QString> names);
     Q_INVOKABLE QList<QVariant> getGameTags(int64_t gId);
     Q_INVOKABLE QList<QVariant> getInstallationTags(int64_t iId);
 

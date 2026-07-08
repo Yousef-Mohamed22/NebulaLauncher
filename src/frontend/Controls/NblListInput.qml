@@ -23,6 +23,7 @@ Item {
     implicitHeight: contentColumn.height
 
     onInitialItemsChanged: {
+
         for(let i = 0 ; i < count ; i++) {
             itemPopped(i)
             itemAt(i).destroy()

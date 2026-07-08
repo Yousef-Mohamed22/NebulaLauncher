@@ -308,3 +308,29 @@ LIMIT ?1 OFFSET ?2
     });
 
 }
+
+
+nbl::Result nbl::getTagsFromNames(DatabaseConnection* connection, StringView jsonNames, TagCallback callback) {
+    static nbl::PreparedStatement _namesStmt;
+    if(!_namesStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+WITH 
+tag_names AS (
+	SELECT value AS name
+	FROM json_each(?1)
+)
+SELECT name, color
+FROM tag
+WHERE name IN tag_names;
+        )", &_namesStmt));
+    }
+    
+    NBL_CHECK(_namesStmt.bindString(1, jsonNames));
+
+    return connection->execute(&_namesStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+        
+        if(columnCount != 2) return nbl::error::UNEXPECTED_ERROR;
+        return callback(columnValues[0].textValue, columnValues[1].uintValue());
+    });
+
+}
