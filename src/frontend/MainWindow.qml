@@ -22,7 +22,6 @@ Window {
         anchors.margins: 8
         spacing: 8
 
-
         /* Header */
         Header {
             sidebar: sidebar
@@ -105,6 +104,18 @@ Window {
     function beginAddTab() {
         openDialog("Pages/AddTabDialog.qml", {}, function() {
             sidebar.reloadTabs()
+        })
+    }
+
+    function beginEditTab(id) {
+        openDialog("Pages/AddTabDialog.qml", {
+            tabId: id
+        }, function() {
+            sidebar.reloadTabs()
+            let tabPage = pageLoader.currentItem as NblTabPage
+            if(tabPage) {
+                tabPage.refresh()
+            }
         })
     }
 

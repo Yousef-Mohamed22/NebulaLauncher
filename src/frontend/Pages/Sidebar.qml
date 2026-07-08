@@ -17,14 +17,14 @@ Item {
 
     Component.onCompleted: {
         if(tabRepeater.count > 0) {
-            mainWindow.openTab(tabRepeater.itemAt(0).modelData.id)
+            mainWindow.openTab((tabRepeater.itemAt(0) as NblTabButton).tabId)
         }
     }
 
     function reloadTabs() {
         tabsModel.refresh()
         if(tabRepeater.count > 0) {
-            mainWindow.openTab(tabRepeater.itemAt(0).modelData.id)
+            mainWindow.openTab((tabRepeater.itemAt(0) as NblTabButton).tabId)
         }
     }
 
@@ -87,9 +87,10 @@ Item {
                         id: tabsModel
                     }
 
-                    NblSidebarButton {
+                    NblTabButton {
                         required property var modelData
 
+                        tabId: modelData.id
                         width: parent.width
 
                         collapsed: root.collapsed
@@ -98,7 +99,18 @@ Item {
                         colorize: modelData.colorizeIcon
 
                         onClicked: {
-                            root.mainWindow.openTab(modelData.id)
+                            root.mainWindow.openTab(tabId)
+                        }
+                        onEditRequested: {
+                            root.mainWindow.beginEditTab(tabId)
+                        }
+                        onDeleteRequested: {
+                            root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
+                                "text": "Are you sure you want to delete this tab?"
+                            }, function() {
+                                ApplicationContext.deleteTab(tabId)
+                                root.reloadTabs()
+                            })
                         }
                     }
                 }
@@ -140,26 +152,9 @@ Item {
                         addMenu.open()
                     }
 
-                    Popup {
+                    NblContextMenu {
                         id: addMenu
-                        visible: false
-
-                        width: 200
                         height: 96
-
-                        x: parent.width + 16
-                        y: parent.height - height
-
-                        margins: 0
-                        padding: 2
-
-                        background: Rectangle {
-                            color: Theme.colors.layer1
-                            border.width: 2
-                            border.color: Theme.colors.border
-                            radius: 8
-                        }
-
                         contentItem: ColumnLayout {
                             spacing: 0
                             NblButton {

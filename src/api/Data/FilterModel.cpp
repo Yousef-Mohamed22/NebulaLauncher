@@ -256,7 +256,7 @@ nbl::Result nbl::updateFilter(DatabaseConnection* connection, const FilterMeta& 
     if(!_updateFilterStmt.isValid(connection)) {
 
         NBL_CHECK(connection->prepare(R"(
-UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria = ?5, multiLine = ?6, showTitles = ?7, useIcons = ?8, WHERE fId = ?9;
+UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria = ?5, multiLine = ?6, showTitles = ?7, useIcons = ?8 WHERE fId = ?9;
         )", &_updateFilterStmt));
     }
 

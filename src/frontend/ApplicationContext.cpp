@@ -622,8 +622,6 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         }
     }
 
-    NBL_CHECK(connection->commitTransaction());
-
     return nbl::Result::SUCCESS;
 }
 
@@ -653,8 +651,11 @@ int ApplicationContext::addTab(const QVariantMap& params) {
     NBL_CHECK(_mConnection.beginTransaction());
 
     NBL_CHECK_OR_ROLLBACK(c, nbl::addTab(&_mConnection, meta, &meta.tabId));
+    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(&_mConnection, meta.tabId, params["filters"].toList()));
 
-    return _pushFilters(&_mConnection, meta.tabId, params["filters"].toList());
+    NBL_CHECK(c->commitTransaction());
+
+    return nbl::Result::SUCCESS;
 }
 int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
 
@@ -675,7 +676,14 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
     NBL_CHECK_OR_ROLLBACK(c, _mConnection.beginTransaction());
     NBL_CHECK_OR_ROLLBACK(c, nbl::updateTab(&_mConnection, meta));
 
-    return _pushFilters(&_mConnection, meta.tabId, params["filters"].toList());
+    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(&_mConnection, meta.tabId, params["filters"].toList()));
+
+    for(const QVariant& removed : params["removedFilters"].toList()) {
+        NBL_CHECK_OR_ROLLBACK(c, nbl::removeFilter(c, removed.toLongLong()));
+    }
+
+    NBL_CHECK(c->commitTransaction());
+    return nbl::Result::SUCCESS;
 }
 int ApplicationContext::deleteTab(qint64 id) { 
 

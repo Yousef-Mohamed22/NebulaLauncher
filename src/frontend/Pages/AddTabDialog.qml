@@ -12,6 +12,8 @@ NblDialog {
 
     property int tabId: 0
 
+    property list<int> removedFilters: []
+
     showApplyButton: tabId != 0
 
     onTabIdChanged: {
@@ -39,7 +41,8 @@ NblDialog {
             icon: iconPicker.icon,
             colorizeIcon: iconPicker.colorize,
             hidden: hiddenBox.checked,
-            filters: filters
+            filters: filters,
+            removedFilters: removedFilters
         }
     }
 
@@ -116,6 +119,16 @@ NblDialog {
                             maxRating: 0,
                             minTime: 0,
                             maxTime: 0
+                        }
+                    }
+
+                    onItemPopped: index => {
+
+                        let item = itemAt(index)
+                        let id = item.modelData.id
+
+                        if(id != 0 && !root.removedFilters.includes(id)) {
+                            root.removedFilters.push(id)
                         }
                     }
 
