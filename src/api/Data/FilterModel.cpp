@@ -147,7 +147,7 @@ nbl::Result nbl::addFilter(DatabaseConnection* connection, const FilterMeta& met
     static nbl::PreparedStatement _addFilterStmt;
     if(!_addFilterStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons) VALUES (?1, ?2 ?3, ?4, ?5, ?6, ?7, ?8);
+INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);
         )", &_addFilterStmt));
     }
 

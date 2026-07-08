@@ -18,6 +18,15 @@
 
 namespace nbl {
 
+#define NBL_CHECK_OR_ROLLBACK(connection, expr) { \
+    nbl::Result _result = (expr); \
+    if(_result.error()) { \
+        NBL_CHECK(connection->rollbackTransaction()); \
+        return _result; \
+    } \
+}
+
+
 /**
  * Enumerates the possible data types for values in the database
  */

@@ -343,7 +343,25 @@ TEST(Json, ParseLargeArrayInPlace) {
         EXPECT_EQ(element.number.asUint(), index);
         index++;
     }
+}
 
+TEST(Json, ParseArrayInArray) {
+
+    nbl::StringView json = "[[\"test\"]]";
+    nbl::StringReader reader(json);
+
+    nbl::JsonValue value;
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+
+    EXPECT_TRUE(nbl::parseJson(reader, &frame, &value, true).success());
+
+    EXPECT_EQ(value.type, nbl::JsonType::ARRAY);
+    EXPECT_EQ(value.array.length(), 1U);
+    EXPECT_EQ(value.array[0]->type, nbl::JsonType::ARRAY);
+    EXPECT_EQ(value.array[0]->array.length(), 1U);
+
+    EXPECT_EQ(value.array[0]->array[0]->type, nbl::JsonType::STRING);
+    EXPECT_EQ(value.array[0]->array[0]->string, "test");
 }
 
 TEST(Json, ParseObject) {

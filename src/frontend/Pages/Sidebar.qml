@@ -15,6 +15,18 @@ Item {
 
     implicitWidth: collapsed ? 64 : 240
 
+    Component.onCompleted: {
+        if(tabRepeater.count > 0) {
+            mainWindow.openTab(tabRepeater.itemAt(0).modelData.id)
+        }
+    }
+
+    function reloadTabs() {
+        tabsModel.refresh()
+        if(tabRepeater.count > 0) {
+            mainWindow.openTab(tabRepeater.itemAt(0).modelData.id)
+        }
+    }
 
     Rectangle {
         id: background
@@ -55,16 +67,28 @@ Item {
                 active: flickable.movingVertically
             }
 
+            onAtYEndChanged: {
+                if(atYEnd) {
+                    tabsModel.loadNextPage()
+                }
+            }
+
             Column {
                 id: tabList
                 width: parent.width
                 spacing: 8
 
                 Repeater {
-                    model: ApplicationContext.allTabs
+
+                    id: tabRepeater
+
+                    model: NblAllTabsModel { 
+                        pageSize: 20
+                        id: tabsModel
+                    }
 
                     NblSidebarButton {
-                        required property NblTabRef modelData
+                        required property var modelData
 
                         width: parent.width
 
@@ -74,7 +98,7 @@ Item {
                         colorize: modelData.colorizeIcon
 
                         onClicked: {
-                            root.mainWindow.openTab(modelData)
+                            root.mainWindow.openTab(modelData.id)
                         }
                     }
                 }

@@ -79,14 +79,17 @@ DELETE FROM tab WHERE tabId = ?1;
     return connection->execute(&_removeTabStmt);
 }
 
-nbl::Result nbl::enumerateTabs(DatabaseConnection* connection, TabCallback callback) {
+nbl::Result nbl::enumerateTabs(DatabaseConnection* connection, u64 offset, u64 limit, TabCallback callback) {
 
     static nbl::PreparedStatement _enumerateTabsStmt;
     if(!_enumerateTabsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT tabId, name, icon, colorizeIcon, hidden FROM tab;
+SELECT tabId, name, icon, colorizeIcon, hidden FROM tab LIMIT ?1 OFFSET ?2;
         )", &_enumerateTabsStmt));
     }
+
+    _enumerateTabsStmt.bindUint(1, limit);
+    _enumerateTabsStmt.bindUint(2, offset);
 
     return connection->execute(&_enumerateTabsStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
@@ -94,7 +97,6 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab;
             nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in enumerate tabs query result, but got ", columnCount);
             return nbl::error::IO_ERROR;
         }
-
 
         return callback(
             TabMeta {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <qcontainerfwd.h>
+#include <qqmlintegration.h>
 #include <qstringview.h>
 #include <qtenvironmentvariables.h>
 #include <qtmetamacros.h>
@@ -15,7 +16,6 @@
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/PluginLoader.hpp>
 
-#include "Models/NblTabRef.hpp"
 #include "Models/NblInstallationDetails.hpp"
 #include "NblProcessHandle.hpp"
 
@@ -30,8 +30,6 @@ class ApplicationContext : public QObject {
     QML_SINGLETON
 
     // Properties
-    Q_PROPERTY(QQmlListProperty<NblTabRef> allTabs READ allTabs NOTIFY tabsUpdated)
-
     Q_PROPERTY(QString dataFolder READ dataFolder CONSTANT)
 
 public:
@@ -45,37 +43,10 @@ public:
         Q_UNUSED(engine);
         Q_UNUSED(scriptEngine);
 
-        ApplicationContext* context = instance();
-
-        QQmlEngine::setObjectOwnership(context, QQmlEngine::CppOwnership);
-
-        context->_initialize();
-        return context;
+        return instance();
     }
-
-    QQmlListProperty<NblTabRef> allTabs() { 
-        return QQmlListProperty<NblTabRef>(
-            this,
-            &_mAllTabs,
-            [](QQmlListProperty<NblTabRef>* ref) -> qsizetype {
-                QList<NblTabRef>* list = static_cast<QList<NblTabRef>*>(ref->data);
-                return list->count();
-            },
-            [](QQmlListProperty<NblTabRef>* ref, qsizetype at) -> NblTabRef* {
-                QList<NblTabRef>* list = static_cast<QList<NblTabRef>*>(ref->data);
-                if(at > list->count()) return nullptr;
-                return list->data() + at;
-            }
-        );
-    }
-
 
     QString dataFolder() const;
-
-    // Functions
-    Q_INVOKABLE i32 reload() {
-        return _reload().value;
-    }
 
     Q_INVOKABLE NblProcessHandle* launchInstallation(i64 installationId);
     Q_INVOKABLE NblProcessHandle* getRunningInstallation(i64 installationId);
@@ -106,7 +77,6 @@ public:
     Q_INVOKABLE void saveSettings(const QVariantMap& settings);
     Q_INVOKABLE QVariantMap loadSettings();
 
-
     nbl::DatabaseConnection* connection() {
         return &_mConnection;
     }
@@ -115,21 +85,20 @@ public:
         return &_mContext;
     }
 
-signals:
-
-    void tabsUpdated();
+    void init() {
+        if(!_bInitialized) {
+            _initialize();
+            _bInitialized = true;
+        }
+    }
 
 private:
 
     void _initialize();
-
-    nbl::Result _reload();
-
     ApplicationContext() = default;
 
+    bool _bInitialized = false;
     nbl::DatabaseConnection _mConnection;
-    QList<NblTabRef> _mAllTabs;
-
     nbl::PluginContext _mContext;
     nbl::PluginLoader _mLoader;
 

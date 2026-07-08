@@ -91,12 +91,6 @@ Window {
                 Theme.colors.lightMode = settings.theme.lightTheme
             }
         }
-
-        ApplicationContext.reload()
-
-        if(ApplicationContext.allTabs.length > 0) {
-            openTab(ApplicationContext.allTabs[0])
-        }
     }
     
     function beginAddGame() {
@@ -110,10 +104,7 @@ Window {
 
     function beginAddTab() {
         openDialog("Pages/AddTabDialog.qml", {}, function() {
-            let tabPage = pageLoader.currentItem as NblTabPage
-            if(tabPage) {
-                tabPage.refresh()
-            }
+            sidebar.reloadTabs()
         })
     }
 
@@ -140,14 +131,14 @@ Window {
         })
     }
 
-    function openTab(ref) {
+    function openTab(id) {
 
         let initDepth = pageLoader.depth
         while(pageLoader.depth > 1) {
             pageLoader.pop()
         }
 
-        if(pageLoader.depth == 1 && pageLoader.currentItem.tabId == ref.tabId) {
+        if(pageLoader.depth == 1 && pageLoader.currentItem.tabId == id) {
             if(initDepth > 1) {
                 pageLoader.currentItem.refresh()
             }
@@ -156,7 +147,7 @@ Window {
         }
 
         pageLoader.replace("Pages/NblTabPage.qml", {
-            tab: ref,
+            tabId: id,
             mainWindow: root
         })
 

@@ -529,7 +529,7 @@ Result updateTab(DatabaseConnection* connection, const TabMeta& meta);
 
 Result removeTab(DatabaseConnection* connection, i64 tabId);
 
-Result enumerateTabs(DatabaseConnection* connection, TabCallback callback);
+Result enumerateTabs(DatabaseConnection* connection, u64 offset, u64 limit, TabCallback callback);
 
 Result getTabMeta(DatabaseConnection* connection, i64 tabId, TabCallback callback);
 

@@ -14,6 +14,7 @@ class NblTabRef : public QObject {
     Q_PROPERTY(QString name READ name CONSTANT)
     Q_PROPERTY(QString icon READ icon CONSTANT)
     Q_PROPERTY(bool colorizeIcon READ colorizeIcon CONSTANT)
+    Q_PROPERTY(bool hidden READ hidden CONSTANT)
 
 public:
 
@@ -21,17 +22,20 @@ public:
         QObject(parent),
         _mName{},
         _mIcon{},
-        _mTabId(0)
+        _mTabId(0),
+        _mColorizeIcon(false),
+        _mHidden(false)
     {}
 
     virtual ~NblTabRef() = default;
 
-    NblTabRef(qint64 id, QString name, QString icon, bool colorizeIcon, QObject* parent = nullptr) :
+    NblTabRef(qint64 id, QString name, QString icon, bool colorizeIcon, bool hidden, QObject* parent = nullptr) :
         QObject(parent),
         _mName(name),
         _mIcon(icon),
         _mTabId(id),
-        _mColorizeIcon(colorizeIcon)
+        _mColorizeIcon(colorizeIcon),
+        _mHidden(hidden)
     { }
 
     NblTabRef(const NblTabRef& other) :
@@ -39,7 +43,8 @@ public:
         _mName(other._mName),
         _mIcon(other._mIcon),
         _mTabId(other._mTabId),
-        _mColorizeIcon(other._mColorizeIcon)
+        _mColorizeIcon(other._mColorizeIcon),
+        _mHidden(other._mHidden)
     { }
 
     NblTabRef& operator=(const NblTabRef& other) {
@@ -48,6 +53,7 @@ public:
         _mIcon = other._mIcon;
         _mTabId = other._mTabId;
         _mColorizeIcon = other._mColorizeIcon;
+        _mHidden = other._mHidden;
 
         setParent(other.parent());
         return *this;
@@ -57,6 +63,7 @@ public:
     QString name() { return _mName; }
     QString icon() { return _mIcon; }
     bool colorizeIcon() { return _mColorizeIcon; }
+    bool hidden() { return _mHidden; }
 
 private:
 
@@ -64,5 +71,6 @@ private:
     QString _mName;
     QString _mIcon;
     bool _mColorizeIcon;
+    bool _mHidden;
 
 };

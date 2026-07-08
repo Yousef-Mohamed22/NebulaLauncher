@@ -44,7 +44,11 @@ NblDialog {
     }
 
     onApply: {
-        console.log(JSON.stringify(encode()))
+        if(tabId == 0) {
+            ApplicationContext.addTab(encode())
+        } else {
+            ApplicationContext.updateTab(tabId, encode())
+        }
     }
 
     ScrollView {
@@ -135,7 +139,7 @@ NblDialog {
                                 useIcons: useIconsBox.checked,
                                 showTitles: showTitlesBox.checked,
                                 sortBy: sortByBox.currentIndex,
-                                sortOrder: sortByBox.currentIndex,
+                                sortOrder: sortOrderBox.currentIndex,
                                 tags: tagSetsList.encode(),
                                 excludeTags: excludeTagsList.encode(),
                                 minReleaseDate: minReleaseBox.getTime(),

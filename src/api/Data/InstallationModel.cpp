@@ -243,7 +243,7 @@ matching_sets AS (
 		search_sets.setId
 ),
 excluded_tags AS (
-	SELECT descendantId
+	SELECT descendantId AS tId
 	FROM tag_closure
 	WHERE NOT ?2 IS NULL
 	  AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
@@ -258,10 +258,8 @@ LEFT JOIN matching_sets ON matching_sets.iId = installation.iId
 LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId
 JOIN game ON installation.gId = game.gId
 JOIN display ON display.dId = IFNULL(installation.dId, game.dId)
-LEFT JOIN installation_tag ON installation_tag.iId = installation.iId
-LEFT JOIN game_tag ON game_tag.gId = installation.gId
 WHERE (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
-  AND (?2 IS NULL OR NOT (installation_tag.tId IN excluded_tags OR game_tag.tId IN excluded_tags))
+  AND (?2 IS NULL OR NOT EXISTS (SELECT tId FROM excluded_tags INTERSECT SELECT tId FROM all_installation_tags WHERE all_installation_tags.iId = installation.iId))
   AND game.releaseDate >= ?3
   AND (?4 = 0 OR game.releaseDate < ?4)
   AND game.rating >= ?5

@@ -6,16 +6,23 @@
  * \brief Main application entry point.
  */
 
+#include <qqml.h>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
 #include <Core/String.hpp>
 #include <Platform/Logging.hpp>
 
+#include "ApplicationContext.hpp"
+
 int run(int argc, char** argv) {
     
     QGuiApplication app(argc, argv);
-    QQmlApplicationEngine engine;
+    QQmlApplicationEngine engine{};
+
+    ApplicationContext* inst = ApplicationContext::instance();
+    QQmlEngine::setObjectOwnership(inst, QQmlEngine::CppOwnership);
+    inst->init();
 
     engine.loadFromModule("Nebula", "MainWindow");
 

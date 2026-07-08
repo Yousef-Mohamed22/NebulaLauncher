@@ -20,6 +20,8 @@
 
 #include <openssl/evp.h>
 
+#include "Codec/Json.hpp"
+#include "Data/Database.hpp"
 #include "Models/NblInstallationDetails.hpp"
 #include "NblProcessHandle.hpp"
 
@@ -161,38 +163,8 @@ void ApplicationContext::_initialize() {
     NBL_ASSERT(nbl::PluginLoader::create(&_mContext, pluginFolder, &_mLoader).success());
     NBL_ASSERT(_mLoader.loadAll().success());
 
-}
-
-
-nbl::Result ApplicationContext::_reload() {
-
-    if(!_mConnection.isValid()) {
-
-        NBL_CHECK(nbl::DatabaseConnection::open(_mContext.databasePath(), &_mConnection));
-        NBL_CHECK(nbl::initDatabase(&_mConnection));
-    }
-
-    _mAllTabs.clear();
-
-    // Get tabs from database
-    NBL_CHECK(nbl::enumerateTabs(&_mConnection, [&](const nbl::TabMeta& meta) {
-
-        NblTabRef ref(
-            meta.tabId, 
-            QString::fromUtf8(meta.name.data, meta.name.length), 
-            QString::fromUtf8(meta.icon.data, meta.icon.length),
-            meta.colorizeIcon
-        );
-
-        _mAllTabs.append(ref);
-
-        return nbl::Result::SUCCESS;
-    }));
-
-    tabsUpdated();
-
-    return nbl::Result::SUCCESS;
-
+    NBL_ASSERT(nbl::DatabaseConnection::open(path, &_mConnection).success());
+    NBL_ASSERT(nbl::initDatabase(&_mConnection).success());
 }
 
 
@@ -218,7 +190,6 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
     nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
         ApplicationContext* context = this;
-        NblProcessHandle* handle = handle;
 
         const nbl::InstallationType* installType = context->_mContext.getInstallationType(meta.type);
         if(installType == nullptr) {
@@ -229,9 +200,12 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
         QJsonDocument doc = QJsonDocument::fromJson(QByteArray(meta.command.data, meta.command.length));
         if(!doc.isObject()) return nbl::error::ILLEGAL_STATE;
 
-        QList<nbl::FieldValue> values;
-        QList<QByteArray> strings;
-        values.reserve(installType->fields.length);
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+
+        nbl::FieldValue* values;
+        usize valueCount = 0;
+
+        frame.allocate(&values, installType->fields.length);
 
         for(auto& field : installType->fields) {
 
@@ -239,42 +213,45 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
             QJsonValue val = doc[qKey];
 
             if(val.isNull()) {
-                values.append(field.defaultValue);            
+                values[valueCount++] = field.defaultValue;
             } else {
 
                 switch(field.type) {
                     case nbl::FieldType::STRING: {
                         QByteArray str = val.toString().toUtf8();
-                        strings.append(str);
-                        QByteArray& realStr = strings.last();
-                        values.append(nbl::FieldValue { .stringValue = nbl::StringView(realStr.length(), realStr.data()) } );
+
+                        nbl::StringView persistent;
+                        nbl::StringBuilder(&frame).append(nbl::StringView(str.length(), str.data())).build(&persistent);
+
+                        values[valueCount++] = nbl::FieldValue { .stringValue = persistent };
                         break;
                     }
                     case nbl::FieldType::FLOAT: {
-                        values.append(nbl::FieldValue { .floatValue = val.toDouble() } );
+                        values[valueCount++] = nbl::FieldValue { .floatValue = val.toDouble() };
                         break;
                     }
                     case nbl::FieldType::INTEGER: {
-                        values.append(nbl::FieldValue { .integerValue = val.toInteger() } );
+                        values[valueCount++] = nbl::FieldValue { .integerValue = val.toInteger() };
                         break;
                     }
                     case nbl::FieldType::BOOLEAN: {
-                        values.append(nbl::FieldValue { .booleanValue = val.toBool() } );
+                        values[valueCount++] = nbl::FieldValue { .booleanValue = val.toBool() };
                         break;
                     }
                     case nbl::FieldType::ENUM: {
                         QByteArray name = val.toString().toUtf8();
                         nbl::StringView nameView = nbl::StringView(name.length(), name.data());
                         u32 index = field.enumData.index(nameView);
-                        values.append(nbl::FieldValue { .enumValue = index });
+                        values[valueCount++] = nbl::FieldValue { .enumValue = index };
                         break;
                     }
                 }
             }
         }
 
-        return installType->launch(&context->_mContext, { .data = values.data(), .length = static_cast<usize>(values.length()) }, meta.id, handle->handle());
-        
+        NBL_CHECK(installType->launch(&context->_mContext, { .data = values, .length = valueCount }, meta.id, handle->handle()));
+
+        return nbl::Result::SUCCESS;
     });
     if(res.error()) {
         nbl::log(nbl::LogLevel::ERROR, "Unable to launch installation. Error ", res);
@@ -569,13 +546,136 @@ NblProcessHandle* ApplicationContext::getRunningInstallation(i64 installationId)
 
 
 // Tabs
+
+namespace {
+
+nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const QVariantList& filters) {
+
+    for(const QVariant& filterVar : filters) {
+
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+
+        QVariantMap filter = filterVar.toMap();
+        i64 filterId = filter["id"].toLongLong();
+        
+        QByteArray name = filter["name"].toByteArray();
+        QString icon = filter["icon"].toString();
+        bool colorizeIcon = filter["colorizeIcon"].toBool();
+        bool multiLine = filter["multiLine"].toBool();
+        bool useIcons = filter["useIcons"].toBool();
+        bool showTitles = filter["showTitles"].toBool();
+
+        if(icon.endsWith(".png") || icon.endsWith(".svg")) {
+            NBL_CHECK_OR_ROLLBACK(connection, pushImage(icon, "inline_icon", &icon));
+        }
+        QByteArray realIcon = icon.toUtf8();
+
+        nbl::InstallationSortBy sortBy = static_cast<nbl::InstallationSortBy>(filter["sortBy"].toInt());
+        nbl::SortOrder sortOrder = static_cast<nbl::SortOrder>(filter["sortOrder"].toInt());
+        
+        u64 minReleaseDate = filter["minReleaseDate"].toULongLong();
+        u64 maxReleaseDate = filter["minReleaseDate"].toULongLong();
+        f64 minRating = filter["minRating"].toDouble();
+        f64 maxRating = filter["minRating"].toDouble();
+        u64 minPlayTime = filter["minTime"].toULongLong();
+        u64 maxPlayTime = filter["minTime"].toULongLong();
+
+        QByteArray tagsJson = QJsonDocument(filter["tags"].toJsonArray()).toJson(QJsonDocument::JsonFormat::Compact);
+        QByteArray excludedTagsJson = QJsonDocument(filter["excludeTags"].toJsonArray()).toJson(QJsonDocument::JsonFormat::Compact);
+
+        nbl::StringView nblTags = nbl::StringView(tagsJson.length(), tagsJson.data());
+        nbl::StringView nblExcludeTags = nbl::StringView(excludedTagsJson.length(), excludedTagsJson.data());
+
+        nbl::JsonValue tags = {};
+        NBL_CHECK_OR_ROLLBACK(connection, nbl::parseJson(nbl::StringReader(nblTags), &frame, &tags, true));
+
+        nbl::JsonValue exclude = {};
+        NBL_CHECK_OR_ROLLBACK(connection, nbl::parseJson(nbl::StringReader(nblExcludeTags), &frame, &exclude, true));
+
+        nbl::FilterMeta meta = {
+            .filterId = filterId,
+            .tabId = tabId,
+            .name = nbl::StringView(name.length(), name.data()),
+            .icon = nbl::StringView(realIcon.length(), realIcon.data()),
+            .colorizeIcon = colorizeIcon,
+            .multiLine = multiLine,
+            .showTitles = showTitles,
+            .useIcons = useIcons,
+            .criteria = {
+                .tags = tags.array,
+                .excludedTags = exclude.array,
+                .minReleaseDate = minReleaseDate,
+                .maxReleaseDate = maxReleaseDate,
+                .minRating = minRating,
+                .maxRating = maxRating,
+                .minPlayTime = minPlayTime,
+                .maxPlayTime = maxPlayTime,
+                .sortBy = sortBy,
+                .sortOrder = sortOrder
+            }
+        };
+
+        if(meta.filterId == 0) {
+            NBL_CHECK_OR_ROLLBACK(connection, nbl::addFilter(connection, meta, &meta.filterId));
+        } else {
+            NBL_CHECK_OR_ROLLBACK(connection, nbl::updateFilter(connection, meta));
+        }
+    }
+
+    NBL_CHECK(connection->commitTransaction());
+
+    return nbl::Result::SUCCESS;
+}
+
+}
+
 int ApplicationContext::addTab(const QVariantMap& params) {
 
-    return 0;
+    QByteArray name = params["name"].toByteArray();
+    QString icon = params["icon"].toString();
+    bool colorizeIcon = params["colorizeIcon"].toBool();
+    bool hidden = params["hidden"].toBool();
+
+    nbl::DatabaseConnection* c = &_mConnection;
+    if(icon.endsWith(".png") || icon.endsWith(".svg")) {
+        NBL_CHECK_OR_ROLLBACK(c, pushImage(icon, "inline_icon", &icon));
+    }
+
+    QByteArray realIcon = icon.toUtf8();
+
+    nbl::TabMeta meta = {
+        .name = nbl::StringView(name.length(), name.data()),
+        .icon = nbl::StringView(realIcon.length(), realIcon.data()),
+        .colorizeIcon = colorizeIcon,
+        .hidden = hidden
+    };
+
+    NBL_CHECK(_mConnection.beginTransaction());
+
+    NBL_CHECK_OR_ROLLBACK(c, nbl::addTab(&_mConnection, meta, &meta.tabId));
+
+    return _pushFilters(&_mConnection, meta.tabId, params["filters"].toList());
 }
 int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
 
-    return 0;
+    QByteArray name = params["name"].toByteArray();
+    QByteArray icon = params["icon"].toByteArray();
+    bool colorizeIcon = params["colorizeIcon"].toBool();
+    bool hidden = params["hidden"].toBool();
+
+    nbl::TabMeta meta = {
+        .tabId = static_cast<i64>(id),
+        .name = nbl::StringView(name.length(), name.data()),
+        .icon = nbl::StringView(icon.length(), icon.data()),
+        .colorizeIcon = colorizeIcon,
+        .hidden = hidden
+    };
+
+    nbl::DatabaseConnection* c = &_mConnection;
+    NBL_CHECK_OR_ROLLBACK(c, _mConnection.beginTransaction());
+    NBL_CHECK_OR_ROLLBACK(c, nbl::updateTab(&_mConnection, meta));
+
+    return _pushFilters(&_mConnection, meta.tabId, params["filters"].toList());
 }
 int ApplicationContext::deleteTab(qint64 id) { 
 
@@ -621,8 +721,8 @@ QVariantMap ApplicationContext::getTabMeta(qint64 id) {
             filter["sortOrder"] = static_cast<i32>(criteria.sortOrder);
             filter["minReleaseDate"] = static_cast<quint64>(criteria.minReleaseDate);
             filter["maxReleaseDate"] = static_cast<quint64>(criteria.maxReleaseDate);
-            filter["minRating"] = static_cast<quint64>(criteria.minRating);
-            filter["maxRating"] = static_cast<quint64>(criteria.maxRating);
+            filter["minRating"] = criteria.minRating;
+            filter["maxRating"] = criteria.maxRating;
             filter["minTime"] = static_cast<quint64>(criteria.minPlayTime);
             filter["maxTime"] = static_cast<quint64>(criteria.maxPlayTime);
 

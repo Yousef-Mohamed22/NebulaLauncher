@@ -9,7 +9,7 @@ Item {
 
     id: root
 
-    required property NblTabRef tab
+    required property int tabId
     required property MainWindow mainWindow
 
     ScrollView {
@@ -41,7 +41,7 @@ Item {
                     model: NblTabModel {
                         id: tabModel
                         pageSize: 10
-                        tabId: root.tab.tabId
+                        tabId: root.tabId
                     }
                     delegate: NblFilterRow {
 
