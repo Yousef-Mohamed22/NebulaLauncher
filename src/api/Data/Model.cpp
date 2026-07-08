@@ -224,6 +224,9 @@ COMMIT;
 
     } else if(userVersion == 1) {
 
+        nbl::StringView initQuery = "PRAGMA foreign_keys = ON;";
+        NBL_CHECK(connection->execute(initQuery));
+
         return nbl::Result::SUCCESS;
 
     } else {

@@ -71,8 +71,6 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
 
     u8 hash[16] = {};
 
-    nbl::log(nbl::LogLevel::INFO, "Calculating MD5 for ", fileNameView);
-
     char dataBuffer[4096] = {};
     while(!file.atEnd()) {
         qint64 bytesRead;
@@ -564,6 +562,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         bool multiLine = filter["multiLine"].toBool();
         bool useIcons = filter["useIcons"].toBool();
         bool showTitles = filter["showTitles"].toBool();
+        i64 priority = filter["priority"].toLongLong();
 
         if(icon.endsWith(".png") || icon.endsWith(".svg")) {
             NBL_CHECK_OR_ROLLBACK(connection, pushImage(icon, "inline_icon", &icon));
@@ -595,6 +594,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         nbl::FilterMeta meta = {
             .filterId = filterId,
             .tabId = tabId,
+            .priority = priority,
             .name = nbl::StringView(name.length(), name.data()),
             .icon = nbl::StringView(realIcon.length(), realIcon.data()),
             .colorizeIcon = colorizeIcon,

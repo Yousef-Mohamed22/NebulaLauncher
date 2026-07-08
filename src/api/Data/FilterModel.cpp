@@ -147,7 +147,7 @@ nbl::Result nbl::addFilter(DatabaseConnection* connection, const FilterMeta& met
     static nbl::PreparedStatement _addFilterStmt;
     if(!_addFilterStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);
+INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons, priority) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);
         )", &_addFilterStmt));
     }
 
@@ -169,6 +169,7 @@ INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTi
     _addFilterStmt.bindInt(6, meta.multiLine ? 1 : 0);
     _addFilterStmt.bindInt(7, meta.showTitles ? 1 : 0);
     _addFilterStmt.bindInt(8, meta.useIcons ? 1 : 0);
+    _addFilterStmt.bindInt(9, meta.priority);
 
     return connection->execute(&_addFilterStmt, outFilterId);
 
@@ -256,7 +257,7 @@ nbl::Result nbl::updateFilter(DatabaseConnection* connection, const FilterMeta& 
     if(!_updateFilterStmt.isValid(connection)) {
 
         NBL_CHECK(connection->prepare(R"(
-UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria = ?5, multiLine = ?6, showTitles = ?7, useIcons = ?8 WHERE fId = ?9;
+UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria = ?5, multiLine = ?6, showTitles = ?7, useIcons = ?8, priority = ?9 WHERE fId = ?10;
         )", &_updateFilterStmt));
     }
 
@@ -278,8 +279,9 @@ UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria 
     _updateFilterStmt.bindInt(6, meta.multiLine ? 1 : 0);
     _updateFilterStmt.bindInt(7, meta.showTitles ? 1 : 0);
     _updateFilterStmt.bindInt(8, meta.useIcons ? 1 : 0);
+    _updateFilterStmt.bindInt(9, meta.priority);
 
-    NBL_CHECK(_updateFilterStmt.bindInt(9, meta.filterId));
+    NBL_CHECK(_updateFilterStmt.bindInt(10, meta.filterId));
 
     return connection->execute(&_updateFilterStmt);
 }

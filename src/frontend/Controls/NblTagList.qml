@@ -368,7 +368,7 @@ Item {
                                 property string tagName: modelData.name
                                 property string tagColor: modelData.color
 
-                                width: parent.width
+                                width: resultsColumn.width
                                 height: 32
 
                                 Rectangle {

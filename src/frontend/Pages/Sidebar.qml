@@ -107,6 +107,9 @@ Item {
                             }, function() {
                                 ApplicationContext.deleteTab(tabId)
                                 root.reloadTabs()
+                                if(tabRepeater.count > 0) {
+                                    root.mainWindow.openTab((tabRepeater.itemAt(0) as NblTabButton).tabId)
+                                }
                             })
                         }
                     }

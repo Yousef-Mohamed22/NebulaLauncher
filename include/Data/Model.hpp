@@ -482,6 +482,7 @@ Result bumpInstallationPlayTime(DatabaseConnection* connection, i64 installation
 struct FilterMeta {
     i64 filterId;
     i64 tabId;
+    i64 priority;
     StringView name;
     StringView icon;
     bool colorizeIcon;

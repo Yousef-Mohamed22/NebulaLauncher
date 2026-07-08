@@ -32,7 +32,7 @@ NblDialog {
         let filters = []
         for(let i = 0 ; i < filterList.count; i++) {
             let filter = filterList.itemAt(i)
-            filters.push(filter.encode())
+            filters.push(filter.encode(i, filterList.count))
         }
 
         return {
@@ -47,10 +47,11 @@ NblDialog {
     }
 
     onApply: {
+        let tabMeta = encode()
         if(tabId == 0) {
-            ApplicationContext.addTab(encode())
+            ApplicationContext.addTab(tabMeta)
         } else {
-            ApplicationContext.updateTab(tabId, encode())
+            ApplicationContext.updateTab(tabId, tabMeta)
         }
     }
 
@@ -100,6 +101,8 @@ NblDialog {
                     label: "Filters"
                     width: parent.width
 
+                    allowReorder: true
+
                     createNew: function(index) {
                         return {
                             id: 0,
@@ -135,16 +138,17 @@ NblDialog {
                     delegate: NblDropdown {
 
                         id: dropdown
-
-                        required property var modelData
                         width: parent.width
 
                         contentHeight: filterContent.height
                         label: filterNameBox.text
 
-                        function encode() {
+                        required property var modelData
+
+                        function encode(index, count) {
                             return {
                                 id: modelData.id,
+                                priority: count - index - 1,
                                 name: filterNameBox.text,
                                 icon: filterIconPicker.icon,
                                 colorizeIcon: filterIconPicker.colorize,
@@ -246,7 +250,7 @@ NblDialog {
                                 createNew: function(i) {
                                     return {
                                         index: i + 1,
-                                        initialTags: []
+                                        initialTagNames: []
                                     }
                                 }
                                 delegate: NblTagList {
