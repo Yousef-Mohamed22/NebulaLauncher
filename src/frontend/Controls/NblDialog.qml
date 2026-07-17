@@ -25,6 +25,13 @@ Item {
     property int targetWidth: 800
     property int targetHeight: 600
 
+    property int padding: 16
+    property int contentPadding: 0
+    property int navigationPadding: 0
+    property int navigationGap: 8
+
+    readonly property int navigationHeight: navigationContainer.height + navigationPadding * 2
+
     width: parent.width
     height: parent.height
 
@@ -65,19 +72,23 @@ Item {
         ColumnLayout {
 
             anchors.fill: parent
-            anchors.margins: 16
-            spacing: 8
+            anchors.margins: root.padding
+            spacing: root.navigationGap
 
             Item {
                 id: contentContainer
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.margins: root.contentPadding
             }
 
             Item {
 
+                id: navigationContainer
+
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
+                Layout.margins: root.navigationPadding
 
                 RowLayout {
 

@@ -2,198 +2,162 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 import Nebula.Controls
 
 NblDialog {
 
     id: root
-    property color selectedColor: Theme.colors.activeColor
 
-    Flickable {
+    padding: 0
+    navigationPadding: 16
+
+    targetWidth: 960
+
+    Item {
 
         anchors.fill: parent
-        anchors.topMargin: 16
 
-        id: flickable
+        property int sidebarWidth: 200
 
-        contentWidth: width - 48
-        contentHeight: controls.height
-        flickableDirection: Flickable.VerticalFlick
-        clip: true
+        Item {
+            id: sidebar
+            width: parent.sidebarWidth
+            height: parent.height + root.navigationHeight + root.navigationGap
 
-        ScrollBar.horizontal: null
-        ScrollBar.vertical: ScrollBar {
-            parent: flickable
-            anchors.top: flickable.top
-            anchors.bottom: flickable.bottom
-            anchors.right: flickable.right
-            active: flickable.movingVertically
-        }
+            property Item currentItem: themeSettingsTab
 
-        Column {
-
-            id: controls
-            x: 24
-            width: parent.width
-            spacing: 16
-
-            NblCheckBox {
-                id: darkThemeBox
-                text: "Dark Theme"
-                checked: !Theme.colors.lightMode
+            Rectangle { 
+                width: 2
+                height: parent.height - 32
+                x: parent.width
+                y: 16
+                color: Theme.colors.border
             }
 
-            Item {
+            Flickable {
 
-                width: parent.width
-                height: 48
+                anchors.fill: parent
+                anchors.topMargin: 16
 
-                RowLayout {
+                id: tabFlickable
 
-                    id: layout
-                    anchors.fill: parent
-                    spacing: 8
+                contentWidth: width
+                contentHeight: themeSettingsTab.height
+                flickableDirection: Flickable.VerticalFlick
+                clip: true
 
-                    property int selectedIndex: 0
-                    property list<color> swatches: [ "#d658fc", "#4083ef", "#40efe4", "#4af755", "#f2ec3a", "#f2b43a", "#f23a65", "#f96bdf" ]
+                ScrollBar.horizontal: null
+                ScrollBar.vertical: ScrollBar {
+                    parent: tabFlickable
+                    anchors.top: tabFlickable.top
+                    anchors.bottom: tabFlickable.bottom
+                    anchors.right: tabFlickable.right
+                    active: tabFlickable.movingVertically
+                }
+
+                Column {
+
+                    width: parent.width
 
                     Repeater {
+                        model: [
+                            { icon: "", name: "Theme", item: themeSettingsTab },
+                            { icon: "", name: "Tags", item: tagSettingsTab },
+                            { icon: "󰊗", name: "Games", item: gameSettingsTab }
+                        ]
 
-                        id: repeater
+                        delegate: Item {
 
-                        model: [...layout.swatches, "#000000" ]
+                            required property var modelData
 
-                        Item {
+                            readonly property bool isActive: sidebar.currentItem == modelData.item
+                            readonly property bool isHighlighted: isActive || tabArea.containsMouse
 
-                            required property color modelData
-                            required property int index
-
-                            property bool isCustom: index == layout.swatches.length
-
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-
-                            Rectangle {
-                                visible: parent.index == layout.selectedIndex
-                                anchors.fill: parent
-                                color: "transparent"
-                                border.width: 2
-                                radius: 8
-                                border.color: swatch.color
-                            }
+                            width: parent.width
+                            height: 48
 
                             Rectangle {
-                                id: swatch
                                 anchors.fill: parent
-                                anchors.margins: 4
-                                color: parent.isCustom ? root.selectedColor : parent.modelData
-                                radius: 4
+                                color: parent.isActive
+                                        ? Theme.colors.border
+                                        : parent.isHighlighted ? Theme.colors.layer1 : "transparent"
                             }
 
                             Label {
-                                visible: parent.isCustom
-                                text: "Custom"
+                                anchors.verticalCenter: parent.verticalCenter
+                                x: 24
+                                text: parent.modelData.icon
+                                font.family: Theme.nerdFont
+                                font.pixelSize: 24
+                                color: parent.isHighlighted ? Theme.colors.text : Theme.colors.textDim
+                            }
+
+                            Label {
+                                anchors.verticalCenter: parent.verticalCenter
+                                x: 64
+                                text: parent.modelData.name
                                 font.family: Theme.font
-                                font.pixelSize: 14
-                                font.weight: 600
-                                color: Theme.colors.readableOn(root.selectedColor)
-                                anchors.centerIn: parent
+                                font.pixelSize: 16
+                                color: parent.isHighlighted ? Theme.colors.text : Theme.colors.textDim
                             }
 
                             MouseArea {
-                                anchors.fill: parent
+                                id: tabArea
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
+                                anchors.fill: parent
                                 onClicked: {
-                                    layout.selectedIndex = parent.index
-                                    if(parent.isCustom) {
-
-                                        let globalPos = root.mapFromItem(this, x, y)
-                                        let targetPos = Qt.point(
-                                            globalPos.x + (width / 2) - (colorPickerPopup.popupWidth / 2),
-                                            globalPos.y + height + 8
-                                        )
-
-                                        colorPickerPopup.open(targetPos)
-
-                                    } else {
-                                        root.selectedColor = parent.modelData
-                                        colorPicker.color = parent.modelData
-                                    }
+                                    if(parent.modelData.item == sidebar.currentItem) return
+                                    sidebar.currentItem.visible = false
+                                    sidebar.currentItem = parent.modelData.item
+                                    sidebar.currentItem.visible = true
                                 }
                             }
+
                         }
                     }
                 }
             }
         }
-    }
+        
+        Item {
 
-    Component.onCompleted: {
-        let i = 0;
-        for( ; i < layout.swatches.length ; i++) {
-            let swatchColor = layout.swatches[i]
-            if(swatchColor.toString() == root.selectedColor.toString()) {
-                layout.selectedIndex = i
-                break
+            width: parent.width - parent.sidebarWidth - 48
+            height: parent.height - 24
+            x: parent.sidebarWidth + 24
+            y: 12
+
+            ThemeSettingsTab {
+                id: themeSettingsTab
+                anchors.fill: parent
+                visible: true;
+            }
+
+            TagSettingsTab {
+                id: tagSettingsTab
+                anchors.fill: parent
+                visible: false
+            }
+
+            GameSettingsTab {
+                id: gameSettingsTab
+                anchors.fill: parent
+                visible: false
             }
         }
-        if(i == layout.swatches.length) {
-            layout.selectedIndex = layout.swatches.length
-        }
+
     }
 
     onApply: {
-        Theme.colors.lightMode = !darkThemeBox.checked
-        Theme.colors.activeColor = root.selectedColor
+        Theme.colors.lightMode = !themeSettingsTab.darkTheme
+        Theme.colors.activeColor = themeSettingsTab.selectedColor
+
+        let res = ApplicationContext.updateTags(tagSettingsTab.encodeTags())
+        if(res != 0) {
+            console.log("An error occurred while updating tags!", res) // TODO: Show erros in UI
+        }
+
     }
 
-    above: [ 
-        NblPopupWindow {
-            
-            id: colorPickerPopup
-
-            width: root.width
-            height: root.height
-
-            popupWidth: 250
-            popupHeight: 250      
-
-            Rectangle {
-                id: background
-                anchors.fill: parent
-                color: Theme.colors.layer0
-                border.width: 2
-                border.color: Theme.colors.border
-                radius: 8
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                propagateComposedEvents: false
-            }
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-
-                NblColorPicker {
-
-                    id: colorPicker
-
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    color: root.selectedColor
-
-                    onColorChanged: {
-                        root.selectedColor = color
-                    }
-                }
-            }
-        } 
-    ]
 }

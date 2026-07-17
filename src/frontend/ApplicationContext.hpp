@@ -70,6 +70,7 @@ public:
     Q_INVOKABLE int untagGame(int64_t gameId, QString name);
     Q_INVOKABLE int tagInstallation(int64_t installationId, QString name);
     Q_INVOKABLE int untagInstallation(int64_t installationId, QString name);
+    Q_INVOKABLE int updateTags(QVariantList modifiedTags);
 
     Q_INVOKABLE QVariantList getTagsFromNames(QList<QString> names);
     Q_INVOKABLE QList<QVariant> getGameTags(int64_t gId);

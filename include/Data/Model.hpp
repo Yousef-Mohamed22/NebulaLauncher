@@ -95,7 +95,7 @@ Result initDatabase(DatabaseConnection* connection);
  * \param tagColor The color of the tag being processed, represented as a 32-bit unsigned integer (e.g., 0xRRGGBBAA)
  * \return A Result indicating success or failure of the callback operation. If the callback returns a failure Result, the traversal will be aborted.
  */
-typedef std::function<Result(StringView,u32)> TagCallback; //Result (*TagCallback)(void* userData, StringView tagName, u32 tagColor);
+typedef std::function<Result(StringView,u32)> TagCallback;
 
 /**
  * \brief Retrieves the descendant tags of a given tag and invokes a callback for each descendant

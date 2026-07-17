@@ -400,7 +400,7 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
     meta.title = nbl::StringView(installationTitle.length(), installationTitle.data());
     meta.description = nbl::StringView(installationDesc.length(), installationDesc.data());
 
-    NBL_CHECK(nbl::addInstallation(&_mConnection, meta, nullptr));
+    NBL_CHECK(nbl::addInstallation(&_mConnection, meta, &meta.id));
 
     for(QString& qs : params.find("addedInstallationTags")->toStringList()) {
         tagInstallation(meta.id, qs);
@@ -409,10 +409,10 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
         untagInstallation(meta.id, qs);
     }
     for(QString& qs : params.find("addedGameTags")->toStringList()) {
-        tagGame(meta.id, qs);
+        tagGame(realGId, qs);
     }
     for(QString& qs : params.find("removedGameTags")->toStringList()) {
-        untagGame(meta.id, qs);
+        untagGame(realGId, qs);
     }
 
     NBL_CHECK(_mConnection.commitTransaction());
@@ -823,6 +823,45 @@ int ApplicationContext::untagInstallation(int64_t installationId, QString name) 
     QByteArray arr = name.toUtf8();
     nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
     return nbl::removeInstallationTag(&_mConnection, installationId, nblName);
+}
+
+int ApplicationContext::updateTags(QVariantList modifiedTags) {
+    for(QVariant tag : modifiedTags) {
+
+        QVariantMap map = tag.toMap();
+
+        QString originalName = map["originalName"].toString();
+        QString name = map["name"].toString();
+        QColor color = map["color"].value<QColor>();
+        QStringList newParents = map["addedParents"].toStringList();
+        QStringList removedParents = map["removedParents"].toStringList();
+
+        NBL_CHECK(_mConnection.beginTransaction());
+
+        if(originalName != name) {
+            renameTag(originalName, name);
+        }
+
+        recolorTag(name, color);
+
+        QByteArray nameUtf = name.toUtf8();
+        nbl::StringView nameView = nbl::StringView(nameUtf.length(), nameUtf.data());
+
+        for(QString parent : newParents) {
+            QByteArray parentUtf = parent.toUtf8();
+            nbl::StringView parentView = nbl::StringView(parentUtf.length(), parentUtf.data());
+            nbl::addParentTag(&_mConnection, parentView, nameView);
+        }
+        for(QString parent : removedParents) {
+            QByteArray parentUtf = parent.toUtf8();
+            nbl::StringView parentView = nbl::StringView(parentUtf.length(), parentUtf.data());
+            nbl::removeParentTag(&_mConnection, parentView, nameView);
+        }
+
+        NBL_CHECK(_mConnection.commitTransaction());
+    }
+
+    return 0;
 }
 
 

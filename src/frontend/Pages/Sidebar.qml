@@ -160,7 +160,7 @@ Item {
                             NblButton {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                icon: "󰮂"
+                                icon: "󰊗"
                                 text: "Add Installation"
                                 onClicked: {
                                     addMenu.close()

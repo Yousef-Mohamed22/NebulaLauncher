@@ -21,6 +21,8 @@ Item {
     property list<var> initialTags: []
     property list<string> initialTagNames: []
 
+    property bool allowNewTags: true
+
     onInitialTagsChanged: {
         tags = []
         for(let i = 0 ; i < initialTags.length ; i++) {
@@ -68,6 +70,8 @@ Item {
             tags[i].state = NblTagList.TagState.INITIAL
         }
     }
+
+    signal modified
 
     Column {
 
@@ -167,6 +171,7 @@ Item {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
+                                root.modified()
                                 root.tags[existingTag.modelData.index].state = 
                                     existingTag.modelData.state == NblTagList.ADDED ?
                                         NblTagList.TagState.IGNORED :
@@ -187,7 +192,7 @@ Item {
                 // Add tag
                 if(tagSearchModel.exactMatch) {
                     popup.addTop()
-                } else {
+                } else if(root.allowNewTags) {
                     popup.addNew()
                 }
                 event.accepted = true
@@ -223,6 +228,9 @@ Item {
         padding: 0
 
         function addTag(name, color) {
+
+            root.modified()
+
             tagInput.text = ""
 
             for(let i = 0 ; i < root.tags.length ; i++) {
@@ -252,6 +260,8 @@ Item {
         }
 
         function addNew() {
+
+            root.modified()
 
             let name = tagInput.text
             tagInput.text = ""
@@ -319,7 +329,7 @@ Item {
 
                         Item {
 
-                            visible: tagInput.text.length > 0 && !tagSearchModel.exactMatch
+                            visible: root.allowNewTags && tagInput.text.length > 0 && !tagSearchModel.exactMatch
 
                             width: parent.width
                             height: 32
