@@ -57,6 +57,20 @@ WHERE tag_closure.descendantId = (SELECT tId FROM tag WHERE name = ?);)", &_ance
     return _processTagQuery(connection, &_ancestorsStmt, callback);
 }
 
+nbl::Result nbl::parents(DatabaseConnection* connection, StringView tag, TagCallback callback) {
+
+    static nbl::PreparedStatement _parentsStmt;
+    if(!_parentsStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT name, color FROM tag 
+JOIN tag_closure ON tag_closure.ancestorId = tag.tId
+WHERE tag_closure.descendantId = (SELECT tId FROM tag WHERE name = ?) AND depth = 1;)", &_parentsStmt));
+    }
+
+    NBL_CHECK(_parentsStmt.bindString(1, tag));
+    return _processTagQuery(connection, &_parentsStmt, callback);
+}
+
 nbl::Result nbl::addTag(DatabaseConnection* connection, StringView tag, u32 color) {
 
     static nbl::PreparedStatement _addTagStmt;

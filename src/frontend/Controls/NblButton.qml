@@ -9,7 +9,12 @@ Item {
     required property string icon
     required property string text
 
+    property color inactiveColor: "transparent"
+
     property int radius: 8
+    property int leftMargin: 8
+
+    property bool centered: false
 
     signal clicked
 
@@ -18,7 +23,7 @@ Item {
     Rectangle {
         id: background
         anchors.fill: parent
-        color: mouseArea.containsMouse ? Theme.colors.border : "transparent"
+        color: mouseArea.containsMouse ? Theme.colors.border : root.inactiveColor
         radius: root.radius
     }
 
@@ -34,8 +39,11 @@ Item {
 
     RowLayout {
 
-        anchors.fill: parent
-        anchors.leftMargin: 8
+        anchors.centerIn: parent
+
+        width: root.centered ? textLabel.implicitWidth + 8 + 24 : parent.width
+
+        anchors.leftMargin: root.leftMargin
         spacing: 8
 
         Label {
@@ -47,6 +55,7 @@ Item {
         }
 
         Label {
+            id: textLabel
             Layout.fillWidth: true
             text: root.text
             font.family: Theme.font

@@ -66,15 +66,21 @@ public:
     Q_INVOKABLE int removeTag(QString name);
     Q_INVOKABLE int renameTag(QString name, QStringView newName);
     Q_INVOKABLE int recolorTag(QString name, QColor color);
+    Q_INVOKABLE int addTagParent(QString tag, QString parent);
     Q_INVOKABLE int tagGame(int64_t gameId, QString name);
     Q_INVOKABLE int untagGame(int64_t gameId, QString name);
     Q_INVOKABLE int tagInstallation(int64_t installationId, QString name);
     Q_INVOKABLE int untagInstallation(int64_t installationId, QString name);
     Q_INVOKABLE int updateTags(QVariantList modifiedTags);
-
+    
     Q_INVOKABLE QVariantList getTagsFromNames(QList<QString> names);
     Q_INVOKABLE QList<QVariant> getGameTags(int64_t gId);
     Q_INVOKABLE QList<QVariant> getInstallationTags(int64_t iId);
+    Q_INVOKABLE QList<QVariant> getTagParents(QString tag);
+
+    Q_INVOKABLE void pushNotification(QVariantMap details) {
+        emit notification(details);
+    }
 
     Q_INVOKABLE void saveSettings(const QVariantMap& settings);
     Q_INVOKABLE QVariantMap loadSettings();
@@ -93,6 +99,10 @@ public:
             _bInitialized = true;
         }
     }
+
+signals:
+
+    void notification(QVariantMap details);
 
 private:
 

@@ -225,10 +225,10 @@ set_sizes AS (
 	GROUP BY setId
 ),
 all_installation_tags AS (
-	SELECT installation.iId, tag.tId
-	FROM installation, tag
-	WHERE tag.tId IN (SELECT installation_tag.tId FROM installation_tag WHERE installation_tag.iId = installation.iId)
-	   OR tag.tId IN (SELECT game_tag.tId FROM game_tag WHERE game_tag.gId = installation.gId)
+	SELECT installation.iId, tag_closure.ancestorId as tId
+	FROM installation, tag_closure
+	WHERE tag_closure.descendantId IN (SELECT installation_tag.tId FROM installation_tag WHERE installation_tag.iId = installation.iId)
+	   OR tag_closure.descendantId IN (SELECT game_tag.tId FROM game_tag WHERE game_tag.gId = installation.gId)
 ),
 matching_sets AS (
 	SELECT 

@@ -13,18 +13,26 @@ Item {
     property string label: ""
 
     default property alias content: contentContainer.children
+    readonly property bool effectivelyCollapsed: collapsed || !enabled
 
-    implicitHeight: collapsed ? collapsedHeight : contentHeight
+    implicitHeight: effectivelyCollapsed ? collapsedHeight : contentHeight
+
+    onEnabledChanged: {
+        if(!enabled) {
+            collapsed = true
+        }
+    }
+
 
     Item {
 
-        width: root.collapsed ? parent.width : root.collapsedHeight
+        width: root.effectivelyCollapsed ? parent.width : root.collapsedHeight
         height: root.collapsedHeight
 
         Rectangle {
             anchors.fill: parent
-            visible: root.collapsed
-            color: collapseMouseArea.containsMouse ? Theme.colors.layer1 : "transparent"
+            visible: root.effectivelyCollapsed
+            color: root.enabled && collapseMouseArea.containsMouse ? Theme.colors.layer1 : "transparent"
             radius: 8
         }
 
@@ -36,7 +44,7 @@ Item {
             verticalAlignment: Qt.AlignVCenter
             horizontalAlignment: Qt.AlignHCenter
 
-            text: root.collapsed ? "" : ""
+            text: root.effectivelyCollapsed ? "" : ""
             font.family: Theme.font
             font.pixelSize: 20
             color: Theme.colors.textDim
@@ -54,7 +62,7 @@ Item {
         }
 
         Label {
-            visible: root.collapsed
+            visible: root.effectivelyCollapsed
 
             height: root.collapsedHeight
             x: root.collapsedHeight
@@ -70,7 +78,7 @@ Item {
 
     Item {
 
-        visible: !root.collapsed
+        visible: !root.effectivelyCollapsed
         width: parent.width
         height: root.contentHeight
 

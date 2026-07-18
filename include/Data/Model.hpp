@@ -117,6 +117,8 @@ Result descendants(DatabaseConnection* connection, StringView tag, TagCallback c
  */
 Result ancestors(DatabaseConnection* connection, StringView tag, TagCallback callback);
 
+Result parents(DatabaseConnection* connection, StringView tag, TagCallback callback);
+
 /**
  * \brief Adds a tag to the database with the specified name and color
  * \param connection The database connection to use for the query

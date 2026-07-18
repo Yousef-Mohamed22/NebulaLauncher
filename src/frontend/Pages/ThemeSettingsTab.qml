@@ -30,7 +30,7 @@ Column {
     Item {
 
         Label {
-            text: "Active Color"
+            text: "Accent Color"
             font.family: Theme.font
             font.pixelSize: 16
             color: Theme.colors.text

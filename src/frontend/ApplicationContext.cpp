@@ -801,6 +801,14 @@ int ApplicationContext::recolorTag(QString name, QColor color) {
     return nbl::setTagColor(&_mConnection, nblName, color.rgba());
 }
 
+int ApplicationContext::addTagParent(QString tag, QString parent) {
+    QByteArray arr = tag.toUtf8();
+    nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
+    QByteArray parentArr = parent.toUtf8();
+    nbl::StringView nblParent = nbl::StringView(parentArr.length(), parentArr.data());
+    return nbl::addParentTag(&_mConnection, nblParent, nblName);
+}
+
 int ApplicationContext::tagGame(int64_t gameId, QString name) {
     QByteArray arr = name.toUtf8();
     nbl::StringView nblName = nbl::StringView(arr.length(), arr.data());
@@ -897,6 +905,24 @@ QList<QVariant> ApplicationContext::getGameTags(int64_t gameId) {
 QList<QVariant> ApplicationContext::getInstallationTags(int64_t installationId) {
     QList<QVariant> out = {};
     nbl::getDirectInstallationTags(&_mConnection, installationId, [&](nbl::StringView name, u32 color) {
+        QMap<QString, QVariant> tag = {};
+        tag["name"] = fromNbl(name);
+        tag["color"] = QColor(color);
+
+        out.append(tag);
+        return nbl::Result::SUCCESS;
+    });
+
+    return out;
+}
+
+QList<QVariant> ApplicationContext::getTagParents(QString tag) {
+    QList<QVariant> out = {};
+
+    QByteArray tagUtf = tag.toUtf8();
+    nbl::StringView tagView = nbl::StringView(tagUtf.length(), tagUtf.data());
+
+    nbl::parents(&_mConnection, tagView, [&](nbl::StringView name, u32 color) {
         QMap<QString, QVariant> tag = {};
         tag["name"] = fromNbl(name);
         tag["color"] = QColor(color);
