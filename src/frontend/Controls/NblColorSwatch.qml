@@ -8,6 +8,8 @@ Item {
     property string label: ""
     property alias selectedColor: colorPicker.color
 
+    signal accepted
+
     Rectangle {
         anchors.fill: parent
         anchors.margins: 4
@@ -57,6 +59,10 @@ Item {
 
         contentItem: NblColorPicker {
             id: colorPicker
+        }
+
+        onClosed: {
+            root.accepted()
         }
     } 
 }

@@ -12,8 +12,6 @@ Item {
     property color inactiveColor: "transparent"
 
     property int radius: 8
-    property int leftMargin: 8
-
     property bool centered: false
 
     signal clicked
@@ -41,9 +39,8 @@ Item {
 
         anchors.centerIn: parent
 
-        width: root.centered ? textLabel.implicitWidth + 8 + 24 : parent.width
+        width: root.centered ? textLabel.implicitWidth + 8 + 24 : (parent.width - 16)
 
-        anchors.leftMargin: root.leftMargin
         spacing: 8
 
         Label {

@@ -6,16 +6,43 @@ import QtQuick.Layouts
 
 import Nebula.Controls
 
-Item {
+SettingsTab {
 
     id: root
 
-    property bool modified: false
     property bool paused: true
 
-    function refresh() {
+    onRefreshed: {
         searchModel.refresh()
         flickable.contentY = 0
+    }
+
+    onApplied: {
+    
+        let res = ApplicationContext.updateTags(encodeModifiedTags())
+        if(res != 0) {
+            ApplicationContext.pushNotification({
+                type: "error",
+                title: "Failed to Update Tags",
+                message: "An error occurred. This is usually due to cycles in a tag's ancestry."
+            })
+            console.log("An error occurred while updating tags!", res)
+        }
+
+        let removedTags = getRemovedTags()
+        for(let i = 0 ; i < removedTags.length ; i++) {
+            let res = ApplicationContext.removeTag(removedTags[i])
+            if(res != 0) {
+                ApplicationContext.pushNotification({
+                    type: "error",
+                    title: "Failed to Remove a Tag",
+                    message: "An error occurred while removing the tag: \"" + removedTags[i] + "\""
+                })
+                console.log("An error occurred while removing a tag!", res) 
+            }
+        }
+
+        refresh()
     }
 
     RowLayout {
@@ -103,6 +130,7 @@ Item {
                 id: newParentsBox
                 label: "Parents"
                 width: parent.width
+                allowNewTags: false
             }
 
             Item {
@@ -312,6 +340,7 @@ Item {
                                 id: parentsBox
                                 label: "Parents"
                                 width: parent.width
+                                allowNewTags: false
                                 onModified: {
                                     tagElement.modified = true
                                 }

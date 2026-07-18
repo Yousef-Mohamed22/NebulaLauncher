@@ -5,15 +5,45 @@ import QtQuick.Controls
 
 import Nebula.Controls
 
-Item {
+SettingsTab {
 
     id: root
 
-    property bool modified: false
-
-    function refresh() {
+    onRefreshed: {
         searchModel.refresh()
         flickable.contentY = 0
+    }
+
+    onApplied: {
+
+        let modified = encodeModifiedGames()
+        for(let i = 0 ; i < modified.length ; i++) {
+            let title = modified[i].title
+            let res = ApplicationContext.updateGame(modified[i])
+            if(res != 0) {
+                ApplicationContext.pushNotification({
+                    type: "error",
+                    title: "Failed to Update a Game",
+                    message: "An error occurred while updating the game \"" + title + "\""
+                })
+                console.log("An error occurred while updating a game!", res)
+            }
+        }
+
+        let removed = getRemovedGameIds()
+        for(let i = 0 ; i < removed.length ; i++) {
+            let res = ApplicationContext.deleteGame(removed[i])
+            if(res != 0) {
+                ApplicationContext.pushNotification({
+                    type: "error",
+                    title: "Failed to Delete a Game",
+                    message: "An error occurred while deleting a game. This is usually because there still exist installations of that game."
+                })
+                console.log("An error occurred while deleting a game!", res)
+            }
+        }
+
+        refresh()
     }
 
     function encodeModifiedGames() {
@@ -98,7 +128,7 @@ Item {
                     id: gameElement
 
                     required property var modelData
-                    property bool modified: false
+                    property bool modified: gameSettings.modified
                     property bool removed: false
 
                     function getId() {
@@ -106,7 +136,7 @@ Item {
                     }
 
                     function encode() {
-                        gameSettings.encode()
+                        return gameSettings.encode()
                     }
 
                     NblDropdown {

@@ -25,7 +25,7 @@ NblDialog {
             width: parent.sidebarWidth
             height: parent.height + root.navigationHeight + root.navigationGap
 
-            property Item currentItem: themeSettingsTab
+            property SettingsTab currentTab: themeSettingsTab
 
             Rectangle { 
                 width: 2
@@ -62,16 +62,16 @@ NblDialog {
 
                     Repeater {
                         model: [
-                            { icon: "", name: "Theme", item: themeSettingsTab },
-                            { icon: "", name: "Tags", item: tagSettingsTab },
-                            { icon: "󰊗", name: "Games", item: gameSettingsTab }
+                            { icon: "", name: "Theme", tab: themeSettingsTab },
+                            { icon: "", name: "Tags", tab: tagSettingsTab },
+                            { icon: "󰊗", name: "Games", tab: gameSettingsTab }
                         ]
 
                         delegate: Item {
 
                             required property var modelData
 
-                            readonly property bool isActive: sidebar.currentItem == modelData.item
+                            readonly property bool isActive: sidebar.currentTab == modelData.tab
                             readonly property bool isHighlighted: isActive || tabArea.containsMouse
 
                             width: parent.width
@@ -108,10 +108,22 @@ NblDialog {
                                 cursorShape: Qt.PointingHandCursor
                                 anchors.fill: parent
                                 onClicked: {
-                                    if(parent.modelData.item == sidebar.currentItem) return
-                                    sidebar.currentItem.visible = false
-                                    sidebar.currentItem = parent.modelData.item
-                                    sidebar.currentItem.visible = true
+                                    if(parent.modelData.tab == sidebar.currentTab) return
+                                    if(sidebar.currentTab.modified) {
+                                        ApplicationContext.pushNotification({
+                                            type: "error",
+                                            title: "Cannot Change Tabs",
+                                            message: "Please apply your changes first."
+                                        })
+                                        return
+                                    }
+
+                                    sidebar.currentTab.modified = false
+                                    sidebar.currentTab.visible = false
+
+                                    sidebar.currentTab = parent.modelData.tab
+                                    sidebar.currentTab.refresh()
+                                    sidebar.currentTab.visible = true
                                 }
                             }
 
@@ -155,33 +167,7 @@ NblDialog {
     }
 
     onApply: {
-        Theme.colors.lightMode = !themeSettingsTab.darkTheme
-        Theme.colors.activeColor = themeSettingsTab.selectedColor
-
-        let res = ApplicationContext.updateTags(tagSettingsTab.encodeModifiedTags())
-        if(res != 0) {
-            ApplicationContext.pushNotification({
-                type: "error",
-                title: "Failed to Update Tags",
-                message: "An error occurred. This is usually due to cycles in a tag's ancestry."
-            })
-            console.log("An error occurred while updating tags!", res)
-        }
-
-        let removedTags = tagSettingsTab.getRemovedTags()
-        for(let i = 0 ; i < removedTags.length ; i++) {
-            let res = ApplicationContext.removeTag(removedTags[i])
-            if(res != 0) {
-                ApplicationContext.pushNotification({
-                    type: "error",
-                    title: "Failed to Remove a Tag",
-                    message: "An error occurred while removing the tag: \"" + removedTags[i] + "\""
-                })
-                console.log("An error occurred while removing a tag!", res) 
-            }
-        }
-
-        tagSettingsTab.refresh()
+        sidebar.currentTab.apply()
     }
 
 }

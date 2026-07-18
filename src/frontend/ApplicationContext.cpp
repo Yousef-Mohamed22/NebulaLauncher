@@ -965,8 +965,8 @@ int ApplicationContext::addGame(QVariantMap params) {
 
     NBL_CHECK(nbl::addDisplay(&_mConnection, displayMeta, &dId));
 
-    QByteArray title = params.find("gameTitle")->toString().toUtf8();
-    QByteArray description = params.find("gameDescription")->toString().toUtf8();
+    QByteArray title = params.find("title")->toString().toUtf8();
+    QByteArray description = params.find("description")->toString().toUtf8();
     u64 steamId = params.find("steamId")->toUInt();
     u64 igdbId = params.find("igdbId")->toUInt();
     u64 releaseDate = params.find("releaseDate")->toUInt();
@@ -1028,8 +1028,8 @@ int ApplicationContext::updateGame(QVariantMap params) {
 
     NBL_CHECK(nbl::updateDisplay(&_mConnection, dId, displayMeta));
 
-    QByteArray title = params.find("gameTitle")->toString().toUtf8();
-    QByteArray description = params.find("gameDescription")->toString().toUtf8();
+    QByteArray title = params.find("title")->toString().toUtf8();
+    QByteArray description = params.find("description")->toString().toUtf8();
     u64 steamId = params.find("steamId")->toUInt();
     u64 igdbId = params.find("igdbId")->toUInt();
     u64 releaseDate = params.find("releaseDate")->toUInt();
@@ -1087,6 +1087,10 @@ QVariantMap ApplicationContext::getGameDetails(qint64 gameId) {
 
     out["tags"] = getGameTags(gameId);
     return out;
+}
+
+int ApplicationContext::deleteGame(qint64 gameId) {
+    return nbl::removeGame(&_mConnection, gameId);
 }
 
 

@@ -65,7 +65,7 @@ Window {
 
     Item {
 
-        width: 256
+        width: 316
         height: root.height - 16
 
         x: root.width - width - 8
@@ -86,8 +86,8 @@ Window {
             spacing: 8
 
             delegate: Item {
-                width: 256
-                height: 96
+                width: 316
+                height: 128
 
                 id: notif
 

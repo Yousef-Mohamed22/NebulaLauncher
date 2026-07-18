@@ -81,6 +81,7 @@ public:
     Q_INVOKABLE int addGame(QVariantMap details);
     Q_INVOKABLE int updateGame(QVariantMap details);
     Q_INVOKABLE QVariantMap getGameDetails(qint64 gameId);
+    Q_INVOKABLE int deleteGame(qint64 gameId);
 
     Q_INVOKABLE void pushNotification(QVariantMap details) {
         emit notification(details);
