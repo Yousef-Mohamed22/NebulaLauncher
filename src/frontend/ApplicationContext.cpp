@@ -933,3 +933,160 @@ QList<QVariant> ApplicationContext::getTagParents(QString tag) {
 
     return out;
 }
+
+
+int ApplicationContext::addGame(QVariantMap params) {
+
+    i64 dId = 0;
+
+    QString posterUrl = params.find("poster")->toString();
+    QString iconUrl = params.find("icon")->toString();
+    QString logoUrl = params.find("logo")->toString();
+    QString bannerUrl = params.find("banner")->toString();
+
+    NBL_CHECK(pushImage(posterUrl, "poster", &posterUrl));
+    NBL_CHECK(pushImage(iconUrl, "icon", &iconUrl));
+    NBL_CHECK(pushImage(logoUrl, "logo", &logoUrl));
+    NBL_CHECK(pushImage(bannerUrl, "banner", &bannerUrl));
+    nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
+
+    QByteArray poster = posterUrl.toUtf8();
+    QByteArray icon = iconUrl.toUtf8();
+    QByteArray logo = logoUrl.toUtf8();
+    QByteArray banner = bannerUrl.toUtf8();
+
+    nbl::DisplayMeta displayMeta = {
+        .banner = nbl::StringView(banner.length(), banner.constData()),
+        .poster = nbl::StringView(poster.length(), poster.constData()),
+        .icon = nbl::StringView(icon.length(), icon.constData()),
+        .logo = nbl::StringView(logo.length(), logo.constData()),
+        .logoPosition = position
+    };
+
+    NBL_CHECK(nbl::addDisplay(&_mConnection, displayMeta, &dId));
+
+    QByteArray title = params.find("gameTitle")->toString().toUtf8();
+    QByteArray description = params.find("gameDescription")->toString().toUtf8();
+    u64 steamId = params.find("steamId")->toUInt();
+    u64 igdbId = params.find("igdbId")->toUInt();
+    u64 releaseDate = params.find("releaseDate")->toUInt();
+    f64 rating = params.find("rating")->toDouble();
+
+    nbl::GameMeta gameMeta = {
+        .id = 0,
+        .displayId = dId,
+        .title = nbl::StringView(title.length(), title.constData()),
+        .description = nbl::StringView(description.length(), description.constData()),
+        .steamId = steamId,
+        .igdbId = igdbId,
+        .releaseDate = releaseDate,
+        .rating = rating
+    };
+
+    i64 gId = 0;
+    NBL_CHECK(nbl::addGame(&_mConnection, gameMeta, &gId));
+
+    for(QString& qs : params.find("tags")->toStringList()) {
+        tagGame(gId, qs);
+    }
+
+    return 0;
+}
+int ApplicationContext::updateGame(QVariantMap params) {
+
+    bool ok = true;
+    i64 gId = params.find("id")->toLongLong(&ok);
+    i64 dId = params.find("displayId")->toLongLong(&ok);
+
+    if(!ok) {
+        return nbl::error::ILLEGAL_ARGUMENT;
+    }
+
+    QString posterUrl = params.find("poster")->toString();
+    QString iconUrl = params.find("icon")->toString();
+    QString logoUrl = params.find("logo")->toString();
+    QString bannerUrl = params.find("banner")->toString();
+
+    NBL_CHECK(pushImage(posterUrl, "poster", &posterUrl));
+    NBL_CHECK(pushImage(iconUrl, "icon", &iconUrl));
+    NBL_CHECK(pushImage(logoUrl, "logo", &logoUrl));
+    NBL_CHECK(pushImage(bannerUrl, "banner", &bannerUrl));
+    nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
+
+    QByteArray poster = posterUrl.toUtf8();
+    QByteArray icon = iconUrl.toUtf8();
+    QByteArray logo = logoUrl.toUtf8();
+    QByteArray banner = bannerUrl.toUtf8();
+
+    nbl::DisplayMeta displayMeta = {
+        .banner = nbl::StringView(banner.length(), banner.constData()),
+        .poster = nbl::StringView(poster.length(), poster.constData()),
+        .icon = nbl::StringView(icon.length(), icon.constData()),
+        .logo = nbl::StringView(logo.length(), logo.constData()),
+        .logoPosition = position
+    };
+
+    NBL_CHECK(nbl::updateDisplay(&_mConnection, dId, displayMeta));
+
+    QByteArray title = params.find("gameTitle")->toString().toUtf8();
+    QByteArray description = params.find("gameDescription")->toString().toUtf8();
+    u64 steamId = params.find("steamId")->toUInt();
+    u64 igdbId = params.find("igdbId")->toUInt();
+    u64 releaseDate = params.find("releaseDate")->toUInt();
+    f64 rating = params.find("rating")->toDouble();
+
+    nbl::GameMeta gameMeta = {
+        .id = 0,
+        .displayId = dId,
+        .title = nbl::StringView(title.length(), title.constData()),
+        .description = nbl::StringView(description.length(), description.constData()),
+        .steamId = steamId,
+        .igdbId = igdbId,
+        .releaseDate = releaseDate,
+        .rating = rating
+    };
+
+    NBL_CHECK(nbl::updateGame(&_mConnection, gId, gameMeta));
+
+    for(QString& qs : params.find("tags")->toStringList()) {
+        tagGame(gId, qs);
+    }
+    for(QString& qs : params.find("removedTags")->toStringList()) {
+        untagGame(gId, qs);
+    }
+    return 0;
+}
+
+QVariantMap ApplicationContext::getGameDetails(qint64 gameId) {
+
+    QVariantMap out = {};
+
+    nbl::Result res = nbl::getGameDetails(&_mConnection, gameId, [&](const nbl::GameDetails& details) {
+
+        out["id"] = static_cast<qint64>(details.game.id);
+        out["displayId"] = static_cast<qint64>(details.display.id);
+        out["title"] = fromNbl(details.game.title);
+        out["description"] = fromNbl(details.game.description);
+        out["poster"] = fromNbl(details.display.poster);
+        out["icon"] = fromNbl(details.display.icon);
+        out["logo"] = fromNbl(details.display.logo);
+        out["banner"] = fromNbl(details.display.banner);
+        out["logoPosition"] = static_cast<int>(details.display.logoPosition);
+        out["releaseDate"] = static_cast<quint64>(details.game.releaseDate);
+        out["rating"] = details.game.rating;
+        out["steamId"] = static_cast<quint64>(details.game.steamId);
+        out["igdbId"] = static_cast<quint64>(details.game.igdbId);
+
+        return nbl::Result::SUCCESS;
+    });
+
+    if(res != 0) {
+        nbl::log(nbl::LogLevel::ERROR, "An error occurred while looking up game details! ", res);
+        return {};
+    }
+
+    out["tags"] = getGameTags(gameId);
+    return out;
+}
+
+

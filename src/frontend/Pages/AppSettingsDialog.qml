@@ -138,6 +138,11 @@ NblDialog {
                 id: tagSettingsTab
                 anchors.fill: parent
                 visible: false
+                onVisibleChanged: {
+                    if(visible) {
+                        paused = false
+                    }
+                }
             }
 
             GameSettingsTab {

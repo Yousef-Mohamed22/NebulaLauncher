@@ -78,6 +78,10 @@ public:
     Q_INVOKABLE QList<QVariant> getInstallationTags(int64_t iId);
     Q_INVOKABLE QList<QVariant> getTagParents(QString tag);
 
+    Q_INVOKABLE int addGame(QVariantMap details);
+    Q_INVOKABLE int updateGame(QVariantMap details);
+    Q_INVOKABLE QVariantMap getGameDetails(qint64 gameId);
+
     Q_INVOKABLE void pushNotification(QVariantMap details) {
         emit notification(details);
     }

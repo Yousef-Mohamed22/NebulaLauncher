@@ -31,9 +31,7 @@ QHash<int, QByteArray> NblTagSearchModel::roleNames() const {
 
 void NblTagSearchModel::loadNextPage() {
 
-    if(!_mAllLoaded && !_mIsLoading) {
-        _mCurrentPage++;
-        emit currentPageChanged();
+    if(!_mAllLoaded && !_mIsLoading && !_mPaused) {
         _fetchPageData();
     }
 }
@@ -43,15 +41,13 @@ void NblTagSearchModel::refresh() {
     beginResetModel();
 
     _mData.clear();
-    _mCurrentPage = 1;
     _mAllLoaded = false;
     _mExactMatch = false;
     exactMatchChanged();
 
-    _fetchPageData();
+    loadNextPage();
+
     endResetModel();
-
-
 }
 
 void NblTagSearchModel::_fetchPageData() {
@@ -60,7 +56,7 @@ void NblTagSearchModel::_fetchPageData() {
     _mIsLoading = true;
     emit isLoadingChanged();
 
-    u64 offset = (_mCurrentPage - 1) * _mPageSize;
+    u64 offset = _mData.size();
     u64 limit = _mPageSize;
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();

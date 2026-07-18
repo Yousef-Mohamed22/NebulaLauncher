@@ -36,7 +36,11 @@ Item {
     }
 
     onInitialTagNamesChanged: {
-        initialTags = ApplicationContext.getTagsFromNames(initialTagNames)
+        if(initialTagNames.length > 0) {
+            initialTags = ApplicationContext.getTagsFromNames(initialTagNames)
+        } else {
+            initialTags = []
+        }
     }
 
     function getTags(state) {
@@ -200,11 +204,11 @@ Item {
 
             onTextEdited: {
                 text = text.toLowerCase().replace(' ', '_')
-                if(text.length > 0) popup.visible = true
+                if(text.length > 0) popup.open()
             }
 
             onPressed: {
-                popup.visible = true
+                popup.open()
             }
         }
     }
@@ -226,6 +230,10 @@ Item {
         background: null
         margins: 0
         padding: 0
+
+        onOpened: {
+            tagSearchModel.paused = false
+        }
 
         function addTag(name, color) {
 

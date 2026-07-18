@@ -9,6 +9,12 @@ NblTextBox {
         return date.getTime()
     }
 
+    function setTime(time) {
+        date.setTime(time)
+    }
+
+    signal dateEdited
+
     placeholderText: format
     text: Qt.formatDate(date, format)
     validator: RegularExpressionValidator { 
@@ -28,6 +34,8 @@ NblTextBox {
             } 
 
             date = parsedDate
+
+            dateEdited()
         }
 
     }

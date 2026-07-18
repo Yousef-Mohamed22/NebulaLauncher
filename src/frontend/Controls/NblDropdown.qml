@@ -12,6 +12,8 @@ Item {
     property real collapsedHeight: 48
     property string label: ""
 
+    readonly property real contentWidth: width - collapsedHeight
+
     default property alias content: contentContainer.children
     readonly property bool effectivelyCollapsed: collapsed || !enabled
 
@@ -93,7 +95,7 @@ Item {
         Item {
             id: contentContainer
 
-            width: parent.width - root.collapsedHeight
+            width: root.contentWidth
             height: root.contentHeight
             x: root.collapsedHeight
         }

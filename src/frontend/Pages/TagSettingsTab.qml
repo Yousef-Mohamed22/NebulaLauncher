@@ -10,7 +10,8 @@ Item {
 
     id: root
 
-    property bool modified
+    property bool modified: false
+    property bool paused: true
 
     function refresh() {
         searchModel.refresh()
@@ -211,6 +212,8 @@ Item {
 
             id: tagColumn
 
+            property NblDropdown currentlyOpenDropdown: null
+
             Repeater {
 
                 id: tagRepeater
@@ -219,6 +222,7 @@ Item {
                     id: searchModel
                     searchQuery: filterBox.text
                     pageSize: 10
+                    paused: root.paused
                 }
 
                 delegate: Item { 
@@ -254,7 +258,7 @@ Item {
 
                         id: dropdown
 
-                        width: parent.width - parent.height
+                        width: parent.width - collapsedHeight
                         label: tagElement.modelData.name
 
                         contentHeight: tagInfo.height
@@ -262,15 +266,24 @@ Item {
 
                         property bool loadedTags: false
                         onCollapsedChanged: {
-                            if(!collapsed && !loadedTags) {
-                                loadedTags = true
-                                parentsBox.initialTags = ApplicationContext.getTagParents(tagElement.modelData.name)
+                            if(!collapsed) {
+
+                                if(tagColumn.currentlyOpenDropdown && tagColumn.currentlyOpenDropdown != this) {
+                                    tagColumn.currentlyOpenDropdown.collapsed = true
+                                }
+                                tagColumn.currentlyOpenDropdown = this
+
+                                if(!loadedTags) {
+
+                                    loadedTags = true
+                                    parentsBox.initialTags = ApplicationContext.getTagParents(tagElement.modelData.name)
+                                }
                             }
                         }
 
                         Column {
                             id: tagInfo
-                            width: parent.width
+                            width: dropdown.contentWidth
                             NblTextBox {
                                 id: tagNameBox
                                 label: "Name"
