@@ -124,9 +124,9 @@ NblDialog {
         Item {
 
             width: parent.width - parent.sidebarWidth - 48
-            height: parent.height - 24
+            height: parent.height - 48
             x: parent.sidebarWidth + 24
-            y: 12
+            y: 24
 
             ThemeSettingsTab {
                 id: themeSettingsTab

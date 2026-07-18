@@ -181,13 +181,13 @@ Item {
 
     Flickable {
 
-        width: parent.width
+        width: root.width + 8
         height: parent.height - 64
         y: 64
 
         id: flickable
 
-        contentWidth: width
+        contentWidth: root.width
         contentHeight: tagColumn.height
         flickableDirection: Flickable.VerticalFlick
         clip: true

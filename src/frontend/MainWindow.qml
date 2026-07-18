@@ -71,6 +71,7 @@ Window {
         x: root.width - width - 8
         y: root.height - height - 8
 
+        enabled: false
 
         ListModel {
             id: activeNotifications

@@ -14,13 +14,6 @@ Column {
     id: root
     spacing: 16
 
-    Label {
-        text: "Theme"
-        font.family: Theme.font
-        font.pixelSize: 16
-        color: Theme.colors.text
-    }
-
     NblCheckBox {
         id: darkThemeBox
         text: "Dark Theme"
@@ -102,9 +95,8 @@ Column {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            layout.selectedIndex = parent.index
                             root.selectedColor = parent.modelData
-                            customColor.selectedColor = parent.modelData
+                            layout.selectedIndex = parent.index
                         }
                     }
                 }
