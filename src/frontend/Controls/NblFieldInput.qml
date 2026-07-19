@@ -47,6 +47,7 @@ Item {
 
         onLoaded: {
 
+            root.value = root.field.defaultValue
             if(root.field.type == 0) {
 
                 let textBox = loader.item as NblTextBox

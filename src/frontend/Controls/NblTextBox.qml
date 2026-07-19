@@ -47,7 +47,11 @@ TextField {
             text: root.label
             font.family: Theme.font
             font.weight: 500
-            color: root.cursorVisible ? Theme.colors.accent : Theme.colors.textDim
+            color: root.enabled 
+                ? root.cursorVisible 
+                    ? Theme.colors.accent 
+                    : Theme.colors.textDim
+                : Theme.colors.border
         }
     }
 

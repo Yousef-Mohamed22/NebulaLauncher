@@ -27,10 +27,10 @@ Column {
 
         let dataFolder = ApplicationContext.dataFolder
 
-        posterPicker.imageSource = "file://" + dataFolder + "/media/poster/" + details.poster
-        iconPicker.imageSource = "file://" + dataFolder + "/media/icon/" + details.icon
-        logoPicker.imageSource = "file://" + dataFolder + "/media/logo/" + details.logo
-        bannerPicker.imageSource = "file://" + dataFolder + "/media/banner/" + details.banner
+        if(details.poster.length > 0) posterPicker.imageSource = "file://" + dataFolder + "/media/poster/" + details.poster
+        if(details.icon.length > 0) iconPicker.imageSource = "file://" + dataFolder + "/media/icon/" + details.icon
+        if(details.logo.length > 0) logoPicker.imageSource = "file://" + dataFolder + "/media/logo/" + details.logo
+        if(details.banner.length > 0) bannerPicker.imageSource = "file://" + dataFolder + "/media/banner/" + details.banner
 
         logoPositionBox.currentIndex = details.logoPosition
 

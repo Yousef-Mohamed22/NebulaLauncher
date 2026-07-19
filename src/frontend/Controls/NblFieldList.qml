@@ -23,18 +23,14 @@ Repeater {
 
     function loadFromJson(commandJson) {
 
-        try {
-            let fields = JSON.parse(commandJson)
-            for (const [key, value] of Object.entries(fields)) {
-                for(let i = 0 ; i < count ; i++) {
-                    let item = itemAt(i) as NblFieldInput
-                    if(item.field.key == key) {
-                        item.setValue(value)
-                    }
+        let fields = JSON.parse(commandJson)
+        for (const [key, value] of Object.entries(fields)) {
+            for(let i = 0 ; i < count ; i++) {
+                let item = itemAt(i) as NblFieldInput
+                if(item.field.key == key) {
+                    item.setValue(value)
                 }
             }
-        } catch(ex) { 
-            console.warn("Invalid json: ", commandJson)
         }
     }
 

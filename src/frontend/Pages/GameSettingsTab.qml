@@ -2,12 +2,15 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 import Nebula.Controls
 
 SettingsTab {
 
     id: root
+
+    property bool addingNew
 
     onRefreshed: {
         searchModel.refresh()
@@ -71,10 +74,55 @@ SettingsTab {
         return output
     }
 
-    NblTextBox {
-        id: filterBox
+
+    RowLayout {
+
         width: parent.width
-        label: "Filter"
+        height: 54
+        
+        NblTextBox {
+            id: filterBox
+            Layout.fillWidth: true
+            label: "Filter"
+
+            enabled: !root.addingNew
+        }
+        
+        NblButton {
+
+            id: newBtn
+
+            icon: root.addingNew ? "" : ""
+            text: root.addingNew ? "Cancel" : "New"
+
+            Layout.preferredWidth: 128
+            Layout.preferredHeight: 48
+            Layout.topMargin: 6
+
+            inactiveColor: Theme.colors.layer1
+            centered: true
+
+            onClicked: {
+
+                if(root.addingNew) {
+
+                    root.addingNew = false
+
+                } else {
+
+                    if(root.modified) {
+                        ApplicationContext.pushNotification({
+                            type: "error",
+                            title: "Cannot Add Tag",
+                            message: "Please apply your changes first."
+                        })
+                        return
+                    }
+
+                    root.addingNew = true
+                }
+            }
+        }
     }
 
     Flickable {
@@ -86,7 +134,7 @@ SettingsTab {
         id: flickable
 
         contentWidth: width
-        contentHeight: gameColumn.height
+        contentHeight: root.addingNew ? newGameColumn.height : gameColumn.height
         flickableDirection: Flickable.VerticalFlick
         clip: true
 
@@ -100,14 +148,70 @@ SettingsTab {
         }
 
         onAtYEndChanged: {
-            if(atYEnd) {
+            if(atYEnd && !root.addingNew) {
                 searchModel.loadNextPage()
+            }
+        }
+
+        Column {
+            id: newGameColumn
+            visible: root.addingNew
+
+            spacing: 16
+
+            NblGameSettings {
+                id: newGameSettings
+                width: root.width
+            }
+
+            Item {
+
+                width: 128
+                height: 48
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: Theme.colors.accent
+                    radius: 8
+                }
+
+                Label {
+                    anchors.centerIn: parent
+                    font.pixelSize: 16
+                    font.weight: 500
+                    color: Theme.colors.textOnAccent
+                    text: "Add"
+                }
+
+                MouseArea {
+                    id: addMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+
+                        let rc = ApplicationContext.addGame(newGameSettings.encode())
+                        if(rc != 0) {
+                            ApplicationContext.pushNotification({
+                                type: "error",
+                                title: "Could Not Add Game",
+                                message: "An error occurred."
+                            })
+                            console.log("An error occurred while adding a game", rc)
+                        }
+
+                        root.addingNew = false
+                        root.refresh()
+                    }
+                }
             }
         }
 
         Column {
 
             id: gameColumn
+            visible: !root.addingNew
+
             property NblDropdown currentlyOpenDropdown: null
 
             Repeater {

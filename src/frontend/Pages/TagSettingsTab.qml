@@ -149,7 +149,7 @@ SettingsTab {
                     font.pixelSize: 16
                     font.weight: 500
                     color: Theme.colors.textOnAccent
-                    text: "OK"
+                    text: "Add"
                 }
 
                 MouseArea {
