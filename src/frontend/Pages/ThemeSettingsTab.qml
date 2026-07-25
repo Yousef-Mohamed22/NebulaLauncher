@@ -126,13 +126,12 @@ SettingsTab {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
-                    onSelectedColorChanged: {
-                        root.selectedColor = selectedColor
-                        layout.selectedIndex = layout.swatches.length
-                    }
-
                     onAccepted: {
-                        root.modified = true
+                        if(root.selectedColor != selectedColor) {
+                            root.selectedColor = selectedColor
+                            layout.selectedIndex = layout.swatches.length
+                            root.modified = true
+                        }
                     }
 
                     Rectangle {

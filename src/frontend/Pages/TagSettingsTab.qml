@@ -91,8 +91,11 @@ SettingsTab {
         width: 350
         height: 316
 
-        y: newBtn.y + newBtn.height + 8
-        x: newBtn.x
+        onOpened: {
+            let realCoords = root.mapToItem(null, 0, 0)
+            x = Math.min(newBtn.x, root.Window.width - realCoords.x - 350)
+            y = Math.min(newBtn.y + newBtn.height + 8, root.Window.height - realCoords.y - 316)
+        }
 
         padding: 8
 

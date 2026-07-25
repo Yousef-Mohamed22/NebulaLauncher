@@ -42,7 +42,11 @@ Item {
         width: 250
         height: 250
 
-        y: parent.height + 8
+        onOpened: {
+            let realCoords = root.mapToItem(null, 0, 0)
+            x = Math.min(0, root.Window.width - realCoords.x - 250)
+            y = Math.min(root.height + 8, root.Window.height - realCoords.y - 250)
+        }
 
         modal: false
         clip: true
