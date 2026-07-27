@@ -180,12 +180,16 @@ void ApplicationContext::_initialize() {
 
 
 QString ApplicationContext::dataFolder() const {
-    if(qEnvironmentVariableIsSet("NBL_DATA_FOLDER")) {
-        return qEnvironmentVariable("NBL_DATA_FOLDER");
-    } else {
-        nbl::StringView dataDir = nbl::getDataDirectory();
-        return QString::fromUtf8(dataDir.data, dataDir.length).append("/NebulaLauncher");
+    static QString _dataFolder = {};
+    if(_dataFolder.isEmpty()) {
+        if(qEnvironmentVariableIsSet("NBL_DATA_FOLDER")) {
+            _dataFolder = qEnvironmentVariable("NBL_DATA_FOLDER");
+        } else {
+            nbl::StringView dataDir = nbl::getDataDirectory();
+            _dataFolder = QString::fromUtf8(dataDir.data, dataDir.length).append("/NebulaLauncher");
+        }
     }
+    return _dataFolder;
 }
 
 
