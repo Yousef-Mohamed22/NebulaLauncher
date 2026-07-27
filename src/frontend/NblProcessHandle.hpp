@@ -51,7 +51,7 @@ public:
         if(_bIsStopping) return;
 
         _bIsStopping = true;
-        isStoppingUpdated();
+        emit isStoppingUpdated();
 
         _mHandle.kill();
     }
@@ -63,10 +63,10 @@ public:
 
             if(nowRunning && !_bHasStarted) {
                 _bHasStarted = true;
-                hasStartedUpdated();
+                emit hasStartedUpdated();
             }
             _bWasRunning = nowRunning;
-            isRunningUpdated();
+            emit isRunningUpdated();
 
             if(!nowRunning) {
                 emit stopped();

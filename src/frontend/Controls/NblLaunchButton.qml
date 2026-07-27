@@ -155,6 +155,13 @@ Item {
         }
     }
 
+    Connections {
+        target: root.handle
+        function onStopped() {
+            root.handle = null
+        }
+    }
+
     MouseArea {
         anchors.fill: background
         cursorShape: (root.processState === NblLaunchButton.State.STOPPING || root.processState === NblLaunchButton.State.STARTING) ? Qt.ArrowCursor : Qt.PointingHandCursor

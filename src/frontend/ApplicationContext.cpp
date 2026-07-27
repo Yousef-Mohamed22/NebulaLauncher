@@ -1068,7 +1068,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
     QByteArray description = params.find("description")->toString().toUtf8();
     u64 steamId = params.find("steamId")->toUInt();
     u64 igdbId = params.find("igdbId")->toUInt();
-    u64 releaseDate = params.find("releaseDate")->toUInt();
+    u64 releaseDate = params.find("releaseDate")->toULongLong();
     f64 rating = params.find("rating")->toDouble();
 
     nbl::GameMeta gameMeta = {

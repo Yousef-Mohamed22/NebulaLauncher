@@ -4,6 +4,7 @@ NblTextBox {
 
     property var date: new Date()
     property string format: "yyyy/MM/dd"
+    property bool utc: true
 
     function getTime() {
         return date.getTime()
@@ -11,18 +12,26 @@ NblTextBox {
 
     function setTime(time) {
         date.setTime(time)
+        text = getDateString()
+    }
+
+    function getDateString() {
+        if(utc) {
+            return Qt.formatDate(new Date(date.getTime()), format)
+        }
+        return date.toLocaleDateString(Qt.locale(), format)
     }
 
     signal dateEdited
 
     placeholderText: format
-    text: Qt.formatDate(date, format)
+    text: getDateString()
     validator: RegularExpressionValidator { 
         regularExpression: /^\d{4}\/(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])$/ 
     }
 
     onDateChanged: {
-        text = date.toLocaleDateString(Qt.locale(), format)
+        text = getDateString()
     }
 
     onTextEdited: {
@@ -32,9 +41,7 @@ NblTextBox {
             if (isNaN(parsedDate.getTime())) {
                 return;
             } 
-
             date = parsedDate
-
             dateEdited()
         }
 

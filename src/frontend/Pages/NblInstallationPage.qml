@@ -195,7 +195,6 @@ Item {
 
                 spacing: 16
 
-
                 Label {
                     font.family: Theme.font
                     font.pixelSize: 24
@@ -250,12 +249,76 @@ Item {
                 anchors.margins: 16
                 spacing: 8
 
+                function _formatDate(timeUint) {
+                    return Qt.formatDate(new Date(timeUint), "yyyy/MM/dd")
+                }
+
+                function _formatElapsedTime(totalMs) {
+                    let totalSeconds = Math.floor(totalMs / 1000);
+                    let seconds = totalSeconds % 60;
+                    let minutes = Math.floor(totalSeconds / 60) % 60;
+                    let hours = Math.floor(totalSeconds / 3600);
+
+                    let pad = (num) => String(num).padStart(2, '0');
+
+                    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+                }
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 16
+                    font.weight: 600
+                    color: Theme.colors.text
+                    text: "Metadata"
+                }
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                    font.weight: 600
+                    color: Theme.colors.textDim
+                    text: "Release Date: " + parent._formatDate(root.details.releaseDate)
+                }
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                    font.weight: 600
+                    color: Theme.colors.textDim
+                    text: "Rating: " + root.details.rating
+                }
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                    font.weight: 600
+                    color: Theme.colors.textDim
+                    text: "Play time: " + parent._formatElapsedTime(root.details.playTime)
+                }
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                    font.weight: 600
+                    color: Theme.colors.textDim
+                    text: "Play count: " + root.details.playCount
+                }
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                    font.weight: 600
+                    color: Theme.colors.textDim
+                    text: "Last played: " + parent._formatDate(root.details.lastPlayed)
+                }
+
                 Label {
                     font.family: Theme.font
                     font.pixelSize: 16
                     font.weight: 600
                     color: Theme.colors.text
                     text: "Tags"
+                    topPadding: 12
                 }
 
                 Flow {
