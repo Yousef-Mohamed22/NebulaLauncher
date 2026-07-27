@@ -2,6 +2,7 @@
 
 #include <Core/String.hpp>
 #include <Core/Span.hpp>
+#include <Codec/Json.hpp>
 #include <Plugin/PluginContext.hpp>
 
 namespace nbl {
@@ -66,6 +67,7 @@ struct Field {
     FieldValue defaultValue;
 };
 
+
 struct InstallationType;
 struct LaunchInstallationFunction {
     Result (*pfnLaunchInstallation)(
@@ -77,18 +79,38 @@ struct LaunchInstallationFunction {
             void* userData);
     void* userData;
 };
+struct GetFolderFunction {
+    Result (*pfnGetFolder)(
+            const InstallationType* type,
+            PluginContext* ctx, 
+            nbl::Span<FieldValue> fields, 
+            i64 installationId,
+            StringView* outFolder,
+            void* userData);
+    void* userData;
+};
 
 struct InstallationType {
     StringView id;
     StringView name;
     Span<Field> fields;
     LaunchInstallationFunction launchFunc;
+    GetFolderFunction getFolderFunc;
 
     inline Result launch(PluginContext* ctx, nbl::Span<FieldValue> fields, i64 installationId, ProcessHandle* handle) const {
         return launchFunc.pfnLaunchInstallation(this, ctx, fields, installationId, handle, launchFunc.userData);
     }
 
+    inline Result getFolder(PluginContext* ctx, nbl::Span<FieldValue> fields, i64 installationId, StringView* outFolder) const {
+        return getFolderFunc.pfnGetFolder(this, ctx, fields, installationId, outFolder, getFolderFunc.userData);
+    }
+
     static InstallationType COMMAND;
 };
+
+
+Result encodeFieldValues(const InstallationType* type, Span<FieldValue> values, ArenaFrame* frame, JsonObject* outObject);
+
+Result decodeFieldValues(const InstallationType* type, JsonObject obj, Span<FieldValue> values);
 
 }

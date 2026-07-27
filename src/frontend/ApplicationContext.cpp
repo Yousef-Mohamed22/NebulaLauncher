@@ -13,6 +13,7 @@
 #include <Plugin/PluginContext.hpp>
 
 #include <QString>
+#include <QDesktopServices>
 #include <QColor>
 #include <qcontainerfwd.h>
 #include <qjsonparseerror.h>
@@ -24,6 +25,9 @@
 #include "Data/Database.hpp"
 #include "Models/NblInstallationDetails.hpp"
 #include "NblProcessHandle.hpp"
+
+
+using namespace Qt::StringLiterals;
 
 namespace {
 
@@ -132,6 +136,15 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
 }
 
 
+void _pushNotification(ApplicationContext* context, QString type, QString title, QString message) {
+    QVariantMap map = {};
+    map["type"] = type;
+    map["title"] = title;
+    map["message"] = message;
+    context->pushNotification(map);
+}
+
+
 }
 
 
@@ -187,80 +200,80 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
 
     nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
-        ApplicationContext* context = this;
-
-        const nbl::InstallationType* installType = context->_mContext.getInstallationType(meta.type);
+        const nbl::InstallationType* installType = _mContext.getInstallationType(meta.type);
         if(installType == nullptr) {
             nbl::log(nbl::LogLevel::ERROR, "Unknown installation type: ", meta.type);
             return nbl::error::ILLEGAL_STATE;
         }
 
-        QJsonDocument doc = QJsonDocument::fromJson(QByteArray(meta.command.data, meta.command.length));
-        if(!doc.isObject()) return nbl::error::ILLEGAL_STATE;
-
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::Span<nbl::FieldValue> values = {
+            .data = nullptr,
+            .length = installType->fields.length
+        };
 
-        nbl::FieldValue* values;
-        usize valueCount = 0;
+        frame.allocate(&values.data, installType->fields.length);
 
-        frame.allocate(&values, installType->fields.length);
+        nbl::JsonValue value = {};
+        NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value, true));
+        NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
 
-        for(auto& field : installType->fields) {
-
-            QByteArray qKey = QByteArray(field.key.data, field.key.length);
-            QJsonValue val = doc[qKey];
-
-            if(val.isNull()) {
-                values[valueCount++] = field.defaultValue;
-            } else {
-
-                switch(field.type) {
-                    case nbl::FieldType::STRING: {
-                        QByteArray str = val.toString().toUtf8();
-
-                        nbl::StringView persistent;
-                        nbl::StringBuilder(&frame).append(nbl::StringView(str.length(), str.data())).build(&persistent);
-
-                        values[valueCount++] = nbl::FieldValue { .stringValue = persistent };
-                        break;
-                    }
-                    case nbl::FieldType::FLOAT: {
-                        values[valueCount++] = nbl::FieldValue { .floatValue = val.toDouble() };
-                        break;
-                    }
-                    case nbl::FieldType::INTEGER: {
-                        values[valueCount++] = nbl::FieldValue { .integerValue = val.toInteger() };
-                        break;
-                    }
-                    case nbl::FieldType::BOOLEAN: {
-                        values[valueCount++] = nbl::FieldValue { .booleanValue = val.toBool() };
-                        break;
-                    }
-                    case nbl::FieldType::ENUM: {
-                        QByteArray name = val.toString().toUtf8();
-                        nbl::StringView nameView = nbl::StringView(name.length(), name.data());
-                        u32 index = field.enumData.index(nameView);
-                        values[valueCount++] = nbl::FieldValue { .enumValue = index };
-                        break;
-                    }
-                }
-            }
-        }
-
-        NBL_CHECK(installType->launch(&context->_mContext, { .data = values, .length = valueCount }, meta.id, handle->handle()));
-
-        return nbl::Result::SUCCESS;
+        return installType->launch(&_mContext, values, installationId, handle->handle());
     });
     if(res.error()) {
-        nbl::log(nbl::LogLevel::ERROR, "Unable to launch installation. Error ", res);
+        delete handle;
         return nullptr;
     }
 
-    if(handle->initLogging().error()) {
-        nbl::log(nbl::LogLevel::WARN, "Failed to initialize log capture for process");
+    return handle;
+}
+
+int ApplicationContext::openInstallationFolder(i64 installationId) {
+ 
+    if(!_mConnection.isValid()) {
+        nbl::log(nbl::LogLevel::ERROR, "Cannot open installation folder, database connection is not valid");
+        return -1;
     }
 
-    return handle;
+    NblProcessHandle* handle = new NblProcessHandle();
+
+    nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
+
+        const nbl::InstallationType* installType = _mContext.getInstallationType(meta.type);
+        if(installType == nullptr) {
+            nbl::log(nbl::LogLevel::ERROR, "Unknown installation type: ", meta.type);
+            return nbl::error::ILLEGAL_STATE;
+        }
+
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::Span<nbl::FieldValue> values = {
+            .data = nullptr,
+            .length = installType->fields.length
+        };
+
+        frame.allocate(&values.data, installType->fields.length);
+
+        nbl::JsonValue value = {};
+        NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value, true));
+        NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
+
+        nbl::StringView folder = {};
+        NBL_CHECK(installType->getFolder(&_mContext, values, installationId, &folder));
+
+        if(folder.empty()) {
+            _pushNotification(this, "error", "Could not open folder", "The installation did not specify a valid installation path");
+            return nbl::Result::SUCCESS;
+        }
+
+        QDesktopServices::openUrl(QUrl::fromLocalFile(fromNbl(folder)));
+        return nbl::Result::SUCCESS;
+    });
+
+    if(res.error()) {
+        _pushNotification(this, "error", "Could not open folder", "An error occurred while getting the installation folder.");
+    }
+
+    return res;
 }
 
 NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installationId) {
@@ -541,7 +554,6 @@ NblProcessHandle* ApplicationContext::getRunningInstallation(i64 installationId)
     // TODO
     return nullptr;
 }
-
 
 // Tabs
 

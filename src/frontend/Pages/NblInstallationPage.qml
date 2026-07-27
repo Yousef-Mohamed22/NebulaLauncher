@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
@@ -10,6 +12,8 @@ Item {
     id: root
     required property MainWindow mainWindow
     required property NblInstallationDetails details
+
+    property bool isFavorite: false
 
     function refresh() {
         details = ApplicationContext.getInstallationDetails(details.installationId)
@@ -115,8 +119,25 @@ Item {
                 NblIconButton {
                     Layout.fillWidth: true
                     icon: ""
+                    colorUnhovered: root.isFavorite ? Theme.colors.accent : Theme.colors.textDim
                     onClicked: {
-                        console.log("Clicked favorite")
+
+                        let rc = 0
+                        if(root.isFavorite) {
+                            rc = ApplicationContext.untagInstallation(root.details.installationId, "favorite")
+                        } else {
+                            rc = ApplicationContext.tagInstallation(root.details.installationId, "favorite")
+                        }
+                        if(rc != 0) {
+                            ApplicationContext.pushNotification({
+                                type: "error",
+                                title: "Unable to mark as favorite",
+                                message: "Does the \"favorite\" tag exist?"
+                            })
+                        } else {
+                            root.isFavorite = !root.isFavorite
+                            tagModel.refresh()
+                        }
                     }
                 }
 
@@ -124,7 +145,7 @@ Item {
                     Layout.fillWidth: true
                     icon: ""
                     onClicked: {
-                        console.log("Clicked Folder")
+                        ApplicationContext.openInstallationFolder(root.details.installationId)
                     }
                 }
 
@@ -244,6 +265,7 @@ Item {
 
                     Repeater {
                         model: NblInstallationTagModel {
+                            id: tagModel
                             installationId: root.details.installationId;
                             pageSize: 8
                         }
@@ -252,6 +274,10 @@ Item {
                             required property var model;
                             color: model.color
                             text: model.name
+
+                            Component.onCompleted: {
+                                if(model.name == 'favorite') root.isFavorite = true
+                            }
                         }
                     }
                 }

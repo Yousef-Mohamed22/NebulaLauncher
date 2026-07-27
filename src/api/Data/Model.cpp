@@ -203,6 +203,16 @@ CREATE TABLE IF NOT EXISTS filter (
 );
 
 -- Default Rows
+INSERT INTO tag
+(name, color)
+VALUES
+('favorite', 16018372);
+
+INSERT INTO tag_closure
+(ancestorId, descendantId, depth)
+VALUES
+(last_insert_rowid(), last_insert_rowid(), 0);
+
 INSERT INTO tab 
 (tabId,name,icon,hidden) 
 VALUES 
@@ -213,6 +223,16 @@ INSERT INTO filter
 VALUES
 (1,1,'All Installations','󰊗','{"sortBy":"title","sortOrder":"ascending"}',1,0),
 (2,1,'Recently Played','','{"sortBy":"last_played","sortOrder":"descending"}',0,1);
+
+INSERT INTO tab 
+(tabId,name,icon,hidden) 
+VALUES 
+(2,'Favorites','',0);
+
+INSERT INTO filter 
+(fId,tabId,name,icon,criteria,multiLine,priority) 
+VALUES
+(3,2,'Favorites','','{"sortBy":"title","sortOrder":"ascending","tags":[["favorite"]]}',1,0);
 
 PRAGMA user_version = 1;
 COMMIT;

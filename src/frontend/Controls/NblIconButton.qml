@@ -9,6 +9,9 @@ Item {
 
     signal clicked
 
+    property color colorHovered: Theme.colors.text
+    property color colorUnhovered: Theme.colors.textDim
+
     height: 48
     width: 48
 
@@ -34,7 +37,7 @@ Item {
         anchors.centerIn: parent
         font.family: Theme.nerdFont
         font.pixelSize: 24
-        color: mouseArea.containsMouse ? Theme.colors.text : Theme.colors.textDim
+        color: mouseArea.containsMouse ? root.colorHovered : root.colorUnhovered   
     }
 
 }

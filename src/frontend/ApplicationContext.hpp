@@ -50,6 +50,7 @@ public:
 
     Q_INVOKABLE NblProcessHandle* launchInstallation(i64 installationId);
     Q_INVOKABLE NblProcessHandle* getRunningInstallation(i64 installationId);
+    Q_INVOKABLE int openInstallationFolder(i64 installationId);
 
     Q_INVOKABLE NblInstallationDetails* getInstallationDetails(i64 installationId);
 

@@ -646,7 +646,7 @@ struct JsonValue {
 /** 
  * \brief Parses a JSON value from a reader and stores it in the provided storage location.  
  * \param reader The Reader from which to read the JSON data.
- * \param storage Pointer to the ArenaFrame where the parsed JSON value will be stored. If this is nullptr, the JsonValue will be parsed in-place using temporary storage.
+ * \param storage Pointer to the ArenaFrame where the parsed JSON value will be stored.
  * \param outValue Pointer to a variable that will receive the resulting JSON value after the parse operation is complete.
  * \return A Result indicating success or failure of the parse operation. 
  */
