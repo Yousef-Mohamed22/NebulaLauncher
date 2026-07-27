@@ -8,6 +8,7 @@
 
 #include <Platform/Process.hpp>
 #include <Platform/Assert.hpp>
+#include <Core/Result.hpp>
 
 #include <pthread.h>
 
@@ -33,8 +34,9 @@ void* _threadEntryPoint(void* data) {
 }
 
 
-
 nbl::Result nbl::Thread::join(i32* outReturnValue) {
+
+    if(!_pHandle) return nbl::error::ILLEGAL_STATE;
 
     void* threadResult;
     int result = pthread_join(reinterpret_cast<pthread_t>(_pHandle), &threadResult);

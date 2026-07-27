@@ -196,7 +196,25 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
         return nullptr;
     }
 
+    if(_mRunningProcesses.contains(installationId)) {
+        NblProcessHandle* handle = _mRunningProcesses[installationId];
+        if(handle->isRunning()) {
+            _pushNotification(this, "error", "Cannot start installation", "A process for this installation is already running!");
+            return nullptr;
+        }
+
+        delete handle;
+    }
+
     NblProcessHandle* handle = new NblProcessHandle();
+    QQmlEngine::setObjectOwnership(handle, QQmlEngine::CppOwnership);
+
+    connect(handle, &NblProcessHandle::stopped, this, [this, installationId, handle]() {
+        _mRunningProcesses.remove(installationId);
+        delete handle;
+    });
+
+    _mRunningProcesses[installationId] = handle;
 
     nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
@@ -218,7 +236,10 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
         NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value, true));
         NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
 
-        return installType->launch(&_mContext, values, installationId, handle->handle());
+        NBL_CHECK(installType->launch(&_mContext, values, installationId, handle->handle()));
+        NBL_CHECK(handle->initLogging());
+
+        return nbl::Result::SUCCESS;
     });
     if(res.error()) {
         delete handle;
@@ -226,6 +247,11 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
     }
 
     return handle;
+}
+
+NblProcessHandle* ApplicationContext::getRunningInstallation(i64 installationId) {
+    if(!_mRunningProcesses.contains(installationId)) return nullptr;
+    return _mRunningProcesses[installationId];
 }
 
 int ApplicationContext::openInstallationFolder(i64 installationId) {
@@ -547,12 +573,6 @@ QVariantMap ApplicationContext::loadSettings() {
     }
 
     return doc.object().toVariantMap();
-}
-
-NblProcessHandle* ApplicationContext::getRunningInstallation(i64 installationId) {
-
-    // TODO
-    return nullptr;
 }
 
 // Tabs

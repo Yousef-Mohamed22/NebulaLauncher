@@ -119,7 +119,6 @@ private:
     nbl::DatabaseConnection _mConnection;
     nbl::PluginContext _mContext;
     nbl::PluginLoader _mLoader;
-
-    friend class NblRunningInstallation;
+    QHash<i64, NblProcessHandle*> _mRunningProcesses;
 
 };

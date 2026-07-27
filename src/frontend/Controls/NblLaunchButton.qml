@@ -9,6 +9,10 @@ Item {
     required property int installationId
     property NblProcessHandle handle
 
+    onInstallationIdChanged: {
+        handle = ApplicationContext.getRunningInstallation(installationId)
+    }
+
     height: 72
     width: 212
 

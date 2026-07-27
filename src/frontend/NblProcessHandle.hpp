@@ -29,7 +29,9 @@ public:
     { }
 
     ~NblProcessHandle() {
-        _mWatcherThread.join(nullptr);
+        if(_mWatcherThread.isRunning()) {
+            _mWatcherThread.join(nullptr);
+        }
     }
 
     inline bool hasStarted() {
@@ -65,6 +67,10 @@ public:
             }
             _bWasRunning = nowRunning;
             isRunningUpdated();
+
+            if(!nowRunning) {
+                emit stopped();
+            }
         }
     }
 
@@ -87,6 +93,7 @@ signals:
     void isRunningUpdated();
     void isStoppingUpdated();
     void logsUpdated();
+    void stopped();
 
 private:
 
