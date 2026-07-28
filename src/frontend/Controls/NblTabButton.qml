@@ -21,6 +21,7 @@ NblSidebarButton {
     NblContextMenu {
         id: contextMenu
         height: 96
+        y: 0
 
         contentItem: ColumnLayout {
             spacing: 0

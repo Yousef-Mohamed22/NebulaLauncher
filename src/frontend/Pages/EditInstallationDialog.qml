@@ -18,8 +18,6 @@ NblDialog {
     onInstallationIdChanged: {
         installationSettingsTab.refresh()
         gameSettingsTab.refresh()
-        console.log("installation id:", installationId)
-        console.log("game id:", gameId)
     }
 
     onApply: {
