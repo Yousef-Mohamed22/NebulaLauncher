@@ -2,6 +2,7 @@
 #include <Plugin/InstallationType.hpp>
 #include <Platform/Logging.hpp>
 #include <Core/Array.hpp>
+#include "Plugin/PluginContext.hpp"
 
 namespace {
 

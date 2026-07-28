@@ -20,6 +20,7 @@
 #include <qprocess.h>
 
 #include <openssl/evp.h>
+#include <qvariant.h>
 
 #include "Codec/Json.hpp"
 #include "Data/Database.hpp"
@@ -135,16 +136,6 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
     return nbl::Result::SUCCESS;
 }
 
-
-void _pushNotification(ApplicationContext* context, QString type, QString title, QString message) {
-    QVariantMap map = {};
-    map["type"] = type;
-    map["title"] = title;
-    map["message"] = message;
-    context->pushNotification(map);
-}
-
-
 }
 
 
@@ -160,7 +151,24 @@ void ApplicationContext::_initialize() {
     nbl::StringView path;
     NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/nebula.db").build(&path).success());
 
-    NBL_ASSERT(nbl::PluginContext::create(path, &_mContext).success());
+    NBL_ASSERT(nbl::PluginContext::create(path, {
+        .pfnNotify = [](void* userData, nbl::NotificationType type, nbl::StringView title, nbl::StringView message, nbl::Optional<nbl::StringView> icon, nbl::Optional<u32> duration) {
+        
+            ApplicationContext* ctx = static_cast<ApplicationContext*>(userData);
+
+            QVariantMap map = {};
+            map["type"] = type == nbl::NotificationType::ERROR ? "error" : "info";
+            map["title"] = fromNbl(title);
+            map["message"] = fromNbl(message);
+            if(icon.hasValue()) map["icon"] = fromNbl(*icon);
+            if(duration.hasValue()) map["duration"] = *duration;
+            
+            ctx->pushNotification(map);
+
+        },
+        .userData = this
+    }, &_mContext).success());
+
     _mContext.registerInstallationType(nbl::InstallationType::COMMAND);
 
     nbl::StringView applicationPath = nbl::getBinaryPath();
@@ -203,7 +211,7 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
     if(_mRunningProcesses.contains(installationId)) {
         NblProcessHandle* handle = _mRunningProcesses[installationId];
         if(handle->isRunning()) {
-            _pushNotification(this, "error", "Cannot start installation", "A process for this installation is already running!");
+            _mContext.pushNotification(nbl::NotificationType::ERROR, "Cannot start installation", "A process for this installation is already running!");
             return nullptr;
         }
 
@@ -291,7 +299,7 @@ int ApplicationContext::openInstallationFolder(i64 installationId) {
         NBL_CHECK(installType->getFolder(&_mContext, values, installationId, &folder));
 
         if(folder.empty()) {
-            _pushNotification(this, "error", "Could not open folder", "The installation did not specify a valid installation path");
+            _mContext.pushNotification(nbl::NotificationType::ERROR, "Could not open folder", "The installation did not specify a valid installation path");
             return nbl::Result::SUCCESS;
         }
 
@@ -300,7 +308,7 @@ int ApplicationContext::openInstallationFolder(i64 installationId) {
     });
 
     if(res.error()) {
-        _pushNotification(this, "error", "Could not open folder", "An error occurred while getting the installation folder.");
+        _mContext.pushNotification(nbl::NotificationType::ERROR, "Could not open folder", "An error occurred while getting the installation folder.");
     }
 
     return res;
@@ -1005,7 +1013,7 @@ int ApplicationContext::addGame(QVariantMap params) {
     QByteArray description = params.find("description")->toString().toUtf8();
     u64 steamId = params.find("steamId")->toUInt();
     u64 igdbId = params.find("igdbId")->toUInt();
-    u64 releaseDate = params.find("releaseDate")->toUInt();
+    u64 releaseDate = params.find("releaseDate")->toULongLong();
     f64 rating = params.find("rating")->toDouble();
 
     nbl::GameMeta gameMeta = {

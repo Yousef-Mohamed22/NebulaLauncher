@@ -145,7 +145,7 @@ Item {
                         width: parent.width * (notif.remainingMillis / notif.modelData.duration)
                         height: 8
                         anchors.bottom: parent.bottom
-                        color: Qt.hsla(notifBg.color.hslHue, 0.9, 0.75)
+                        color: Theme.colors.readableOn(notifBg.color) //Qt.hsla(notifBg.color.hslHue, 0.9, 0.75)
 
                         Behavior on width {
                             NumberAnimation { duration: 100 }

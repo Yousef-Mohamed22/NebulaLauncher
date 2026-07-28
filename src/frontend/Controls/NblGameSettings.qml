@@ -129,7 +129,7 @@ Column {
         label: "Logo Position"
         width: root.width
         model: [ "Left", "Center", "Right", "Hidden" ]
-        onAccepted: { root.modified = true }
+        onActivated: { root.modified = true }
     }
 
 

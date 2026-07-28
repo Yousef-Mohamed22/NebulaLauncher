@@ -40,7 +40,7 @@ nbl::Span<nbl::InstallationType> nbl::PluginContext::types() const {
 }
 
 
-nbl::Result nbl::PluginContext::create(StringView databasePath, PluginContext* ctx) {
+nbl::Result nbl::PluginContext::create(StringView databasePath, NotificationConsumer consumer, PluginContext* ctx) {
 
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 16, &ctx->_mArena));
 
@@ -70,6 +70,7 @@ nbl::Result nbl::PluginContext::create(StringView databasePath, PluginContext* c
     memset(alloc, 0, padding);
 
     ctx->_mTypesOffset = offset + padding - 1;
+    ctx->_mNotificationConsumer = consumer;
     return nbl::Result::SUCCESS;
 }
 
