@@ -19,7 +19,6 @@ Item {
     property int labelIndent: 12
     property list<var> tags: []
     property list<var> initialTags: []
-    property list<string> initialTagNames: []
 
     property bool allowNewTags: true
 
@@ -32,14 +31,6 @@ Item {
                 "color": initialTags[i].color,
                 "state": NblTagList.TagState.INITIAL
             }
-        }
-    }
-
-    onInitialTagNamesChanged: {
-        if(initialTagNames.length > 0) {
-            initialTags = ApplicationContext.getTagsFromNames(initialTagNames)
-        } else {
-            initialTags = []
         }
     }
 

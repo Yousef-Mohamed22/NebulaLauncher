@@ -11,6 +11,7 @@ Column {
     property int displayId: 0
 
     property bool modified: false
+    property alias icon: iconPicker.imageSource
 
     onGameIdChanged: {
 
@@ -21,7 +22,9 @@ Column {
         displayId = details.displayId
 
         gameTitleField.text = details.title
+        gameTitleField.cursorPosition = 0 
         gameDescriptionField.text = details.description
+        gameDescriptionField.cursorPosition = 0 
 
         gameTags.initialTags = details.tags
 

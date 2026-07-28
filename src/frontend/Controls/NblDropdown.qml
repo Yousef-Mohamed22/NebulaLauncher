@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Effects
 
 import Nebula.Controls
 
@@ -11,6 +13,11 @@ Item {
     property real contentHeight: 48
     property real collapsedHeight: 48
     property string label: ""
+    property string icon: ""
+    property bool colorizeIcon: true
+    property int iconRadius: 0
+    property int iconSize: collapsedHeight - 8
+    property bool bold: false
 
     readonly property real contentWidth: width - collapsedHeight
 
@@ -63,18 +70,43 @@ Item {
             }
         }
 
-        Label {
+        RowLayout {
             visible: root.effectivelyCollapsed
+
+            spacing: 8
 
             height: root.collapsedHeight
             x: root.collapsedHeight
 
-            verticalAlignment: Qt.AlignVCenter
+            Item {
+                Layout.preferredWidth: Math.min(root.iconSize, root.collapsedHeight)
+                Layout.fillHeight: true
+                visible: root.icon.length > 0
 
-            text: root.label
-            font.family: Theme.font
-            font.pixelSize: 16
-            color: Theme.colors.text
+                NblInlineIcon {
+                    id: iconSource
+                    width: parent.width
+                    height: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: Theme.colors.text
+                    icon: root.icon
+                    colorize: root.colorizeIcon
+                    imageRadius: root.iconRadius
+                }
+            }
+
+            Label {
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+
+                verticalAlignment: Qt.AlignVCenter
+
+                text: root.label
+                font.family: Theme.font
+                font.pixelSize: 16
+                font.bold: root.bold
+                color: Theme.colors.text
+            }
         }
     }
 

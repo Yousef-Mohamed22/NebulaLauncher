@@ -9,10 +9,7 @@ import Nebula.Controls
 NblDialog {
 
     id: root
-    property var activeInstallation: null
-    property bool newGame: root.activeInstallation == null && gameBox.currentIndex == 0
-
-    showApplyButton: activeInstallation != null
+    property bool newGame: gameBox.currentIndex == 0
 
     ScrollView {
 
@@ -39,8 +36,6 @@ NblDialog {
 
                 NblComboBox {
 
-                    visible: root.activeInstallation == null
-
                     id: gameBox
                     label: "Game"
                     width: parent.width
@@ -53,16 +48,6 @@ NblDialog {
                         includeNewGame: true
                         pageSize: 10
                     }
-                }
-
-                NblTextBox {
-
-                    visible: root.activeInstallation != null
-
-                    width: parent.width
-                    enabled: false
-                    label: "Game"
-                    text: visible ? root.activeInstallation.gameTitle : ""
                 }
 
                 NblComboBox {
@@ -218,46 +203,8 @@ NblDialog {
         }
     }
 
-    Component.onCompleted: {
-
-        if(root.activeInstallation) {
-            let details = root.activeInstallation
-
-            let dateObj = new Date()
-            dateObj.setTime(details.releaseDate)
-
-            commandTypeBox.currentValue = details.type
-            fieldList.loadFromJson(details.command)
-            
-            titleField.text = details.title
-            titleField.cursorPosition = 0
-            descriptionField.text = details.description
-            descriptionField.cursorPosition = 0
-
-            gameTitleField.text = details.gameTitle
-            gameTitleField.cursorPosition = 0
-            gameDescriptionField.text = details.gameDescription
-            gameDescriptionField.cursorPosition = 0
-
-            gameTags.initialTags = ApplicationContext.getGameTags(root.activeInstallation.gameId);
-            installationTags.initialTags = ApplicationContext.getInstallationTags(root.activeInstallation.installationId);
-
-            overrideBox.checked = details.displayId != 0
-            posterPicker.imageSource = details.posterPath()
-            bannerPicker.imageSource = details.bannerPath()
-            iconPicker.imageSource = details.iconPath()
-            logoPicker.imageSource = details.logoPath()
-            logoPositionBox.currentIndex = details.logoPosition
-            releaseDateField.text = dateObj.toLocaleDateString(Qt.locale(), "yyyy/MM/dd")
-            ratingField.text = details.rating.toFixed(1)
-            steamIdField.text = details.steamId
-            igdbIdField.text = details.igdbId
-        }
-    }
-
     onApply: {
 
-        // Validate
         let rating = 0.0
         let steamId = 0
         let igdbId = 0
@@ -287,12 +234,7 @@ NblDialog {
             banner = bannerPicker.imageSource
         }
 
-        let gId = 0
-        if(root.activeInstallation != null) {
-            gId = root.activeInstallation.gameId
-        } else {
-            gId = gameBox.currentValue;
-        }
+        let gId = gameBox.currentValue;
 
         let command = fieldList.saveToJson()
         let params = {
@@ -300,7 +242,7 @@ NblDialog {
             type: commandTypeBox.currentValue,
             command: command,
             displayOverride: overrideBox.checked,
-            displayId: root.activeInstallation ? root.activeInstallation.displayId : 0,
+            displayId: 0,
             title: titleField.text,
             description: descriptionField.text,
             gameTitle: gameTitleField.text,
@@ -320,10 +262,6 @@ NblDialog {
             removedGameTags: gameTags.getRemovedTags()
         }
 
-        if(root.activeInstallation) {
-            ApplicationContext.updateInstallation(root.activeInstallation.installationId, params)
-        } else {
-            ApplicationContext.addInstallation(params)
-        }
+        ApplicationContext.addInstallation(params)
     }
 }

@@ -139,6 +139,8 @@ NblDialog {
 
                         id: dropdown
                         width: parent.width
+                        icon: filterIconPicker.icon
+                        iconSize: 20
 
                         contentHeight: filterContent.height
                         label: filterNameBox.text
@@ -258,7 +260,7 @@ NblDialog {
                                     width: parent.width
                                     labelIndent: 24
                                     label: "Tag Set " + modelData.index
-                                    initialTagNames: modelData.initialTagNames
+                                    initialTags: ApplicationContext.getTagsFromNames(modelData.initialTagNames)
                                 }
 
                                 function encode() {
@@ -286,7 +288,7 @@ NblDialog {
                                 id: excludeTagsList
                                 width: parent.width
                                 label: "Exclude Tags"
-                                initialTagNames: dropdown.modelData.excludeTags
+                                initialTags: ApplicationContext.getTagsFromNames(dropdown.modelData.excludeTags)
 
                                 function encode() {
 

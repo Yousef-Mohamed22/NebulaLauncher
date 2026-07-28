@@ -16,6 +16,7 @@ Item {
     property bool isFavorite: false
 
     function refresh() {
+        isFavorite = false
         details = ApplicationContext.getInstallationDetails(details.installationId)
     }
 
@@ -163,7 +164,7 @@ Item {
                     Layout.fillWidth: true
                     icon: ""
                     onClicked: {
-                        root.mainWindow.beginEditGame(root.details)
+                        root.mainWindow.beginEditInstallation(root.details.installationId)
                     }
                 }
 

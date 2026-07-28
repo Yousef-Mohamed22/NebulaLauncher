@@ -12,6 +12,7 @@ Item {
     property color color: Theme.colors.text
 
     property bool colorize: true
+    property int imageRadius: 0
 
     property string dbIcon: ""
     onDbIconChanged: {
@@ -48,17 +49,33 @@ Item {
             source: root.useImage ? root.icon : ""
             fillMode: Image.PreserveAspectFit
             layer.enabled: true
-            visible: !root.colorize
+            visible: false //!root.colorize
             smooth: true
             mipmap: true
+        }
+
+        Item {
+            id: maskShape
+            anchors.fill: imageSource
+
+            visible: false
+            layer.enabled: true
+
+            Rectangle {
+                anchors.fill: parent
+                radius: root.imageRadius
+            }
         }
 
         MultiEffect {
             anchors.fill: imageSource
             source: imageSource
-            colorization: 1.0
+            maskEnabled: root.imageRadius > 0
+            maskSource: maskShape
+            colorization: root.colorize ? 1.0 : 0.0
             colorizationColor: root.color
-            visible: root.colorize
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 1.0
         }
     }
 

@@ -294,6 +294,7 @@ SettingsTab {
 
                         contentHeight: tagInfo.height
                         enabled: !tagElement.removed
+                        bold: tagElement.modified
 
                         property bool loadedTags: false
                         onCollapsedChanged: {

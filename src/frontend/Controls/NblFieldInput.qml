@@ -11,6 +11,8 @@ Item {
     
     property var value
 
+    signal modified
+
     implicitHeight: field.type == 3 ? 32 : 54
 
     function setValue(newValue) {
@@ -56,6 +58,7 @@ Item {
                 textBox.text = root.value
                 textBox.textEdited.connect(() => {
                     root.value = textBox.text
+                    root.modified()
                 })
 
             } else if(root.field.type == 1 || root.field.type == 2) {
@@ -64,6 +67,7 @@ Item {
                 numberBox.value = root.value
                 numberBox.valueModified.connect(() => {
                     root.value = numberBox.value
+                    root.modified()
                 })
 
             } else if(root.field.type == 3) {
@@ -72,6 +76,7 @@ Item {
                 checkBox.checked = root.value
                 checkBox.toggled.connect(() => {
                     root.value = checkBox.checked
+                    root.modified()
                 })
             } else if(root.field.type == 4) {
 
@@ -79,6 +84,7 @@ Item {
                 comboBox.currentValue = root.value
                 comboBox.activated.connect(() => {
                     root.value = comboBox.currentValue.toString()
+                    root.modified()
                 })
             } else if(root.field.type == 5) {
 
@@ -86,6 +92,7 @@ Item {
                 dateBox.setTime(root.value)
                 dateBox.dateEdited.connect(() => {
                     root.value = dateBox.getTime()
+                    root.modified()
                 })
             }
         }

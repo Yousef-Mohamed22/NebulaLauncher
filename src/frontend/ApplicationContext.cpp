@@ -474,35 +474,44 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
 
     bool okay = false;
     i64 dId = params.find("displayId")->toLongLong(&okay);
-    if(okay && params.find("displayOverride")->toBool()) {
+    if(okay) {
+        if(params.find("displayOverride")->toBool()) {
 
-        QByteArray title = params.find("gameTitle")->toString().toUtf8();
-        QByteArray description = params.find("gameDescription")->toString().toUtf8();
-        QString posterUrl = params.find("poster")->toString();
-        QString bannerUrl = params.find("banner")->toString();
-        QString logoUrl = params.find("logo")->toString();
-        QString iconUrl = params.find("icon")->toString();
+            QString posterUrl = params.find("poster")->toString();
+            QString bannerUrl = params.find("banner")->toString();
+            QString logoUrl = params.find("logo")->toString();
+            QString iconUrl = params.find("icon")->toString();
 
-        NBL_CHECK(pushImage(posterUrl, "poster", &posterUrl));
-        NBL_CHECK(pushImage(iconUrl, "icon", &iconUrl));
-        NBL_CHECK(pushImage(logoUrl, "logo", &logoUrl));
-        NBL_CHECK(pushImage(bannerUrl, "banner", &bannerUrl));
-        nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
+            NBL_CHECK(pushImage(posterUrl, "poster", &posterUrl));
+            NBL_CHECK(pushImage(iconUrl, "icon", &iconUrl));
+            NBL_CHECK(pushImage(logoUrl, "logo", &logoUrl));
+            NBL_CHECK(pushImage(bannerUrl, "banner", &bannerUrl));
+            nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
 
-        QByteArray poster = posterUrl.toUtf8();
-        QByteArray icon = iconUrl.toUtf8();
-        QByteArray logo = logoUrl.toUtf8();
-        QByteArray banner = bannerUrl.toUtf8();
+            QByteArray poster = posterUrl.toUtf8();
+            QByteArray icon = iconUrl.toUtf8();
+            QByteArray logo = logoUrl.toUtf8();
+            QByteArray banner = bannerUrl.toUtf8();
 
-        nbl::DisplayMeta meta = {
-            .banner = nbl::StringView(banner.length(), banner.constData()),
-            .poster = nbl::StringView(poster.length(), poster.constData()),
-            .icon = nbl::StringView(icon.length(), icon.constData()),
-            .logo = nbl::StringView(logo.length(), logo.constData()),
-            .logoPosition = position
-        };
+            nbl::DisplayMeta meta = {
+                .banner = nbl::StringView(banner.length(), banner.constData()),
+                .poster = nbl::StringView(poster.length(), poster.constData()),
+                .icon = nbl::StringView(icon.length(), icon.constData()),
+                .logo = nbl::StringView(logo.length(), logo.constData()),
+                .logoPosition = position
+            };
 
-        NBL_CHECK(nbl::updateDisplay(&_mConnection, dId, meta));
+            if(dId == 0) { // Newly overridden
+                NBL_CHECK(nbl::addDisplay(&_mConnection, meta, &dId));
+            } else {
+                NBL_CHECK(nbl::updateDisplay(&_mConnection, dId, meta));
+            }
+
+        } else if(dId != 0) {
+
+            NBL_CHECK(nbl::removeDisplay(&_mConnection, dId));
+
+        }
     } else {
         dId = 0;
     }
@@ -532,12 +541,6 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
     }
     for(QString& qs : params.find("removedInstallationTags")->toStringList()) {
         untagInstallation(meta.id, qs);
-    }
-    for(QString& qs : params.find("addedGameTags")->toStringList()) {
-        tagGame(meta.id, qs);
-    }
-    for(QString& qs : params.find("removedGameTags")->toStringList()) {
-        untagGame(meta.id, qs);
     }
 
     return nbl::Result::SUCCESS;

@@ -6,6 +6,8 @@ Repeater {
 
     required property string typeId
 
+    signal modified
+
     model: NblFieldModel {
         id: fieldModel
         typeId: root.typeId
@@ -19,6 +21,10 @@ Repeater {
         field: modelData
         fieldIndex: index
         typeId: root.typeId
+
+        onModified: {
+            root.modified()
+        }
     }
 
     function loadFromJson(commandJson) {

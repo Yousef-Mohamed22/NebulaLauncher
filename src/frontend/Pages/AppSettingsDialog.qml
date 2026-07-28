@@ -126,7 +126,6 @@ NblDialog {
                                     sidebar.currentTab.visible = true
                                 }
                             }
-
                         }
                     }
                 }
@@ -143,7 +142,7 @@ NblDialog {
             ThemeSettingsTab {
                 id: themeSettingsTab
                 anchors.fill: parent
-                visible: true;
+                visible: true
             }
 
             TagSettingsTab {

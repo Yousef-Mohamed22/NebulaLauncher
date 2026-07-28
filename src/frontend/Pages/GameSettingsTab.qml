@@ -113,7 +113,7 @@ SettingsTab {
                     if(root.modified) {
                         ApplicationContext.pushNotification({
                             type: "error",
-                            title: "Cannot Add Tag",
+                            title: "Cannot Add Game",
                             message: "Please apply your changes first."
                         })
                         return
@@ -249,6 +249,12 @@ SettingsTab {
 
                         width: parent.width - collapsedHeight
                         label: gameElement.modelData.title
+                        icon: gameSettings.gameId == 0 
+                            ? "file://" + ApplicationContext.dataFolder + "/media/icon/" + gameElement.modelData.icon
+                            : gameSettings.icon
+                        colorizeIcon: false
+                        iconRadius: 8
+                        bold: gameSettings.modified
 
                         contentHeight: gameSettings.height
                         enabled: !gameElement.removed
@@ -272,6 +278,12 @@ SettingsTab {
                         NblGameSettings {
                             id: gameSettings
                             width: dropdown.contentWidth
+
+                            onModifiedChanged: {
+                                if(modified) {
+                                    root.modified = true
+                                }
+                            }
                         }
                     }
 

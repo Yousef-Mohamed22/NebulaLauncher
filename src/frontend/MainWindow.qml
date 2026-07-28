@@ -145,10 +145,10 @@ Window {
         })
     }
 
-    function beginEditGame(details) {
+    function beginEditInstallation(id) {
 
-        openDialog("Pages/AddGameDialog.qml", {
-            "activeInstallation": details
+        openDialog("Pages/EditInstallationDialog.qml", {
+            "installationId": id
         }, function() {
             let installationPage = pageLoader.currentItem as NblInstallationPage
             if(installationPage) {
