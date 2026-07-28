@@ -63,90 +63,18 @@ Window {
         active: false
     }
 
-    Item {
+    NblNotificationColumn {
 
+        id: notificationColumn
         width: 316
-        height: root.height - 16
-
         x: root.width - width - 8
         y: root.height - height - 8
-
-        enabled: false
-
-        ListModel {
-            id: activeNotifications
-        }
-
-        ListView {
-            anchors.fill: parent
-            model: activeNotifications
-
-            verticalLayoutDirection: ListView.BottomToTop
-
-            spacing: 8
-
-            delegate: Item {
-                width: 316
-                height: 128
-
-                id: notif
-
-                required property int index
-                required property string type
-                required property string title
-                required property string message
-
-                Rectangle {
-                    id: notifBg
-                    anchors.fill: parent
-                    color: parent.type == "error" ? "#af1f43" : Theme.colors.layer1
-                    radius: 8
-                }
-
-                ColumnLayout {
-
-                    anchors.fill: parent
-                    anchors.margins: 8
-                    spacing: 4
-
-                    Label {
-                        Layout.fillWidth: true
-                        text: notif.title
-                        font.family: Theme.font
-                        font.pixelSize: 16
-                        font.bold: true
-                        color: Theme.colors.blackOrWhite(notifBg.color)
-                    }
-
-                    Label {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        text: notif.message
-                        font.family: Theme.font
-                        font.pixelSize: 16
-                        color: Theme.colors.blackOrWhite(notifBg.color)
-                        wrapMode: Text.WordWrap
-                        elide: Text.ElideRight
-                    }
-                }
-
-                Timer {
-                    running: true
-                    repeat: false
-                    interval: 5000
-
-                    onTriggered: {
-                        activeNotifications.remove(parent.index)
-                    }
-                }
-            }
-        }
     }
-
+    
     Connections {
         target: ApplicationContext
         function onNotification(details) {
-            activeNotifications.append(details)
+            notificationColumn.push(details)
         }
     }
 

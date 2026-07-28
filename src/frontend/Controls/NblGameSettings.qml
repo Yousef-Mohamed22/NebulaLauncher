@@ -146,7 +146,7 @@ Column {
 
         allowDecimal: true
         min: 0
-        max: 10
+        max: 100
 
         placeholderText: "100.0"
         onValueModified: { root.modified = true }

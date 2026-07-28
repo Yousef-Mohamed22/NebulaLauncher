@@ -285,6 +285,22 @@ Item {
                     font.pixelSize: 14
                     font.weight: 600
                     color: Theme.colors.textDim
+                    text: "Added: " + parent._formatDate(root.details.added)
+                }
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                    font.weight: 600
+                    color: Theme.colors.textDim
+                    text: "Last played: " + parent._formatDate(root.details.lastPlayed)
+                }
+
+                Label {
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                    font.weight: 600
+                    color: Theme.colors.textDim
                     text: "Rating: " + root.details.rating
                 }
 
@@ -304,13 +320,7 @@ Item {
                     text: "Play count: " + root.details.playCount
                 }
 
-                Label {
-                    font.family: Theme.font
-                    font.pixelSize: 14
-                    font.weight: 600
-                    color: Theme.colors.textDim
-                    text: "Last played: " + parent._formatDate(root.details.lastPlayed)
-                }
+
 
                 Label {
                     font.family: Theme.font
