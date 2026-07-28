@@ -78,7 +78,15 @@ nbl::Array _fields = {
         .defaultValue = {
             .enumValue = ONE
         }
-    }
+    },
+    nbl::Field {
+        .type = nbl::FieldType::DATE,
+        .key = "date",
+        .name = "Date",
+        .defaultValue = {
+            .uintegerValue = 0
+        }
+    },
 };
 
 nbl::Result _launch(

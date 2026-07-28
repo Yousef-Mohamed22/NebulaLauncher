@@ -13,9 +13,6 @@ Item {
 
     implicitHeight: field.type == 3 ? 32 : 54
 
-    property var valueProperty: "text"
-    property var valueSignal: "onTextEdited"
-
     function setValue(newValue) {
         value = newValue
         if(root.field.type == 0) {
@@ -37,6 +34,12 @@ Item {
 
             let comboBox = loader.item as NblComboBox
             comboBox.currentIndex = enumModel.indexOf(root.value)
+        
+        } else if(root.field.type == 5) {
+
+            let dateBox = loader.item as NblDateInput
+            dateBox.setTime(root.value)
+
         }
     }
 
@@ -46,7 +49,6 @@ Item {
         active: false
 
         onLoaded: {
-
             root.value = root.field.defaultValue
             if(root.field.type == 0) {
 
@@ -78,6 +80,13 @@ Item {
                 comboBox.activated.connect(() => {
                     root.value = comboBox.currentValue.toString()
                 })
+            } else if(root.field.type == 5) {
+
+                let dateBox = loader.item as NblDateInput
+                dateBox.setTime(root.value)
+                dateBox.dateEdited.connect(() => {
+                    root.value = dateBox.getTime()
+                })
             }
         }
     }
@@ -100,7 +109,6 @@ Item {
 
         if(root.field.type == 0) {
 
-            root.valueProperty = "text"
             loader.setSource("NblTextBox.qml", {
                 "width": root.width,
                 "label": root.field.name
@@ -108,7 +116,6 @@ Item {
 
         } else if(root.field.type == 1 || root.field.type == 2) {
 
-            root.valueProperty = "value"
             loader.setSource("NblNumberInput.qml", {
                 "width": root.width,
                 "label": root.field.name,
@@ -118,7 +125,7 @@ Item {
             })
 
         } else if(root.field.type == 3) {
-            root.valueProperty = "checked"
+
             loader.setSource("NblCheckBox.qml", {
                 "width": root.width,
                 "text": root.field.name
@@ -126,13 +133,19 @@ Item {
 
         } else if(root.field.type == 4) {
 
-            root.valueProperty = "currentValue"
             loader.setSource("NblComboBox.qml", {
                 "width": root.width,
                 "label": root.field.name,
                 "model": root.enumModel,
                 "textRole": "name",
                 "valueRole": "name"
+            })
+
+        } else if(root.field.type == 5) {
+
+            loader.setSource("NblDateInput.qml", {
+                "width": root.width,
+                "label": root.field.name,
             })
         }
 
