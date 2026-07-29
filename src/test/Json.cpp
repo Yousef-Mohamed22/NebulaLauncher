@@ -247,3 +247,20 @@ TEST(Json, ParseFilter) {
     EXPECT_EQ(element.object.entryCount, 13);
 
 }
+
+TEST(Json, ParseCommand) {
+
+
+    nbl::JsonElement element = {};
+    
+    nbl::StringView json = "{\"command\":\"\\\"/mnt/Games/Game/launch.sh\\\"\",\"working_dir\":\"/mnt/Games/Game\"}";
+    nbl::BufferStream stream(const_cast<char*>(json.data), json.length);
+
+    nbl::Arena storage;
+    EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
+    EXPECT_EQ(nbl::parseJson(stream, &storage, &element), nbl::Result::SUCCESS);
+
+    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.object.entryCount, 2);
+
+}

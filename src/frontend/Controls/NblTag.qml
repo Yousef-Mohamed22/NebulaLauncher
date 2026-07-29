@@ -12,7 +12,11 @@ Control {
 
     property int tooltipDelay: 1000
     
-    padding: 4
+    topPadding: 4
+    bottomPadding: 4
+    leftPadding: 8
+    rightPadding: 8
+
     implicitWidth: textDisplay.implicitWidth + leftPadding + rightPadding
     implicitHeight: textDisplay.implicitHeight + topPadding + bottomPadding
 

@@ -67,27 +67,35 @@ nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator
             switch(next) {
                 case '"': {
                     NBL_CHECK(_append('"'));
+                    break;
                 }
                 case '\\': {
                     NBL_CHECK(_append('\\'));
+                    break;
                 }
                 case '/': {
                     NBL_CHECK(_append('/'));
+                    break;
                 }
                 case 'b': {
                     NBL_CHECK(_append('\b'));
+                    break;
                 }
                 case 'f': {
                     NBL_CHECK(_append('\f'));
+                    break;
                 }
                 case 'n': {
                     NBL_CHECK(_append('\n'));
+                    break;
                 }
                 case 'r': {
                     NBL_CHECK(_append('\r'));
+                    break;
                 }
                 case 't': {
                     NBL_CHECK(_append('\t'));
+                    break;
                 }
                 case 'u': {
                     char codePointHex[4];
@@ -110,6 +118,7 @@ nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator
 
                     memcpy(buffer + bufferLength, codePointHex, buf.writerIndex());
                     bufferLength += buf.writerIndex();
+                    break;
                 }
             }
         }
