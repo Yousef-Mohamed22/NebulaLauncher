@@ -107,8 +107,8 @@ struct Reader {
             Result result = read(static_cast<char*>(data) + totalBytesRead, length - totalBytesRead, &bytesRead);
             if (result.error()) {
                 return result;
-            } else if(bytesRead == 0 && result == nbl::result::END_OF_FILE) {
-                return nbl::error::UNEXPECTED_EOF;
+            } else if(bytesRead == 0 && result == nbl::Result::END_OF_STREAM) {
+                return nbl::Result::UNEXPECTED_END_OF_STREAM;
             }
             totalBytesRead += bytesRead;
         }
@@ -192,7 +192,7 @@ private:
         if(bytesRead) {
             *bytesRead = 0;
         }
-        return nbl::result::END_OF_FILE;
+        return nbl::Result::END_OF_STREAM;
     }
 };
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Core/Types.hpp>
+#include <Core/Array.hpp>
+#include <Core/Span.hpp>
 #include <Platform/Logging.hpp>
 #include <Data/Model.hpp>
 
@@ -95,9 +97,8 @@ private:
     bool _mAllLoaded;
 
     struct {
-        nbl::JsonArray outerArray;
-        nbl::JsonValue innerArray;
-        nbl::JsonValue tag;
+        nbl::Array<nbl::StringView, 1> tags;
+        nbl::Array<nbl::ConstSpan<nbl::StringView>, 1> tagSets;
     } _mCriteriaData = {};
     nbl::InstallationSearchCriteria _mCriteria = {};
 

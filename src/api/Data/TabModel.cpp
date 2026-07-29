@@ -20,7 +20,7 @@ SELECT COUNT(tId) FROM tab;
 
     return connection->execute(&_countFiltersStmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount == 0) return nbl::error::IO_ERROR;
+        if(columnCount == 0) return nbl::Result::IO_ERROR;
 
         *numTabs = values[0].uintValue();
         return nbl::Result::SUCCESS;
@@ -95,7 +95,7 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab LIMIT ?1 OFFSET ?2;
 
         if(columnCount != 5) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in enumerate tabs query result, but got ", columnCount);
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
 
         return callback(
@@ -126,7 +126,7 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab WHERE tabId=?1;
 
         if(columnCount != 5) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in enumerate tabs query result, but got ", columnCount);
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
 
         return callback( 
@@ -163,7 +163,7 @@ OFFSET ?3;
 
         if(columnCount != 7) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 7 columns in get filters for tab query result, but got ", columnCount);
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
 
         nbl::FilterMeta meta = {

@@ -9,110 +9,156 @@
 #include <Data/Model.hpp>
 
 #include <Core/Math.hpp>
+#include <Core/Result.hpp>
+#include <Core/Stream.hpp>
 #include <Platform/StringBuilder.hpp>
-#include "Core/Result.hpp"
+#include "Codec/Json.hpp"
 
 namespace {
 
-nbl::Result _serializeCriteria(const nbl::InstallationSearchCriteria& criteria, nbl::ArenaFrame* frame, nbl::JsonObject* outObject) {
+nbl::Result _serializeCriteria(const nbl::InstallationSearchCriteria& criteria, nbl::Writer writer) { 
 
-    return nbl::JsonObject::Builder(frame)
-        .add("tags", criteria.tags)
-        .add("excludedTags", criteria.excludedTags)
-        .add("minReleaseDate", criteria.minReleaseDate)
-        .add("maxReleaseDate", criteria.maxReleaseDate)
-        .add("minRating", criteria.minRating)
-        .add("maxRating", criteria.maxRating)
-        .add("minPlayTime", criteria.minPlayTime)
-        .add("maxPlayTime", criteria.maxPlayTime)
-        .add("sortBy", nbl::getName(criteria.sortBy))
-        .add("sortOrder", nbl::getName(criteria.sortOrder))
-        .add("offset", criteria.offset)
-        .add("limit", criteria.limit)
-        .add("titleFilter", criteria.titleFilter)
-        .build(nullptr, outObject);
-
+    return nbl::JsonWriter(writer)
+        .writeObject([&](auto obj) { obj
+            .writeArray("tags", [&](auto sets) {
+                for(const nbl::ConstSpan<nbl::StringView>& span : criteria.tags) {
+                    sets.writeArray([&](auto tags) {
+                        for(nbl::StringView tag : span) {
+                            tags.add(tag);
+                        }
+                    });
+                }
+            })
+            .writeArray("excludedTags", [&](auto tags) {
+                for(const nbl::StringView& tag : criteria.excludedTags) {
+                    tags.add(tag);
+                }
+            })
+            .add("minReleaseDate", criteria.minReleaseDate)
+            .add("maxReleaseDate", criteria.maxReleaseDate)
+            .add("minRating", criteria.minRating)
+            .add("maxRating", criteria.maxRating)
+            .add("minPlayTime", criteria.minPlayTime)
+            .add("maxPlayTime", criteria.maxPlayTime)
+            .add("sortBy", nbl::getName(criteria.sortBy))
+            .add("sortOrder", nbl::getName(criteria.sortOrder))
+            .add("offset", criteria.offset)
+            .add("limit", criteria.limit)
+            .add("titleFilter", criteria.titleFilter);
+        });
 }
 
 nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* frame, nbl::InstallationSearchCriteria* outCriteria) {
     
-    nbl::JsonValue criteriaValue;
-    NBL_CHECK(nbl::parseJson(nbl::StringReader(criteriaJson), frame, &criteriaValue, true));
-
+    nbl::JsonElement criteriaValue = {};
     nbl::log(nbl::LogLevel::DEBUG, "Parsing: ", criteriaJson, " as filter criteria");
+
+    NBL_CHECK(nbl::parseJson(nbl::StringReader(criteriaJson), frame, &criteriaValue));
 
     if(criteriaValue.type != nbl::JsonType::OBJECT) {
         nbl::log(nbl::LogLevel::ERROR, "Expected criteria JSON to be an object, but got ", criteriaValue.type);
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
 
     nbl::JsonObject& criteriaObject = criteriaValue.object;
 
     auto getChecked = [](const nbl::JsonObject& criteriaObj, nbl::StringView key, nbl::JsonType type, auto* outValue) -> nbl::Result {
-        const nbl::JsonValue* value = criteriaObj.get(key);
+        const nbl::JsonElement* value = criteriaObj.get(key);
         if(value) {
             if(value->type != type) {
                 nbl::log(nbl::LogLevel::ERROR, "Expected criteria ", key, " to be of type ", type, " but got ", value->type);
-                return nbl::error::ILLEGAL_ARGUMENT;
+                return nbl::Result::INVALID_ARGUMENT;
             }
             *outValue = value;
         }
         return nbl::Result::SUCCESS;
     };
 
-    const nbl::JsonValue* tagsValue = nullptr;
+    const nbl::JsonElement* tagsValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "tags", nbl::JsonType::ARRAY, &tagsValue));
-    if(tagsValue) outCriteria->tags = tagsValue->array;
+    if(tagsValue) {
 
-    const nbl::JsonValue* excludedTagsValue = nullptr;
+        nbl::Span<nbl::ConstSpan<nbl::StringView>> outSets{};
+
+        frame->allocate(&outSets.data, tagsValue->array.count);
+
+        for(const nbl::JsonElement& set : tagsValue->array) {
+            if(set.type != nbl::JsonType::ARRAY) return nbl::Result::INVALID_ARGUMENT;
+
+            nbl::Span<nbl::StringView> outSet{};
+            frame->allocate(&outSet.data, set.array.count);
+
+            for(const nbl::JsonElement& tag : set.array) {
+                if(tag.type != nbl::JsonType::STRING) return nbl::Result::INVALID_ARGUMENT;
+                outSet.data[outSet.length++] = tag.string;
+            }
+
+            outSets[outSets.length++] = outSet;
+        }
+
+        outCriteria->tags = outSets;
+    }
+
+    const nbl::JsonElement* excludedTagsValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "excludedTags", nbl::JsonType::ARRAY, &excludedTagsValue));
-    if(excludedTagsValue) outCriteria->excludedTags = excludedTagsValue->array;
+    if(excludedTagsValue) {
+        nbl::Span<nbl::StringView> outTags{};
+        frame->allocate(&outTags.data, excludedTagsValue->array.count);
 
-    const nbl::JsonValue* minReleaseDateValue = nullptr;
+        usize i = 0;
+        for(const nbl::JsonElement& tag : excludedTagsValue->array) {
+            if(tag.type != nbl::JsonType::STRING) return nbl::Result::INVALID_ARGUMENT;
+            outTags[outTags.length++] = tag.string;
+        }
+
+        outCriteria->excludedTags = outTags;
+    }
+
+    const nbl::JsonElement* minReleaseDateValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "minReleaseDate", nbl::JsonType::NUMBER, &minReleaseDateValue));
     if(minReleaseDateValue) outCriteria->minReleaseDate = minReleaseDateValue->number.asUint();
 
-    const nbl::JsonValue* maxReleaseDateValue = nullptr;
+    const nbl::JsonElement* maxReleaseDateValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "maxReleaseDate", nbl::JsonType::NUMBER, &maxReleaseDateValue));
     if(maxReleaseDateValue) outCriteria->maxReleaseDate = maxReleaseDateValue->number.asUint();
 
-    const nbl::JsonValue* minRatingValue = nullptr;
+    const nbl::JsonElement* minRatingValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "minRating", nbl::JsonType::NUMBER, &minRatingValue));
     if(minRatingValue) outCriteria->minRating = minRatingValue->number.asFloat();
 
-    const nbl::JsonValue* maxRatingValue = nullptr;
+    const nbl::JsonElement* maxRatingValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "maxRating", nbl::JsonType::NUMBER, &maxRatingValue));
     if(maxRatingValue) outCriteria->maxRating = maxRatingValue->number.asFloat();
 
-    const nbl::JsonValue* minPlayTimeValue = nullptr;
+    const nbl::JsonElement* minPlayTimeValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "minPlayTime", nbl::JsonType::NUMBER, &minPlayTimeValue));
     if(minPlayTimeValue) outCriteria->minPlayTime = minPlayTimeValue->number.asUint();
 
-    const nbl::JsonValue* maxPlayTimeValue = nullptr;
+    const nbl::JsonElement* maxPlayTimeValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "maxPlayTime", nbl::JsonType::NUMBER, &maxPlayTimeValue));
     if(maxPlayTimeValue) outCriteria->maxPlayTime = maxPlayTimeValue->number.asUint();
 
-    const nbl::JsonValue* sortByValue = nullptr;
+    const nbl::JsonElement* sortByValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "sortBy", nbl::JsonType::STRING, &sortByValue));
     if(sortByValue) {
         NBL_CHECK(nbl::byName(sortByValue->string, &outCriteria->sortBy));
     }
 
-    const nbl::JsonValue* sortOrderValue = nullptr;
+    const nbl::JsonElement* sortOrderValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "sortOrder", nbl::JsonType::STRING, &sortOrderValue));
     if(sortOrderValue) {
         NBL_CHECK(nbl::byName(sortOrderValue->string, &outCriteria->sortOrder));
     }
 
-    const nbl::JsonValue* offsetValue = nullptr;
+    const nbl::JsonElement* offsetValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "offset", nbl::JsonType::NUMBER, &offsetValue));
     if(offsetValue) outCriteria->offset = offsetValue->number.asUint();
 
-    const nbl::JsonValue* limitValue = nullptr;
+    const nbl::JsonElement* limitValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "limit", nbl::JsonType::NUMBER, &limitValue));
     if(limitValue) outCriteria->limit = limitValue->number.asUint();
 
-    const nbl::JsonValue* titleFilterValue = nullptr;
+    const nbl::JsonElement* titleFilterValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "titleFilter", nbl::JsonType::STRING, &titleFilterValue));
     if(titleFilterValue) outCriteria->titleFilter = titleFilterValue->string;
 
@@ -132,12 +178,9 @@ SELECT COUNT(fId) FROM filter;
     }
 
     return connection->execute(&_countFiltersStmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        if(columnCount == 0) return nbl::error::IO_ERROR;
-
+        if(columnCount == 0) return nbl::Result::IO_ERROR;
         *numFilters = values[0].uintValue();
         return nbl::Result::SUCCESS;
-
     });
 
 }
@@ -158,11 +201,12 @@ INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTi
 
     {
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-        nbl::JsonObject criteriaObject;
-        NBL_CHECK(_serializeCriteria(meta.criteria, &frame, &criteriaObject));
 
         StringView criteriaJson;
-        NBL_CHECK(nbl::StringBuilder(&frame).append(criteriaObject).buildNullTerminated(&criteriaJson));
+        auto builder = nbl::StringBuilder(&frame);
+        NBL_CHECK(_serializeCriteria(meta.criteria, builder));
+        NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
+
         _addFilterStmt.bindString(5, criteriaJson);
     }
 
@@ -205,7 +249,7 @@ SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons 
 
         if(columnCount != 8) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 8 columns in getFilter query result, but got ", columnCount);
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
 
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
@@ -238,11 +282,12 @@ UPDATE filter SET criteria = ?1 WHERE fId = ?2;
 
     {
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-        nbl::JsonObject criteriaObject;
-        NBL_CHECK(_serializeCriteria(criteria, &frame, &criteriaObject));
 
         StringView criteriaJson;
-        NBL_CHECK(nbl::StringBuilder(&frame).append(criteriaObject).buildNullTerminated(&criteriaJson));
+        auto builder = nbl::StringBuilder(&frame);
+        NBL_CHECK(_serializeCriteria(criteria, builder));
+        NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
+
         _setFilterCriteriaStmt.bindString(1, criteriaJson);
     }
 
@@ -268,11 +313,12 @@ UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria 
 
     {
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-        nbl::JsonObject criteriaObject;
-        NBL_CHECK(_serializeCriteria(meta.criteria, &frame, &criteriaObject));
 
         StringView criteriaJson;
-        NBL_CHECK(nbl::StringBuilder(&frame).append(criteriaObject).buildNullTerminated(&criteriaJson));
+        auto builder = nbl::StringBuilder(&frame);
+        NBL_CHECK(_serializeCriteria(meta.criteria, builder));
+        NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
+
         _updateFilterStmt.bindString(5, criteriaJson);
     }
 

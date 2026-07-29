@@ -2,6 +2,7 @@
 #include <Plugin/InstallationType.hpp>
 #include <Core/Result.hpp>
 #include <Core/Array.hpp>
+#include <Core/Math.hpp>
 #include <Platform/Process.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/StringBuilder.hpp>
@@ -28,13 +29,8 @@ nbl::Result nbl::PluginContext::registerInstallationType(const InstallationType&
 
 nbl::Span<nbl::InstallationType> nbl::PluginContext::types() const {
 
-    void* typesStart;
-    if(_mArena.get(_mTypesOffset, &typesStart).error()) {
-        return {};
-    }
-
     return nbl::Span(
-        static_cast<nbl::InstallationType*>(typesStart), 
+        _pTypes,
         _mNumTypes
     );
 }
@@ -63,13 +59,13 @@ nbl::Result nbl::PluginContext::create(StringView databasePath, NotificationCons
     }
 
     usize offset = ctx->_mArena.index() + 1;
-    usize padding = nbl::align(offset, sizeof(void*)) - ctx->_mArena.index();
+    usize padding = nbl::alignUp(offset, sizeof(void*)) - ctx->_mArena.index();
 
     void* alloc;
     NBL_CHECK(ctx->_mArena.push(padding, &alloc));
     memset(alloc, 0, padding);
 
-    ctx->_mTypesOffset = offset + padding - 1;
+    ctx->_pTypes = reinterpret_cast<InstallationType*>(static_cast<u8*>(ctx->_mArena.begin()) + offset + padding - 1);
     ctx->_mNotificationConsumer = consumer;
     return nbl::Result::SUCCESS;
 }

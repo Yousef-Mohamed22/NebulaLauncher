@@ -53,45 +53,30 @@ struct Result {
         return value < 0;
     }
 
-    /**
-     * \brief Static member representing a successful result.
-     */
-    static Result SUCCESS;
-};
+    enum : i32 {
+        SUCCESS = 0,
 
-inline Result Result::SUCCESS = Result(0);
+        END_OF_STREAM = 1,
 
-
-namespace result {
-    /**
-     * \brief Enumeration of specific result values that can be used to indicate non-error results.
-     */
-    enum {
-        END_OF_FILE = 1
-    };
-}
-
-namespace error {
-    /**
-     * \brief Enumeration of specific error codes that can be used to indicate different error conditions.
-     */
-    enum {
-        ILLEGAL_ARGUMENT = -1,
-        ILLEGAL_STATE = -2,
+        INVALID_ARGUMENT = -1,
+        INVALID_STATE = -2,
         OUT_OF_BOUNDS = -3,
         NOT_FOUND = -4,
         OUT_OF_MEMORY = -5,
         IO_ERROR = -6,
-        UNEXPECTED_EOF = -7,
+        UNEXPECTED_END_OF_STREAM = -7,
         UNEXPECTED_TOKEN = -8,
         THREAD_ERROR = -9,
         PROCESS_ERROR = -10,
         PLUGIN_ERROR = -11,
         OUT_OF_SPACE = -12,
+        PARSE_ERROR = -13,
         UNIMPLEMENTED = -998,
         UNEXPECTED_ERROR = -999
     };
-}
+
+};
+
 
 
 #ifndef NDEBUG 

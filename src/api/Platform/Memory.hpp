@@ -10,14 +10,16 @@
 
 #include <Core/Result.hpp>
 
-namespace nbl::memory {
+namespace nbl {
 
-extern usize gPageSize;
+usize pageSize() noexcept;
 
-nbl::Result mapMemory(void** outPtr, usize* size);
-nbl::Result unmapMemory(void* ptr, usize* size);
+Result mapMemory(usize* size, void** outPtr) noexcept;
 
-nbl::Result commitMemory(void* ptr, usize* size);
-nbl::Result decommitMemory(void* ptr, usize* size);
+Result unmapMemory(void* ptr, usize* size) noexcept;
+
+Result commitMemory(void* ptr, usize* size) noexcept;
+
+Result uncommitMemory(void* ptr, usize* size) noexcept;
 
 }

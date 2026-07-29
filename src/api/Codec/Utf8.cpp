@@ -45,7 +45,7 @@ nbl::Result nbl::writeCodePoint(nbl::Writer writer, u32 codePoint) {
         bytes[3] = static_cast<char>(_PFX_CONTINUATION | (codePoint & _MASK_CONTINUATION));
         return writer.writeAll(bytes, 4);
     } else {
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
     
 }

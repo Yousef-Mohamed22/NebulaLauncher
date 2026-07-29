@@ -47,15 +47,15 @@ T clamp(T value, T minBound, T maxBound) {
     return value;
 }
 
-/**
- * \brief Aligns a value to the nearest multiple of a specified alignment.
- * \param value The value to align.
- * \param alignment The alignment boundary.
- * \return The aligned value.
- */
-template<typename T>
-T align(T value, T alignment) {
-    return ((value + alignment - 1) / alignment) * alignment;
+
+template<typename T, typename A>
+constexpr T alignDown(T value, A alignment) noexcept {
+    return (value / static_cast<T>(alignment)) * static_cast<T>(alignment);
+}
+
+template<typename T, typename A>
+constexpr T alignUp(T value, A alignment) noexcept {
+    return ((value + static_cast<T>(alignment) - 1) / static_cast<T>(alignment)) * static_cast<T>(alignment);
 }
 
 

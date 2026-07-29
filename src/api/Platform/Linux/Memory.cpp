@@ -20,41 +20,54 @@
 #include <sys/mman.h>
 
 
-usize nbl::memory::gPageSize = getpagesize();
 
+usize nbl::pageSize() noexcept {
+    return ::getpagesize();
+}
 
-nbl::Result nbl::memory::mapMemory(void** outPtr, usize* size) {
+nbl::Result nbl::mapMemory(usize* size, void** outPtr) noexcept {
+    if(outPtr == nullptr || size == nullptr || *size == 0) return nbl::Result::INVALID_ARGUMENT;
 
-    *size = nbl::align(*size, gPageSize);
+    *size = nbl::alignUp(*size, getpagesize());
+    void* out = ::mmap(nullptr, *size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if(out == nullptr) return nbl::Result::OUT_OF_MEMORY;
 
-    void* ptr = mmap(nullptr, *size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if(ptr == MAP_FAILED) {
-        return nbl::error::OUT_OF_MEMORY;
-    }
-    *outPtr = ptr;
+    *outPtr = out;
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::memory::unmapMemory(void *ptr, usize* size) {
-    *size = nbl::align(*size, gPageSize);
-    if(munmap(ptr, *size) != 0) {
-        return nbl::error::UNEXPECTED_ERROR;
-    }
-    return nbl::Result::SUCCESS;
-}
+nbl::Result nbl::unmapMemory(void* ptr, usize* size) noexcept {
+    if(ptr == nullptr || size == nullptr || *size == 0) return nbl::Result::INVALID_ARGUMENT;
 
-nbl::Result nbl::memory::commitMemory(void *ptr, usize *size) {
-    *size = nbl::align(*size, gPageSize);
-    if(mprotect(ptr, *size, PROT_READ | PROT_WRITE) != 0) {
-        return nbl::error::OUT_OF_MEMORY;
+    *size = nbl::alignUp(*size, getpagesize());
+    int rc = ::munmap(ptr, *size);
+
+    if(rc != 0) {
+        return nbl::Result::INVALID_ARGUMENT;
     }
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::memory::decommitMemory(void *ptr, usize *size) {
-    *size = nbl::align(*size, gPageSize);
-    if(mprotect(ptr, *size, PROT_NONE) != 0) {
-        return nbl::error::UNEXPECTED_ERROR;
+nbl::Result nbl::commitMemory(void* ptr, usize* size) noexcept {
+    if(ptr == nullptr || size == nullptr || *size == 0) return nbl::Result::INVALID_ARGUMENT;
+
+    *size = nbl::alignUp(*size, getpagesize());
+    int rc = ::mprotect(ptr, *size, PROT_READ | PROT_WRITE);
+
+    if(rc != 0) {
+        return nbl::Result::INVALID_ARGUMENT;
+    }
+    return nbl::Result::SUCCESS;
+}
+
+nbl::Result nbl::uncommitMemory(void* ptr, usize* size) noexcept {
+    if(ptr == nullptr || size == nullptr || *size == 0) return nbl::Result::INVALID_ARGUMENT;
+
+    *size = nbl::alignUp(*size, getpagesize());
+    int rc = ::mprotect(ptr, *size, PROT_NONE);
+
+    if(rc != 0) {
+        return nbl::Result::INVALID_ARGUMENT;
     }
     return nbl::Result::SUCCESS;
 }

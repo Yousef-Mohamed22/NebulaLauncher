@@ -31,7 +31,7 @@ TEST(Stream, BufferedReader) {
             index++;
         }
 
-        if(res == nbl::result::END_OF_FILE) break;
+        if(res == nbl::Result::END_OF_STREAM) break;
     } while(true);
 
     ASSERT_EQ(index, 4500);
@@ -64,7 +64,7 @@ TEST(Stream, BufferedWriter) {
 
         index += bytesWritten;
 
-        if(res == nbl::result::END_OF_FILE) break;
+        if(res == nbl::Result::END_OF_STREAM) break;
     } while(true);
 
     writer.flush();

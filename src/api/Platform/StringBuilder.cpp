@@ -6,13 +6,13 @@ nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValu
         return _mLastResult;
     }
     if(_mLength == 0) {
-        _mFrame.releaseUnsafe();
+        return nbl::Result::SUCCESS;
     }
 
-    void* ptr = _mFrame.begin();
+    void* ptr = _pAllocator->begin();
     char* stringData = static_cast<char*>(ptr);
 
-    usize stringLength = _mFrame.index();
+    usize stringLength = _pAllocator->index();
 
     usize occurrances;
     for(usize i = startIndex ; i < stringLength; i++) {
@@ -24,13 +24,10 @@ nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValu
 
     usize outStringLength = stringLength + (occurrances * (newValue.length - 1));
 
-    if(outStringLength > _mFrame.capacity()) {
-        return nbl::error::OUT_OF_MEMORY;
-    }
 
     if(outStringLength > stringLength) {
         usize diff = outStringLength - stringLength;
-        NBL_CHECK(_mFrame.push(diff, nullptr));
+        NBL_CHECK(_pAllocator->push(diff, nullptr));
 
         for(usize i = startIndex; i < outStringLength; i++) {
             char c = stringData[i];

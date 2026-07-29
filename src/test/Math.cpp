@@ -18,7 +18,7 @@ struct F3Result {
 
 class Min : public ::testing::TestWithParam<F2Result> {};
 class Max : public ::testing::TestWithParam<F2Result> {};
-class Align : public ::testing::TestWithParam<F2Result> {};
+class AlignUp : public ::testing::TestWithParam<F2Result> {};
 class Clamp : public ::testing::TestWithParam<F3Result> {};
 
 TEST_P(Min, Param) {
@@ -33,9 +33,9 @@ TEST_P(Clamp, Param) {
     F3Result res = GetParam();
     ASSERT_EQ(nbl::clamp(res.p1, res.p2, res.p3), res.ret);
 }
-TEST_P(Align, Param) {
+TEST_P(AlignUp, Param) {
     F2Result res = GetParam();
-    ASSERT_EQ(nbl::align(res.p1, res.p2), res.ret);
+    ASSERT_EQ(nbl::alignUp(res.p1, res.p2), res.ret);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -88,7 +88,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 INSTANTIATE_TEST_SUITE_P(
     Math,
-    Align,
+    AlignUp,
     ::testing::Values(
         F2Result{ 0, 8, 0 },
         F2Result{ 2, 8, 8 },

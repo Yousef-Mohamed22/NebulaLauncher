@@ -58,7 +58,7 @@ nbl::StringView nbl::getBinaryPath() {
     NBL_ASSERT(len != -1);
 
     path[len] = '\0';
-    return nbl::StringView(len, path);
+    return nbl::StringView(path, len);
 }
 
 
@@ -80,7 +80,7 @@ nbl::Result nbl::ProcessHandle::wait(i32* exitCode) const {
 
     int pid = _getHandle(_pHandle);
     if(waitpid(pid, exitCode, 0) == -1) {
-        return nbl::error::PROCESS_ERROR;
+        return nbl::Result::PROCESS_ERROR;
     }
     return nbl::Result::SUCCESS;
 }
@@ -126,17 +126,17 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
     int pipefd[2];
     if(options.outputMode == ProcessOutputMode::PIPE) {
         if(pipe(pipefd) == -1) {
-            return nbl::error::PROCESS_ERROR;
+            return nbl::Result::PROCESS_ERROR;
         }
     } else if(options.outputMode == ProcessOutputMode::REDIRECT) {
         if(options.outputRedirectFile.empty() || options.outputRedirectFile.length + 1 >= PATH_MAX) {
-            return nbl::error::ILLEGAL_ARGUMENT;
+            return nbl::Result::INVALID_ARGUMENT;
         }
     }
 
     pid_t pid = fork();
     if(pid == -1) {
-        return nbl::error::PROCESS_ERROR;
+        return nbl::Result::PROCESS_ERROR;
     }
 
     if(pid == 0) {

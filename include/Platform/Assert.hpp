@@ -14,7 +14,7 @@ namespace nbl {
 
 /**
  * \brief Internal function that is called when an assertion fails. This function logs an error message and either exits the program or triggers a debug breakpoint, depending on whether NDEBUG is defined. This should not be called directly; instead, the NBL_ASSERT macro should be used to perform assertions in the code.
- * \param message The message to be logged when the assertion fails, which typically includes the expression that failed and the file and line number where the assertion occurred.
+ * \param message The message to be logged when the assertion fails.
  */
 void _assertionFailed(const char* message);
 

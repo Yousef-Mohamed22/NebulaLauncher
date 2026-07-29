@@ -79,7 +79,7 @@ public:
     QByteArray typeId() const { return _mTypeId; }
 
     Q_INVOKABLE quint32 indexOf(QByteArray name) {
-        nbl::StringView nameView = nbl::StringView(name.length(), name.data());
+        nbl::StringView nameView = nbl::StringView(name.data(), name.length());
         if(_mType == nullptr) return 0;
         return _mType->fields[_mIndex].enumData.index(nameView);
     }
@@ -110,7 +110,7 @@ private:
 
     void _reload() {
         beginResetModel();
-        _mType = ApplicationContext::instance()->pluginContext()->getInstallationType(nbl::StringView(_mTypeId.length(), _mTypeId.data()));
+        _mType = ApplicationContext::instance()->pluginContext()->getInstallationType(nbl::StringView(_mTypeId.data(), _mTypeId.length()));
         int count = rowCount();
         if(count > 0) {
             beginInsertRows(QModelIndex(), 0, count - 1);

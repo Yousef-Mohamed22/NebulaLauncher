@@ -65,5 +65,5 @@ int main(int argc, char** argv) {
     }
 
     nbl::log(nbl::LogLevel::INFO, "Exiting wrapper...");
-    exit(exitCode);
+    return exitCode;
 }

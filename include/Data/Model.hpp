@@ -239,8 +239,8 @@ struct GameLookupResult {
 };
 
 struct GameSearchCriteria {
-    JsonArray tags;
-    JsonArray excludedTags;
+    ConstSpan<ConstSpan<StringView>> tags;
+    ConstSpan<StringView> excludedTags;
     u64 minReleaseDate;
     u64 maxReleaseDate;
     f64 minRating;
@@ -376,8 +376,8 @@ struct InstallationDetails {
 };
 
 struct InstallationSearchCriteria {
-    JsonArray tags;
-    JsonArray excludedTags;
+    ConstSpan<ConstSpan<StringView>> tags;
+    ConstSpan<StringView> excludedTags;
     u64 minReleaseDate;
     u64 maxReleaseDate;
     f64 minRating;

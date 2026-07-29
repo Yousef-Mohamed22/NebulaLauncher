@@ -16,8 +16,6 @@
 
 namespace nbl {
 
-class JsonValue;
-
 /**
  * \brief An implementation of a string builder that allows for efficient construction of strings using a memory arena for temporary storage.  
  */
@@ -28,9 +26,9 @@ public:
      * \brief Constructor that initializes the string builder with a reference to an arena frame for storage. The string builder will use the arena frame to allocate memory for the string being built, and will keep track of the starting index in the arena to determine the final string view when building is complete.
      * \param arena Pointer to the arena frame that will be used to store the final string.
      */
-    StringBuilder(ArenaFrame* arena) :
+    StringBuilder(LinearAllocator* allocator) :
         _mLastResult(Result::SUCCESS),
-        _mFrame(arena)
+        _pAllocator(allocator)
     { }
 
     /**
@@ -65,10 +63,10 @@ public:
             return _mLastResult;
         }
         if(_mLength == 0) {
-            _mFrame.releaseUnsafe();
+            _mBegin = _pAllocator->index();
         }
-        _mLastResult = toString(std::forward<T>(value), _mFrame);
-        _mLength = _mFrame.index();
+        _mLastResult = toString(std::forward<T>(value), _pAllocator->writer());
+        _mLength = _pAllocator->index() - _mBegin;
         return _mLastResult;
     }
 
@@ -82,10 +80,9 @@ public:
             return _mLastResult;
         }
 
-        void* ptr = _mFrame.begin();
-        *outString = StringView(_mFrame.index(), static_cast<char*>(ptr));
+        char* ptr = static_cast<char*>(_pAllocator->begin()) + _mBegin;
+        *outString = StringView(ptr, _mLength);
 
-        _mFrame.release();
         return Result::SUCCESS;
     }
 
@@ -99,22 +96,25 @@ public:
         if(!_mLastResult.success()) {
             return _mLastResult;
         }
-        NBL_CHECK(_mFrame.pushValue('\0'));
+        NBL_CHECK(_pAllocator->write("\0", 1));
 
-        void* ptr = _mFrame.begin();
-        *outString = StringView(_mFrame.index() - 1, static_cast<char*>(ptr));
+        char* ptr = static_cast<char*>(_pAllocator->begin()) + _mBegin;
+        *outString = StringView(ptr, _mLength);
 
-        _mFrame.release();
         return Result::SUCCESS;
     }
 
 
     operator Writer() {
+        return writer();
+    }
+
+    Writer writer() {
         return Writer {
             .impl = this,
             .pfnWrite = [](void* impl, const void* data, usize length, usize* bytesWritten) -> Result {
                 StringBuilder* builder = static_cast<StringBuilder*>(impl);
-                NBL_CHECK(builder->appendChecked(StringView(length, static_cast<const char*>(data))));
+                NBL_CHECK(builder->appendChecked(StringView(static_cast<const char*>(data), length)));
                 if(bytesWritten) *bytesWritten = length;
                 return Result::SUCCESS;
             }
@@ -133,7 +133,8 @@ public:
 private:
     Result _mLastResult;
     usize _mLength;
-    ArenaFrame _mFrame;
+    usize _mBegin;
+    LinearAllocator* _pAllocator;
 
 };
 

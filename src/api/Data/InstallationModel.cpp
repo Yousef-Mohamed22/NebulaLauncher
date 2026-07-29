@@ -141,7 +141,7 @@ WHERE installation.iId = ?1;
 
         if(columnCount != 28) {
             nbl::log(nbl::LogLevel::ERROR, "Expected 28 columns in installation meta query result, but got ", columnCount);
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
 
         InstallationDetails details = {
@@ -201,7 +201,7 @@ nbl::Result nbl::lookupInstallations(
 
     usize index = static_cast<usize>(criteria.sortBy) * 2 + static_cast<usize>(criteria.sortOrder);
     if(index >= 16) {
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
 
     nbl::PreparedStatement& lookupInstallationsStmt = _lookupInstallationsStmts[index];
@@ -305,7 +305,7 @@ OFFSET ?10;
                 stmtBuilder.append("ORDER BY game.rating");
                 break;
             default:
-                return nbl::error::ILLEGAL_ARGUMENT;
+                return nbl::Result::INVALID_ARGUMENT;
         }
 
         if(criteria.sortOrder == SortOrder::ASCENDING) {
@@ -322,41 +322,43 @@ OFFSET ?10;
     }
 
 
-    if(criteria.tags.length() == 0) {
+    if(criteria.tags.length == 0) {
         NBL_CHECK(lookupInstallationsStmt.bindNull(1));
     } else {
-        for(const JsonValue& tagSet : criteria.tags) {
-            if(tagSet.type != JsonType::ARRAY) {
-                nbl::log(nbl::LogLevel::WARN, "Tag set is not an array! ", tagSet);
-                return nbl::error::ILLEGAL_ARGUMENT;
-            }
-            for(const JsonValue& tag : tagSet.array) {
-                if(tag.type != JsonType::STRING) {
-                    nbl::log(nbl::LogLevel::WARN, "Tag set contains non-string! ", tag);
-                    return nbl::error::ILLEGAL_ARGUMENT;
-                }
-            }
-        }
-        StringView tagsJson;
+
         StringBuilder tagsBuilder(&frame);
-        tagsBuilder.append(JsonValue::fromArray(criteria.tags));
+        NBL_CHECK(nbl::JsonWriter(tagsBuilder.writer())
+            .writeArray([&](auto arr) {
+                for(ConstSpan<StringView> tagSet : criteria.tags) {
+                    arr.writeArray([&](auto inner) {
+                        for(StringView tag : tagSet) {
+                            inner.add(tag);
+                        }
+                    });
+                }
+            }));
+
+        StringView tagsJson;
         tagsBuilder.build(&tagsJson);
+
         NBL_CHECK(lookupInstallationsStmt.bindString(1, tagsJson));
     }
 
-    if(criteria.excludedTags.length() == 0) {
+    if(criteria.excludedTags.length == 0) {
         NBL_CHECK(lookupInstallationsStmt.bindNull(2));
     } else {
-        for(const JsonValue& tag : criteria.excludedTags) {
-            if(tag.type != JsonType::STRING) {
-                return nbl::error::ILLEGAL_ARGUMENT;
-            }
-        }
-        StringView excludedTagsJson;
-        StringBuilder excludedTagsBuilder(&frame);
-        excludedTagsBuilder.append(JsonValue::fromArray(criteria.excludedTags));
-        excludedTagsBuilder.build(&excludedTagsJson);
-        NBL_CHECK(lookupInstallationsStmt.bindString(2, excludedTagsJson));
+        StringBuilder tagsBuilder(&frame);
+        NBL_CHECK(nbl::JsonWriter(tagsBuilder.writer())
+            .writeArray([&](auto arr) {
+                for(StringView tag : criteria.excludedTags) {
+                    arr.add(tag);
+                }
+            }));
+
+        StringView tagsJson;
+        tagsBuilder.build(&tagsJson);
+
+        NBL_CHECK(lookupInstallationsStmt.bindString(2, tagsJson));
     }
 
     NBL_CHECK(lookupInstallationsStmt.bindUint(3, criteria.minReleaseDate));
@@ -376,7 +378,7 @@ OFFSET ?10;
         i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount < 12) {
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
         InstallationLookupResult res = {
             .installationId = columnValues[0].intValue,
@@ -456,7 +458,7 @@ WHERE descendantId IN (SELECT tId FROM installation_tag WHERE iId = ?1)
 
     return connection->execute(&_countInstallationTagsStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount == 0) return nbl::error::IO_ERROR;
+        if(columnCount == 0) return nbl::Result::IO_ERROR;
 
         *outCount = columnValues[0].uintValue();
         return nbl::Result::SUCCESS;
@@ -494,10 +496,10 @@ LIMIT ?2 OFFSET ?3;
     return connection->execute(&_getInstallationTagsStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 2) {
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
         if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
         return callback(columnValues[0].textValue, columnValues[1].intValue);
     });
@@ -522,10 +524,10 @@ ORDER BY tag.name ASC;
     return connection->execute(&_getDirectInstallationTagsStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount != 2) {
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
         if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
-            return nbl::error::IO_ERROR;
+            return nbl::Result::IO_ERROR;
         }
         return callback(columnValues[0].textValue, columnValues[1].intValue);
     });

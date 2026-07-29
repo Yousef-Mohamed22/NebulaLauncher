@@ -19,7 +19,6 @@ TEST(Arena, PushAndGet)
     EXPECT_TRUE(arena.allocate(&value).success());
     *value = 42;
 
-    void* ptr;
-    EXPECT_TRUE(arena.get(0, &ptr).success());
+    void* ptr = arena.begin();
     EXPECT_EQ(*static_cast<int*>(ptr), 42);
 }

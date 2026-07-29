@@ -48,10 +48,9 @@ void NblInstallationWithTagModel::refresh() {
 
     beginResetModel();
 
-    _mCriteriaData.tag = nbl::JsonValue::fromString(nbl::StringView(_mTag.length(), _mTag.data()));
-    _mCriteriaData.innerArray = nbl::JsonValue::fromArray(nbl::JsonArray(&_mCriteriaData.tag, 1));
-    _mCriteriaData.outerArray = nbl::JsonArray(&_mCriteriaData.innerArray, 1);
-    _mCriteria.tags = _mCriteriaData.outerArray;
+    _mCriteriaData.tags[0] = nbl::StringView(_mTag.data(), _mTag.length());
+    _mCriteriaData.tagSets[0] = _mCriteriaData.tags;
+    _mCriteria.tags = _mCriteriaData.tagSets.constSpan();
 
     _mData.clear();
     _mAllLoaded = false;

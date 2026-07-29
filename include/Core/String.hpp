@@ -18,34 +18,42 @@
 
 namespace nbl {
 
+constexpr usize cStringLength(const char* str) {
+    usize out = 0;
+    while(str[out] != '\0') ++out;
+    return out;
+}
+
 /**
  * \brief A simple implementation of a string view type that represents a non-owning view into a string.
  */
 struct StringView {
 
-    /**
-     * \brief The length of the string view, in bytes.
-     */
-    usize length;
-
-    /**
-     * \brief Pointer to the character data of the string view. May be nullptr if length is 0.
-     */
     const char* data;
+    usize length;
+    bool nullTerminated;
+    // struct {
+    //     usize nullTerminated: 1;
+    //     usize length : sizeof(usize) - 1;
+    // };
     
     /**
      * \brief Default constructor that creates an empty string view.
      */
     constexpr StringView() = default;
 
+    constexpr StringView(const StringView& other) noexcept = default;
+    constexpr StringView(StringView&& other) noexcept = default;
+
     /**
      * \brief Constructor that creates a string view from a pointer to character data and a length.
      * \param length The length of the string view, in bytes.
      * \param str Pointer to the character data of the string view.
      */
-    constexpr StringView(usize length, const char* str) :
-        length(length),
-        data(str)
+    constexpr StringView(const char* str, usize length, bool nullTerminated = false) :
+        data(str),
+        nullTerminated(nullTerminated),
+        length(length)
     { }
 
     /**
@@ -53,10 +61,19 @@ struct StringView {
      * \param str Pointer to the null-terminated C-style string.
      */
     constexpr StringView(const char* str) :
-        length(0),
-        data(str)
-    { 
-        while(str[length] != 0) length++; 
+        data(str),
+        nullTerminated(true),
+        length(cStringLength(str))
+    { }
+
+    constexpr StringView& operator=(const StringView& other) noexcept = default;
+    constexpr StringView& operator=(StringView&& other) noexcept = default;
+
+    constexpr StringView& operator=(const char* cstring) noexcept {
+        data = cstring;
+        length = 0;
+        while(*cstring++) length++;
+        return *this;
     }
 
     /**
@@ -167,7 +184,7 @@ struct StringView {
      */
     constexpr StringView tail(usize start) const {
         NBL_ASSERT(start <= this->length);
-        return StringView(length - start, data + start);
+        return StringView(data + start, length - start, nullTerminated);
     }
 
     /**
@@ -175,7 +192,7 @@ struct StringView {
      */
     constexpr StringView slice(usize start, usize length) const {
         NBL_ASSERT(start + length <= this->length);
-        return StringView(length, data + start);
+        return StringView(data + start, length, start + length == this->length ? nullTerminated : data[start+length] == '\0');
     }
 
     /**
@@ -188,21 +205,21 @@ struct StringView {
                 return nbl::Result::SUCCESS;
             }
         }
-        return nbl::error::NOT_FOUND;
+        return nbl::Result::NOT_FOUND;
     }
 
     /**
      * \brief Finds the final occurrance of a given character in the string
      */
     constexpr Result findLast(char c, usize* outIndex) const {
-        if(length == 0) return nbl::error::NOT_FOUND;
+        if(length == 0) return nbl::Result::NOT_FOUND;
         for (usize i = length - 1; i > 0; i--) {
             if (data[i] == c) {
                 if(outIndex) *outIndex = i;
                 return nbl::Result::SUCCESS;
             }
         }
-        return nbl::error::NOT_FOUND;
+        return nbl::Result::NOT_FOUND;
     }
 
     /**
@@ -264,7 +281,7 @@ Result writeFloat(f64 value, Writer writer, u8 precision = 15);
 */
 template<typename T>
 Result toString(T value, Writer writer) {
-    return nbl::error::UNIMPLEMENTED;
+    return nbl::Result::UNIMPLEMENTED;
 }
 
 
@@ -354,7 +371,7 @@ struct StringReader {
     Result read(void* data, usize length, usize* bytesRead) {
         if (position >= str.length) {
             if(bytesRead) *bytesRead = 0;
-            return nbl::result::END_OF_FILE;
+            return nbl::Result::END_OF_STREAM;
         }
 
         usize remaining = str.length - position;

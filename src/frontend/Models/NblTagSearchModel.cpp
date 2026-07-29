@@ -61,7 +61,7 @@ void NblTagSearchModel::_fetchPageData() {
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
     
-    nbl::StringView query = nbl::StringView(_mSearchQuery.length(), _mSearchQuery.data());
+    nbl::StringView query = nbl::StringView(_mSearchQuery.data(), _mSearchQuery.length());
 
     QList<NblTagRef> found;
     bool exactMatch;

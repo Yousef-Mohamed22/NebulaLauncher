@@ -1,93 +1,228 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
-
-/**
- * \file JsonWriter.cpp
- * \author jwall64
- * \brief Implementation of JSON encoder.
- */
-
-#include <Core/Result.hpp>
-#include <Platform/Logging.hpp>
 #include <Codec/Json.hpp>
 
-namespace {
+#include <cmath>
 
-nbl::Result _writeBool(nbl::Writer writer, bool value) {
-    if(value) {
-        return writer.writeString("true");
-    } else {
-        return writer.writeString("false");
-    }
-}
+nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
 
-nbl::Result _writeNumber(nbl::Writer writer, nbl::JsonNumber number) {
-    switch(number.type) {
-        case nbl::JsonNumberType::FLOAT:
-            return nbl::toString(number.asFloat(), writer);
-        case nbl::JsonNumberType::SIGNED:
-            return nbl::toString(number.asInt(), writer);
-        case nbl::JsonNumberType::UNSIGNED:
-            return nbl::toString(number.asUint(), writer);
-    }
-    return nbl::error::UNEXPECTED_ERROR;
-}
-
-nbl::Result _writeString(nbl::Writer writer, const nbl::StringView& str) {
-    NBL_CHECK(writer.writeChar('"'));
-    NBL_CHECK(writer.writeString(str));
-    return writer.writeChar('"');
-}
-
-nbl::Result _writeNull(nbl::Writer writer) {
-    return writer.writeString("null");
-}
-
-
-}
-
-nbl::Result nbl::writeJson(nbl::Writer writer, const nbl::JsonValue& value) {
-    switch(value.type) {
-        case nbl::JsonType::BOOLEAN:
-            return _writeBool(writer, value.boolean);
-        case nbl::JsonType::NUMBER:
-            return _writeNumber(writer, value.number);
-        case nbl::JsonType::STRING:
-            return _writeString(writer, value.string);
-        case nbl::JsonType::ARRAY:
-            return writeJsonArray(writer, value.array);
-        case nbl::JsonType::OBJECT:
-            return writeJsonObject(writer, value.object);
-        case nbl::JsonType::NONE:
-            return _writeNull(writer);
-        default:
-            nbl::log(nbl::LogLevel::ERROR, "Invalid JSON value type: ", static_cast<i32>(value.type));
-            return nbl::error::UNEXPECTED_ERROR;
-    }
-}
-
-nbl::Result nbl::writeJsonArray(nbl::Writer writer, const nbl::JsonArray& array) {
-    NBL_CHECK(writer.writeChar('['));
-    usize i = 0;
-    for(const nbl::JsonValue& value : array) {
-        if(i++ > 0) {
-            NBL_CHECK(writer.writeChar(','));
+    switch(element.type) {
+        case(nbl::JsonType::NONE): {
+            return writer.writeString("null");
         }
-        NBL_CHECK(nbl::writeJson(writer, value));
+        case(nbl::JsonType::NUMBER): {
+            switch(element.number.type) {
+                case(nbl::JsonNumberType::SIGNED): {
+                    return nbl::writeInt(element.number.intValue, writer);
+                }
+                case(nbl::JsonNumberType::UNSIGNED): {
+                    return nbl::writeUint(element.number.uintValue, writer);
+                }
+                case(nbl::JsonNumberType::FLOAT): {
+                    i32 fpInfo = std::fpclassify(element.number.floatValue);
+                    if(fpInfo == FP_INFINITE || fpInfo == FP_NAN) {
+                        return writer.writeString("0");
+                    }
+                    return nbl::writeFloat(element.number.floatValue, writer);
+                }
+            }
+            break;
+        }
+        case(nbl::JsonType::BOOLEAN): {
+            if(element.boolean) {
+                return writer.writeString("true");
+            } else {
+                return writer.writeString("false");
+            }
+        }
+        case(nbl::JsonType::STRING): {
+            NBL_CHECK(writer.writeChar('"'));
+            NBL_CHECK(writer.writeString(element.string));
+            NBL_CHECK(writer.writeChar('"'));
+            return nbl::Result::SUCCESS;
+        }
+        case(nbl::JsonType::ARRAY): {
+            NBL_CHECK(writer.writeChar('['));
+            for(JsonElement& ele : element.array) {
+                NBL_CHECK(writeJson(writer, ele));
+                NBL_CHECK(writer.writeChar(','));
+            }
+            NBL_CHECK(writer.writeChar(']'));
+            return nbl::Result::SUCCESS;
+        }
+        case(nbl::JsonType::OBJECT): {
+            NBL_CHECK(writer.writeChar('{'));
+            for(JsonObject::Entry& ent : element.object) {
+                NBL_CHECK(writer.writeChar('"'));
+                NBL_CHECK(writer.writeString(ent.key));
+                NBL_CHECK(writer.writeString("\":"));
+                NBL_CHECK(writeJson(writer, ent.value));
+                NBL_CHECK(writer.writeChar(','));
+            }
+            NBL_CHECK(writer.writeChar('}'));
+            return nbl::Result::SUCCESS;
+        }
     }
-    return writer.writeChar(']');
+
+    return nbl::Result::INVALID_ARGUMENT;
 }
 
-nbl::Result nbl::writeJsonObject(nbl::Writer writer, const nbl::JsonObject& object) {
-    NBL_CHECK(writer.writeChar('{'));
-    size_t count = 0;
-    for(const auto& [key, value] : object) {
-        if(count > 0) {
-            NBL_CHECK(writer.writeChar(','));
-        }
-        NBL_CHECK(_writeString(writer, key));
-        NBL_CHECK(writer.writeChar(':'));
-        NBL_CHECK(nbl::writeJson(writer, value));
-        count++;
+
+
+
+nbl::JsonWriter::ArrayWriter& nbl::JsonWriter::ArrayWriter::add(JsonElement element) {
+    if(_rParent._mLastResult.error()) return *this;
+
+    if(_mNumElements++ > 0) {
+        _rParent._mLastResult = _rParent._mSink.writeChar(',');
+        if(_rParent._mLastResult.error()) return *this;
     }
-    return writer.writeChar('}');
+
+    _rParent._mLastResult = writeJson(_rParent._mSink, element);
+    return *this;
+}
+
+nbl::JsonWriter::ArrayWriter& nbl::JsonWriter::ArrayWriter::writeObject(std::function_ref<void(ObjectWriter& writer)> writer) {
+
+    if(_rParent._mLastResult.error()) return *this;
+    
+    if(_mNumElements++ > 0) {
+        _rParent._mLastResult = _rParent._mSink.writeChar(',');
+        if(_rParent._mLastResult.error()) return *this;
+    }
+    
+    _rParent._mLastResult = _rParent._mSink.writeChar('{');
+    if(_rParent._mLastResult.error()) return *this;
+
+    auto obj = ObjectWriter(_rParent);
+    writer(obj);
+
+    if(_rParent._mLastResult.error()) return *this;
+    
+    _rParent._mLastResult = _rParent._mSink.writeChar('}');
+    return *this;
+
+}
+
+nbl::JsonWriter::ArrayWriter& nbl::JsonWriter::ArrayWriter::writeArray(std::function_ref<void(ArrayWriter& writer)> writer) {
+    if(_rParent._mLastResult.error()) return *this;
+    
+    if(_mNumElements++ > 0) {
+        _rParent._mLastResult = _rParent._mSink.writeChar(',');
+        if(_rParent._mLastResult.error()) return *this;
+    }
+    
+    _rParent._mLastResult = _rParent._mSink.writeChar('[');
+    if(_rParent._mLastResult.error()) return *this;
+
+    auto obj = ArrayWriter(_rParent);
+    writer(obj);
+
+    if(_rParent._mLastResult.error()) return *this;
+    
+    _rParent._mLastResult = _rParent._mSink.writeChar(']');
+    return *this;
+}
+
+nbl::JsonWriter::ObjectWriter& nbl::JsonWriter::ObjectWriter::add(StringView key, JsonElement element) {
+    
+    if(_rParent._mLastResult.error()) return *this;
+    
+    if(_mNumElements++ > 0) {
+        _rParent._mLastResult = _rParent._mSink.writeChar(',');
+        if(_rParent._mLastResult.error()) return *this;
+    }
+
+    _rParent._mLastResult = _rParent._mSink.writeChar('"');
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = _rParent._mSink.writeString(key);
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = _rParent._mSink.writeString("\":");
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = writeJson(_rParent._mSink, element);
+    return *this;
+}
+
+
+
+nbl::JsonWriter::ObjectWriter& nbl::JsonWriter::ObjectWriter::writeObject(StringView key, std::function_ref<void(ObjectWriter& writer)> writer) {
+
+    if(_rParent._mLastResult.error()) return *this;
+    
+    if(_mNumElements++ > 0) {
+        _rParent._mLastResult = _rParent._mSink.writeChar(',');
+        if(_rParent._mLastResult.error()) return *this;
+    }
+
+    _rParent._mLastResult = _rParent._mSink.writeChar('"');
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = _rParent._mSink.writeString(key);
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = _rParent._mSink.writeString("\":{");
+    if(_rParent._mLastResult.error()) return *this;
+
+    auto obj = ObjectWriter(_rParent);
+    writer(obj);
+
+    if(_rParent._mLastResult.error()) return *this;
+    
+    _rParent._mLastResult = _rParent._mSink.writeChar('}');
+    return *this;
+}
+nbl::JsonWriter::ObjectWriter& nbl::JsonWriter::ObjectWriter::writeArray(StringView key, std::function_ref<void(ArrayWriter& writer)> writer) {
+    if(_rParent._mLastResult.error()) return *this;
+    
+    if(_mNumElements++ > 0) {
+        _rParent._mLastResult = _rParent._mSink.writeChar(',');
+        if(_rParent._mLastResult.error()) return *this;
+    }
+
+    _rParent._mLastResult = _rParent._mSink.writeChar('"');
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = _rParent._mSink.writeString(key);
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = _rParent._mSink.writeString("\":[");
+    if(_rParent._mLastResult.error()) return *this;
+
+    auto obj = ArrayWriter(_rParent);
+    writer(obj);
+
+    if(_rParent._mLastResult.error()) return *this;
+    
+    _rParent._mLastResult = _rParent._mSink.writeChar(']');
+    return *this;
+}
+
+
+nbl::Result nbl::JsonWriter::writeElement(nbl::JsonElement element) {
+    return nbl::writeJson(_mSink, element);
+}
+
+nbl::Result nbl::JsonWriter::writeObject(std::function_ref<void(ObjectWriter& writer)> writer) {
+
+    NBL_CHECK(_mLastResult = _mSink.writeChar('{'));
+
+    auto obj = ObjectWriter(*this);
+    writer(obj);
+
+    if(_mLastResult.error()) return _mLastResult;
+    NBL_CHECK(_mLastResult = _mSink.writeChar('}'));
+
+    return nbl::Result::SUCCESS;
+}
+nbl::Result nbl::JsonWriter::writeArray(std::function_ref<void(ArrayWriter& writer)> writer) {
+    NBL_CHECK(_mLastResult = _mSink.writeChar('['));
+
+    auto obj = ArrayWriter(*this);
+    writer(obj);
+
+    if(_mLastResult.error()) return _mLastResult;
+    NBL_CHECK(_mLastResult = _mSink.writeChar(']'));
+
+    return nbl::Result::SUCCESS;
 }

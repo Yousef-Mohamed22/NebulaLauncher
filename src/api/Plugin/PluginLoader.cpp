@@ -42,15 +42,15 @@ nbl::Result nbl::PluginLoader::_load(StringView folder) {
     FileChannel manifestStream;
     NBL_CHECK(FileChannel::open(manifestPath, &manifestStream, FileOpenFlag::READ));
 
-    JsonValue value = {};
-    NBL_CHECK(parseJson(manifestStream.reader(), &frame, &value, true));
+    JsonElement value = {};
+    NBL_CHECK(parseJson(manifestStream.reader(), &frame, &value));
 
-    if(value.type != JsonType::OBJECT) return nbl::error::ILLEGAL_ARGUMENT;
+    if(value.type != JsonType::OBJECT) return nbl::Result::INVALID_ARGUMENT;
 
-    const JsonValue* idValue = value.object.get("id");
-    const JsonValue* nameValue = value.object.get("name");
-    const JsonValue* descriptionValue = value.object.get("description");
-    const JsonValue* versionValue = value.object.get("version");
+    const JsonElement* idValue = value.object.get("id");
+    const JsonElement* nameValue = value.object.get("name");
+    const JsonElement* descriptionValue = value.object.get("description");
+    const JsonElement* versionValue = value.object.get("version");
 
     if(
         idValue->type != JsonType::STRING || 
@@ -58,7 +58,7 @@ nbl::Result nbl::PluginLoader::_load(StringView folder) {
         descriptionValue->type != JsonType::STRING || 
         versionValue->type != JsonType::STRING) {
 
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
 
     LoadedPlugin info = {};
@@ -81,7 +81,7 @@ nbl::Result nbl::PluginLoader::_load(StringView folder) {
     i32 rc = initFunc(_pContext);
     if(rc != 0) {
         nbl::log(nbl::LogLevel::ERROR, "An error occurred while initializing a plugin! ", rc);
-        return nbl::error::PLUGIN_ERROR;
+        return nbl::Result::PLUGIN_ERROR;
     }
 
     LoadedPlugin* ref = nullptr;
@@ -101,7 +101,7 @@ nbl::Result nbl::PluginLoader::create(PluginContext* context, StringView pluginF
     nbl::ArenaFrame frame(&out->_mDataArena);
     NBL_CHECK(nbl::StringBuilder(&frame).append(pluginFolder).build(&out->_mPluginFolder));
 
-    out->_mPluginRefs.data = static_cast<LoadedPlugin*>(out->_mMetaArena.current());
+    out->_mPluginRefs.data = static_cast<LoadedPlugin*>(out->_mMetaArena.end());
 
     out->_pContext = context;
 

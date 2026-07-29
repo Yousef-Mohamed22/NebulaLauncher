@@ -16,10 +16,10 @@ namespace {
     nbl::Result _processTagQuery(nbl::DatabaseConnection* connection, nbl::PreparedStatement* stmt, nbl::TagCallback callback) {
         return connection->execute(stmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
             if(columnCount != 2) {
-                return nbl::error::IO_ERROR;
+                return nbl::Result::IO_ERROR;
             }
             if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
-                return nbl::error::IO_ERROR;
+                return nbl::Result::IO_ERROR;
             }
             return callback(columnValues[0].textValue, columnValues[1].intValue);
         });
@@ -111,7 +111,7 @@ AND descendantId = (SELECT tId FROM tag WHERE name = ?);)", &_checkCycleStmt));
     }));
 
     if(cycleExists) {
-        return nbl::error::ILLEGAL_STATE;
+        return nbl::Result::INVALID_STATE;
     }
 
     static nbl::PreparedStatement _addParentClosureStmt;
@@ -292,7 +292,7 @@ nbl::Result nbl::enumerateTags(DatabaseConnection *connection, u32 limit, u32 of
 
     return connection->execute(&_enumerateStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 2) return nbl::error::UNEXPECTED_ERROR;
+        if(columnCount != 2) return nbl::Result::UNEXPECTED_ERROR;
         return callback(columnValues[0].textValue, columnValues[1].uintValue());
     });
 
@@ -316,7 +316,7 @@ LIMIT ?1 OFFSET ?2
 
     return connection->execute(&searchStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 2) return nbl::error::UNEXPECTED_ERROR;
+        if(columnCount != 2) return nbl::Result::UNEXPECTED_ERROR;
         return callback(columnValues[0].textValue, columnValues[1].uintValue());
 
     });
@@ -344,7 +344,7 @@ ORDER BY name ASC;
 
     return connection->execute(&_namesStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
         
-        if(columnCount != 2) return nbl::error::UNEXPECTED_ERROR;
+        if(columnCount != 2) return nbl::Result::UNEXPECTED_ERROR;
         return callback(columnValues[0].textValue, columnValues[1].uintValue());
     });
 

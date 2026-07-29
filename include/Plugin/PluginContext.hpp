@@ -50,7 +50,7 @@ public:
 
 private:
     Arena _mArena;
-    usize _mTypesOffset;
+    InstallationType* _pTypes;
     usize _mNumTypes;
     StringView _mDatabasePath;
     StringView _mWrapperPath;

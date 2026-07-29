@@ -49,7 +49,7 @@ struct InstallationType {
 };
 
 
-Result encodeFieldValues(const InstallationType* type, Span<FieldValue> values, ArenaFrame* frame, JsonObject* outObject);
+Result encodeFieldValues(const InstallationType* type, Span<FieldValue> values, Writer writer);
 
 Result decodeFieldValues(const InstallationType* type, JsonObject obj, Span<FieldValue> values);
 

@@ -71,7 +71,6 @@ nbl::Result nbl::HttpReader::_read(void* impl, void* buffer, usize bufLen, usize
 
 nbl::Result nbl::HttpClient::makeRequest(StringView url, HttpReader* outReader, Span<HttpHeader> headers) {
 
-    // TODO: Proper synchronization when the thread is alive
     CURLM* multiHandle = static_cast<CURLM*>(_pHandle);
     CURL* easyHandle = curl_easy_init();
 
@@ -92,7 +91,7 @@ nbl::Result nbl::HttpClient::makeRequest(StringView url, HttpReader* outReader, 
     
         for(const HttpHeader& header : headers) { 
             if(!header.validateName())
-                return nbl::error::ILLEGAL_ARGUMENT;
+                return nbl::Result::INVALID_ARGUMENT;
 
             StringView headerStr;
             NBL_CHECK(nbl::StringBuilder(&frame)
@@ -113,7 +112,7 @@ nbl::Result nbl::HttpClient::makeRequest(StringView url, HttpReader* outReader, 
 
     CURLMcode rc = curl_multi_add_handle(multiHandle, easyHandle);
     if(rc != 0) {
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     _mRequestMutex.unlock();
 
@@ -135,7 +134,7 @@ nbl::Result nbl::HttpClient::create(nbl::HttpClient* outClient) {
     }
 
     CURLM* multiHandle = curl_multi_init();
-    if(multiHandle == nullptr) return nbl::error::IO_ERROR;
+    if(multiHandle == nullptr) return nbl::Result::IO_ERROR;
 
     NBL_CHECK(nbl::Mutex::create(&outClient->_mRequestMutex));
 
@@ -157,7 +156,7 @@ void nbl::HttpClient::close() {
             HttpReader* reader;
             curl_easy_getinfo(current, CURLINFO_PRIVATE, &reader);
 
-            reader->_mError = nbl::error::ILLEGAL_STATE;
+            reader->_mError = nbl::Result::INVALID_STATE;
             reader->close();
 
             index++;
@@ -201,7 +200,7 @@ i32 nbl::HttpClient::_threadProc(void* userData) {
 
                 if(msg->data.result != CURLE_OK) {
                     nbl::log(nbl::LogLevel::ERROR, "HTTP connection failed! ", curl_easy_strerror(msg->data.result));
-                    reader->_mError = nbl::error::IO_ERROR;
+                    reader->_mError = nbl::Result::IO_ERROR;
                 }
                 reader->close();
             }

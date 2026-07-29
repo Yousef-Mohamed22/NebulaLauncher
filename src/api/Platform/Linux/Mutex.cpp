@@ -32,7 +32,7 @@ nbl::Result nbl::Mutex::create(Mutex* out) {
 
     int rc = ::pthread_mutex_init(&out->_mHandle, nullptr);
     if(rc != 0) {
-        return nbl::error::THREAD_ERROR;
+        return nbl::Result::THREAD_ERROR;
     }
 
     return nbl::Result::SUCCESS;

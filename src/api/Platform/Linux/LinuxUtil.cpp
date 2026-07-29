@@ -18,7 +18,7 @@ nbl::Result nbl::linux::writeFd(void* impl, const void* data, usize length, usiz
 
     ssize_t result = ::write(fd, data, length);
     if(result < 0) {
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     if(bytesWritten) {
         *bytesWritten = static_cast<usize>(result);
@@ -35,10 +35,10 @@ nbl::Result nbl::linux::readFd(void* impl, void* data, usize length, usize* byte
         if(errno == EINTR) {
             return nbl::Result::SUCCESS;
         }
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     if(result == 0) {
-        return nbl::result::END_OF_FILE;
+        return nbl::Result::END_OF_STREAM;
     }
     if(bytesRead) {
         *bytesRead = static_cast<usize>(result);

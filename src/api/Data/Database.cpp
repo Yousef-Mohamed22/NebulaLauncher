@@ -67,7 +67,7 @@ nbl::PreparedStatement::~PreparedStatement() {
 nbl::Result nbl::PreparedStatement::reset() {
     int rc = sqlite3_reset(reinterpret_cast<sqlite3_stmt*>(_pHandle));
     if(rc != SQLITE_OK) {
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     return nbl::Result::SUCCESS;
 }
@@ -76,7 +76,7 @@ nbl::Result nbl::PreparedStatement::bindInt(i32 index, i64 value) {
     int rc = sqlite3_bind_int64(reinterpret_cast<sqlite3_stmt*>(_pHandle), index, value);
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::ERROR, "Failed to bind int parameter at index ", index, ": ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     return nbl::Result::SUCCESS;
 }
@@ -85,7 +85,7 @@ nbl::Result nbl::PreparedStatement::bindUint(i32 index, u64 value) {
     int rc = sqlite3_bind_int64(reinterpret_cast<sqlite3_stmt*>(_pHandle), index, value);
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::ERROR, "Failed to bind uint parameter at index ", index, ": ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     return nbl::Result::SUCCESS;
 }
@@ -94,7 +94,7 @@ nbl::Result nbl::PreparedStatement::bindFloat(i32 index, f64 value) {
     int rc = sqlite3_bind_double(reinterpret_cast<sqlite3_stmt*>(_pHandle), index, value);
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::DEBUG, "Failed to bind float parameter at index ", index, ": ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     return nbl::Result::SUCCESS;
 }
@@ -112,7 +112,7 @@ nbl::Result nbl::PreparedStatement::bindString(i32 index, nbl::StringView value)
 
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::DEBUG, "Failed to bind string parameter at index ", index, ": ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     return nbl::Result::SUCCESS;
 }
@@ -121,7 +121,7 @@ nbl::Result nbl::PreparedStatement::bindNull(i32 index) {
     int rc = sqlite3_bind_null(reinterpret_cast<sqlite3_stmt*>(_pHandle), index);
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::DEBUG, "Failed to bind null parameter at index ", index, ": ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     return nbl::Result::SUCCESS;
 }
@@ -151,7 +151,7 @@ nbl::Result nbl::DatabaseConnection::prepare(nbl::StringView query, PreparedStat
 
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::ERROR, "Failed to prepare statement: ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     return nbl::Result::SUCCESS;
@@ -170,7 +170,7 @@ nbl::Result nbl::DatabaseConnection::execute(nbl::StringView query) {
 
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::ERROR, "Database execution error: ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     return nbl::Result::SUCCESS;
 }
@@ -186,7 +186,7 @@ nbl::Result nbl::DatabaseConnection::execute(nbl::StringView query, DatabaseCall
 
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::ERROR, "Database execution error: ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     return nbl::Result::SUCCESS;
 }
@@ -196,7 +196,7 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, i64* last
 
     if(!query->isValid(this)) {
         nbl::log(nbl::LogLevel::ERROR, "Invalid prepared statement for this connection");
-        return nbl::error::ILLEGAL_STATE;
+        return nbl::Result::INVALID_STATE;
     }
 
     sqlite3_stmt* stmt = reinterpret_cast<sqlite3_stmt*>(query->_pHandle);
@@ -216,7 +216,7 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, i64* last
     while((rc = sqlite3_step(stmt)) == SQLITE_ROW) { }
     if(rc != SQLITE_DONE) {
         nbl::log(nbl::LogLevel::ERROR, "Database execution error: (", rc, ") ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     if(lastInsertRowId) {
@@ -232,7 +232,7 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
 
     if(!query->isValid(this)) {
         nbl::log(nbl::LogLevel::ERROR, "Invalid prepared statement for this connection");
-        return nbl::error::ILLEGAL_STATE;
+        return nbl::Result::INVALID_STATE;
     }
 
     sqlite3_stmt* stmt = reinterpret_cast<sqlite3_stmt*>(query->_pHandle);
@@ -278,8 +278,8 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
                     case SQLITE_TEXT:
                         columnValues[i].type = DataType::TEXT;
                         columnValues[i].textValue = StringView(
-                            static_cast<usize>(sqlite3_column_bytes(stmt, i)),
-                            reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))
+                            reinterpret_cast<const char*>(sqlite3_column_text(stmt, i)),
+                            static_cast<usize>(sqlite3_column_bytes(stmt, i))
                         );
                         break;
                     case SQLITE_NULL:
@@ -288,7 +288,7 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
                         break;
                     default:
                         nbl::log(nbl::LogLevel::ERROR, "Unknown column data type: ", type);
-                        return nbl::error::IO_ERROR;
+                        return nbl::Result::IO_ERROR;
                 }
             }
         }
@@ -302,7 +302,7 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
     }
     if(rc != SQLITE_DONE) {
         nbl::log(nbl::LogLevel::ERROR, "Database execution error: (", rc, ") ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     if(lastInsertRowId) {
@@ -376,7 +376,7 @@ nbl::Result nbl::DatabaseConnection::open(nbl::StringView path, DatabaseConnecti
 
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::ERROR, "Failed to open database: ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(outConnection->_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     sqlite3_create_function(
@@ -404,7 +404,7 @@ nbl::Result nbl::DatabaseConnection::openInMemory(DatabaseConnection* outConnect
 
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::ERROR, "Failed to open database: ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(outConnection->_pHandle)));
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     sqlite3_create_function(

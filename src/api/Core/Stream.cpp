@@ -18,7 +18,7 @@ nbl::Result nbl::BufferStream::_write(void* impl, const void* data, usize length
     nbl::BufferStream* writer = static_cast<nbl::BufferStream*>(impl);
 
     if(writer->_mWriterIndex + length > writer->_mBuffer.length) {
-        return nbl::error::OUT_OF_MEMORY;
+        return nbl::Result::OUT_OF_MEMORY;
     }
     memcpy(writer->_mBuffer.data + writer->_mWriterIndex, data, length);
     writer->_mWriterIndex += length;
@@ -34,7 +34,7 @@ nbl::Result nbl::BufferStream::_read(void* impl, void* data, usize length, usize
 
     if(reader->_mReaderIndex >= reader->_mBuffer.length) {
         if(bytesRead) *bytesRead = 0;
-        return nbl::result::END_OF_FILE;
+        return nbl::Result::END_OF_STREAM;
     }
 
     usize remaining = reader->_mBuffer.length - reader->_mReaderIndex;
@@ -126,7 +126,7 @@ nbl::Result nbl::BufferedReader::read(void* data, usize length, usize* bytesRead
     
     if(bytesRead) *bytesRead = index;
 
-    if(res == nbl::result::END_OF_FILE && _mAvailable > length) return nbl::Result::SUCCESS;
+    if(res == nbl::Result::END_OF_STREAM && _mAvailable > length) return nbl::Result::SUCCESS;
     return res;
 }
 

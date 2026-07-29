@@ -43,7 +43,7 @@ nbl::Result nbl::Pipe::create(nbl::Pipe* outPipe) {
     int rc = ::pipe(fds);
 
     if(rc < 0) {
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     outPipe->_mReadEndHandle = reinterpret_cast<void*>(static_cast<intptr_t>(fds[0]));

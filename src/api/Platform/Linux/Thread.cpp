@@ -36,12 +36,12 @@ void* _threadEntryPoint(void* data) {
 
 nbl::Result nbl::Thread::join(i32* outReturnValue) {
 
-    if(!_pHandle) return nbl::error::ILLEGAL_STATE;
+    if(!_pHandle) return nbl::Result::INVALID_STATE;
 
     void* threadResult;
     int result = pthread_join(reinterpret_cast<pthread_t>(_pHandle), &threadResult);
     if(result != 0) {
-        return nbl::error::THREAD_ERROR;
+        return nbl::Result::THREAD_ERROR;
     }
 
     if(outReturnValue) {
@@ -55,7 +55,7 @@ nbl::Result nbl::Thread::detach() {
 
     int result = pthread_detach(reinterpret_cast<pthread_t>(_pHandle));
     if(result != 0) {
-        return nbl::error::THREAD_ERROR;
+        return nbl::Result::THREAD_ERROR;
     }
 
     return nbl::Result::SUCCESS;
@@ -71,7 +71,7 @@ nbl::Result nbl::Thread::create(EntryPointFn function, void* userData, Thread* o
     int result = pthread_create(&handle, nullptr, _threadEntryPoint, threadData);
     if(result != 0) {
         delete threadData;
-        return nbl::error::THREAD_ERROR;
+        return nbl::Result::THREAD_ERROR;
     }
 
     outThread->_pHandle = reinterpret_cast<void*>(handle);

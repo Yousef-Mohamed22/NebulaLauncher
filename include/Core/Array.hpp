@@ -48,12 +48,25 @@ struct Array {
      * \return A Span representing the elements in the array.
      */
     constexpr operator Span<T>() {
-        return Span<T>{ data, Length };
+        return Span<T> { data, Length };
     }
 
-    constexpr operator Span<const T>() const {
-        return Span<const T>{ data, Length };
+    constexpr operator ConstSpan<T>() const {
+        return ConstSpan<T> { data, Length };
     }
+
+    constexpr Span<T> span() {
+        return Span<T> { data, Length };
+    }
+
+    constexpr ConstSpan<T> span() const {
+        return ConstSpan<T> { data, Length };
+    }
+
+    constexpr ConstSpan<T> constSpan() const {
+        return ConstSpan<T> { data, Length };
+    }
+
 
     /** 
      * \brief Returns an iterator to the first element in the array.
@@ -84,7 +97,7 @@ struct Array {
      * \return True if the given value is present in the array.
      */
     constexpr bool contains(const T& value) const { 
-        return operator Span<const T>().contains(value); 
+        return span().contains(value); 
     }
 };
 

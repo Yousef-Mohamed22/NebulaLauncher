@@ -36,7 +36,7 @@ i32 _threadProc(void* userData) {
             }
         }
 
-        if(rc == nbl::result::END_OF_FILE) {
+        if(rc == nbl::Result::END_OF_STREAM) {
             break;
         }
     }

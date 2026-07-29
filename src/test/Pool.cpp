@@ -4,47 +4,39 @@
 
 TEST(Pool, PushAndGet) {
 
-    nbl::Arena arena;
-    ASSERT_TRUE(nbl::Arena::create(1024, &arena).success());
-
-    nbl::Pool pool;
-    ASSERT_TRUE(nbl::Pool::create(&arena, sizeof(i32), &pool).success());
+    nbl::Pool<i32> pool;
+    ASSERT_TRUE(nbl::Pool<i32>::create(256, &pool).success());
 
     i32* value1;
-    ASSERT_EQ(pool.push((void**)&value1), nbl::Result::SUCCESS);
+    ASSERT_EQ(pool.push(&value1), nbl::Result::SUCCESS);
     *value1 = 42;
 
     i32* value2;
-    ASSERT_EQ(pool.push((void**)&value2), nbl::Result::SUCCESS);
+    ASSERT_EQ(pool.push(&value2), nbl::Result::SUCCESS);
     *value2 = 84;
 
-    void* outPtr;
-    ASSERT_TRUE(pool.get(0, &outPtr).success());
-    ASSERT_EQ(*static_cast<i32*>(outPtr), 42);
+    const i32* outPtr = pool.get(0);
+    ASSERT_NE(outPtr, nullptr);
+    ASSERT_EQ(*outPtr, 42);
 
-    ASSERT_TRUE(pool.get(1, &outPtr).success());
-    ASSERT_EQ(*static_cast<i32*>(outPtr), 84);
+    outPtr = pool.get(1);
+    ASSERT_NE(outPtr, nullptr);
+    ASSERT_EQ(*outPtr, 84);
 }
 
 TEST(Pool, OutOfBounds) {
 
-    nbl::Arena arena;
-    ASSERT_TRUE(nbl::Arena::create(1024, &arena).success());
 
-    nbl::Pool pool;
-    ASSERT_TRUE(nbl::Pool::create(&arena, sizeof(i32), &pool).success());
+    nbl::Pool<i32> pool{};
+    ASSERT_TRUE(nbl::Pool<i32>::create(256, &pool).success());
 
-    void* outPtr;
-    ASSERT_EQ(pool.get(0, &outPtr), nbl::error::OUT_OF_BOUNDS);
+    ASSERT_EQ(pool.get(0), nullptr);
 }
 
-TEST(PoolView, Iterate) {
+TEST(Pool, Iterate) {
 
-    nbl::Arena arena;
-    ASSERT_TRUE(nbl::Arena::create(1024, &arena).success());
-
-    nbl::PoolView<i32> pool;
-    ASSERT_TRUE(nbl::PoolView<i32>::create(&arena, &pool).success());
+    nbl::Pool<i32> pool;
+    ASSERT_TRUE(nbl::Pool<i32>::create(256, &pool).success());
 
     i32* value1;
     ASSERT_EQ(pool.push(&value1), nbl::Result::SUCCESS);
@@ -59,9 +51,8 @@ TEST(PoolView, Iterate) {
     *value3 = 168;
 
     usize index = 0;
-    for(auto it = pool.begin(); it != pool.end(); ++it) {
-        i32* value = *it;
-        ASSERT_TRUE(value == value1 || value == value2 || value == value3);
+    for(i32 value : pool) {
+        ASSERT_TRUE(value == *value1 || value == *value2 || value == *value3);
         index++;
     }
 
@@ -69,13 +60,10 @@ TEST(PoolView, Iterate) {
 
 }
 
-TEST(PoolView, PopAndIterateStart) {
+TEST(Pool, PopAndIterateStart) {
 
-    nbl::Arena arena;
-    ASSERT_TRUE(nbl::Arena::create(1024, &arena).success());
-
-    nbl::PoolView<i32> pool;
-    ASSERT_TRUE(nbl::PoolView<i32>::create(&arena, &pool).success());
+    nbl::Pool<i32> pool;
+    ASSERT_TRUE(nbl::Pool<i32>::create(256, &pool).success());
 
     i32* value1;
     ASSERT_EQ(pool.push(&value1), nbl::Result::SUCCESS);
@@ -92,10 +80,9 @@ TEST(PoolView, PopAndIterateStart) {
     ASSERT_EQ(pool.pop(value1), nbl::Result::SUCCESS);
 
     usize index = 0;
-    for(auto it = pool.begin(); it != pool.end(); ++it) {
-        i32* value = *it;
-        ASSERT_TRUE(value == value2 || value == value3);
-        ASSERT_FALSE(value == value1);
+    for(i32 value : pool) {
+        ASSERT_TRUE(value == *value2 || value == *value3);
+        ASSERT_FALSE(value == *value1);
         index++;
     }
 
@@ -104,13 +91,9 @@ TEST(PoolView, PopAndIterateStart) {
 }
 
 
-TEST(PoolView, PopAndIterateMiddle) {
-
-    nbl::Arena arena;
-    ASSERT_TRUE(nbl::Arena::create(1024, &arena).success());
-
-    nbl::PoolView<i32> pool;
-    ASSERT_TRUE(nbl::PoolView<i32>::create(&arena, &pool).success());
+TEST(Pool, PopAndIterateMiddle) {
+    nbl::Pool<i32> pool;
+    ASSERT_TRUE(nbl::Pool<i32>::create(256, &pool).success());
 
     i32* value1;
     ASSERT_EQ(pool.push(&value1), nbl::Result::SUCCESS);
@@ -127,10 +110,9 @@ TEST(PoolView, PopAndIterateMiddle) {
     ASSERT_EQ(pool.pop(value2), nbl::Result::SUCCESS);
 
     usize index = 0;
-    for(auto it = pool.begin(); it != pool.end(); ++it) {
-        i32* value = *it;
-        ASSERT_TRUE(value == value1 || value == value3);
-        ASSERT_FALSE(value == value2);
+    for(i32 value : pool) {
+        ASSERT_TRUE(value == *value1 || value == *value3);
+        ASSERT_FALSE(value == *value2);
         index++;
     }
 
@@ -139,13 +121,10 @@ TEST(PoolView, PopAndIterateMiddle) {
 }
 
 
-TEST(PoolView, PopAndIterateEnd) {
+TEST(Pool, PopAndIterateEnd) {
 
-    nbl::Arena arena;
-    ASSERT_TRUE(nbl::Arena::create(1024, &arena).success());
-
-    nbl::PoolView<i32> pool;
-    ASSERT_TRUE(nbl::PoolView<i32>::create(&arena, &pool).success());
+    nbl::Pool<i32> pool;
+    ASSERT_TRUE(nbl::Pool<i32>::create(256, &pool).success());
 
     i32* value1;
     ASSERT_EQ(pool.push(&value1), nbl::Result::SUCCESS);
@@ -162,10 +141,9 @@ TEST(PoolView, PopAndIterateEnd) {
     ASSERT_EQ(pool.pop(value3), nbl::Result::SUCCESS);
 
     usize index = 0;
-    for(auto it = pool.begin(); it != pool.end(); ++it) {
-        i32* value = *it;
-        ASSERT_TRUE(value == value1 || value == value2);
-        ASSERT_FALSE(value == value3);
+    for(i32 value : pool) {
+        ASSERT_TRUE(value == *value1 || value == *value2);
+        ASSERT_FALSE(value == *value3);
         index++;
     }
 

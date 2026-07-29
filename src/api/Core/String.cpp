@@ -48,8 +48,8 @@ nbl::Result nbl::writeUint(u64 value, Writer writer) {
 
 nbl::Result nbl::writeFloat(f64 value, Writer writer, u8 precision) {
 
-    static constexpr StringView nan = StringView("NaN");
-    static constexpr StringView inf = StringView("Infinity");
+    static constexpr StringView nan("NaN");
+    static constexpr StringView inf("Infinity");
 
     if(value < 0) {
         char c = '-';

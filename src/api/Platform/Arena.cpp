@@ -10,94 +10,77 @@
 
 #include "Memory.hpp"
 
+
 namespace {
 
-thread_local nbl::Arena gThreadArena;
+thread_local nbl::Arena _sThreadArena;
 
-nbl::Result _writeArena(void* impl, const void* data, usize length, usize* bytesWritten) {
-    nbl::Arena* arena = static_cast<nbl::Arena*>(impl);
-    void* ptr;
-    NBL_CHECK(arena->push(length, &ptr));
-    memcpy(ptr, data, length);
+}
 
-    if(bytesWritten) {
-        *bytesWritten = length;
+nbl::Result nbl::Arena::push(usize amount, void** outPtr) noexcept {
+    
+    if(amount == 0) return nbl::Result::INVALID_ARGUMENT;
+
+    void* out = end();
+    usize remaining = _mCommitted - _mIndex;
+    if(remaining <= amount) {
+        if(_mCommitted >= _mCapacity) return nbl::Result::OUT_OF_MEMORY;
+
+        usize needed = amount - remaining;
+        usize committed = needed;
+        NBL_CHECK(nbl::commitMemory(end(), &committed));
+        _mCommitted += committed;
+    }
+
+    _mIndex += amount;
+    if(outPtr) *outPtr = out;
+    memset(out, 0, amount);
+
+    return nbl::Result::SUCCESS;
+}
+
+nbl::Result nbl::Arena::pop(usize amount) noexcept {
+
+    if(amount == 0) return nbl::Result::SUCCESS;
+    if(amount > _mIndex) return nbl::Result::INVALID_ARGUMENT;
+
+    _mIndex -= amount;
+    usize remaining = _mCommitted - _mIndex;
+    usize pageSize = nbl::pageSize();
+
+    usize remainingPages = remaining / pageSize;
+    if(remainingPages > 1) {
+        usize uncommitted = (remainingPages - 1) * pageSize;
+        u8* allocatedEnd = static_cast<u8*>(_pHead) + _mCommitted;
+        NBL_CHECK(nbl::uncommitMemory(allocatedEnd - uncommitted, &uncommitted));
+
+        _mCommitted -= uncommitted;
     }
 
     return nbl::Result::SUCCESS;
 }
 
+nbl::Result nbl::Arena::create(usize amount, Arena* outArena) noexcept {
 
+    usize mapped = amount;
+    void* data = nullptr;
+    NBL_CHECK(nbl::mapMemory(&mapped, &data));
+
+    outArena->_pHead = data;
+    outArena->_mCapacity = mapped;
+    outArena->_mCommitted = 0;
+    outArena->_mIndex = 0;
+
+    return nbl::Result::SUCCESS;
 }
 
+nbl::Arena* nbl::Arena::threadLocal() noexcept {
 
-nbl::Arena* nbl::Arena::threadLocal() {
-
-    if(gThreadArena._pData == nullptr) {
-        usize capacity = 1024 * 1024 * 1024; // 1GB
-        NBL_ASSERT(nbl::Arena::create(capacity, &gThreadArena).success());
+    if(_sThreadArena._mCapacity == 0) {
+        NBL_ASSERT(nbl::Arena::create(1024 * 1024 * 32, &_sThreadArena) == nbl::Result::SUCCESS);
     }
 
-    return &gThreadArena;
+    return &_sThreadArena;
 }
 
-nbl::Arena::~Arena() {
-    if(_pData) {
-        usize cap = _mCapacity;
-        NBL_ASSERT(nbl::memory::unmapMemory(_pData, &cap).success());
-    }
-}
 
-nbl::Result nbl::Arena::push(usize size, void** outPtr) {
-
-    if(_mIndex + size > _mCapacity) {
-        nbl::log(nbl::LogLevel::DEBUG, "Failed to commit memory! index=", _mIndex, " capacity=", _mCapacity, " requestedSize=", size);
-        return nbl::error::OUT_OF_MEMORY;
-    }
-
-    if(_mIndex + size > _mCommitted) {
-        usize commitSize = (_mIndex + size) - _mCommitted;
-        NBL_CHECK(nbl::memory::commitMemory(static_cast<char*>(_pData) + _mCommitted, &commitSize));
-        _mCommitted += commitSize;
-    }
-
-    void* data = static_cast<char*>(_pData) + _mIndex;
-
-    _mIndex += size;
-    memset(data, 0, size);
-
-    if(outPtr) *outPtr = data;
-
-    return Result::SUCCESS;
-}
-
-usize nbl::Arena::pop(usize count) {
-    if(count > _mIndex) {
-        count = _mIndex;
-    }
-
-    _mIndex -= count;
-
-    if(_mCommitted - _mIndex >= (nbl::memory::gPageSize * 2)) {
-        usize decommitSize = _mCommitted - _mIndex;
-        NBL_CHECK(nbl::memory::decommitMemory(static_cast<char*>(_pData) + _mIndex, &decommitSize));
-        _mCommitted -= decommitSize;
-    }
-
-    return _mIndex;
-}
-
-nbl::Arena::operator Writer() {
-    return {
-        .impl = this,
-        .pfnWrite = _writeArena
-    };
-}
-
-nbl::Result nbl::Arena::create(usize capacity, Arena* outArena) {
-    void* data;
-    NBL_CHECK(nbl::memory::mapMemory(&data, &capacity));
-    outArena->_pData = data;
-    outArena->_mCapacity = capacity;
-    return Result::SUCCESS;
-}

@@ -79,7 +79,7 @@ INSERT INTO game (title, description, steamId, igdbId, releaseDate, rating, dId)
     }
 
     if(meta.displayId == 0) {
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
     NBL_CHECK(_addGameStmt.bindStringOrNull(1, meta.title));
     NBL_CHECK(_addGameStmt.bindStringOrNull(2, meta.description));
@@ -116,7 +116,7 @@ UPDATE game SET steamId=?1, igdbId=?2, releaseDate=?3, rating=?4, dId=?5 WHERE g
     }
 
     if(meta.displayId == 0) {
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
     NBL_CHECK(_updateGameStmt.bindUint(1, meta.steamId));
     NBL_CHECK(_updateGameStmt.bindUint(2, meta.igdbId));
@@ -177,11 +177,11 @@ ORDER BY tag.name ASC;
     return connection->execute(&_getGameTagsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
 
         if(argc != 2) {
-            return nbl::error::ILLEGAL_STATE;
+            return nbl::Result::INVALID_STATE;
         }
 
         if(values[0].type != nbl::DataType::TEXT || values[1].type != nbl::DataType::INTEGER) {
-            return nbl::error::ILLEGAL_STATE;
+            return nbl::Result::INVALID_STATE;
         }
         return callback(values[0].textValue, static_cast<u32>(values[1].intValue));
 
@@ -273,7 +273,7 @@ nbl::Result nbl::lookupGames(DatabaseConnection *connection, const GameSearchCri
 
     usize statementIndex = sortByIndex * 2 + sortOrderIndex;
     if(statementIndex >= 6) {
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
 
     static nbl::PreparedStatement _lookupGamesStmts[6];
@@ -283,28 +283,56 @@ nbl::Result nbl::lookupGames(DatabaseConnection *connection, const GameSearchCri
 
         static StringView _stmtBegin = R"(
 WITH 
-    all_tags AS (
-        SELECT descendantId
-        FROM tag_closure
-        WHERE NOT ?1 IS NULL
-          AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?1)))
-    ),
-    excluded_tags AS (
-        SELECT descendantId
-        FROM tag_closure
-        WHERE NOT ?2 IS NULL
-          AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
-    )
-SELECT game.gId, game.title, game.releaseDate, game.rating, display.poster, display.icon
+search_sets AS (
+	SELECT
+		outer.key AS setId,
+		(SELECT tId FROM tag WHERE tag.name = inner.value) AS tId
+	FROM json_each(?1) AS outer
+	JOIN json_each(outer.value) AS inner
+),
+set_sizes AS (
+	SELECT
+		setId,
+		COUNT(*) AS requiredTags
+	FROM search_sets
+	GROUP BY setId
+),
+all_game_tags AS (
+	SELECT game.gId, tag_closure.ancestorId as tId
+	FROM game, tag_closure
+	WHERE tag_closure.descendantId IN (SELECT game_tag.tId FROM game_tag WHERE game_tag.gId = game.gId)
+),
+matching_sets AS (
+	SELECT 
+		all_game_tags.gId,
+		search_sets.setId,
+		COUNT(DISTINCT search_sets.tId) AS matchedTags
+	FROM all_game_tags
+	JOIN search_sets 
+	  ON search_sets.tId = all_game_tags.tId
+	GROUP BY
+		all_game_tags.gId,
+		search_sets.setId
+),
+excluded_tags AS (
+	SELECT descendantId
+	FROM tag_closure
+	WHERE NOT ?2 IS NULL
+	  AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
+)
+SELECT DISTINCT
+game.gId, game.title, game.releaseDate, game.rating, display.poster, display.icon
 FROM game
+LEFT JOIN matching_sets ON matching_sets.gId = game.gId
+LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId
 JOIN display ON display.dId = game.dId
 LEFT JOIN game_tag ON game_tag.gId = game.gId
-WHERE game.releaseDate >= ?3
+WHERE (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
+  AND (?2 IS NULL OR NOT EXISTS (SELECT tId FROM excluded_tags INTERSECT SELECT tId FROM all_game_tags WHERE all_game_tags.gId = game.gId))
+  AND game.releaseDate >= ?3
   AND (?4 = 0 OR game.releaseDate <= ?4)
   AND game.rating >= ?5
   AND (?6 = 0 OR game.rating <= ?6)
-  AND (?1 IS NULL OR game_tag.tId IN all_tags)
-  AND (?2 IS NULL OR NOT game_tag.tId IN excluded_tags)
   AND (?7 IS NULL OR game.title LIKE '%' || ?7 || '%')
 GROUP BY game.gId
 )";
@@ -335,7 +363,7 @@ OFFSET ?8;
                 stmtBuilder.append("ORDER BY game.rating");
                 break;
             default:
-                return nbl::error::ILLEGAL_ARGUMENT;
+                return nbl::Result::INVALID_ARGUMENT;
         }
 
         if(criteria.sortOrder == SortOrder::ASCENDING) {
@@ -354,35 +382,44 @@ OFFSET ?8;
     {
         
         ArenaFrame frame(Arena::threadLocal());
-        if(criteria.tags.length() == 0) {
+        if(criteria.tags.length == 0) {
             NBL_CHECK(lookupGamesStmt.bindNull(1));
         } else {
-            for(const JsonValue& tag : criteria.tags) {
-                if(tag.type != JsonType::STRING) {
-                    return nbl::error::ILLEGAL_ARGUMENT;
-                }
-            }
-            StringView tagsJson;
+   
             StringBuilder tagsBuilder(&frame);
-            tagsBuilder.append(JsonValue::fromArray(criteria.tags));
+            NBL_CHECK(nbl::JsonWriter(tagsBuilder.writer())
+                .writeArray([&](auto arr) {
+                    for(ConstSpan<StringView> tagSet : criteria.tags) {
+                        arr.writeArray([&](auto inner) {
+                            for(StringView tag : tagSet) {
+                                inner.add(tag);
+                            }
+                        });
+                    }
+                }));
+
+            StringView tagsJson;
             tagsBuilder.build(&tagsJson);
 
             NBL_CHECK(lookupGamesStmt.bindString(1, tagsJson));
         }
 
-        if(criteria.excludedTags.length() == 0) {
+        if(criteria.excludedTags.length == 0) {
             NBL_CHECK(lookupGamesStmt.bindNull(2));
         } else {
-            for(const JsonValue& tag : criteria.excludedTags) {
-                if(tag.type != JsonType::STRING) {
-                    return nbl::error::ILLEGAL_ARGUMENT;
-                }
-            }
-            StringView excludedTagsJson;
-            StringBuilder excludedTagsBuilder(&frame);
-            excludedTagsBuilder.append(JsonValue::fromArray(criteria.excludedTags));
-            excludedTagsBuilder.build(&excludedTagsJson);
-            NBL_CHECK(lookupGamesStmt.bindString(2, excludedTagsJson));
+
+            StringBuilder tagsBuilder(&frame);
+            NBL_CHECK(nbl::JsonWriter(tagsBuilder.writer())
+                .writeArray([&](auto arr) {
+                    for(StringView tag : criteria.excludedTags) {
+                        arr.add(tag);
+                    }
+                }));
+
+            StringView tagsJson;
+            tagsBuilder.build(&tagsJson);
+
+            NBL_CHECK(lookupGamesStmt.bindString(2, tagsJson));
         }
 
         u64 maxReleaseDate = criteria.maxReleaseDate;

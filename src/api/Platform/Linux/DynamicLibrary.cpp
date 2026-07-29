@@ -44,7 +44,7 @@ nbl::Result nbl::DynamicLibrary::_findSymbol(StringView name, void** outSym) {
     const char* err = dlerror();
     if(err) {
         nbl::log(nbl::LogLevel::ERROR, "Failed to find symbol: ", name, " (", err, ")");
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     *outSym = sym;
@@ -54,7 +54,7 @@ nbl::Result nbl::DynamicLibrary::_findSymbol(StringView name, void** outSym) {
 nbl::Result nbl::DynamicLibrary::load(StringView path, DynamicLibrary* outLibrary) {
 
     if(path.length == 0) {
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
 
 
@@ -65,7 +65,7 @@ nbl::Result nbl::DynamicLibrary::load(StringView path, DynamicLibrary* outLibrar
     void* handle = ::dlopen(zPath.data, RTLD_LAZY);
     if(handle == nullptr) {
         nbl::log(nbl::LogLevel::ERROR, "Failed to load library: ", path, " (", dlerror(), ")");
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     outLibrary->_pHandle = handle;

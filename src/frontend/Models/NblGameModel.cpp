@@ -78,7 +78,7 @@ void NblGameModel::_fetchPageData() {
         .sortBy = nbl::GameSortBy::TITLE,
         .offset = offset,
         .limit = limit,
-        .titleFilter = nbl::StringView(_mQuery.length(), _mQuery.data())
+        .titleFilter = nbl::StringView(_mQuery.data(), _mQuery.length())
     };
 
     QList<NblGameRef> found = {};

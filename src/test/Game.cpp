@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <Data/Model.hpp>
-
+#include <Core/Array.hpp>
 
 namespace {
 
@@ -242,11 +242,10 @@ TEST(Game, LookupSingleGameByTag) {
     i64 foundId = 0;
     nbl::GameSearchCriteria criteria = {};
 
-    ASSERT_TRUE(
-        nbl::JsonArray::Builder()
-            .add(nbl::JsonValue::fromString("Action"))
-            .build(nullptr, &criteria.tags)
-            .success());
+    nbl::Array tags = { nbl::StringView("Action") };
+    nbl::Array tagSets = { tags.constSpan() };
+
+    criteria.tags = tagSets.span();
 
     ASSERT_TRUE(nbl::lookupGames(
         &connection, criteria, 

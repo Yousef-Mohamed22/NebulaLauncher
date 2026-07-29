@@ -44,7 +44,7 @@ nbl::Result nbl::byName(StringView name, InstallationSortBy* outSortBy) {
         }
     }
     nbl::log(nbl::LogLevel::WARN, "Unknown installation sort by: ", name);
-    return nbl::error::ILLEGAL_ARGUMENT;
+    return nbl::Result::INVALID_ARGUMENT;
 }
 
 nbl::StringView nbl::getName(GameSortBy sortBy) {
@@ -67,7 +67,7 @@ nbl::Result nbl::byName(StringView name, GameSortBy* outSortBy) {
         }
     }
     nbl::log(nbl::LogLevel::WARN, "Unknown game sort by: ", name);
-    return nbl::error::ILLEGAL_ARGUMENT;
+    return nbl::Result::INVALID_ARGUMENT;
 }
 
 nbl::StringView nbl::getName(SortOrder sortOrder) {
@@ -89,7 +89,7 @@ nbl::Result nbl::byName(StringView name, SortOrder* outSortOrder) {
         return nbl::Result::SUCCESS;
     }
     nbl::log(nbl::LogLevel::WARN, "Unknown sort order: ", name);
-    return nbl::error::ILLEGAL_ARGUMENT;
+    return nbl::Result::INVALID_ARGUMENT;
 }
 
 
@@ -251,6 +251,6 @@ COMMIT;
 
     } else {
         nbl::log(nbl::LogLevel::ERROR, "Unsupported database version: ", userVersion);
-        return nbl::error::ILLEGAL_STATE;
+        return nbl::Result::INVALID_STATE;
     }
 }

@@ -75,7 +75,7 @@ public:
 
     Result peek(const T** value) const noexcept {
         if(_mRingBuffer._mWriterIndex == 0) {
-            return nbl::error::NOT_FOUND;
+            return nbl::Result::NOT_FOUND;
         }
         else if(_mRingBuffer._mReaderIndex == _mRingBuffer._mLength) {
             *value = reinterpret_cast<const T*>(_mRingBuffer._pBuffer);
@@ -93,7 +93,7 @@ public:
         u8 dummy[sizeof(T)] = {};
         usize read = 0;
         LO_CHECK(_mRingBuffer.read(dummy, sizeof(T), &read));
-        if(read != sizeof(T)) return nbl::error::UNEXPECTED_ERROR;
+        if(read != sizeof(T)) return nbl::Result::UNEXPECTED_ERROR;
         
         *value = std::move(*peeked);
     }
@@ -107,7 +107,7 @@ private:
         } else {
             usize written = 0;
             LO_CHECK(_mRingBuffer.write(dummy, sizeof(T), &written));
-            if(written != sizeof(T)) return nbl::error::OUT_OF_SPACE;
+            if(written != sizeof(T)) return nbl::Result::OUT_OF_SPACE;
         }
 
         *location = reinterpret_cast<T*>(_mRingBuffer._pBuffer + _mRingBuffer._mWriterIndex - sizeof(T));

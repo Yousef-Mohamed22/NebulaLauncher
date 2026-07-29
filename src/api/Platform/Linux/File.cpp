@@ -28,6 +28,7 @@
 #include <arpa/inet.h>
 #include <dirent.h>
 #include <errno.h>
+#include <stdlib.h>
 
 namespace {
 
@@ -72,7 +73,7 @@ nbl::Result nbl::FileChannel::seek(isize offset, FileSeekOrigin origin, usize* o
 
     off_t result = ::lseek(gGetFd(_mHandle), static_cast<off_t>(offset), whence);
     if(result < 0) {
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     if(outOffset) {
         *outOffset = static_cast<usize>(result);
@@ -84,7 +85,7 @@ nbl::Result nbl::FileChannel::seek(isize offset, FileSeekOrigin origin, usize* o
 nbl::Result nbl::FileChannel::offset(usize* outOffset) {
     off_t current = ::lseek(gGetFd(_mHandle), 0, SEEK_CUR);
     if(current < 0) {
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
     if(outOffset) {
         *outOffset = static_cast<usize>(current);
@@ -102,7 +103,7 @@ nbl::Result nbl::FileChannel::open(StringView path, FileChannel* outChannel, Fil
     } else if(flags & FileOpenFlag::WRITE) {
         openFlags |= O_WRONLY;    
     } else {
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
 
     if(flags & FileOpenFlag::CREATE) {
@@ -118,7 +119,7 @@ nbl::Result nbl::FileChannel::open(StringView path, FileChannel* outChannel, Fil
 
     int fd = ::open(nullTerminatedPath.data, openFlags, 0644);
     if(fd < 0) {
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     outChannel->_mHandle = reinterpret_cast<void*>(static_cast<intptr_t>(fd));
@@ -190,13 +191,13 @@ nbl::Result nbl::Socket::connectIPv4(u32 address, u16 port, SocketType type, Soc
     } else if(type == SocketType::UDP) {
         sockType = SOCK_DGRAM;
     } else {
-        return nbl::error::ILLEGAL_ARGUMENT;
+        return nbl::Result::INVALID_ARGUMENT;
     }
 
     int fd = ::socket(AF_INET, sockType, 0);
 
     if(fd < 0) {
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     sockaddr_in addr = {
@@ -209,7 +210,7 @@ nbl::Result nbl::Socket::connectIPv4(u32 address, u16 port, SocketType type, Soc
 
     if(::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_in)) < 0) {
         ::close(fd);
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     outSocket->_mHandle = reinterpret_cast<void*>(static_cast<intptr_t>(fd));
@@ -233,7 +234,7 @@ nbl::Result nbl::FolderIterator::create(StringView path, FolderIterator* outIter
 
     DIR* handle = ::opendir(nullPath.data);
     if(handle == nullptr) {
-        return nbl::error::IO_ERROR;
+        return nbl::Result::IO_ERROR;
     }
 
     outIterator->_mHandle = handle;
@@ -242,23 +243,22 @@ nbl::Result nbl::FolderIterator::create(StringView path, FolderIterator* outIter
 
 nbl::Result nbl::makeDirectories(StringView path) {
 
-    if(path.length >= PATH_MAX) return nbl::error::ILLEGAL_ARGUMENT;
+    if(path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 
     char temp[PATH_MAX] = {};
     memcpy(temp, path.data, path.length);
 
-    StringView stackPath = StringView(path.length, temp);
+    StringView stackPath = StringView(temp, path.length);
 
     usize index = 0;
     Result rc = nbl::Result::SUCCESS;
     while(true) {
 
         rc = stackPath.findFirst('/', &index, index);
-        if(rc.error() && rc != nbl::error::NOT_FOUND) {
-            nbl::log(nbl::LogLevel::INFO, "RC: ", rc);
+        if(rc.error() && rc != nbl::Result::NOT_FOUND) {
             return rc;
         }
-        if(rc == nbl::error::NOT_FOUND) {
+        if(rc == nbl::Result::NOT_FOUND) {
             index = path.length;
         }
 
@@ -272,7 +272,7 @@ nbl::Result nbl::makeDirectories(StringView path) {
         if(::mkdir(temp, 0775) == -1) {
             if(errno != EEXIST) {
                 nbl::log(nbl::LogLevel::ERROR, "Could not mkdir! ", errno);
-                return nbl::error::IO_ERROR;
+                return nbl::Result::IO_ERROR;
             }
         }
         temp[index] = '/';
