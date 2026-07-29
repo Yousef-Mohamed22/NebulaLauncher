@@ -482,6 +482,7 @@ JOIN tag_closure ON tag_closure.ancestorId = tag.tId
 WHERE descendantId IN (SELECT tId FROM installation_tag WHERE iId = ?1)
    OR descendantId IN (SELECT tId FROM game_tag WHERE game_tag.gId = (SELECT gId FROM parentGame)) 
 GROUP BY tag.tId
+ORDER BY tag.name ASC
 LIMIT ?2 OFFSET ?3;
         )", &_getInstallationTagsStmt));
     }
@@ -511,7 +512,8 @@ nbl::Result nbl::getDirectInstallationTags(DatabaseConnection* connection, i64 i
 SELECT tag.name, tag.color
 FROM tag
 JOIN installation_tag ON installation_tag.tId = tag.tId
-WHERE installation_tag.iId = ?1;
+WHERE installation_tag.iId = ?1
+ORDER BY tag.name ASC;
         )", &_getDirectInstallationTagsStmt));
     }
 

@@ -20,6 +20,9 @@ Item {
     property list<var> tags: []
     property list<var> initialTags: []
 
+    property string tooltip
+    property int tooltipDelay: 1000
+
     property bool allowNewTags: true
 
     onInitialTagsChanged: {
@@ -87,6 +90,18 @@ Item {
                 height: parent.height
                 x: root.labelIndent
                 color: Theme.colors.layer0
+
+                NblToolTip {
+                    delay: root.tooltipDelay
+                    text: root.tooltip
+                    visible: hover.containsMouse
+                }
+
+                MouseArea {
+                    id: hover
+                    anchors.fill: parent
+                    hoverEnabled: root.tooltip.length > 0
+                }
             }
 
             Label {

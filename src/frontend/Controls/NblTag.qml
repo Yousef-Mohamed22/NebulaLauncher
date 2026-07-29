@@ -1,12 +1,13 @@
 import QtQuick
 
-
 Item {
 
     id: root
 
     required property string text
     required property color color
+
+    property int tooltipDelay: 1000
 
     implicitWidth: 98
     implicitHeight: 24
@@ -30,6 +31,16 @@ Item {
         font.weight: 600
         color: Theme.colors.readableOn(root.color)
 
+    }
+
+    NblToolTip {
+        text: root.text
+        delay: root.tooltipDelay
+        visible: hover.hovered
+    }
+
+    HoverHandler {
+        id: hover
     }
 
 }

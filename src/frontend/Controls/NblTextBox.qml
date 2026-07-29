@@ -5,6 +5,8 @@ TextField {
 
     id: root
     property string label
+    property string tooltip
+    property int tooltipDelay: 1000
 
     color: enabled ? Theme.colors.text : Theme.colors.textDim
     placeholderTextColor: Theme.colors.border
@@ -41,6 +43,18 @@ TextField {
             height: labelText.height - 8
             anchors.centerIn: labelText
             color: Theme.colors.layer0 
+
+            NblToolTip {
+                delay: root.tooltipDelay
+                text: root.tooltip
+                visible: hover.containsMouse
+            }
+
+            MouseArea {
+                id: hover
+                anchors.fill: parent
+                hoverEnabled: root.tooltip.length > 0
+            }
         }
         Label { 
             id: labelText
@@ -54,5 +68,4 @@ TextField {
                 : Theme.colors.border
         }
     }
-
 }

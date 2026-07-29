@@ -72,6 +72,7 @@ Column {
         label: "Title"
         width: root.width
         onTextEdited: { root.modified = true }
+        tooltip: "The game's title. This will appear before the titles of installations of this game"
     }
 
     NblTextBox {
@@ -79,6 +80,7 @@ Column {
         label: "Description"
         width: root.width
         onTextEdited: { root.modified = true }
+        tooltip: "The game's description"
     }
 
     NblTagList {
@@ -86,6 +88,7 @@ Column {
         label: "Tags"
         width: root.width
         onModified: { root.modified = true }
+        tooltip: "Tags used to categorize this game. These tags will also apply to all installations of this game"
     }
     
     RowLayout {
@@ -100,6 +103,7 @@ Column {
             Layout.fillWidth: true
             aspectRatio: 2.0 / 3.0
             onImageSourceChanged: { root.modified = true }
+            tooltip: "The game's poster"
         }
         NblImagePicker {
             id: iconPicker
@@ -107,6 +111,7 @@ Column {
             implicitHeight: parent.height
             Layout.fillWidth: true
             onImageSourceChanged: { root.modified = true }
+            tooltip: "The game's icon"
         }
         NblImagePicker {
             id: logoPicker
@@ -115,6 +120,7 @@ Column {
             Layout.fillWidth: true
             fillMode: Image.PreserveAspectFit
             onImageSourceChanged: { root.modified = true }
+            tooltip: "The game's logo"
         }
     }
 
@@ -125,6 +131,7 @@ Column {
         width: root.width
         aspectRatio: 96.0 / 31.0
         onImageSourceChanged: { root.modified = true }
+        tooltip: "The game's banner"
     }
 
     NblComboBox {
@@ -133,6 +140,7 @@ Column {
         width: root.width
         model: [ "Left", "Center", "Right", "Hidden" ]
         onActivated: { root.modified = true }
+        tooltip: "The position the logo will appear over the banner on an installation's detail page"
     }
 
 
@@ -141,6 +149,7 @@ Column {
         label: "Release Date"
         width: root.width
         onDateEdited: { root.modified = true }
+        tooltip: "The day the game was released"
     }
     NblNumberInput {
         id: ratingField
@@ -153,6 +162,7 @@ Column {
 
         placeholderText: "100.0"
         onValueModified: { root.modified = true }
+        tooltip: "The game's rating from 0-100"
     }
     NblNumberInput {
         id: steamIdField
@@ -164,6 +174,7 @@ Column {
 
         placeholderText: "620"
         onValueModified: { root.modified = true }
+        tooltip: "The game's Steam ID"
     }
     NblNumberInput {
         id: igdbIdField
@@ -175,6 +186,7 @@ Column {
 
         placeholderText: "7346"
         onValueModified: { root.modified = true }
+        tooltip: "The game's ID on IGDB.com"
     }
 
 }

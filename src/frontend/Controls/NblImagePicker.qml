@@ -11,6 +11,9 @@ Item {
     property real scaleFactor: Math.min(width / aspectRatio, height - 6)
     property var fillMode: Image.PreserveAspectCrop
 
+    property string tooltip
+    property int tooltipDelay: 1000
+
     property string imageSource: ""
 
     Rectangle {
@@ -28,6 +31,13 @@ Item {
         color: "transparent"
 
         radius: 8
+
+        NblToolTip {
+            delay: root.tooltipDelay
+            text: root.tooltip
+            visible: mouseArea.containsMouse
+        }
+
     }
 
     Label {

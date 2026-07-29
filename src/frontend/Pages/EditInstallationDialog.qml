@@ -12,8 +12,8 @@ NblDialog {
     property int installationId: 0
     property int gameId: 0
 
-    padding: 0
-    navigationPadding: 16
+    padding: 8
+    navigationPadding: 8
 
     onInstallationIdChanged: {
         installationSettingsTab.refresh()
@@ -34,7 +34,7 @@ NblDialog {
             property SettingsTab currentTab: gameSettingsTab
 
             Layout.fillWidth: true
-            Layout.preferredHeight: 48
+            Layout.preferredHeight: 40
 
             RowLayout {
                 width: Math.min(parent.width, 316)
@@ -44,11 +44,13 @@ NblDialog {
 
                 Repeater {
                     model: [ 
-                        { name: "Game", tab: gameSettingsTab },
-                        { name: "Installation", tab: installationSettingsTab }
+                        { icon: "󰊗", name: "Game", tab: gameSettingsTab },
+                        { icon: "", name: "Installation", tab: installationSettingsTab }
                     ]
 
                     delegate: Item {
+
+                        id: tabItem
 
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -57,20 +59,41 @@ NblDialog {
 
                         readonly property bool isActive: navigation.currentTab == modelData.tab
                         readonly property bool isHighlighted: isActive || tabArea.containsMouse
+ 
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
 
-                        Rectangle {
-                            anchors.fill: parent
-                            color: parent.isActive
-                                    ? Theme.colors.border
-                                    : parent.isHighlighted ? Theme.colors.layer1 : "transparent"
+                            property color color: 
+                                parent.isActive 
+                                    ? Theme.colors.accent 
+                                    : parent.isHighlighted 
+                                        ? Theme.colors.text 
+                                        : Theme.colors.textDim
+
+                            Label {
+                                text: tabItem.modelData.icon
+                                font.family: Theme.nerdFont
+                                font.pixelSize: 16
+                                color: parent.color
+                            }
+
+                            Label {
+                                text: tabItem.modelData.name
+                                font.family: Theme.font
+                                font.pixelSize: 16
+                                color: parent.color
+                            }
                         }
 
-                        Label {
-                            anchors.centerIn: parent
-                            text: parent.modelData.name
-                            font.family: Theme.font
-                            font.pixelSize: 16
-                            color: parent.isHighlighted ? Theme.colors.text : Theme.colors.textDim
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: 96
+                            height: 4
+                            radius: 2
+                            color: Theme.colors.accent
+                            visible: parent.isActive
                         }
 
                         MouseArea {
@@ -100,14 +123,6 @@ NblDialog {
                     }
                 }
             }
-
-            Rectangle {
-                width: parent.width - 64
-                height: 2
-                x: 32
-                y: parent.height - 2
-                color: Theme.colors.border
-            }
         }
 
         Item {
@@ -118,10 +133,7 @@ NblDialog {
             SettingsTab {
 
                 id: gameSettingsTab
-
                 anchors.fill: parent
-
-                modified: gameSettings.modified
 
                 onRefreshed: {
                     gameSettings.gameId = root.gameId
@@ -161,6 +173,10 @@ NblDialog {
                             id: gameSettings
                             width: parent.width
                             x: 24
+
+                            onModifiedChanged: {
+                                gameSettingsTab.modified = modified
+                            }
                         }
                     }
                 }
@@ -268,6 +284,7 @@ NblDialog {
                                 width: parent.width
                                 enabled: false
                                 label: "Game"
+                                tooltip: "The game this is an installation of"
                             }
 
                             NblComboBox {
@@ -281,6 +298,8 @@ NblDialog {
                                 onActivated: {
                                     installationSettingsTab.modified = true
                                 }
+
+                                tooltip: "The type of installation. This determines how the installation is launched."
                             }
 
                             NblFieldList { 
@@ -301,6 +320,8 @@ NblDialog {
                                 onTextEdited: {
                                     installationSettingsTab.modified = true
                                 }
+
+                                tooltip: "A title for this particular installation. e.g. \"Definitive Edition\" or \"Modded\""
                             }
 
                             NblTextBox {
@@ -312,6 +333,8 @@ NblDialog {
                                 onTextEdited: {
                                     installationSettingsTab.modified = true
                                 }
+
+                                tooltip: "A description for this particular installation."
                             }
 
                             NblTagList {
@@ -322,6 +345,8 @@ NblDialog {
                                 onModified: {
                                     installationSettingsTab.modified = true
                                 }
+
+                                tooltip: "Tags that apply to this installation, but not necessarily all installations of its game"
                             }
                             NblCheckBox {
 
@@ -354,6 +379,7 @@ NblDialog {
                                         onImageSourceChanged: {
                                             installationSettingsTab.modified = true
                                         }
+                                        tooltip: "The installation's poster"
                                     }
                                     NblImagePicker {
                                         id: installationIconPicker
@@ -363,6 +389,7 @@ NblDialog {
                                         onImageSourceChanged: {
                                             installationSettingsTab.modified = true
                                         }
+                                        tooltip: "The installation's icon"
                                     }
                                     NblImagePicker {
                                         id: installationLogoPicker
@@ -370,6 +397,7 @@ NblDialog {
                                         implicitHeight: parent.height
                                         Layout.fillWidth: true
                                         fillMode: Image.PreserveAspectFit
+                                        tooltip: "The installation's logo"
                                     }
                                 }
 
@@ -383,6 +411,7 @@ NblDialog {
                                     onImageSourceChanged: {
                                         installationSettingsTab.modified = true
                                     }
+                                    tooltip: "The installation's banner"
                                 }
 
                                 NblComboBox {
@@ -393,6 +422,7 @@ NblDialog {
                                     onActivated: {
                                         installationSettingsTab.modified = true
                                     }
+                                    tooltip: "The position the logo will appear over the banner on the installation's detail page"
                                 }
                             }
                         }

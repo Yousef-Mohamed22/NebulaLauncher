@@ -9,6 +9,9 @@ ComboBox {
     required property string label
     property bool highlightFirst: false
 
+    property string tooltip
+    property int tooltipDelay: 1000
+
     implicitHeight: 54
 
     indicator: Text {
@@ -102,6 +105,18 @@ ComboBox {
             height: labelText.height - 8
             anchors.centerIn: labelText
             color: Theme.colors.layer0 
+
+            NblToolTip {
+                delay: root.tooltipDelay
+                text: root.tooltip
+                visible: hover.containsMouse
+            }
+
+            MouseArea {
+                id: hover
+                anchors.fill: parent
+                hoverEnabled: root.tooltip.length > 0
+            }
         }
         Label { 
             id: labelText

@@ -167,7 +167,8 @@ nbl::Result nbl::getGameTags(DatabaseConnection* connection, i64 gameId, TagCall
 SELECT tag.name, tag.color
 FROM tag
 JOIN game_tag ON game_tag.tId = tag.tId
-WHERE game_tag.gId = ?1;
+WHERE game_tag.gId = ?1
+ORDER BY tag.name ASC;
         )", &_getGameTagsStmt));
     }
 

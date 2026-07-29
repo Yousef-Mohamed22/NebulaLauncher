@@ -335,7 +335,8 @@ tag_names AS (
 )
 SELECT name, color
 FROM tag
-WHERE name IN tag_names;
+WHERE name IN tag_names
+ORDER BY name ASC;
         )", &_namesStmt));
     }
     
