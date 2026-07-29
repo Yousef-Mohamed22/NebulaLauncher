@@ -46,16 +46,16 @@ Item {
                     delegate: NblFilterRow {
 
                         id: row
-                        required property var model
+                        required property var modelData
                         width: root.width - 8
 
-                        filterId: model.id
-                        name: model.name
-                        icon: model.icon
-                        colorizeIcon: model.colorizeIcon
-                        multiLine: model.multiLine
-                        showTitles: model.showTitles
-                        useIcons: model.useIcons
+                        filterId: modelData.id
+                        name: modelData.name
+                        icon: modelData.icon
+                        colorizeIcon: modelData.colorizeIcon
+                        multiLine: modelData.multiLine
+                        showTitles: modelData.showTitles
+                        useIcons: modelData.useIcons
 
                         onInstallationClicked: id => {
                             root.mainWindow.openInstallationDetails(id)

@@ -1,6 +1,9 @@
-import QtQuick
+pragma ComponentBehavior: Bound
 
-Item {
+import QtQuick
+import QtQuick.Controls
+
+Control {
 
     id: root
 
@@ -8,39 +11,55 @@ Item {
     required property color color
 
     property int tooltipDelay: 1000
+    
+    padding: 4
+    implicitWidth: textDisplay.implicitWidth + leftPadding + rightPadding
+    implicitHeight: textDisplay.implicitHeight + topPadding + bottomPadding
 
-    implicitWidth: 98
-    implicitHeight: 24
+    property int textSize: 14
 
-    Rectangle {
+    signal clicked
+
+    background: Rectangle {
         anchors.fill: parent
         color: root.color
         radius: root.height / 2
     }
 
-    Text {
+    contentItem: Item {
 
-        text: root.text
-        width: root.width - 8
-        elide: Qt.ElideRight
-        horizontalAlignment: Qt.AlignHCenter
+        Text {
 
-        anchors.centerIn: parent
-        font.pixelSize: 14
-        font.family: Theme.font
-        font.weight: 600
-        color: Theme.colors.readableOn(root.color)
+            id: textDisplay
+            text: root.text
 
+            horizontalAlignment: Qt.AlignHCenter
+            verticalAlignment: Qt.AlignVCenter
+            elide: Qt.ElideRight
+
+            width: root.availableWidth
+            height: root.availableHeight
+
+            font.pixelSize: root.textSize
+            font.family: Theme.font
+            font.weight: 600
+            color: Theme.colors.readableOn(root.color)
+        }
+
+        NblToolTip {
+            text: root.text
+            delay: root.tooltipDelay
+            visible: hover.containsMouse
+        }
+
+        MouseArea {
+            id: hover
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                root.clicked()
+            }
+        }
     }
-
-    NblToolTip {
-        text: root.text
-        delay: root.tooltipDelay
-        visible: hover.hovered
-    }
-
-    HoverHandler {
-        id: hover
-    }
-
 }

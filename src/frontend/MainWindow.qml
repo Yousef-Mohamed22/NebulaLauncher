@@ -176,7 +176,13 @@ Window {
             tabId: id,
             mainWindow: root
         })
+    }
 
+    function openPage(name, opts) {
+        while(pageLoader.depth > 1) {
+            pageLoader.pop()
+        }
+        pageLoader.replace(name, opts)
     }
 
     function openInstallationDetails(installationId) {

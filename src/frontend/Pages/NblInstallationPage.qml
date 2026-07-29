@@ -348,9 +348,18 @@ Item {
                             required property var model;
                             color: model.color
                             text: model.name
+                            width: (parent.width / 2) - 4
 
                             Component.onCompleted: {
                                 if(model.name == 'favorite') root.isFavorite = true
+                            }
+
+                            onClicked: {
+                                root.mainWindow.openPage("Pages/WithTagPage.qml", {
+                                    tag: model.name,
+                                    color: model.color,
+                                    mainWindow: root.mainWindow
+                                })
                             }
                         }
                     }

@@ -5,10 +5,12 @@ import QtQuick
 Item {
 
     id: root
-    required property int filterId
     required property bool multiLine
     required property bool showTitles
     required property bool useIcons
+    required property var model
+
+    property bool allLoaded: false
 
     property real requestedWidth: 180
 
@@ -30,6 +32,7 @@ Item {
     }
 
     signal installationClicked(int id)
+    signal loadMore
 
     implicitHeight: content.height
 
@@ -37,11 +40,6 @@ Item {
         id: content
         width: root.width
         height: loader.item == null ? 0 : loader.item.height
-
-        property NblFilterModel filterModel: NblFilterModel {
-            pageSize: 10
-            filterId: root.filterId
-        }
 
         property Component buttonDelegate: Component {
             NblInstallationButton {
@@ -91,14 +89,14 @@ Item {
                     padding: 8
 
                     Repeater {
-                        model: content.filterModel
+                        model: root.model
                         delegate: content.buttonDelegate
                     }
                 }
 
                 onAtXEndChanged: {
-                    if(atXEnd && !content.filterModel.isLoading) {
-                        content.filterModel.loadNextPage()
+                    if(atXEnd) { 
+                        root.loadMore()
                     }
                 }
             }
@@ -108,9 +106,15 @@ Item {
 
             Flow {
 
+                Component.onCompleted: {
+                    while(!root.allLoaded && triggerItem.isOnScreen()) {
+                        root.loadMore()
+                    }
+                }
+
                 function scrolled() {
-                    if(triggerItem.isOnScreen()) {
-                        content.filterModel.loadNextPage()
+                    while(!root.allLoaded && triggerItem.isOnScreen()) {
+                        root.loadMore()
                     }
                 }
 
@@ -121,7 +125,7 @@ Item {
                 spacing: 16
 
                 Repeater {
-                    model: content.filterModel
+                    model: root.model
                     delegate: content.buttonDelegate
                 }
 
@@ -144,7 +148,6 @@ Item {
                 }
             }
         }
-
     }
 
     function scrolled() {

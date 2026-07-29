@@ -140,15 +140,23 @@ Item {
             Repeater {
                 model: root.tags
 
-                NblTag {
+                Item {
 
                     id: existingTag
-                    visible: modelData.state != NblTagList.TagState.REMOVED && modelData.state != NblTagList.TagState.IGNORED
+
+                    width: tag.width
+                    height: tag.height
 
                     required property var modelData
-                    text: modelData.name
-                    color: modelData.color
+                    visible: modelData.state != NblTagList.TagState.REMOVED && modelData.state != NblTagList.TagState.IGNORED
 
+                    NblTag {
+                        id: tag
+                        enabled: false
+                        text: existingTag.modelData.name
+                        color: existingTag.modelData.color
+                    }
+                    
                     MouseArea {
                         id: tagListArea
                         anchors.fill: parent
@@ -189,7 +197,6 @@ Item {
                             }
                         }
                     }
-
                 }
             }
         }

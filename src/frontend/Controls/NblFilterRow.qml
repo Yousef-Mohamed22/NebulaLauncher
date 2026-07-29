@@ -27,9 +27,10 @@ Item {
         Row {
 
             x: 8
+            height: 32
+            spacing: 8
 
             visible: root.showRowTitle
-            spacing: 8
 
             NblInlineIcon {
                 width: 20
@@ -53,10 +54,18 @@ Item {
             id: list
             width: content.width
 
-            filterId: root.filterId
             multiLine: root.multiLine
             useIcons: root.useIcons
             showTitles: root.showTitles
+
+            model: NblFilterModel {
+                pageSize: 10
+                filterId: root.filterId
+            }
+            onLoadMore: {
+                model.loadNextPage()
+                allLoaded = model.allLoaded
+            }
 
             onInstallationClicked: id => {
                 root.installationClicked(id)
