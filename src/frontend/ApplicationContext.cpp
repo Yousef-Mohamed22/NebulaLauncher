@@ -244,14 +244,16 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
             .length = installType->fields.length
         };
 
-        frame.allocate(&values.data, installType->fields.length);
+        if(installType->fields.length > 0) {
+            frame.allocate(&values.data, installType->fields.length);
 
-        nbl::JsonElement value = {};
-        NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
-        NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
-
+            nbl::JsonElement value = {};
+            NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
+            NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
+        }
         NBL_CHECK(installType->launch(&_mContext, values, installationId, handle->handle()));
         NBL_CHECK(handle->initLogging());
+        handle->check();
 
         return nbl::Result::SUCCESS;
     });
@@ -631,31 +633,35 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
 
         QVariantList setsList = filter["tags"].toList();
         nbl::Span<nbl::ConstSpan<nbl::StringView>> tagSets{};
-        NBL_CHECK_OR_ROLLBACK(connection, frame.allocate(&tagSets.data, setsList.length()));
-        for(QVariant var : setsList) {
+        if(setsList.length() > 0) {
+            NBL_CHECK_OR_ROLLBACK(connection, frame.allocate(&tagSets.data, setsList.length()));
+            for(QVariant var : setsList) {
 
-            QStringList list = var.toStringList();
+                QStringList list = var.toStringList();
 
-            nbl::Span<nbl::StringView> tags{};
-            NBL_CHECK_OR_ROLLBACK(connection, frame.allocate(&tags.data, list.length()));
-            for(QString str : list) {
-                QByteArray arr = var.toByteArray();
-                nbl::StringView tag(static_cast<char*>(frame.end()), arr.length());
-                frame.write(arr.data(), arr.length());
-                tags[tags.length++] = tag;
+                nbl::Span<nbl::StringView> tags{};
+                NBL_CHECK_OR_ROLLBACK(connection, frame.allocate(&tags.data, list.length()));
+                for(QString str : list) {
+                    QByteArray arr = var.toByteArray();
+                    nbl::StringView tag(static_cast<char*>(frame.end()), arr.length());
+                    frame.write(arr.data(), arr.length());
+                    tags[tags.length++] = tag;
+                }
+                tagSets[tagSets.length++] = tags;
             }
-            tagSets[tagSets.length++] = tags;
         }
 
 
         QVariantList excludeList = filter["excludeTags"].toList();
         nbl::Span<nbl::StringView> exclude{};
-        NBL_CHECK_OR_ROLLBACK(connection, frame.allocate(&exclude.data, excludeList.length()));
-        for(QVariant var : excludeList) {
-            QByteArray arr = var.toByteArray();
-            nbl::StringView tag(static_cast<char*>(frame.end()), arr.length());
-            frame.write(arr.data(), arr.length());
-            exclude[exclude.length++] = tag;
+        if(excludeList.length() > 0) {
+            NBL_CHECK_OR_ROLLBACK(connection, frame.allocate(&exclude.data, excludeList.length()));
+            for(QVariant var : excludeList) {
+                QByteArray arr = var.toByteArray();
+                nbl::StringView tag(static_cast<char*>(frame.end()), arr.length());
+                frame.write(arr.data(), arr.length());
+                exclude[exclude.length++] = tag;
+            }
         }
 
         nbl::FilterMeta meta = {

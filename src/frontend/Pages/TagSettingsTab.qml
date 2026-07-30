@@ -291,6 +291,9 @@ SettingsTab {
 
                         width: parent.width - collapsedHeight
                         label: tagElement.modelData.name
+                        icon: ""
+                        iconColor: tagColorBox.selectedColor
+                        iconSize: 20
 
                         contentHeight: tagInfo.height
                         enabled: !tagElement.removed

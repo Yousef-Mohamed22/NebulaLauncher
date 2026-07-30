@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     }
 
     i64 iId = 0;
-    nbl::JsonNumber num;
+    nbl::JsonNumber num = {};
     nbl::Result res = nbl::parseJsonNumber(nbl::StringReader(argv[1]), &num);
 
     if(res.error() || num.type == nbl::JsonNumberType::FLOAT) {

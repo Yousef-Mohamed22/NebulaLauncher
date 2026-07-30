@@ -48,7 +48,7 @@ NblDialog {
 
     ScrollView {
 
-        visible: root.process != null
+        visible: root.process != null || outputContent.text.length > 0
 
         id: scrollView
 
@@ -75,6 +75,7 @@ NblDialog {
             Connections {
                 target: root.process
                 function onLogsUpdated() {
+                    outputContent.text = root.process.logs
                     flickable.scrollToBottom()
                 }
             }
@@ -107,7 +108,6 @@ NblDialog {
                 color: "white"
                 font.pixelSize: 16
                 font.family: Theme.monospaceFont
-                text: root.process == null ? "" : root.process.logs
 
                 wrapMode: TextEdit.WordWrap
                 readOnly: true

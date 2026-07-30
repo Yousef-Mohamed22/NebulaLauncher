@@ -264,3 +264,18 @@ TEST(Json, ParseCommand) {
     EXPECT_EQ(element.object.entryCount, 2);
 
 }
+
+TEST(Json, ParseNumber) {
+
+    nbl::JsonNumber number = {};
+
+    nbl::StringView json = "7";
+    nbl::BufferStream stream(const_cast<char*>(json.data), json.length);
+
+    nbl::Arena storage;
+    EXPECT_EQ(nbl::parseJsonNumber(stream, &number), nbl::Result::SUCCESS);
+    EXPECT_EQ(number.intValue, 7);
+
+
+
+}

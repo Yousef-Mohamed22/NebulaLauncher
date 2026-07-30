@@ -696,7 +696,12 @@ nbl::Result nbl::parseJsonNumber(Reader reader, JsonNumber* outNumber) {
     };
 
     NBL_CHECK(_nextToken(&ctx));
-    if(ctx.lastRead >= '0' && ctx.lastRead <= '9' || ctx.lastRead == '-') return _parseNumber(&ctx);
+    if(ctx.lastRead >= '0' && ctx.lastRead <= '9' || ctx.lastRead == '-') {
+        NBL_CHECK(_parseNumber(&ctx));
+
+        if(outNumber) *outNumber = ctx.outElement.number;
+        return nbl::Result::SUCCESS;
+    }
 
     return nbl::Result::UNEXPECTED_TOKEN;
 }

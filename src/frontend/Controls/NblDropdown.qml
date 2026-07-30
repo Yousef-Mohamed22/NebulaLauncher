@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Effects
 
 import Nebula.Controls
 
@@ -15,6 +14,7 @@ Item {
     property string label: ""
     property string icon: ""
     property bool colorizeIcon: true
+    property color iconColor: Theme.colors.text
     property int iconRadius: 0
     property int iconSize: collapsedHeight - 8
     property bool bold: false
@@ -88,7 +88,7 @@ Item {
                     width: parent.width
                     height: parent.width
                     anchors.verticalCenter: parent.verticalCenter
-                    color: Theme.colors.text
+                    color: root.iconColor
                     icon: root.icon
                     colorize: root.colorizeIcon
                     imageRadius: root.iconRadius

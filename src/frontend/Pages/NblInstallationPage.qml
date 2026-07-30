@@ -294,15 +294,16 @@ Item {
                     font.pixelSize: 14
                     font.weight: 600
                     color: Theme.colors.textDim
-                    text: "Last played: " + parent._formatDate(root.details.lastPlayed)
+                    text: "Last played: " + (root.details.lastPlayed == 0 ? "Never" : parent._formatDate(root.details.lastPlayed))
                 }
 
                 Label {
+                    visible: root.details.rating > 0
                     font.family: Theme.font
                     font.pixelSize: 14
                     font.weight: 600
                     color: Theme.colors.textDim
-                    text: "Rating: " + root.details.rating
+                    text: "Rating: " + root.details.rating + "%"
                 }
 
                 Label {

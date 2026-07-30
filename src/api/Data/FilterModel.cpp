@@ -76,7 +76,7 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* 
 
     const nbl::JsonElement* tagsValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "tags", nbl::JsonType::ARRAY, &tagsValue));
-    if(tagsValue) {
+    if(tagsValue && tagsValue->array.count > 0) {
 
         nbl::Span<nbl::ConstSpan<nbl::StringView>> outSets{};
 
@@ -86,11 +86,14 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* 
             if(set.type != nbl::JsonType::ARRAY) return nbl::Result::INVALID_ARGUMENT;
 
             nbl::Span<nbl::StringView> outSet{};
-            frame->allocate(&outSet.data, set.array.count);
 
-            for(const nbl::JsonElement& tag : set.array) {
-                if(tag.type != nbl::JsonType::STRING) return nbl::Result::INVALID_ARGUMENT;
-                outSet.data[outSet.length++] = tag.string;
+            if(set.array.count > 0) {
+                frame->allocate(&outSet.data, set.array.count);
+
+                for(const nbl::JsonElement& tag : set.array) {
+                    if(tag.type != nbl::JsonType::STRING) return nbl::Result::INVALID_ARGUMENT;
+                    outSet.data[outSet.length++] = tag.string;
+                }
             }
 
             outSets[outSets.length++] = outSet;
@@ -101,7 +104,7 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* 
 
     const nbl::JsonElement* excludedTagsValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "excludedTags", nbl::JsonType::ARRAY, &excludedTagsValue));
-    if(excludedTagsValue) {
+    if(excludedTagsValue && excludedTagsValue->array.count > 0) {
         nbl::Span<nbl::StringView> outTags{};
         frame->allocate(&outTags.data, excludedTagsValue->array.count);
 

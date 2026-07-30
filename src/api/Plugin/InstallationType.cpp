@@ -1,6 +1,7 @@
 #include <Plugin/InstallationType.hpp>
 #include <Core/Array.hpp>
-#include "Core/Result.hpp"
+#include <Core/Result.hpp>
+#include <Platform/Logging.hpp>
 
 namespace {
 
