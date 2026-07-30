@@ -616,7 +616,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         i64 priority = filter["priority"].toLongLong();
 
         if(icon.endsWith(".png") || icon.endsWith(".svg")) {
-            NBL_CHECK_OR_ROLLBACK(connection, pushImage(icon, "inline_icon", &icon));
+            NBL_CHECK(pushImage(icon, "inline_icon", &icon));
         }
         QByteArray realIcon = icon.toUtf8();
 
@@ -634,17 +634,17 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         QVariantList setsList = filter["tags"].toList();
         nbl::Span<nbl::ConstSpan<nbl::StringView>> tagSets{};
         if(setsList.length() > 0) {
-            NBL_CHECK_OR_ROLLBACK(connection, frame.allocate(&tagSets.data, setsList.length()));
+            NBL_CHECK(frame.allocate(&tagSets.data, setsList.length()));
             for(QVariant var : setsList) {
 
                 QStringList list = var.toStringList();
 
                 nbl::Span<nbl::StringView> tags{};
-                NBL_CHECK_OR_ROLLBACK(connection, frame.allocate(&tags.data, list.length()));
+                NBL_CHECK(frame.allocate(&tags.data, list.length()));
                 for(QString str : list) {
-                    QByteArray arr = var.toByteArray();
+                    QByteArray arr = str.toUtf8();
                     nbl::StringView tag(static_cast<char*>(frame.end()), arr.length());
-                    frame.write(arr.data(), arr.length());
+                    NBL_CHECK(frame.write(arr.data(), arr.length()));
                     tags[tags.length++] = tag;
                 }
                 tagSets[tagSets.length++] = tags;
@@ -655,7 +655,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         QVariantList excludeList = filter["excludeTags"].toList();
         nbl::Span<nbl::StringView> exclude{};
         if(excludeList.length() > 0) {
-            NBL_CHECK_OR_ROLLBACK(connection, frame.allocate(&exclude.data, excludeList.length()));
+            NBL_CHECK(frame.allocate(&exclude.data, excludeList.length()));
             for(QVariant var : excludeList) {
                 QByteArray arr = var.toByteArray();
                 nbl::StringView tag(static_cast<char*>(frame.end()), arr.length());
@@ -689,9 +689,9 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         };
 
         if(meta.filterId == 0) {
-            NBL_CHECK_OR_ROLLBACK(connection, nbl::addFilter(connection, meta, &meta.filterId));
+            NBL_CHECK(nbl::addFilter(connection, meta, &meta.filterId));
         } else {
-            NBL_CHECK_OR_ROLLBACK(connection, nbl::updateFilter(connection, meta));
+            NBL_CHECK(nbl::updateFilter(connection, meta));
         }
     }
 
