@@ -243,7 +243,7 @@ NblDialog {
                                     for(let i = 0 ; i < tagLists.length ; i++) {
                                         out.push({
                                             index: i + 1,
-                                            initialTagNames: tagLists[i]
+                                            initialTagIds: tagLists[i]
                                         })
                                     }
                                     return out
@@ -252,7 +252,7 @@ NblDialog {
                                 createNew: function(i) {
                                     return {
                                         index: i + 1,
-                                        initialTagNames: []
+                                        initialTagIds: []
                                     }
                                 }
                                 delegate: NblTagList {
@@ -260,7 +260,7 @@ NblDialog {
                                     width: parent.width
                                     labelIndent: 24
                                     label: "Tag Set " + modelData.index
-                                    initialTags: ApplicationContext.getTagsFromNames(modelData.initialTagNames)
+                                    initialTags: ApplicationContext.getTagsFromIds(modelData.initialTagIds)
                                 }
 
                                 function encode() {
@@ -288,7 +288,7 @@ NblDialog {
                                 id: excludeTagsList
                                 width: parent.width
                                 label: "Exclude Tags"
-                                initialTags: ApplicationContext.getTagsFromNames(dropdown.modelData.excludeTags)
+                                initialTags: ApplicationContext.getTagsFromIds(dropdown.modelData.excludeTags)
 
                                 function encode() {
 

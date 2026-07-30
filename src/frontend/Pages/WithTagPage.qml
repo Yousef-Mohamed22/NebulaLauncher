@@ -9,7 +9,8 @@ Item {
 
     id: root
 
-    required property string tag
+    required property int tag
+    required property string name
     required property color color
     required property MainWindow mainWindow
 
@@ -62,7 +63,7 @@ Item {
 
                     NblTag {
                         enabled: false
-                        text: root.tag
+                        text: root.name
                         color: root.color
                         height: 28
                         textSize: 16

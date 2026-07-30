@@ -12,6 +12,8 @@ QVariant NblInstallationTagModel::data(const QModelIndex& index, int role) const
     NblTagRef ref = _mData.at(index.row());
 
     switch(role) {
+        case IdRole:
+            return ref.id;
         case NameRole:
             return ref.name;
         case ColorRole:
@@ -23,6 +25,7 @@ QVariant NblInstallationTagModel::data(const QModelIndex& index, int role) const
 
 QHash<int, QByteArray> NblInstallationTagModel::roleNames() const {
     QHash<int, QByteArray> roles = {};
+    roles[IdRole] = "id";
     roles[NameRole] = "name";
     roles[ColorRole] = "color";
     return roles;
@@ -64,8 +67,8 @@ void NblInstallationTagModel::_fetchPageData() {
     
     QList<NblTagRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::getInstallationTags(db, _mInstallationId, offset, limit, [&](nbl::StringView name, u32 color) -> nbl::Result {
-        NblTagRef ref(QString::fromUtf8(name.data, name.length), QColor::fromRgb(color)); 
+    if(nbl::getInstallationTags(db, _mInstallationId, offset, limit, [&](const nbl::TagMeta& tag) -> nbl::Result {
+        NblTagRef ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
         found.append(ref);
         return nbl::Result::SUCCESS;
     }).error()) {

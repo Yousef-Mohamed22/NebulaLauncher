@@ -15,63 +15,82 @@
 namespace {
     nbl::Result _processTagQuery(nbl::DatabaseConnection* connection, nbl::PreparedStatement* stmt, nbl::TagCallback callback) {
         return connection->execute(stmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-            if(columnCount != 2) {
+            if(columnCount != 3) {
                 return nbl::Result::IO_ERROR;
             }
-            if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
+            if(columnValues[0].type != nbl::DataType::INTEGER || columnValues[1].type != nbl::DataType::TEXT || columnValues[2].type != nbl::DataType::INTEGER) {
                 return nbl::Result::IO_ERROR;
             }
-            return callback(columnValues[0].textValue, columnValues[1].intValue);
+            return callback(nbl::TagMeta{
+                .id = columnValues[0].intValue,
+                .name = columnValues[1].textValue, 
+                .color = static_cast<u32>(columnValues[2].uintValue())
+            });
         });
     }
 }
 
 
 
-nbl::Result nbl::descendants(DatabaseConnection* connection, StringView tag, TagCallback callback) {
+nbl::Result nbl::getTagMeta(DatabaseConnection* connection, i64 tag, TagCallback callback) {
+
+    static nbl::PreparedStatement _metaStmt;
+    if(!_metaStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT tId, name, color FROM tag 
+WHERE tId = ?;)", &_metaStmt));
+    }
+
+
+    NBL_CHECK(_metaStmt.bindInt(1, tag));
+    return _processTagQuery(connection, &_metaStmt, callback);
+}
+
+
+nbl::Result nbl::descendants(DatabaseConnection* connection, i64 tag, TagCallback callback) {
 
     static nbl::PreparedStatement _descendantsStmt;
     if(!_descendantsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT name, color FROM tag 
+SELECT tId, name, color FROM tag 
 JOIN tag_closure ON tag_closure.descendantId = tag.tId
-WHERE tag_closure.ancestorId = (SELECT tId FROM tag WHERE name = ?);)", &_descendantsStmt));
+WHERE tag_closure.ancestorId = ?;)", &_descendantsStmt));
     }
 
 
-    NBL_CHECK(_descendantsStmt.bindString(1, tag));
+    NBL_CHECK(_descendantsStmt.bindInt(1, tag));
     return _processTagQuery(connection, &_descendantsStmt, callback);
 }
 
-nbl::Result nbl::ancestors(DatabaseConnection* connection, StringView tag, TagCallback callback) {
+nbl::Result nbl::ancestors(DatabaseConnection* connection, i64 tag, TagCallback callback) {
 
     static nbl::PreparedStatement _ancestorsStmt;
     if(!_ancestorsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT name, color FROM tag 
+SELECT tId, name, color FROM tag 
 JOIN tag_closure ON tag_closure.ancestorId = tag.tId
-WHERE tag_closure.descendantId = (SELECT tId FROM tag WHERE name = ?);)", &_ancestorsStmt));
+WHERE tag_closure.descendantId = ?;)", &_ancestorsStmt));
     }
 
-    NBL_CHECK(_ancestorsStmt.bindString(1, tag));
+    NBL_CHECK(_ancestorsStmt.bindInt(1, tag));
     return _processTagQuery(connection, &_ancestorsStmt, callback);
 }
 
-nbl::Result nbl::parents(DatabaseConnection* connection, StringView tag, TagCallback callback) {
+nbl::Result nbl::parents(DatabaseConnection* connection, i64 tag, TagCallback callback) {
 
     static nbl::PreparedStatement _parentsStmt;
     if(!_parentsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT name, color FROM tag 
+SELECT tId, name, color FROM tag 
 JOIN tag_closure ON tag_closure.ancestorId = tag.tId
-WHERE tag_closure.descendantId = (SELECT tId FROM tag WHERE name = ?) AND depth = 1;)", &_parentsStmt));
+WHERE tag_closure.descendantId = ? AND depth = 1;)", &_parentsStmt));
     }
 
-    NBL_CHECK(_parentsStmt.bindString(1, tag));
+    NBL_CHECK(_parentsStmt.bindInt(1, tag));
     return _processTagQuery(connection, &_parentsStmt, callback);
 }
 
-nbl::Result nbl::addTag(DatabaseConnection* connection, StringView tag, u32 color) {
+nbl::Result nbl::addTag(DatabaseConnection* connection, StringView tag, u32 color, i64* outTagId) {
 
     static nbl::PreparedStatement _addTagStmt;
     if(!_addTagStmt.isValid(connection)) {
@@ -86,23 +105,23 @@ nbl::Result nbl::addTag(DatabaseConnection* connection, StringView tag, u32 colo
     NBL_CHECK(_addTagStmt.bindString(1, tag));
     NBL_CHECK(_addTagStmt.bindUint(2, color));
 
-    NBL_CHECK(connection->doTransaction(nbl::Array<PreparedStatement*,2>{ &_addTagStmt, &_addInitialClosureStmt }));
+    NBL_CHECK(connection->doTransaction(nbl::Array<PreparedStatement*,2>{ &_addTagStmt, &_addInitialClosureStmt }, outTagId));
    
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::addParentTag(DatabaseConnection* connection, StringView parentTag, StringView childTag) {
+nbl::Result nbl::addParentTag(DatabaseConnection* connection, i64 parentTag, i64 childTag) {
 
     // Check to see if the parent is a descendant of the child, which would create a cycle
     static PreparedStatement _checkCycleStmt;
     if(!_checkCycleStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT 1 FROM tag_closure
-WHERE ancestorId = (SELECT tId FROM tag WHERE name = ?)
-AND descendantId = (SELECT tId FROM tag WHERE name = ?);)", &_checkCycleStmt));
+WHERE ancestorId = ?
+AND descendantId = ?;)", &_checkCycleStmt));
     }
-    NBL_CHECK(_checkCycleStmt.bindString(1, childTag));
-    NBL_CHECK(_checkCycleStmt.bindString(2, parentTag));
+    NBL_CHECK(_checkCycleStmt.bindInt(1, childTag));
+    NBL_CHECK(_checkCycleStmt.bindInt(2, parentTag));
 
     bool cycleExists = false;
     NBL_CHECK(connection->execute(&_checkCycleStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
@@ -119,47 +138,37 @@ AND descendantId = (SELECT tId FROM tag WHERE name = ?);)", &_checkCycleStmt));
         NBL_CHECK(connection->prepare(R"(
 INSERT INTO tag_closure
 (ancestorId, descendantId, depth)
-    SELECT (SELECT tId FROM tag WHERE name = ?), descendantId, depth + 1
+    SELECT ?1, descendantId, depth + 1
     FROM tag_closure
-    WHERE ancestorId = (SELECT tId FROM tag WHERE name = ?)
+    WHERE ancestorId = ?2
 ON CONFLICT(ancestorId, descendantId) DO
 	UPDATE SET depth = excluded.depth
 	WHERE excluded.depth < depth;
         )", &_addParentClosureStmt));
     }
 
-    NBL_CHECK(_addParentClosureStmt.bindString(1, parentTag));
-    NBL_CHECK(_addParentClosureStmt.bindString(2, childTag));
+    NBL_CHECK(_addParentClosureStmt.bindInt(1, parentTag));
+    NBL_CHECK(_addParentClosureStmt.bindInt(2, childTag));
 
     return connection->execute(&_addParentClosureStmt);
 }
 
-nbl::Result nbl::removeParentTag(DatabaseConnection* connection, StringView parentTag, StringView childTag) {
+nbl::Result nbl::removeParentTag(DatabaseConnection* connection, i64 parentTag, i64 childTag) {
 
     static nbl::PreparedStatement _removeParentClosureStmt;
 
     if(!_removeParentClosureStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 WITH
-    child AS (
-        SELECT tId
-        FROM tag
-        WHERE name = ?
-    ),
-    parent AS (
-        SELECT tId
-        FROM tag
-        WHERE name = ?
-    ),
 	rIds AS (
 		SELECT ancestorId
 		FROM tag_closure
-		WHERE descendantId = (SELECT tId FROM parent)
+		WHERE descendantId = ?2
 	),
 	rFrom AS (
 		SELECT descendantId
 		FROM tag_closure
-		WHERE ancestorId = (SELECT tId FROM child)
+		WHERE ancestorId = ?1
 	)
 DELETE FROM tag_closure AS tc
 WHERE tc.ancestorId IN rIds
@@ -170,7 +179,7 @@ WHERE tc.ancestorId IN rIds
 	  FROM tag_closure tc2
 	  WHERE tc2.descendantId = tc.descendantId
 	    AND tc2.depth = 1
-		AND NOT (tc2.descendantId = (SELECT tId FROM child) AND tc2.ancestorId = (SELECT tId FROM parent))
+		AND NOT (tc2.descendantId = ?1 AND tc2.ancestorId = ?2)
 		
 	  UNION ALL
 	
@@ -178,43 +187,38 @@ WHERE tc.ancestorId IN rIds
 	  FROM tag_closure tc3
 	  JOIN hierarchy h ON tc3.descendantId = h.ancestorId
 	  WHERE tc3.depth = 1
-		AND NOT (tc3.descendantId = (SELECT tId FROM child) AND tc3.ancestorId = (SELECT tId FROM parent))
+		AND NOT (tc3.descendantId = ?1 AND tc3.ancestorId = ?2)
 	)
 	SELECT ancestorId FROM hierarchy
-	WHERE ancestorId = (SELECT tId FROM parent)
+	WHERE ancestorId = ?2
   );
         )", &_removeParentClosureStmt));
     } else {
         NBL_CHECK(_removeParentClosureStmt.reset());
     }
 
-    NBL_CHECK(_removeParentClosureStmt.bindString(1, childTag));
-    NBL_CHECK(_removeParentClosureStmt.bindString(2, parentTag));
+    NBL_CHECK(_removeParentClosureStmt.bindInt(1, childTag));
+    NBL_CHECK(_removeParentClosureStmt.bindInt(2, parentTag));
 
     return connection->execute(&_removeParentClosureStmt);
 
 }
 
-nbl::Result nbl::removeTag(DatabaseConnection* connection, StringView tag) {
+nbl::Result nbl::removeTag(DatabaseConnection* connection, i64 tag) {
 
     static nbl::PreparedStatement _removeClosureStmt;
     if(!_removeClosureStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 WITH
-    toRemove AS (
-        SELECT tId
-        FROM tag
-        WHERE name = ?
-    ),
 	ancestors AS (
 		SELECT ancestorId
 		FROM tag_closure
-		WHERE descendantId = (SELECT tId FROM toRemove)
+		WHERE descendantId = ?1
 	),
 	descendants AS (
 		SELECT descendantId
 		FROM tag_closure
-		WHERE ancestorId = (SELECT tId FROM toRemove)
+		WHERE ancestorId = ?1
 	)
 DELETE FROM tag_closure AS tc
 WHERE tc.ancestorId IN ancestors
@@ -225,8 +229,8 @@ WHERE tc.ancestorId IN ancestors
 	  FROM tag_closure tc2
 	  WHERE tc2.descendantId = tc.descendantId
 	    AND tc2.depth = 1
-		AND tc2.ancestorId != (SELECT tId FROM toRemove)
-		AND tc2.descendantId != (SELECT tId FROM toRemove)
+		AND tc2.ancestorId != ?1
+		AND tc2.descendantId != ?1
 		
 	  UNION ALL
 	
@@ -234,8 +238,8 @@ WHERE tc.ancestorId IN ancestors
 	  FROM tag_closure tc3
 	  JOIN hierarchy h ON tc3.descendantId = h.ancestorId
 	  WHERE tc3.depth = 1
-		AND tc3.ancestorId != (SELECT tId FROM toRemove)
-		AND tc3.descendantId != (SELECT tId FROM toRemove)
+		AND tc3.ancestorId != ?1
+		AND tc3.descendantId != ?1
 	)
 	SELECT 1 FROM hierarchy
 	WHERE ancestorId = tc.ancestorId
@@ -245,37 +249,37 @@ WHERE tc.ancestorId IN ancestors
 
     static nbl::PreparedStatement _removeTagStmt;
     if(!_removeTagStmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare("DELETE FROM tag WHERE name = ?;", &_removeTagStmt));
+        NBL_CHECK(connection->prepare("DELETE FROM tag WHERE tId = ?;", &_removeTagStmt));
     } 
 
-    NBL_CHECK(_removeClosureStmt.bindString(1, tag));
-    NBL_CHECK(_removeTagStmt.bindString(1, tag));
+    NBL_CHECK(_removeClosureStmt.bindInt(1, tag));
+    NBL_CHECK(_removeTagStmt.bindInt(1, tag));
 
     return connection->doTransaction(nbl::Array<PreparedStatement*,2>{ &_removeClosureStmt, &_removeTagStmt });
 }
 
-nbl::Result nbl::setTagColor(DatabaseConnection* connection, StringView tag, u32 color) {
+nbl::Result nbl::setTagColor(DatabaseConnection* connection, i64 tag, u32 color) {
 
     static nbl::PreparedStatement _setTagColorStmt;
     if(!_setTagColorStmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare("UPDATE tag SET color = ? WHERE name = ?;", &_setTagColorStmt));
+        NBL_CHECK(connection->prepare("UPDATE tag SET color = ? WHERE tId = ?;", &_setTagColorStmt));
     } 
 
     NBL_CHECK(_setTagColorStmt.bindUint(1, color));
-    NBL_CHECK(_setTagColorStmt.bindString(2, tag));
+    NBL_CHECK(_setTagColorStmt.bindInt(2, tag));
 
     return connection->execute(&_setTagColorStmt);
 }
 
-nbl::Result nbl::renameTag(DatabaseConnection* connection, StringView oldName, StringView newName) {
+nbl::Result nbl::renameTag(DatabaseConnection* connection, i64 tag, StringView newName) {
 
     static nbl::PreparedStatement _renameTagStmt;
     if(!_renameTagStmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare("UPDATE tag SET name = ? WHERE name = ?;", &_renameTagStmt));
+        NBL_CHECK(connection->prepare("UPDATE tag SET name = ?1 WHERE tId = ?2;", &_renameTagStmt));
     }
 
+    NBL_CHECK(_renameTagStmt.bindInt(2, tag));
     NBL_CHECK(_renameTagStmt.bindString(1, newName));
-    NBL_CHECK(_renameTagStmt.bindString(2, oldName));
 
     return connection->execute(&_renameTagStmt);
 }
@@ -284,26 +288,22 @@ nbl::Result nbl::enumerateTags(DatabaseConnection *connection, u32 limit, u32 of
 
     static nbl::PreparedStatement _enumerateStmt;
     if(!_enumerateStmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare("SELECT name, color FROM tag ORDER BY name ASC LIMIT ?1 OFFSET ?2;", &_enumerateStmt));
+        NBL_CHECK(connection->prepare("SELECT tId, name, color FROM tag ORDER BY name ASC LIMIT ?1 OFFSET ?2;", &_enumerateStmt));
     }
 
     NBL_CHECK(_enumerateStmt.bindUint(1, limit));
     NBL_CHECK(_enumerateStmt.bindUint(2, offset));
 
-    return connection->execute(&_enumerateStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        if(columnCount != 2) return nbl::Result::UNEXPECTED_ERROR;
-        return callback(columnValues[0].textValue, columnValues[1].uintValue());
-    });
-
+    return _processTagQuery(connection, &_enumerateStmt, callback);
 }
+
 
 nbl::Result nbl::searchTags(DatabaseConnection *connection, StringView query, u32 limit, u32 offset, TagCallback callback) {
 
     static nbl::PreparedStatement searchStmt;
     if(!searchStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT name, color FROM tag 
+SELECT tId, name, color FROM tag 
 WHERE ?3 IS NULL OR name LIKE '%' || ?3 || '%' 
 ORDER BY nbl_str_distance(name, ?3)
 LIMIT ?1 OFFSET ?2
@@ -314,38 +314,60 @@ LIMIT ?1 OFFSET ?2
     NBL_CHECK(searchStmt.bindUint(2, offset));
     NBL_CHECK(searchStmt.bindStringOrNull(3, query));
 
-    return connection->execute(&searchStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        if(columnCount != 2) return nbl::Result::UNEXPECTED_ERROR;
-        return callback(columnValues[0].textValue, columnValues[1].uintValue());
-
-    });
-
+    return _processTagQuery(connection, &searchStmt, callback);
 }
 
 
-nbl::Result nbl::getTagsFromNames(DatabaseConnection* connection, StringView jsonNames, TagCallback callback) {
-    static nbl::PreparedStatement _namesStmt;
-    if(!_namesStmt.isValid(connection)) {
+nbl::Result nbl::findTag(DatabaseConnection* connection, StringView name, TagCallback callback) {
+
+    static nbl::PreparedStatement _findStmt;
+    if(!_findStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT tId, name, color FROM tag 
+WHERE name = ?1;
+        )", &_findStmt));
+    }
+
+    NBL_CHECK(_findStmt.bindString(1, name));
+
+    bool found = false;
+    nbl::Result res = connection->execute(&_findStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+        if(columnCount != 3) {
+            return nbl::Result::IO_ERROR;
+        }
+        if(columnValues[0].type != nbl::DataType::INTEGER || columnValues[1].type != nbl::DataType::TEXT || columnValues[2].type != nbl::DataType::INTEGER) {
+            return nbl::Result::IO_ERROR;
+        }
+        found = true;
+        return callback(nbl::TagMeta{
+            .id = columnValues[0].intValue,
+            .name = columnValues[1].textValue, 
+            .color = static_cast<u32>(columnValues[2].uintValue())
+        });
+    });
+
+    if(!found) return nbl::Result::NOT_FOUND;
+    return nbl::Result::SUCCESS;
+}
+
+
+nbl::Result nbl::getTagsFromIds(DatabaseConnection* connection, StringView jsonIds, TagCallback callback) {
+    static nbl::PreparedStatement _byIdsStmt;
+    if(!_byIdsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 WITH 
 tag_names AS (
-	SELECT value AS name
+	SELECT value AS tId
 	FROM json_each(?1)
 )
-SELECT name, color
+SELECT tId, name, color
 FROM tag
-WHERE name IN tag_names
+WHERE tId IN tag_names
 ORDER BY name ASC;
-        )", &_namesStmt));
+        )", &_byIdsStmt));
     }
     
-    NBL_CHECK(_namesStmt.bindString(1, jsonNames));
+    NBL_CHECK(_byIdsStmt.bindString(1, jsonIds));
 
-    return connection->execute(&_namesStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-        
-        if(columnCount != 2) return nbl::Result::UNEXPECTED_ERROR;
-        return callback(columnValues[0].textValue, columnValues[1].uintValue());
-    });
-
+    return _processTagQuery(connection, &_byIdsStmt, callback);
 }

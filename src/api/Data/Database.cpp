@@ -293,12 +293,17 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
             }
         }
         
-        NBL_CHECK(callback(
+        nbl::Result res = callback(
                 columns,
                 columnValues, 
                 columnNames, 
                 sqlite3_last_insert_rowid(reinterpret_cast<sqlite3*>(_pHandle))
-            ));
+            );
+        if(res.error()) {
+
+            query->reset();
+            return res;
+        }
     }
     if(rc != SQLITE_DONE) {
         nbl::log(nbl::LogLevel::ERROR, "Database execution error: (", rc, ") ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));

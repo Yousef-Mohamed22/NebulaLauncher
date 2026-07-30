@@ -62,8 +62,9 @@ TEST(Game, AddGameTag) {
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
     ASSERT_NE(gameId, 0);
 
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000).success());
-    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, "Action").success());
+    i64 tId = 0;
+    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &tId).success());
+    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, tId).success());
 }
 
 TEST(Game, RemoveGameTag) {
@@ -78,10 +79,11 @@ TEST(Game, RemoveGameTag) {
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
     ASSERT_NE(gameId, 0);
 
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000).success());
+    i64 tId;
+    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &tId).success());
 
-    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, "Action").success());
-    ASSERT_TRUE(nbl::removeGameTag(&connection, gameId, "Action").success());
+    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, tId).success());
+    ASSERT_TRUE(nbl::removeGameTag(&connection, gameId, tId).success());
 }
 
 TEST(Game, GetGameTags) {
@@ -96,22 +98,25 @@ TEST(Game, GetGameTags) {
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
     ASSERT_NE(gameId, 0);
 
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000).success());
-    ASSERT_TRUE(nbl::addTag(&connection, "Adventure", 0x00FF00).success());
+    i64 actId;
+    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &actId).success());
 
-    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, "Action").success());
-    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, "Adventure").success());
+    i64 advId;
+    ASSERT_TRUE(nbl::addTag(&connection, "Adventure", 0x00FF00, &advId).success());
+
+    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, actId).success());
+    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, advId).success());
 
     struct _FoundData {
         bool action = false;
         bool adventure = false;
     } found;
 
-    ASSERT_TRUE(nbl::getGameTags(&connection, gameId, [&](nbl::StringView tagName, u32 tagColor) -> nbl::Result {
-        if(tagName == "Action") {
+    ASSERT_TRUE(nbl::getGameTags(&connection, gameId, [&](const nbl::TagMeta& tag) -> nbl::Result {
+        if(tag.name == "Action") {
             found.action = true;
         }
-        if(tagName == "Adventure") {
+        if(tag.name == "Adventure") {
             found.adventure = true;
         }
         return nbl::Result::SUCCESS;
@@ -236,13 +241,14 @@ TEST(Game, LookupSingleGameByTag) {
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &gameId).success());
     ASSERT_NE(gameId, 0);
 
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000).success());
-    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, "Action").success());
+    i64 tId;
+    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &tId).success());
+    ASSERT_TRUE(nbl::addGameTag(&connection, gameId, tId).success());
 
     i64 foundId = 0;
     nbl::GameSearchCriteria criteria = {};
 
-    nbl::Array tags = { nbl::StringView("Action") };
+    nbl::Array tags = { tId };
     nbl::Array tagSets = { tags.constSpan() };
 
     criteria.tags = tagSets.span();

@@ -4,6 +4,7 @@
 #include <QColor>
 
 struct NblTagRef {
+    qint64 id;
     QString name;
     QColor color;
 };

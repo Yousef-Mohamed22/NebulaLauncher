@@ -63,21 +63,22 @@ public:
     Q_INVOKABLE int deleteTab(qint64 id);
     Q_INVOKABLE QVariantMap getTabMeta(qint64 id);
 
-    Q_INVOKABLE int addTag(QString name, QColor color);
-    Q_INVOKABLE int removeTag(QString name);
-    Q_INVOKABLE int renameTag(QString name, QStringView newName);
-    Q_INVOKABLE int recolorTag(QString name, QColor color);
-    Q_INVOKABLE int addTagParent(QString tag, QString parent);
-    Q_INVOKABLE int tagGame(int64_t gameId, QString name);
-    Q_INVOKABLE int untagGame(int64_t gameId, QString name);
-    Q_INVOKABLE int tagInstallation(int64_t installationId, QString name);
-    Q_INVOKABLE int untagInstallation(int64_t installationId, QString name);
+    Q_INVOKABLE qint64 addTag(QString name, QColor color);
+    Q_INVOKABLE qint64 findTagId(QString name);
+    Q_INVOKABLE int removeTag(qint64 tag);
+    Q_INVOKABLE int renameTag(qint64 tag, QStringView newName);
+    Q_INVOKABLE int recolorTag(qint64 tag, QColor color);
+    Q_INVOKABLE int addTagParent(qint64 tag, qint64 parent);
+    Q_INVOKABLE int tagGame(qint64 gameId, qint64 tag);
+    Q_INVOKABLE int untagGame(qint64 gameId, qint64 tag);
+    Q_INVOKABLE int tagInstallation(qint64 installationId, qint64 tag);
+    Q_INVOKABLE int untagInstallation(qint64 installationId, qint64 tag);
     Q_INVOKABLE int updateTags(QVariantList modifiedTags);
     
-    Q_INVOKABLE QVariantList getTagsFromNames(QList<QString> names);
-    Q_INVOKABLE QList<QVariant> getGameTags(int64_t gId);
-    Q_INVOKABLE QList<QVariant> getInstallationTags(int64_t iId);
-    Q_INVOKABLE QList<QVariant> getTagParents(QString tag);
+    Q_INVOKABLE QVariantList getTagsFromIds(QVariantList ids);
+    Q_INVOKABLE QList<QVariant> getGameTags(qint64 gId);
+    Q_INVOKABLE QList<QVariant> getInstallationTags(qint64 iId);
+    Q_INVOKABLE QList<QVariant> getTagParents(qint64 tag);
 
     Q_INVOKABLE int addGame(QVariantMap details);
     Q_INVOKABLE int updateGame(QVariantMap details);

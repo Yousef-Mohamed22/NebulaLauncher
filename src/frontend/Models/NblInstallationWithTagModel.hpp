@@ -18,7 +18,7 @@ class NblInstallationWithTagModel : public QAbstractListModel {
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(QByteArray tag READ tag WRITE setTag NOTIFY tagChanged)
+    Q_PROPERTY(qint64 tag READ tag WRITE setTag NOTIFY tagChanged)
     Q_PROPERTY(int currentPage READ currentPage NOTIFY currentPageChanged)
     Q_PROPERTY(int pageSize READ pageSize WRITE setPageSize NOTIFY pageSizeChanged)
     Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
@@ -35,7 +35,7 @@ public:
         _mAllLoaded(false)
     { }
 
-    NblInstallationWithTagModel(QByteArray tag, QObject* parent = nullptr) :
+    NblInstallationWithTagModel(qint64 tag, QObject* parent = nullptr) :
         QAbstractListModel(parent),
         _mTag(tag),
         _mCurrentPage(1),
@@ -65,11 +65,11 @@ public:
 
     void setPageSize(int size) { _mPageSize = size; }
 
-    QByteArray tag() const {
+    qint64 tag() const {
         return _mTag;
     }
 
-    void setTag(QByteArray tag) {
+    void setTag(qint64 tag) {
         _mTag = tag;
         emit tagChanged();
         refresh();
@@ -90,15 +90,15 @@ private:
 
     void _fetchPageData();
 
-    QByteArray _mTag;
+    qint64 _mTag;
     quint64 _mCurrentPage;
     quint64 _mPageSize;
     bool _mIsLoading;
     bool _mAllLoaded;
 
     struct {
-        nbl::Array<nbl::StringView, 1> tags;
-        nbl::Array<nbl::ConstSpan<nbl::StringView>, 1> tagSets;
+        nbl::Array<i64, 1> tags;
+        nbl::Array<nbl::ConstSpan<i64>, 1> tagSets;
     } _mCriteriaData = {};
     nbl::InstallationSearchCriteria _mCriteria = {};
 

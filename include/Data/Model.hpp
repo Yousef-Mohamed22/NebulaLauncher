@@ -88,101 +88,34 @@ Result initDatabase(DatabaseConnection* connection);
 // Tags
 //
 
-/**
- * \brief Callback type for tag traversal functions (descendants and ancestors)
- * \param userData A pointer to user-defined data that will be passed to the callback
- * \param tagName The name of the tag being processed
- * \param tagColor The color of the tag being processed, represented as a 32-bit unsigned integer (e.g., 0xRRGGBBAA)
- * \return A Result indicating success or failure of the callback operation. If the callback returns a failure Result, the traversal will be aborted.
- */
-typedef std::function<Result(StringView,u32)> TagCallback;
+struct TagMeta {
+    i64 id;
+    StringView name;
+    u32 color;
+};
 
-/**
- * \brief Retrieves the descendant tags of a given tag and invokes a callback for each descendant
- * \param connection The database connection to use for the query
- * \param tag The name of the tag whose descendants are to be retrieved
- * \param callback The callback function to invoke for each descendant tag found
- * \param userData A pointer to user-defined data that will be passed to the callback function
- * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, the traversal will be aborted and this function will return that failure Result.
- */
-Result descendants(DatabaseConnection* connection, StringView tag, TagCallback callback);
+typedef std::function<Result(const TagMeta&)> TagCallback;
 
-/**
- * \brief Retrieves the ancestor tags of a given tag and invokes a callback for each ancestor
- * \param connection The database connection to use for the query
- * \param tag The name of the tag whose ancestors are to be retrieved
- * \param callback The callback function to invoke for each ancestor tag found
- * \param userData A pointer to user-defined data that will be passed to the callback function
- * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, the traversal will be aborted and this function will return that failure Result.
- */
-Result ancestors(DatabaseConnection* connection, StringView tag, TagCallback callback);
+Result getTagMeta(DatabaseConnection* connection, i64 tag, TagCallback callback);
 
-Result parents(DatabaseConnection* connection, StringView tag, TagCallback callback);
+Result descendants(DatabaseConnection* connection, i64 tag, TagCallback callback);
+Result ancestors(DatabaseConnection* connection, i64 tag, TagCallback callback);
+Result parents(DatabaseConnection* connection, i64 tag, TagCallback callback);
 
-/**
- * \brief Adds a tag to the database with the specified name and color
- * \param connection The database connection to use for the query
- * \param tag The name of the tag whose color is to be retrieved
- * \param color The color of the tag, represented as a 32-bit unsigned integer (e.g., 0xRRGGBBAA)
- * \return A Result indicating success or failure of the operation
- */
-Result addTag(DatabaseConnection* connection, StringView tag, u32 color);
+Result addTag(DatabaseConnection* connection, StringView tag, u32 color, i64* outTagId);
+Result removeTag(DatabaseConnection* connection, i64 tag);
 
-/**
- * \brief Adds a parent-child relationship between two tags in the database
- * \param connection The database connection to use for the query
- * \param parentTag The name of the parent tag
- * \param childTag The name of the child tag
- * \return A Result indicating success or failure of the operation
- */
-Result addParentTag(DatabaseConnection* connection, StringView parentTag, StringView childTag);
+Result addParentTag(DatabaseConnection* connection, i64 parentTag, i64 childTag);
+Result removeParentTag(DatabaseConnection* connection, i64 parentTag, i64 childTag);
 
-/**
- * \brief Removes a tag from the database, along with any parent-child relationships involving that tag
- * \param connection The database connection to use for the query
- * \param tag The name of the tag to be removed
- * \return A Result indicating success or failure of the operation
- */
-Result removeTag(DatabaseConnection* connection, StringView tag);
+Result setTagColor(DatabaseConnection* connection, i64 tag, u32 color);
+Result renameTag(DatabaseConnection* connection, i64 tag, StringView newName);
 
-/**
- * \brief Removes a parent-child relationship between two tags in the database
- * \param connection The database connection to use for the query
- * \param parentTag The name of the parent tag
- * \param childTag The name of the child tag
- * \return A Result indicating success or failure of the operation
- */
-Result removeParentTag(DatabaseConnection* connection, StringView parentTag, StringView childTag);
-
-/**
- * \brief Sets the color of a tag in the database
- * \param connection The database connection to use for the query
- * \param tag The name of the tag whose color is to be set
- * \param color The new color for the tag, represented as a 32-bit unsigned integer (e.g., 0xRRGGBBAA)
- * \return A Result indicating success or failure of the operation
- */
-Result setTagColor(DatabaseConnection* connection, StringView tag, u32 color);
-
-/**
- * \brief Renames a tag in the database
- * \param connection The database connection to use for the query
- * \param oldName The current name of the tag to be renamed
- * \param newName The new name for the tag
- * \return A Result indicating success or failure of the operation
- */
-Result renameTag(DatabaseConnection* connection, StringView oldName, StringView newName);
-
-/**
- * \brief Enumerates all tags in the database
- */
 Result enumerateTags(DatabaseConnection* connection, u32 limit, u32 offset, TagCallback callback);
-
-/**
- * \brief Searches for tags in the database by name
- */
 Result searchTags(DatabaseConnection* connection, StringView query, u32 limit, u32 offset, TagCallback callback);
+Result findTag(DatabaseConnection* connection, StringView name, TagCallback callback);
 
-Result getTagsFromNames(DatabaseConnection* connection, StringView jsonNames, TagCallback callback);
+Result getTagsFromIds(DatabaseConnection* connection, StringView jsonIds, TagCallback callback);
 
 
 //
@@ -239,8 +172,8 @@ struct GameLookupResult {
 };
 
 struct GameSearchCriteria {
-    ConstSpan<ConstSpan<StringView>> tags;
-    ConstSpan<StringView> excludedTags;
+    ConstSpan<ConstSpan<i64>> tags;
+    ConstSpan<i64> excludedTags;
     u64 minReleaseDate;
     u64 maxReleaseDate;
     f64 minRating;
@@ -288,7 +221,7 @@ Result updateGame(DatabaseConnection* connection, i64 gameId, const GameMeta& me
  * \param tag The name of the tag to add to the game
  * \return A Result indicating success or failure of the operation
  */
-Result addGameTag(DatabaseConnection* connection, i64 gameId, StringView tag);
+Result addGameTag(DatabaseConnection* connection, i64 gameId, i64 tag);
 
 /**
  * \brief Removes a tag from a game in the database
@@ -297,7 +230,7 @@ Result addGameTag(DatabaseConnection* connection, i64 gameId, StringView tag);
  * \param tag The name of the tag to remove from the game
  * \return A Result indicating success or failure of the operation
  */
-Result removeGameTag(DatabaseConnection* connection, i64 gameId, StringView tag);
+Result removeGameTag(DatabaseConnection* connection, i64 gameId, i64 tag);
 
 
 /**
@@ -323,7 +256,7 @@ Result getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCal
  * \brief Looks up games in the database that match the specified criteria and invokes a callback for each matching game
  * \param connection The database connection to use for the query
  * \param criteria A GameSearchCriteria struct containing the criteria for filtering and sorting the games to be retrieved
- * \param callback The callback function to invoke for each matching game found
+ * \param callback The callback function ""to invoke for each matching game found
  * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, the lookup will be aborted and this function will return that failure Result.
  */
 Result lookupGames(
@@ -376,8 +309,8 @@ struct InstallationDetails {
 };
 
 struct InstallationSearchCriteria {
-    ConstSpan<ConstSpan<StringView>> tags;
-    ConstSpan<StringView> excludedTags;
+    ConstSpan<ConstSpan<i64>> tags;
+    ConstSpan<i64> excludedTags;
     u64 minReleaseDate;
     u64 maxReleaseDate;
     f64 minRating;
@@ -439,8 +372,8 @@ Result getInstallationDetails(DatabaseConnection* connection, i64 installationId
 
 Result updateInstallation(DatabaseConnection* connection, const InstallationMeta& meta);
 
-Result addInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag);
-Result removeInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag);
+Result addInstallationTag(DatabaseConnection* connection, i64 installationId, i64 tag);
+Result removeInstallationTag(DatabaseConnection* connection, i64 installationId, i64 tag);
 
 Result countInstallationTags(DatabaseConnection* connection, i64 installationId, u64* outCount);
 Result getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback);

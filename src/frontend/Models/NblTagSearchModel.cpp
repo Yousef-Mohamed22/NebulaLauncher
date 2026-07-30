@@ -12,6 +12,8 @@ QVariant NblTagSearchModel::data(const QModelIndex& index, int role) const {
     NblTagRef ref = _mData.at(index.row());
 
     switch(role) {
+        case IdRole:
+            return ref.id;
         case NameRole:
             return ref.name;
         case ColorRole:
@@ -23,6 +25,7 @@ QVariant NblTagSearchModel::data(const QModelIndex& index, int role) const {
 
 QHash<int, QByteArray> NblTagSearchModel::roleNames() const {
     QHash<int, QByteArray> roles = {};
+    roles[IdRole] = "id";
     roles[NameRole] = "name";
     roles[ColorRole] = "color";
     return roles;
@@ -69,21 +72,21 @@ void NblTagSearchModel::_fetchPageData() {
 
     nbl::Result res;
     if(query.empty()) {
-        res = nbl::enumerateTags(db, limit, offset, [&](nbl::StringView name, u32 color) -> nbl::Result {
+        res = nbl::enumerateTags(db, limit, offset, [&](nbl::TagMeta tag) -> nbl::Result {
 
-            NblTagRef ref(QString::fromUtf8(name.data, name.length), QColor::fromRgb(color)); 
+            NblTagRef ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
             found.append(ref);
             return nbl::Result::SUCCESS;
 
         });
     } else {
-        res = nbl::searchTags(db, query, limit, offset, [&](nbl::StringView name, u32 color) -> nbl::Result {
+        res = nbl::searchTags(db, query, limit, offset, [&](nbl::TagMeta tag) -> nbl::Result {
 
-            if(query == name) {
+            if(query == tag.name) {
                 exactMatch = true;
             }
 
-            NblTagRef ref(QString::fromUtf8(name.data, name.length), QColor::fromRgb(color)); 
+            NblTagRef ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
             found.append(ref);
             return nbl::Result::SUCCESS;
 
@@ -92,7 +95,7 @@ void NblTagSearchModel::_fetchPageData() {
 
     if(res.error()) {
 
-        nbl::log(nbl::LogLevel::ERROR, "An error occurred while loading tags!");
+        nbl::log(nbl::LogLevel::ERROR, "An error occurred while loading tags! ", res.value);
         _mAllLoaded = true;
         _mIsLoading = false;
         emit isLoadingChanged();

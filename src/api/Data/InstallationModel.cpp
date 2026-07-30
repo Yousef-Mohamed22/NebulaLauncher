@@ -213,7 +213,7 @@ WITH
 search_sets AS (
 	SELECT
 		outer.key AS setId,
-		(SELECT tId FROM tag WHERE tag.name = inner.value) AS tId
+		inner.value AS tId
 	FROM json_each(?1) AS outer
 	JOIN json_each(outer.value) AS inner
 ),
@@ -329,9 +329,9 @@ OFFSET ?10;
         StringBuilder tagsBuilder(&frame);
         NBL_CHECK(nbl::JsonWriter(tagsBuilder.writer())
             .writeArray([&](auto arr) {
-                for(ConstSpan<StringView> tagSet : criteria.tags) {
+                for(ConstSpan<i64> tagSet : criteria.tags) {
                     arr.writeArray([&](auto inner) {
-                        for(StringView tag : tagSet) {
+                        for(i64 tag : tagSet) {
                             inner.add(tag);
                         }
                     });
@@ -350,7 +350,7 @@ OFFSET ?10;
         StringBuilder tagsBuilder(&frame);
         NBL_CHECK(nbl::JsonWriter(tagsBuilder.writer())
             .writeArray([&](auto arr) {
-                for(StringView tag : criteria.excludedTags) {
+                for(i64 tag : criteria.excludedTags) {
                     arr.add(tag);
                 }
             }));
@@ -404,32 +404,32 @@ OFFSET ?10;
 }
 
 
-nbl::Result nbl::addInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag) {
+nbl::Result nbl::addInstallationTag(DatabaseConnection* connection, i64 installationId, i64 tag) {
 
     static nbl::PreparedStatement _addTagStmt;
     if(!_addTagStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO installation_tag (iId, tId) VALUES (?1, (SELECT tId FROM tag WHERE name = ?2));
+INSERT INTO installation_tag (iId, tId) VALUES (?1, ?2);
         )", &_addTagStmt));
     }
 
     NBL_CHECK(_addTagStmt.bindInt(1, installationId));
-    NBL_CHECK(_addTagStmt.bindString(2, tag));
+    NBL_CHECK(_addTagStmt.bindInt(2, tag));
 
     return connection->execute(&_addTagStmt);
 }
 
-nbl::Result nbl::removeInstallationTag(DatabaseConnection* connection, i64 installationId, StringView tag) {
+nbl::Result nbl::removeInstallationTag(DatabaseConnection* connection, i64 installationId, i64 tag) {
 
     static nbl::PreparedStatement _removeTagStmt;
     if(!_removeTagStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-DELETE FROM installation_tag WHERE iId = ?1 AND tId = (SELECT tId FROM tag WHERE name = ?2);
+DELETE FROM installation_tag WHERE iId = ?1 AND tId = ?2;
         )", &_removeTagStmt));
     }
 
     NBL_CHECK(_removeTagStmt.bindInt(1, installationId));
-    NBL_CHECK(_removeTagStmt.bindString(2, tag));
+    NBL_CHECK(_removeTagStmt.bindInt(2, tag));
 
     return connection->execute(&_removeTagStmt);
 
@@ -478,7 +478,7 @@ WITH
 	parentGame AS (
 		SELECT gId FROM installation WHERE iId = ?1
 	)
-SELECT tag.name, tag.color
+SELECT tag.tId, tag.name, tag.color
 FROM tag
 JOIN tag_closure ON tag_closure.ancestorId = tag.tId
 WHERE descendantId IN (SELECT tId FROM installation_tag WHERE iId = ?1)
@@ -495,13 +495,14 @@ LIMIT ?2 OFFSET ?3;
 
     return connection->execute(&_getInstallationTagsStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 2) {
+        if(columnCount != 3) {
             return nbl::Result::IO_ERROR;
         }
-        if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
-            return nbl::Result::IO_ERROR;
-        }
-        return callback(columnValues[0].textValue, columnValues[1].intValue);
+        return callback({
+            .id = columnValues[0].intValue,
+            .name = columnValues[1].textValue, 
+            .color = static_cast<u32>(columnValues[2].intValue)
+        });
     });
 }
 
@@ -511,7 +512,7 @@ nbl::Result nbl::getDirectInstallationTags(DatabaseConnection* connection, i64 i
     if(!_getDirectInstallationTagsStmt.isValid(connection)) {
 
         NBL_CHECK(connection->prepare(R"(
-SELECT tag.name, tag.color
+SELECT tag.tId, tag.name, tag.color
 FROM tag
 JOIN installation_tag ON installation_tag.tId = tag.tId
 WHERE installation_tag.iId = ?1
@@ -523,13 +524,14 @@ ORDER BY tag.name ASC;
 
     return connection->execute(&_getDirectInstallationTagsStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 2) {
+        if(columnCount != 3) {
             return nbl::Result::IO_ERROR;
         }
-        if(columnValues[0].type != nbl::DataType::TEXT || columnValues[1].type != nbl::DataType::INTEGER) {
-            return nbl::Result::IO_ERROR;
-        }
-        return callback(columnValues[0].textValue, columnValues[1].intValue);
+        return callback({
+            .id = columnValues[0].intValue,
+            .name = columnValues[1].textValue, 
+            .color = static_cast<u32>(columnValues[2].intValue)
+        });
     });
 
 }

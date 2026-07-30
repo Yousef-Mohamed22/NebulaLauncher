@@ -12,6 +12,8 @@ QVariant NblAllTagsModel::data(const QModelIndex& index, int role) const {
     NblTagRef ref = _mData.at(index.row());
 
     switch(role) {
+        case IdRole:
+            return ref.id;
         case NameRole:
             return ref.name;
         case ColorRole:
@@ -23,6 +25,7 @@ QVariant NblAllTagsModel::data(const QModelIndex& index, int role) const {
 
 QHash<int, QByteArray> NblAllTagsModel::roleNames() const {
     QHash<int, QByteArray> roles = {};
+    roles[IdRole] = "id";
     roles[NameRole] = "name";
     roles[ColorRole] = "color";
     return roles;
@@ -64,8 +67,8 @@ void NblAllTagsModel::_fetchPageData() {
     
     QList<NblTagRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::enumerateTags(db, limit, offset, [&](nbl::StringView name, u32 color) -> nbl::Result {
-        NblTagRef ref(QString::fromUtf8(name.data, name.length), QColor::fromRgb(color)); 
+    if(nbl::enumerateTags(db, limit, offset, [&](const nbl::TagMeta& meta) -> nbl::Result {
+        NblTagRef ref(meta.id, QString::fromUtf8(meta.name.data, meta.name.length), QColor::fromRgb(meta.color)); 
         found.append(ref);
         return nbl::Result::SUCCESS;
     }).error()) {

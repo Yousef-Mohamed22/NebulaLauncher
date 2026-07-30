@@ -30,6 +30,7 @@ Item {
         for(let i = 0 ; i < initialTags.length ; i++) {
             tags[i] = {
                 "index": i,
+                "id": initialTags[i].id,
                 "name": initialTags[i].name,
                 "color": initialTags[i].color,
                 "state": NblTagList.TagState.INITIAL
@@ -41,7 +42,7 @@ Item {
         let out = []
         for(let i = 0 ; i < tags.length ; i++) {
             if(tags[i].state == state) {
-                out.push(tags[i].name)
+                out.push(tags[i].id)
             }
         }
         return out
@@ -248,7 +249,7 @@ Item {
             tagSearchModel.paused = false
         }
 
-        function addTag(name, color) {
+        function addTag(id, name, color) {
 
             root.modified()
 
@@ -266,6 +267,7 @@ Item {
             let index = root.tags.length
 
             root.tags.push({
+                id: id,
                 index: index,
                 name: name,
                 color: color,
@@ -274,10 +276,11 @@ Item {
         }
 
         function addTop() {
-            let name = tagSearchModel.data(tagSearchModel.index(0, 0), 0);
-            let color = tagSearchModel.data(tagSearchModel.index(0, 0), 1);
+            let id = tagSearchModel.id(0);
+            let name = tagSearchModel.name(0);
+            let color = tagSearchModel.color(0);
 
-            addTag(name, color)
+            addTag(id, name, color)
         }
 
         function addNew() {
@@ -298,8 +301,14 @@ Item {
 
             let color = Qt.hsva(Math.random(), 0.6 + Math.random() * 0.3, 0.4 + Math.random() * 0.5)
             let index = root.tags.length
-
-            ApplicationContext.addTag(name, color)
+            let id = ApplicationContext.addTag(name, color)
+            if(id == 0) {
+                ApplicationContext.pushNotification({
+                    type: "error",
+                    title: "Failed to add tag",
+                    message: "An error occurred while adding a tag!"
+                })
+            }
 
             root.tags.push({
                 index: index,
@@ -396,6 +405,7 @@ Item {
 
                                 required property var modelData
 
+                                property int tagId: modelData.id
                                 property string tagName: modelData.name
                                 property string tagColor: modelData.color
 
@@ -425,7 +435,7 @@ Item {
                                     cursorShape: Qt.PointingHandCursor
                                     hoverEnabled: true
                                     onClicked: {
-                                        popup.addTag(parent.tagName, parent.tagColor)
+                                        popup.addTag(parent.tagId, parent.tagName, parent.tagColor)
                                     }
                                 }
                             }

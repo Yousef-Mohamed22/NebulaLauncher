@@ -123,11 +123,14 @@ Item {
                     colorUnhovered: root.isFavorite ? Theme.colors.accent : Theme.colors.textDim
                     onClicked: {
 
+
+                        let favoriteTagId = ApplicationContext.findTagId("favorite")
+
                         let rc = 0
                         if(root.isFavorite) {
-                            rc = ApplicationContext.untagInstallation(root.details.installationId, "favorite")
+                            rc = ApplicationContext.untagInstallation(root.details.installationId, favoriteTagId)
                         } else {
-                            rc = ApplicationContext.tagInstallation(root.details.installationId, "favorite")
+                            rc = ApplicationContext.tagInstallation(root.details.installationId, favoriteTagId)
                         }
                         if(rc != 0) {
                             ApplicationContext.pushNotification({
@@ -341,7 +344,7 @@ Item {
                     Repeater {
                         model: NblInstallationTagModel {
                             id: tagModel
-                            installationId: root.details.installationId;
+                            installationId: root.details.installationId
                             pageSize: 8
                         }
 
@@ -352,12 +355,13 @@ Item {
                             width: (parent.width / 2) - 4
 
                             Component.onCompleted: {
-                                if(model.name == 'favorite') root.isFavorite = true
+                                if(model.name == "favorite") root.isFavorite = true
                             }
 
                             onClicked: {
                                 root.mainWindow.openPage("Pages/WithTagPage.qml", {
-                                    tag: model.name,
+                                    tag: model.id,
+                                    name: model.name,
                                     color: model.color,
                                     mainWindow: root.mainWindow
                                 })

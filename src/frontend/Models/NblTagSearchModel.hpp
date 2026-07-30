@@ -2,6 +2,7 @@
 
 #include <qstringview.h>
 #include <qtmetamacros.h>
+#include <qtypes.h>
 #include <Core/Types.hpp>
 #include <Platform/Logging.hpp>
 
@@ -33,6 +34,7 @@ public:
     { }
 
     enum Roles {
+        IdRole,
         NameRole,
         ColorRole
     };
@@ -74,6 +76,16 @@ public:
 
     Q_INVOKABLE void loadNextPage();
     Q_INVOKABLE void refresh();
+
+    Q_INVOKABLE inline qint64 id(qsizetype index) {
+        return _mData[index].id;
+    }
+    Q_INVOKABLE inline QString name(qsizetype index) {
+        return _mData[index].name;
+    }
+    Q_INVOKABLE inline QColor color(qsizetype index) {
+        return _mData[index].color;
+    }
 
 signals:
 

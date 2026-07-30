@@ -169,12 +169,11 @@ SettingsTab {
                             })
                             return
                         }
-                        ApplicationContext.addTag(newTagNameBox.text, newTagColorBox.selectedColor)
+                        let tagId = ApplicationContext.addTag(newTagNameBox.text, newTagColorBox.selectedColor)
 
                         let parents = newParentsBox.getAddedTags()
                         for(let i = 0 ; i < parents.length ; i++) {
-                            console.log("Adding tag parent:", parents[i])
-                            ApplicationContext.addTagParent(newTagNameBox.text, parents[i])
+                            ApplicationContext.addTagParent(tagId, parents[i])
                         }
 
                         root.refresh()
@@ -205,7 +204,7 @@ SettingsTab {
         for(let i = 0 ; i < tagRepeater.count ; i++) {
             let tagElement = tagRepeater.itemAt(i)
             if(tagElement.removed) {
-                output.push(tagElement.getOriginalName())
+                output.push(tagElement.getId())
             }
         }
         return output
@@ -271,12 +270,13 @@ SettingsTab {
                         if(modified) root.modified = true
                     }
 
-                    function getOriginalName() {
-                        return modelData.name
+                    function getId() {
+                        return modelData.id
                     }
 
                     function encodeTagInfo() {
                         return {
+                            id: tagElement.modelData.id,
                             originalName: tagElement.modelData.name,
                             name: tagNameBox.text,
                             color: tagColorBox.selectedColor,
@@ -311,7 +311,7 @@ SettingsTab {
                                 if(!loadedTags) {
 
                                     loadedTags = true
-                                    parentsBox.initialTags = ApplicationContext.getTagParents(tagElement.modelData.name)
+                                    parentsBox.initialTags = ApplicationContext.getTagParents(tagElement.modelData.id)
                                 }
                             }
                         }

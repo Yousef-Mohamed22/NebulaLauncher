@@ -130,31 +130,31 @@ UPDATE game SET steamId=?1, igdbId=?2, releaseDate=?3, rating=?4, dId=?5 WHERE g
 }
 
 
-nbl::Result nbl::addGameTag(DatabaseConnection* connection, i64 gameId, StringView tag) {
+nbl::Result nbl::addGameTag(DatabaseConnection* connection, i64 gameId, i64 tag) {
 
     static nbl::PreparedStatement _addGameTagStmt;
     if(!_addGameTagStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO game_tag (gId, tId) VALUES (?1, (SELECT tId FROM tag WHERE name = ?2));
+INSERT INTO game_tag (gId, tId) VALUES (?1, ?2);
         )", &_addGameTagStmt));
     }
 
     NBL_CHECK(_addGameTagStmt.bindUint(1, gameId));
-    NBL_CHECK(_addGameTagStmt.bindString(2, tag));
+    NBL_CHECK(_addGameTagStmt.bindInt(2, tag));
     return connection->execute(&_addGameTagStmt);
 }
 
-nbl::Result nbl::removeGameTag(DatabaseConnection* connection, i64 gameId, StringView tag) {
+nbl::Result nbl::removeGameTag(DatabaseConnection* connection, i64 gameId, i64 tag) {
 
     static nbl::PreparedStatement _removeGameTagStmt;
     if(!_removeGameTagStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-DELETE FROM game_tag WHERE gId = ?1 AND tId = (SELECT tId FROM tag WHERE name = ?2);
+DELETE FROM game_tag WHERE gId = ?1 AND tId = ?2;
         )", &_removeGameTagStmt));
     }
     
     NBL_CHECK(_removeGameTagStmt.bindUint(1, gameId));
-    NBL_CHECK(_removeGameTagStmt.bindString(2, tag));
+    NBL_CHECK(_removeGameTagStmt.bindInt(2, tag));
     return connection->execute(&_removeGameTagStmt);
 }
 
@@ -164,7 +164,7 @@ nbl::Result nbl::getGameTags(DatabaseConnection* connection, i64 gameId, TagCall
     static nbl::PreparedStatement _getGameTagsStmt;
     if(!_getGameTagsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT tag.name, tag.color
+SELECT tag.tId, tag.name, tag.color
 FROM tag
 JOIN game_tag ON game_tag.tId = tag.tId
 WHERE game_tag.gId = ?1
@@ -176,14 +176,14 @@ ORDER BY tag.name ASC;
 
     return connection->execute(&_getGameTagsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
 
-        if(argc != 2) {
+        if(argc != 3) {
             return nbl::Result::INVALID_STATE;
         }
-
-        if(values[0].type != nbl::DataType::TEXT || values[1].type != nbl::DataType::INTEGER) {
-            return nbl::Result::INVALID_STATE;
-        }
-        return callback(values[0].textValue, static_cast<u32>(values[1].intValue));
+        return callback({
+            .id = values[0].intValue, 
+            .name = values[1].textValue, 
+            .color = static_cast<u32>(values[2].intValue)
+        });
 
     });
 
@@ -286,7 +286,7 @@ WITH
 search_sets AS (
 	SELECT
 		outer.key AS setId,
-		(SELECT tId FROM tag WHERE tag.name = inner.value) AS tId
+		inner.value AS tId
 	FROM json_each(?1) AS outer
 	JOIN json_each(outer.value) AS inner
 ),
@@ -389,9 +389,9 @@ OFFSET ?8;
             StringBuilder tagsBuilder(&frame);
             NBL_CHECK(nbl::JsonWriter(tagsBuilder.writer())
                 .writeArray([&](auto arr) {
-                    for(ConstSpan<StringView> tagSet : criteria.tags) {
+                    for(ConstSpan<i64> tagSet : criteria.tags) {
                         arr.writeArray([&](auto inner) {
-                            for(StringView tag : tagSet) {
+                            for(i64 tag : tagSet) {
                                 inner.add(tag);
                             }
                         });
@@ -411,7 +411,7 @@ OFFSET ?8;
             StringBuilder tagsBuilder(&frame);
             NBL_CHECK(nbl::JsonWriter(tagsBuilder.writer())
                 .writeArray([&](auto arr) {
-                    for(StringView tag : criteria.excludedTags) {
+                    for(i64 tag : criteria.excludedTags) {
                         arr.add(tag);
                     }
                 }));

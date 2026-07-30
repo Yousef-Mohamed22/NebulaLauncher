@@ -40,6 +40,7 @@ public:
     { }
 
     enum Roles {
+        IdRole,
         NameRole,
         ColorRole
     };

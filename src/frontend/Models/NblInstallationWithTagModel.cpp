@@ -48,7 +48,7 @@ void NblInstallationWithTagModel::refresh() {
 
     beginResetModel();
 
-    _mCriteriaData.tags[0] = nbl::StringView(_mTag.data(), _mTag.length());
+    _mCriteriaData.tags[0] = static_cast<i64>(_mTag);
     _mCriteriaData.tagSets[0] = _mCriteriaData.tags;
     _mCriteria.tags = _mCriteriaData.tagSets.constSpan();
 
