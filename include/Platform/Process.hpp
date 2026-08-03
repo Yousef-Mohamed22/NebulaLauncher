@@ -15,6 +15,8 @@
 
 namespace nbl {
 
+StringView getHostName();
+
 /**
  * \brief Retrieves the value of an environment variable by name.
  * \param name The name of the environment variable to retrieve.

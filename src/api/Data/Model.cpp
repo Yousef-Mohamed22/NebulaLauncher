@@ -137,10 +137,15 @@ CREATE TABLE IF NOT EXISTS game (
     rating REAL,
     FOREIGN KEY(dId) REFERENCES display(dId)
 );
+CREATE TABLE IF NOT EXISTS device (
+    deviceId INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+);
 CREATE TABLE IF NOT EXISTS installation (
     iId INTEGER PRIMARY KEY AUTOINCREMENT,
     gId INTEGER NOT NULL,
     dId INTEGER,
+    deviceId INTEGER,
     title TEXT,
     description TEXT,
     type TEXT NOT NULL,
@@ -150,7 +155,8 @@ CREATE TABLE IF NOT EXISTS installation (
     added INTEGER NOT NULL,
     lastPlayed INTEGER,
     FOREIGN KEY(gId) REFERENCES game(gId),
-    FOREIGN KEY(dId) REFERENCES display(dId)
+    FOREIGN KEY(dId) REFERENCES display(dId),
+    FOREIGN KEY(deviceId) REFERENCES device(deviceId)
 );
 CREATE TABLE IF NOT EXISTS tag (
     tId INTEGER PRIMARY KEY AUTOINCREMENT,

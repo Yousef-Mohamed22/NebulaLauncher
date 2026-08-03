@@ -51,6 +51,7 @@ void NblInstallationWithTagModel::refresh() {
     _mCriteriaData.tags[0] = static_cast<i64>(_mTag);
     _mCriteriaData.tagSets[0] = _mCriteriaData.tags;
     _mCriteria.tags = _mCriteriaData.tagSets.constSpan();
+    _mCriteria.deviceId = ApplicationContext::instance()->deviceId();
 
     _mData.clear();
     _mAllLoaded = false;

@@ -264,6 +264,20 @@ Result lookupGames(
         const GameSearchCriteria& criteria,
         GameLookupCallback callback);
 
+//
+// Devices
+//
+struct DeviceMeta {
+    i64 id; 
+    StringView name;
+};
+
+typedef std::function_ref<Result(const DeviceMeta&)> DeviceCallback;
+
+Result addDevice(DatabaseConnection* connection, DeviceMeta meta, i64* outId);
+Result getDevice(DatabaseConnection* connection, i64 id, DeviceCallback callback);
+Result removeDevice(DatabaseConnection* connection, i64 id);
+Result updateDevice(DatabaseConnection* connection, DeviceMeta meta); 
 
 //
 // Installations
@@ -273,6 +287,7 @@ struct InstallationMeta {
     i64 id;
     i64 displayId;
     i64 gameId;
+    i64 deviceId;
     StringView title;
     StringView description;
     StringView type;
@@ -287,6 +302,7 @@ struct InstallationLookupResult {
     i64 installationId;
     i64 displayId;
     i64 gameId;
+    i64 deviceId;
 
     StringView title;
     u64 playTime;
@@ -322,6 +338,7 @@ struct InstallationSearchCriteria {
     u64 offset;
     u64 limit;
     StringView titleFilter;
+    i64 deviceId;
 };
 
 
@@ -442,7 +459,7 @@ Result setFilterCriteria(DatabaseConnection* connection, i64 filterId, const Ins
 
 Result updateFilter(DatabaseConnection* connection, const FilterMeta& meta);
 
-Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, u64 offset, u64 limit, InstallationLookupCallback callback);
+Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, InstallationLookupCallback callback);
 
 Result getFilterCriteria(DatabaseConnection* connection, i64 filterId, FilterCriteriaCallback callback);
 

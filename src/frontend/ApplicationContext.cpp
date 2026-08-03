@@ -186,6 +186,16 @@ void ApplicationContext::_initialize() {
 
     NBL_ASSERT(nbl::DatabaseConnection::open(path, &_mConnection).success());
     NBL_ASSERT(nbl::initDatabase(&_mConnection).success());
+
+    QVariantMap map = loadSettings();
+    _mDeviceId = map["device_id"].toLongLong();
+    if(_mDeviceId == 0) {
+        nbl::StringView hostname = nbl::getHostName();
+        NBL_ASSERT(nbl::addDevice(&_mConnection, { .name = hostname }, &_mDeviceId).success()); 
+    }
+
+    nbl::log(nbl::LogLevel::DEBUG, "Device ID: ", _mDeviceId);
+
 }
 
 
@@ -231,6 +241,11 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
     _mRunningProcesses[installationId] = handle;
 
     nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
+
+        if(meta.deviceId != _mDeviceId) {
+            nbl::log(nbl::LogLevel::ERROR, "Attempt to launch an installation from another device! (", meta.deviceId, " != ", _mDeviceId, ")");
+            return nbl::Result::INVALID_STATE;
+        }
 
         const nbl::InstallationType* installType = _mContext.getInstallationType(meta.type);
         if(installType == nullptr) {
@@ -280,6 +295,11 @@ int ApplicationContext::openInstallationFolder(i64 installationId) {
     NblProcessHandle* handle = new NblProcessHandle();
 
     nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
+
+        if(meta.deviceId != _mDeviceId) {
+            nbl::log(nbl::LogLevel::ERROR, "Attempt to open an installation folder for another device!");
+            return nbl::Result::INVALID_STATE;
+        }
 
         const nbl::InstallationType* installType = _mContext.getInstallationType(meta.type);
         if(installType == nullptr) {
@@ -445,6 +465,7 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
         .id = 0,
         .displayId = gId == 0 ? 0 : dId,
         .gameId = realGId,
+        .deviceId = _mDeviceId,
         .type = nbl::StringView(type.data(), type.length()),
         .command = nbl::StringView(command.data(), command.length()),
     };
@@ -559,7 +580,7 @@ void ApplicationContext::saveSettings(const QVariantMap& settings) {
     QJsonObject obj = QJsonObject::fromVariantMap(settings);
     QJsonDocument doc(obj);
 
-    QString filePath = dataFolder() + "/frontend.json";
+    QString filePath = dataFolder() + "/settings.json";
     QFile file(filePath);
 
     if(file.open(QIODevice::WriteOnly)) {
@@ -573,7 +594,7 @@ void ApplicationContext::saveSettings(const QVariantMap& settings) {
 
 QVariantMap ApplicationContext::loadSettings() {
 
-    QFile file(dataFolder() + "/frontend.json");
+    QFile file(dataFolder() + "/settings.json");
     if(!file.exists()) {
         return QVariantMap();
     }

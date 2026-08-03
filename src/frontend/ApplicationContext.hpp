@@ -31,6 +31,7 @@ class ApplicationContext : public QObject {
 
     // Properties
     Q_PROPERTY(QString dataFolder READ dataFolder CONSTANT)
+    Q_PROPERTY(qint64 deviceId READ deviceId CONSTANT)
 
 public:
 
@@ -47,6 +48,7 @@ public:
     }
 
     QString dataFolder() const;
+    qint64 deviceId() const { return _mDeviceId; }
 
     Q_INVOKABLE NblProcessHandle* launchInstallation(i64 installationId);
     Q_INVOKABLE NblProcessHandle* getRunningInstallation(i64 installationId);
@@ -121,5 +123,7 @@ private:
     nbl::PluginContext _mContext;
     nbl::PluginLoader _mLoader;
     QHash<i64, NblProcessHandle*> _mRunningProcesses;
+
+    i64 _mDeviceId;
 
 };

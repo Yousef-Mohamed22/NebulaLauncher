@@ -336,12 +336,13 @@ UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria 
     return connection->execute(&_updateFilterStmt);
 }
 
-nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, InstallationLookupCallback callback) {
+nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, InstallationLookupCallback callback) {
 
-    NBL_CHECK(getFilter(connection, tabId, [&](const nbl::FilterMeta& meta) -> nbl::Result {
+    NBL_CHECK(getFilter(connection, filterId, [&](const nbl::FilterMeta& meta) -> nbl::Result {
 
         InstallationSearchCriteria updatedCriteria = meta.criteria;
         updatedCriteria.offset = offset;
+        updatedCriteria.deviceId = deviceId;
 
         if(limit > 0) {
             updatedCriteria.limit = updatedCriteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;

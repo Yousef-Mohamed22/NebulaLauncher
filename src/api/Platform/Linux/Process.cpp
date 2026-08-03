@@ -7,6 +7,7 @@
  */
 
 #include <Platform/PlatformDefines.hpp>
+#include <climits>
 #ifdef NBL_PLATFORM_LINUX
 
 #include <Core/Result.hpp>
@@ -42,6 +43,20 @@ void _setHandle(void** handle, int value) {
 
 }
 
+
+
+nbl::StringView nbl::getHostName() {
+
+    static char hostname[HOST_NAME_MAX];
+    static StringView out = {};
+    if(out.length == 0) {
+        gethostname(hostname, HOST_NAME_MAX-1);
+        out.length = strlen(hostname);
+        out.data = hostname;
+    }
+
+    return out;
+}
 
 nbl::StringView nbl::getEnv(nbl::StringView name) {
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());

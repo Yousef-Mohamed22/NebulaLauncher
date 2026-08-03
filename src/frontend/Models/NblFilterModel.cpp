@@ -71,7 +71,7 @@ void NblFilterModel::_fetchPageData() {
     
     QList<NblInstallationRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::lookupInstallationsForFilter(db, _mFilterId, offset, limit, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
+    if(nbl::lookupInstallationsForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
         NblInstallationRef ref(res.installationId,
             fromNbl(res.title),
             fromNbl(res.poster),
