@@ -9,6 +9,10 @@ QtObject {
     property string nerdFont: _private.nerdFont.name
     property string monospaceFont: _private.monoFont.name
 
+    property string dateFormat: "yyyy/MM/dd"
+    function formatDate(epochMilli) {
+        return Qt.formatDate(new Date(epochMilli), dateFormat)
+    }
 
     property var colors: QtObject {
 

@@ -1,41 +1,38 @@
-#include <Models/NblGameModel.hpp>
+#include <Models/NblGameTagModel.hpp>
 #include <ApplicationContext.hpp>
 
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
 
-QVariant NblGameModel::data(const QModelIndex& index, int role) const {
+QVariant NblGameTagModel::data(const QModelIndex& index, int role) const {
 
     if(!index.isValid() || index.row() >= _mData.size()) return QVariant();
 
-    NblGameRef ref = _mData.at(index.row());
+    NblTagRef ref = _mData.at(index.row());
 
     switch(role) {
         case IdRole:
-            return ref.gId;
-        case TitleRole:
-            return ref.title;
-        case PosterRole:
-            return ref.poster;
-        case IconRole:
-            return ref.icon;
+            return ref.id;
+        case NameRole:
+            return ref.name;
+        case ColorRole:
+            return ref.color;
         default:
             return QVariant();
     }
 }
 
-QHash<int, QByteArray> NblGameModel::roleNames() const {
+QHash<int, QByteArray> NblGameTagModel::roleNames() const {
     QHash<int, QByteArray> roles = {};
     roles[IdRole] = "id";
-    roles[TitleRole] = "title";
-    roles[PosterRole] = "poster";
-    roles[IconRole] = "icon";
+    roles[NameRole] = "name";
+    roles[ColorRole] = "color";
     return roles;
 }
 
 
-void NblGameModel::loadNextPage() {
+void NblGameTagModel::loadNextPage() {
 
     if(!_mAllLoaded && !_mIsLoading) {
         _mCurrentPage++;
@@ -44,17 +41,11 @@ void NblGameModel::loadNextPage() {
     }
 }
 
-void NblGameModel::refresh() {
+void NblGameTagModel::refresh() {
 
     beginResetModel();
 
     _mData.clear();
-    if(_mIncludeNewGame) {
-        beginInsertRows(QModelIndex(), 0, 0);
-        _mData.append(NblGameRef(0, "New Game", "", ""));
-        endInsertRows();
-    }
-
     _mCurrentPage = 1;
     _mAllLoaded = false;
     _fetchPageData();
@@ -63,7 +54,7 @@ void NblGameModel::refresh() {
 
 }
 
-void NblGameModel::_fetchPageData() {
+void NblGameTagModel::_fetchPageData() {
 
     if(_mAllLoaded || _mIsLoading) return;
     _mIsLoading = true;
@@ -74,26 +65,14 @@ void NblGameModel::_fetchPageData() {
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
     
-    nbl::GameSearchCriteria criteria = {
-        .sortBy = nbl::GameSortBy::TITLE,
-        .offset = offset,
-        .limit = limit,
-        .titleFilter = nbl::StringView(_mQuery.data(), _mQuery.length())
-    };
-
-    QList<NblGameRef> found = {};
+    QList<NblTagRef> found = {};
     found.reserve(_mPageSize);
-    if(nbl::lookupGames(db, criteria, [&](const nbl::GameLookupResult& res) -> nbl::Result {
-        NblGameRef ref(
-                res.id,
-                fromNbl(res.title),
-                fromNbl(res.poster),
-                fromNbl(res.icon)
-        ); 
+    if(nbl::getGameTags(db, _mGameId, [&](const nbl::TagMeta& tag) -> nbl::Result {
+        NblTagRef ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
         found.append(ref);
         return nbl::Result::SUCCESS;
     }).error()) {
-        nbl::log(nbl::LogLevel::ERROR, "An error occurred while loading games!");
+        nbl::log(nbl::LogLevel::ERROR, "An error occurred while loading tags!");
         _mAllLoaded = true;
         _mIsLoading = false;
         emit isLoadingChanged();

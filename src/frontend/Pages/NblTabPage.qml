@@ -56,9 +56,13 @@ Item {
                         multiLine: modelData.multiLine
                         showTitles: modelData.showTitles
                         useIcons: modelData.useIcons
+                        showInstallations: modelData.showInstallations
 
                         onInstallationClicked: id => {
                             root.mainWindow.openInstallationDetails(id)
+                        }
+                        onGameClicked: id => {
+                            root.mainWindow.openGameDetails(id)
                         }
 
                         Connections {

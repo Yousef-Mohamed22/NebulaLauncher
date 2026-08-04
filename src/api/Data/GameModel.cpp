@@ -74,7 +74,7 @@ nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& me
     static nbl::PreparedStatement _addGameStmt;
     if(!_addGameStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO game (title, description, steamId, igdbId, releaseDate, rating, dId) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
+INSERT INTO game (title, description, releaseDate, rating, dId) VALUES (?1, ?2, ?3, ?4, ?5);
         )", &_addGameStmt));
     }
 
@@ -83,11 +83,9 @@ INSERT INTO game (title, description, steamId, igdbId, releaseDate, rating, dId)
     }
     NBL_CHECK(_addGameStmt.bindStringOrNull(1, meta.title));
     NBL_CHECK(_addGameStmt.bindStringOrNull(2, meta.description));
-    NBL_CHECK(_addGameStmt.bindUint(3, meta.steamId));
-    NBL_CHECK(_addGameStmt.bindUint(4, meta.igdbId));
-    NBL_CHECK(_addGameStmt.bindUint(5, meta.releaseDate));
-    NBL_CHECK(_addGameStmt.bindFloat(6, meta.rating));
-    NBL_CHECK(_addGameStmt.bindInt(7, meta.displayId));
+    NBL_CHECK(_addGameStmt.bindUint(3, meta.releaseDate));
+    NBL_CHECK(_addGameStmt.bindFloat(4, meta.rating));
+    NBL_CHECK(_addGameStmt.bindInt(5, meta.displayId));
 
     return connection->execute(&_addGameStmt, outGameId); 
 }
@@ -111,19 +109,17 @@ nbl::Result nbl::updateGame(DatabaseConnection* connection, i64 gameId, const Ga
     static nbl::PreparedStatement _updateGameStmt;
     if(!_updateGameStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-UPDATE game SET steamId=?1, igdbId=?2, releaseDate=?3, rating=?4, dId=?5 WHERE gId=?6;
+UPDATE game SET releaseDate=?1, rating=?2, dId=?3 WHERE gId=?4;
         )", &_updateGameStmt));
     }
 
     if(meta.displayId == 0) {
         return nbl::Result::INVALID_ARGUMENT;
     }
-    NBL_CHECK(_updateGameStmt.bindUint(1, meta.steamId));
-    NBL_CHECK(_updateGameStmt.bindUint(2, meta.igdbId));
-    NBL_CHECK(_updateGameStmt.bindUint(3, meta.releaseDate));
-    NBL_CHECK(_updateGameStmt.bindFloat(4, meta.rating));
-    NBL_CHECK(_updateGameStmt.bindInt(5, meta.displayId));
-    NBL_CHECK(_updateGameStmt.bindInt(6, gameId));
+    NBL_CHECK(_updateGameStmt.bindUint(1, meta.releaseDate));
+    NBL_CHECK(_updateGameStmt.bindFloat(2, meta.rating));
+    NBL_CHECK(_updateGameStmt.bindInt(3, meta.displayId));
+    NBL_CHECK(_updateGameStmt.bindInt(4, gameId));
 
     return connection->execute(&_updateGameStmt); 
 
@@ -193,27 +189,25 @@ ORDER BY tag.name ASC;
 
 nbl::Result nbl::getGameMeta(DatabaseConnection* connection, i64 gameId, GameMetaCallback callback) {
 
- static nbl::PreparedStatement _getGameDetailsStmt;
-    if(!_getGameDetailsStmt.isValid(connection)) {
+ static nbl::PreparedStatement _getGameMetaStmt;
+    if(!_getGameMetaStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT 
-game.gId, game.displayId, game.steamId, game.igdbId, game.releaseDate, game.rating, 
+game.gId, game.displayId, game.releaseDate, game.rating, 
 FROM game
 WHERE game.gId = ?1;
-        )", &_getGameDetailsStmt));
+        )", &_getGameMetaStmt));
     }
 
-    NBL_CHECK(_getGameDetailsStmt.bindUint(1, gameId));
+    NBL_CHECK(_getGameMetaStmt.bindUint(1, gameId));
 
-    return connection->execute(&_getGameDetailsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_getGameMetaStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         GameMeta meta = {
             .id = values[0].intValue,
             .displayId = values[1].intValue,
-            .steamId = values[2].uintValue(),
-            .igdbId = values[3].uintValue(),
-            .releaseDate = values[4].uintValue(),
-            .rating = values[5].floatValue
+            .releaseDate = values[2].uintValue(),
+            .rating = values[3].floatValue
         };
         return callback(meta);
 
@@ -225,11 +219,13 @@ nbl::Result nbl::getGameDetails(DatabaseConnection* connection, i64 gameId, Game
     static nbl::PreparedStatement _getGameDetailsStmt;
     if(!_getGameDetailsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT 
-game.gId, game.title, game.description, game.steamId, game.igdbId, game.releaseDate, game.rating, 
-display.dId, display.banner, display.poster, display.icon, display.logo, display.logoPosition
+SELECT
+game.gId, game.title, game.description, game.releaseDate, game.rating,
+display.dId, display.banner, display.poster, display.icon, display.logo, display.logoPosition,
+sum(installation.playTime), sum(installation.playCount), max(installation.lastPlayed), min(installation.added), count(installation.iId)
 FROM game
-JOIN display ON display.dId = game.dId
+JOIN display ON game.dId = display.dId
+FULL OUTER JOIN installation ON installation.gId = game.gId
 WHERE game.gId = ?1;
         )", &_getGameDetailsStmt));
     }
@@ -244,19 +240,22 @@ WHERE game.gId = ?1;
                 .displayId = values[5].intValue,
                 .title = values[1].textValue,
                 .description = values[2].textValue,
-                .steamId = values[3].uintValue(),
-                .igdbId = values[4].uintValue(),
-                .releaseDate = values[5].uintValue(),
-                .rating = values[6].floatValue
+                .releaseDate = values[3].uintValue(),
+                .rating = values[4].floatValue
             },
             .display = {
-                .id = values[7].intValue,
-                .banner = values[8].textValue,
-                .poster = values[9].textValue,
-                .icon = values[10].textValue,
-                .logo = values[11].textValue,
-                .logoPosition = static_cast<LogoPosition>(values[12].intValue)
-            }
+                .id = values[5].intValue,
+                .banner = values[6].textValue,
+                .poster = values[7].textValue,
+                .icon = values[8].textValue,
+                .logo = values[9].textValue,
+                .logoPosition = static_cast<LogoPosition>(values[10].intValue)
+            },
+            .playTime = values[11].uintValue(),
+            .playCount = values[12].uintValue(),
+            .lastPlayed = values[13].uintValue(),
+            .added = values[14].uintValue(),
+            .installationCount = values[15].uintValue()
         };
         return callback(details);
 
@@ -266,17 +265,17 @@ WHERE game.gId = ?1;
 
 
 
-nbl::Result nbl::lookupGames(DatabaseConnection *connection, const GameSearchCriteria& criteria, GameLookupCallback callback) {
+nbl::Result nbl::lookupGames(DatabaseConnection *connection, const SearchCriteria& criteria, GameLookupCallback callback) {
 
     usize sortByIndex = static_cast<usize>(criteria.sortBy);
     usize sortOrderIndex = static_cast<usize>(criteria.sortOrder);
 
     usize statementIndex = sortByIndex * 2 + sortOrderIndex;
-    if(statementIndex >= 6) {
+    if(statementIndex >= 16) {
         return nbl::Result::INVALID_ARGUMENT;
     }
 
-    static nbl::PreparedStatement _lookupGamesStmts[6];
+    static nbl::PreparedStatement _lookupGamesStmts[16];
     nbl::PreparedStatement& lookupGamesStmt = _lookupGamesStmts[statementIndex];
 
     if(!lookupGamesStmt.isValid(connection)) {
@@ -315,7 +314,7 @@ matching_sets AS (
 		search_sets.setId
 ),
 excluded_tags AS (
-	SELECT descendantId
+	SELECT descendantId as tId
 	FROM tag_closure
 	WHERE NOT ?2 IS NULL
 	  AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
@@ -326,14 +325,15 @@ FROM game
 LEFT JOIN matching_sets ON matching_sets.gId = game.gId
 LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId
 JOIN display ON display.dId = game.dId
-LEFT JOIN game_tag ON game_tag.gId = game.gId
-WHERE (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
-  AND (?2 IS NULL OR NOT EXISTS (SELECT tId FROM excluded_tags INTERSECT SELECT tId FROM all_game_tags WHERE all_game_tags.gId = game.gId))
-  AND game.releaseDate >= ?3
+FULL OUTER JOIN installation ON installation.gId = game.gId
+WHERE game.releaseDate >= ?3
   AND (?4 = 0 OR game.releaseDate <= ?4)
   AND game.rating >= ?5
   AND (?6 = 0 OR game.rating <= ?6)
   AND (?7 IS NULL OR game.title LIKE '%' || ?7 || '%')
+  AND (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
+  AND (?2 IS NULL OR NOT EXISTS (SELECT tId FROM excluded_tags INTERSECT SELECT tId FROM all_game_tags WHERE all_game_tags.gId = game.gId))
+  AND (?10 = 0 OR installation.deviceId = ?10)
 GROUP BY game.gId
 )";
 
@@ -349,17 +349,29 @@ OFFSET ?8;
         stmtBuilder.append(_stmtBegin);
 
         switch(criteria.sortBy) {
-            case GameSortBy::TITLE:
+            case SortBy::TITLE:
                 if(criteria.titleFilter.empty()) {
                     stmtBuilder.append("ORDER BY game.title");
                 } else {
                     stmtBuilder.append("ORDER BY nbl_str_distance(game.title, ?7)");
                 }
                 break;
-            case GameSortBy::RELEASE_DATE:
+            case SortBy::LAST_PLAYED:
+                stmtBuilder.append("ORDER BY max(installation.lastPlayed)");
+                break;
+            case SortBy::RELEASE_DATE:
                 stmtBuilder.append("ORDER BY game.releaseDate");
                 break;
-            case GameSortBy::RATING:
+            case SortBy::ADDED:
+                stmtBuilder.append("ORDER BY min(installation.added)");
+                break;
+            case SortBy::PLAY_COUNT:
+                stmtBuilder.append("ORDER BY sum(installation.playCount)");
+                break;
+            case SortBy::PLAY_TIME:
+                stmtBuilder.append("ORDER BY sum(installation.playTime)");
+                break;
+            case SortBy::RATING:
                 stmtBuilder.append("ORDER BY game.rating");
                 break;
             default:
@@ -435,6 +447,7 @@ OFFSET ?8;
         NBL_CHECK(lookupGamesStmt.bindStringOrNull(7, criteria.titleFilter));
         NBL_CHECK(lookupGamesStmt.bindUint(8, criteria.offset));
         NBL_CHECK(lookupGamesStmt.bindUint(9, criteria.limit == 0 ? 10 : criteria.limit));
+        NBL_CHECK(lookupGamesStmt.bindInt(10, criteria.deviceId));
     }
 
     return connection->execute(&lookupGamesStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {

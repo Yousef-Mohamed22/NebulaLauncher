@@ -49,6 +49,11 @@ void NblGameSearchModel::refresh() {
     beginResetModel();
 
     _mData.clear();
+
+    if(_mIncludeNewGame) {
+        _mData.append(_Row(0, "+ New Game", {}, {}));
+    }
+
     _mCurrentPage = 1;
     _mAllLoaded = false;
     _mExactMatch = false;
@@ -66,7 +71,7 @@ void NblGameSearchModel::_fetchPageData() {
     _mIsLoading = true;
     emit isLoadingChanged();
 
-    u64 offset = (_mCurrentPage - 1) * _mPageSize;
+    u64 offset = _mData.size();
     u64 limit = _mPageSize;
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
@@ -77,7 +82,8 @@ void NblGameSearchModel::_fetchPageData() {
     bool exactMatch;
     found.reserve(_mPageSize);
 
-    nbl::GameSearchCriteria criteria = {
+    nbl::SearchCriteria criteria = {
+        .sortBy = nbl::SortBy::TITLE,
         .offset = offset,
         .limit = limit,
         .titleFilter = query
@@ -102,6 +108,7 @@ void NblGameSearchModel::_fetchPageData() {
         nbl::log(nbl::LogLevel::ERROR, "An error occurred while loading tags!");
         _mAllLoaded = true;
         _mIsLoading = false;
+        emit allLoadedChanged();
         emit isLoadingChanged();
         return;
     }

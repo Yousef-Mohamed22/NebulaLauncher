@@ -50,7 +50,7 @@ Item {
         visible: root.imageSource.length == 0
     }
 
-    Image {
+    NblImage {
         id: loadedImage
         anchors.fill: background
         anchors.margins: 2

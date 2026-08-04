@@ -11,13 +11,25 @@ Item {
 
     id: root
     required property MainWindow mainWindow
-    required property NblInstallationDetails details
+    required property NblGameDetails details
+    
+    property int selectedInstallation: installationPicker.selectedInstallationId
+    property NblInstallationDetails installationDetails
+
+    onInstallationDetailsChanged: {
+        installationPicker.selectedInstallation = installationDetails
+    }
+
+    property int logoPosition: installationDetails == null ? details.logoPosition : installationDetails.logoPosition
+    property string logo: installationDetails == null ? details.logoUrl() : installationDetails.logoUrl()
+    property string banner: installationDetails == null ? details.bannerUrl() : installationDetails.bannerUrl()
 
     property bool isFavorite: false
 
     function refresh() {
         isFavorite = false
-        details = ApplicationContext.getInstallationDetails(details.installationId)
+        details = ApplicationContext.getGameDetails(details.gameId)
+        installationPicker.refresh()
     }
 
     GridLayout {
@@ -41,9 +53,9 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 240
 
-            Image {
+            NblCrossfadeImage {
                 id: banner
-                source: root.details.bannerUrl()
+                source: root.banner
                 fillMode: Image.PreserveAspectCrop
                 width: parent.width
                 height: parent.height
@@ -68,6 +80,8 @@ Item {
                 anchors.fill: banner
                 maskEnabled: true
                 maskSource: maskShape
+                maskThresholdMin: 0.5
+                maskThresholdMax: 1.0
             }
 
             // Logo image
@@ -75,16 +89,34 @@ Item {
 
                 height: parent.height
                 width: 256
+                visible: root.logoPosition < 3
 
-                visible: root.details.logoPosition < 3
 
-                anchors.left: root.details.logoPosition == 0 ? parent.left : undefined
-                anchors.horizontalCenter: root.details.logoPosition == 1 ? parent.horizontalCenter : undefined
-                anchors.right: root.details.logoPosition == 2 ? parent.right : undefined
+                x: _calculateX()
 
-                Image {
+                function _calculateX() {
+                    if(root.logoPosition == 0) { // Left
+                        return 0
+                    }
+                    if(root.logoPosition == 1) { // Center
+                        return (parent.width / 2) - (width / 2)
+                    }
+                    if(root.logoPosition == 2) { // Right
+                        return parent.width - width
+                    }
+                    return 0
+                }
+
+                Behavior on x {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.InOutQuad
+                    }
+                }
+
+                NblCrossfadeImage {
                     id: logo
-                    source: root.details.logoUrl()
+                    source: root.logo
                     anchors.centerIn: parent
                     width: parent.width - 16
                     height: parent.height - 16
@@ -93,17 +125,71 @@ Item {
             }
         }
 
-        // Launch Button
-        Item {
+        RowLayout {
+
+            id: launchBar
+
             Layout.fillWidth: true
             Layout.preferredHeight: 48
 
-            NblLaunchButton {
-                id: launchBtn
-                x: 12
-                y: -24
-                installationId: root.details.installationId
+            spacing: 8
+
+            Rectangle {
+                Layout.preferredWidth: 8
+                Layout.preferredHeight: 48
+                radius: 8
+                color: Theme.colors.layer1
             }
+
+            // Launch Button
+            Item {
+                Layout.maximumWidth: 250
+                Layout.minimumWidth: 48
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+
+                RectangularShadow {
+
+                    width: parent.width - 4
+                    height: 10
+                    y: -22
+                    radius: 8
+
+                    spread: 4
+                    color: Theme.colors.shadow
+
+                }
+
+                NblLaunchButton {
+                    id: launchBtn
+                    width: parent.width
+                    height: 72
+                    y: -24
+                    installationId: root.selectedInstallation
+                }                
+            }
+
+            // Installation picker
+            NblInstallationPicker {
+                id: installationPicker
+                gameId: root.details.gameId
+                Layout.maximumWidth: 250
+                Layout.minimumWidth: 48
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+
+                onSelectedInstallationChanged: {
+                    root.installationDetails = selectedInstallation
+                }
+            }
+            Rectangle {
+                visible: root.width > 808
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+                radius: 8
+                color: Theme.colors.layer1
+            }
+
         }
 
         // Actions
@@ -128,9 +214,9 @@ Item {
 
                         let rc = 0
                         if(root.isFavorite) {
-                            rc = ApplicationContext.untagInstallation(root.details.installationId, favoriteTagId)
+                            rc = ApplicationContext.untagGame(root.details.gameId, favoriteTagId)
                         } else {
-                            rc = ApplicationContext.tagInstallation(root.details.installationId, favoriteTagId)
+                            rc = ApplicationContext.tagGame(root.details.gameId, favoriteTagId)
                         }
                         if(rc != 0) {
                             ApplicationContext.pushNotification({
@@ -149,7 +235,7 @@ Item {
                     Layout.fillWidth: true
                     icon: ""
                     onClicked: {
-                        ApplicationContext.openInstallationFolder(root.details.installationId)
+                        ApplicationContext.openInstallationFolder(root.selectedInstallation)
                     }
                 }
 
@@ -167,7 +253,7 @@ Item {
                     Layout.fillWidth: true
                     icon: ""
                     onClicked: {
-                        root.mainWindow.beginEditInstallation(root.details.installationId)
+                        root.mainWindow.beginEditInstallation(root.selectedInstallation)
                     }
                 }
 
@@ -176,9 +262,9 @@ Item {
                     icon: ""
                     onClicked: {
                         root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
-                            "text": "Are you sure you want to delete this installation?"
+                            "text": "Are you sure you want to delete this game and all of its installations?"
                         }, function() {
-                            ApplicationContext.deleteInstallation(root.details.installationId)
+                            ApplicationContext.deleteGame(root.details.gameId)
                             root.mainWindow.closeInstallationDetails()
                         })
                     }
@@ -204,7 +290,7 @@ Item {
                     font.pixelSize: 24
                     font.weight: 500
                     color: Theme.colors.text
-                    text: root.details.gameTitle + (root.details.title.byteLength > 0 ? (" - " + root.details.title) : "")
+                    text: root.details.title
                 }
 
                 Label {
@@ -217,19 +303,6 @@ Item {
 
                     color: Theme.colors.textDim
                     text: root.details.description
-                    visible: root.details.description.byteLength > 0
-                }
-
-                Label {
-                    width: parent.width
-
-                    font.family: Theme.font
-                    font.pixelSize: 16
-                    font.weight: 400
-                    wrapMode: Text.WordWrap
-
-                    color: Theme.colors.textDim
-                    text: root.details.gameDescription
                 }
             }
         }
@@ -252,10 +325,6 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 16
                 spacing: 8
-
-                function _formatDate(timeUint) {
-                    return Qt.formatDate(new Date(timeUint), "yyyy/MM/dd")
-                }
 
                 function _formatElapsedTime(totalMs) {
                     let totalSeconds = Math.floor(totalMs / 1000);
@@ -281,7 +350,7 @@ Item {
                     font.pixelSize: 14
                     font.weight: 600
                     color: Theme.colors.textDim
-                    text: "Release Date: " + parent._formatDate(root.details.releaseDate)
+                    text: "Release Date: " + Theme.formatDate(root.details.releaseDate)
                 }
 
                 Label {
@@ -289,7 +358,7 @@ Item {
                     font.pixelSize: 14
                     font.weight: 600
                     color: Theme.colors.textDim
-                    text: "Added: " + parent._formatDate(root.details.added)
+                    text: "Added: " + Theme.formatDate(root.details.added)
                 }
 
                 Label {
@@ -297,7 +366,7 @@ Item {
                     font.pixelSize: 14
                     font.weight: 600
                     color: Theme.colors.textDim
-                    text: "Last played: " + (root.details.lastPlayed == 0 ? "Never" : parent._formatDate(root.details.lastPlayed))
+                    text: "Last played: " + (root.details.lastPlayed == 0 ? "Never" : Theme.formatDate(root.details.lastPlayed))
                 }
 
                 Label {
@@ -342,9 +411,9 @@ Item {
                     spacing: 8
 
                     Repeater {
-                        model: NblInstallationTagModel {
+                        model: NblGameTagModel {
                             id: tagModel
-                            installationId: root.details.installationId
+                            gameId: root.details.gameId
                             pageSize: 8
                         }
 

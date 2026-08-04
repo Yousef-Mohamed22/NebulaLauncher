@@ -16,57 +16,34 @@
 
 
 
-nbl::StringView nbl::getName(InstallationSortBy sortBy) {
+nbl::StringView nbl::getName(SortBy sortBy) {
     switch(sortBy) {
         default:
-        case InstallationSortBy::TITLE:
+        case SortBy::TITLE:
             return "title";
-        case InstallationSortBy::LAST_PLAYED:
+        case SortBy::LAST_PLAYED:
             return "last_played";
-        case InstallationSortBy::ADDED:
+        case SortBy::ADDED:
             return "added";
-        case InstallationSortBy::PLAY_COUNT:
+        case SortBy::PLAY_COUNT:
             return "play_count";
-        case InstallationSortBy::PLAY_TIME:
+        case SortBy::PLAY_TIME:
             return "play_time";
-        case InstallationSortBy::RELEASE_DATE:
+        case SortBy::RELEASE_DATE:
             return "release_date";
-        case InstallationSortBy::RATING:
+        case SortBy::RATING:
             return "rating";
     }
 }
 
-nbl::Result nbl::byName(StringView name, InstallationSortBy* outSortBy) {
-    for(auto i = 0 ; i < static_cast<i32>(InstallationSortBy::_END) ; i++) {
-        if(name == getName(static_cast<InstallationSortBy>(i))) {
-            *outSortBy = static_cast<InstallationSortBy>(i);
+nbl::Result nbl::byName(StringView name, SortBy* outSortBy) {
+    for(auto i = 0 ; i < static_cast<i32>(SortBy::_END) ; i++) {
+        if(name == getName(static_cast<SortBy>(i))) {
+            *outSortBy = static_cast<SortBy>(i);
             return nbl::Result::SUCCESS;
         }
     }
     nbl::log(nbl::LogLevel::WARN, "Unknown installation sort by: ", name);
-    return nbl::Result::INVALID_ARGUMENT;
-}
-
-nbl::StringView nbl::getName(GameSortBy sortBy) {
-    switch(sortBy) {
-        default:
-        case GameSortBy::TITLE:
-            return "title";
-        case GameSortBy::RELEASE_DATE:
-            return "release_date";
-        case GameSortBy::RATING:
-            return "rating";
-    }
-}
-
-nbl::Result nbl::byName(StringView name, GameSortBy* outSortBy) {
-    for(auto i = 0 ; i < static_cast<i32>(GameSortBy::_END) ; i++) {
-        if(name == getName(static_cast<GameSortBy>(i))) {
-            *outSortBy = static_cast<GameSortBy>(i);
-            return nbl::Result::SUCCESS;
-        }
-    }
-    nbl::log(nbl::LogLevel::WARN, "Unknown game sort by: ", name);
     return nbl::Result::INVALID_ARGUMENT;
 }
 
@@ -130,8 +107,6 @@ CREATE TABLE IF NOT EXISTS game (
     gId INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     description TEXT,
-    steamId INTEGER,
-    igdbId INTEGER,
     dId INTEGER NOT NULL,
     releaseDate INTEGER,
     rating REAL,
@@ -204,6 +179,7 @@ CREATE TABLE IF NOT EXISTS filter (
     multiLine BOOLEAN NOT NULL DEFAULT 0,
     useIcons BOOLEAN NOT NULL DEFAULT 0,
     showTitles BOOLEAN NOT NULL DEFAULT 0,
+    onlyInstalled BOOLEAN NOT NULL DEFAULT 0,
     priority INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY(tabId) REFERENCES tab(tabId) ON DELETE CASCADE
 );
@@ -227,7 +203,7 @@ VALUES
 INSERT INTO filter 
 (fId,tabId,name,icon,criteria,multiLine,priority) 
 VALUES
-(1,1,'All Installations','󰊗','{"sortBy":"title","sortOrder":"ascending"}',1,0),
+(1,1,'All Games','󰊗','{"sortBy":"title","sortOrder":"ascending"}',1,0),
 (2,1,'Recently Played','','{"sortBy":"last_played","sortOrder":"descending"}',0,1);
 
 INSERT INTO tab 

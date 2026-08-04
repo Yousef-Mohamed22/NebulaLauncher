@@ -206,7 +206,7 @@ TEST(Game, LookupSingleGameByName) {
 
     i64 foundId = 0;
 
-    nbl::GameSearchCriteria criteria = {
+    nbl::SearchCriteria criteria = {
         .titleFilter = "Test Game"
     };
 
@@ -246,7 +246,7 @@ TEST(Game, LookupSingleGameByTag) {
     ASSERT_TRUE(nbl::addGameTag(&connection, gameId, tId).success());
 
     i64 foundId = 0;
-    nbl::GameSearchCriteria criteria = {};
+    nbl::SearchCriteria criteria = {};
 
     nbl::Array tags = { tId };
     nbl::Array tagSets = { tags.constSpan() };

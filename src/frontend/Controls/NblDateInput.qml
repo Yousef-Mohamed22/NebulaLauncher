@@ -3,7 +3,7 @@ import QtQuick
 NblTextBox {
 
     property var date: new Date()
-    property string format: "yyyy/MM/dd"
+    property string format: Theme.dateFormat
     property bool utc: true
 
     function getTime() {

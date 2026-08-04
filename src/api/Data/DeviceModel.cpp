@@ -14,7 +14,7 @@ nbl::Result nbl::addDevice(DatabaseConnection* connection, DeviceMeta meta, i64*
     static nbl::PreparedStatement _addDeviceStmt;
     if(!_addDeviceStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO device (name) VALUES ?1;
+INSERT INTO device (name) VALUES (?1);
         )", &_addDeviceStmt));
     }
     _addDeviceStmt.bindString(1, meta.name);

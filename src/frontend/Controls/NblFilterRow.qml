@@ -12,11 +12,14 @@ Item {
     required property bool multiLine
     required property bool useIcons
     required property bool showTitles
+    required property bool showInstallations
 
     property bool showRowTitle: true
 
     implicitHeight: content.height
 
+    signal itemClicked(int id)
+    signal gameClicked(int id)
     signal installationClicked(int id)
 
     Column {
@@ -49,7 +52,7 @@ Item {
             }
         }
 
-        NblInstallationList {
+        NblGameList {
 
             id: list
             width: content.width
@@ -61,14 +64,20 @@ Item {
             model: NblFilterModel {
                 pageSize: 10
                 filterId: root.filterId
+                searchInstallations: root.showInstallations
             }
             onLoadMore: {
                 model.loadNextPage()
                 allLoaded = model.allLoaded
             }
 
-            onInstallationClicked: id => {
-                root.installationClicked(id)
+            onItemClicked: id => {
+                root.itemClicked(id)
+                if(root.showInstallations) {
+                    root.installationClicked(id)
+                } else {
+                    root.gameClicked(id)
+                }
             }
         }
         

@@ -31,7 +31,7 @@ Item {
         return realWidth
     }
 
-    signal installationClicked(int id)
+    signal itemClicked(int id)
     signal loadMore
 
     implicitHeight: content.height
@@ -42,13 +42,12 @@ Item {
         height: loader.item == null ? 0 : loader.item.height
 
         property Component buttonDelegate: Component {
-            NblInstallationButton {
+            NblGameButton {
                 required property var modelData
 
                 width: root.itemWidth
                 height: root.rowHeight
 
-                installationId: modelData.id
                 fallbackSource: "qrc:/qt/qml/Nebula/images/" + (root.useIcons ? "UnknownIcon.png" : "UnknownPoster.png")
                 imageSource: root.getImageSource(modelData) ?? fallbackSource
                 title: modelData.title
@@ -57,7 +56,7 @@ Item {
                 titleAlignment: root.useIcons ? Qt.AlignHCenter : Qt.AlignLeft
 
                 onClicked: {
-                    root.installationClicked(modelData.id)
+                    root.itemClicked(modelData.id)
                 }
             }
         }
@@ -158,10 +157,10 @@ Item {
 
         if(root.useIcons) {
             if(modelData.icon.byteLength == 0) return null
-            return "file://" + ApplicationContext.dataFolder + "/media/icon/" + modelData.icon
+            return ApplicationContext.mediaUrl(modelData.icon, "icon") //"file://" + ApplicationContext.dataFolder + "/media/icon/" + modelData.icon
         }
         if(modelData.poster.byteLength == 0) return null
-        return "file://" + ApplicationContext.dataFolder + "/media/poster/" + modelData.poster
+        return ApplicationContext.mediaUrl(modelData.poster, "poster") //"file://" + ApplicationContext.dataFolder + "/media/poster/" + modelData.poster
 
     }
 }

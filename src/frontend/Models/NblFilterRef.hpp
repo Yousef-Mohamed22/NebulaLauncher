@@ -18,6 +18,7 @@ class NblFilterRef : public QObject {
     Q_PROPERTY(bool multiLine READ multiLine CONSTANT)
     Q_PROPERTY(bool showTitles READ showTitles CONSTANT)
     Q_PROPERTY(bool useIcons READ useIcons CONSTANT)
+    Q_PROPERTY(bool showInstallations READ showInstallations CONSTANT)
 
 public:
 
@@ -29,10 +30,11 @@ public:
         _mColorizeIcon(false),
         _mMultiLine(false),
         _mShowTitles(false),
-        _mUseIcons(false)
+        _mUseIcons(false),
+        _mShowInstallations(false)
     {}
 
-    NblFilterRef(i64 id, QByteArray name, QByteArray icon, bool colorizeIcon, bool multiLine, bool showTitles, bool useIcons, QObject* parent = nullptr) :
+    NblFilterRef(i64 id, QByteArray name, QByteArray icon, bool colorizeIcon, bool multiLine, bool showTitles, bool useIcons, bool showInstallations, QObject* parent = nullptr) :
         QObject(parent),
         _mFilterId(id),
         _mName(name),
@@ -40,7 +42,8 @@ public:
         _mColorizeIcon(colorizeIcon),
         _mMultiLine(multiLine),
         _mShowTitles(showTitles),
-        _mUseIcons(useIcons)
+        _mUseIcons(useIcons),
+        _mShowInstallations(showInstallations)
     { }
 
     NblFilterRef(const NblFilterRef& other) :
@@ -51,7 +54,8 @@ public:
         _mColorizeIcon(other._mColorizeIcon),
         _mMultiLine(other._mMultiLine),
         _mShowTitles(other._mShowTitles),
-        _mUseIcons(other._mUseIcons)
+        _mUseIcons(other._mUseIcons),
+        _mShowInstallations(other._mShowInstallations)
     { }
 
     NblFilterRef& operator=(const NblFilterRef& other) {
@@ -63,6 +67,7 @@ public:
         _mMultiLine = other._mMultiLine;
         _mShowTitles = other._mShowTitles;
         _mUseIcons = other._mUseIcons;
+        _mShowInstallations = other._mShowInstallations;
 
         setParent(other.parent());
         return *this;
@@ -75,6 +80,7 @@ public:
     bool multiLine() { return _mMultiLine; }
     bool showTitles() { return _mShowTitles; }
     bool useIcons() { return _mUseIcons; }
+    bool showInstallations() { return _mShowInstallations; }
 
 private:
     
@@ -85,6 +91,7 @@ private:
     bool _mMultiLine;
     bool _mShowTitles;
     bool _mUseIcons;
+    bool _mShowInstallations;
 
 };
 

@@ -4,12 +4,12 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Controls
 import QtQuick.Shapes
+import QtQuick.Window
 
 Item {
 
     id: root
 
-    required property int installationId
     required property string imageSource
     required property string title
     required property real aspectRatio
@@ -81,7 +81,7 @@ Item {
         height: root.scaleFactor
         anchors.horizontalCenter: parent.horizontalCenter
 
-        Image {
+        NblImage {
             id: image
             anchors.fill: parent
             source: root.imageSource

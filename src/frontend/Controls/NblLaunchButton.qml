@@ -13,8 +13,8 @@ Item {
         handle = ApplicationContext.getRunningInstallation(installationId)
     }
 
-    height: 72
-    width: 212
+    implicitHeight: 72
+    implicitWidth: 212
 
     enum State {
         NOT_RUNNING,
@@ -42,25 +42,14 @@ Item {
         return NblLaunchButton.State.NOT_RUNNING
     }
 
-
-    RectangularShadow {
-
-        width: parent.width - 4
-        height: parent.height - 4
-        anchors.centerIn: parent
-        radius: 8
-
-        spread: 4
-        color: Theme.colors.shadow
-
-    }
-
     Rectangle {
 
         id: background
 
         height: parent.height
         width: parent.width
+
+        property bool textVisible: width > 150
 
         color: (root.processState === NblLaunchButton.State.STOPPING || root.processState === NblLaunchButton.State.STARTING) ? Theme.colors.layer0 : Theme.colors.accent
         radius: 8
@@ -79,6 +68,7 @@ Item {
                 color: Theme.colors.textOnAccent
             }
             Label {
+                visible: background.textVisible
                 text: "LAUNCH"
                 font.family: Theme.font
                 font.pixelSize: 28
@@ -101,6 +91,7 @@ Item {
                 color: Theme.colors.textOnAccent
             }
             Label {
+                visible: background.textVisible
                 text: "STOP"
                 font.family: Theme.font
                 font.pixelSize: 28
@@ -117,6 +108,15 @@ Item {
             anchors.centerIn: parent
 
             Label {
+                visible: !background.textVisible
+                text: ""
+                font.family: Theme.nerdFont
+                font.pixelSize: 28
+                color: Theme.colors.textDim
+            }
+
+            Label {
+                visible: background.textVisible
                 text: "Starting..."
                 font.family: Theme.font
                 font.pixelSize: 20
@@ -133,6 +133,15 @@ Item {
             anchors.centerIn: parent
 
             Label {
+                visible: !background.textVisible
+                text: ""
+                font.family: Theme.nerdFont
+                font.pixelSize: 28
+                color: Theme.colors.textDim
+            }
+
+            Label {
+                visible: background.textVisible
                 text: "Stopping..."
                 font.family: Theme.font
                 font.pixelSize: 20

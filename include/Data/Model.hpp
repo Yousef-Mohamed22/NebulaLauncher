@@ -17,7 +17,7 @@ namespace nbl {
 /**
  * \brief Enumeration for sorting options when looking up installations
  */
-enum class InstallationSortBy {
+enum class SortBy {
     TITLE,
     LAST_PLAYED,
     ADDED,
@@ -28,22 +28,8 @@ enum class InstallationSortBy {
     _END
 };
 
-StringView getName(InstallationSortBy sortBy);
-Result byName(StringView name, InstallationSortBy* outSortBy);
-
-
-/**
- * \brief Enumeration for sorting options when looking up games
- */
-enum class GameSortBy {
-    TITLE,
-    RELEASE_DATE,
-    RATING,
-    _END
-};
-
-StringView getName(GameSortBy sortBy);
-Result byName(StringView name, GameSortBy* outSortBy);
+StringView getName(SortBy sortBy);
+Result byName(StringView name, SortBy* outSortBy);
 
 
 /**
@@ -74,6 +60,23 @@ inline LogoPosition byId(u32 id) {
 }
 
 
+struct SearchCriteria {
+    ConstSpan<ConstSpan<i64>> tags;
+    ConstSpan<i64> excludedTags;
+    u64 minReleaseDate;
+    u64 maxReleaseDate;
+    f64 minRating;
+    f64 maxRating;
+    u64 minPlayTime;
+    u64 maxPlayTime;
+    SortBy sortBy;
+    SortOrder sortOrder;
+    u64 offset;
+    u64 limit;
+    StringView titleFilter;
+    i64 gameId;
+    i64 deviceId;
+};
 
 
 /**
@@ -151,8 +154,6 @@ struct GameMeta {
     i64 displayId;
     StringView title;
     StringView description;
-    u64 steamId;
-    u64 igdbId;
     u64 releaseDate;
     f64 rating;
 };
@@ -160,6 +161,11 @@ struct GameMeta {
 struct GameDetails {
     GameMeta game;
     DisplayMeta display;
+    u64 playTime;
+    u64 playCount;
+    u64 lastPlayed;
+    u64 added;
+    u64 installationCount;
 };
 
 struct GameLookupResult {
@@ -169,20 +175,6 @@ struct GameLookupResult {
     f64 rating;
     StringView poster;
     StringView icon;
-};
-
-struct GameSearchCriteria {
-    ConstSpan<ConstSpan<i64>> tags;
-    ConstSpan<i64> excludedTags;
-    u64 minReleaseDate;
-    u64 maxReleaseDate;
-    f64 minRating;
-    f64 maxRating;
-    GameSortBy sortBy;
-    SortOrder sortOrder;
-    u64 offset;
-    u64 limit;
-    StringView titleFilter;
 };
 
 /**
@@ -261,7 +253,7 @@ Result getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCal
  */
 Result lookupGames(
         DatabaseConnection* connection, 
-        const GameSearchCriteria& criteria,
+        const SearchCriteria& criteria,
         GameLookupCallback callback);
 
 //
@@ -305,6 +297,7 @@ struct InstallationLookupResult {
     i64 deviceId;
 
     StringView title;
+    StringView gameTitle;
     u64 playTime;
     u64 playCount;
     u64 lastPlayed;
@@ -322,23 +315,6 @@ struct InstallationDetails {
     GameMeta game;
     DisplayMeta display;
     DisplayMeta gameDisplay;
-};
-
-struct InstallationSearchCriteria {
-    ConstSpan<ConstSpan<i64>> tags;
-    ConstSpan<i64> excludedTags;
-    u64 minReleaseDate;
-    u64 maxReleaseDate;
-    f64 minRating;
-    f64 maxRating;
-    u64 minPlayTime;
-    u64 maxPlayTime;
-    InstallationSortBy sortBy;
-    SortOrder sortOrder;
-    u64 offset;
-    u64 limit;
-    StringView titleFilter;
-    i64 deviceId;
 };
 
 
@@ -399,16 +375,18 @@ Result getDirectInstallationTags(DatabaseConnection* connection, i64 installatio
 /**
  * \brief Looks up installations in the database that match the specified criteria and invokes a callback for each matching installation
  * \param connection The database connection to use for the query
- * \param criteria An InstallationSearchCriteria struct containing the criteria for filtering and sorting the installations to be retrieved
+ * \param criteria An SearchCriteria struct containing the criteria for filtering and sorting the installations to be retrieved
  * \param callback The callback function to invoke for each matching installation found
  * \param userData A pointer to user-defined data that will be passed to the callback function
  * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, the lookup will be aborted and this function will return that failure Result.
  */
 Result lookupInstallations(
         DatabaseConnection* connection, 
-        const InstallationSearchCriteria& criteria,
+        const SearchCriteria& criteria,
         InstallationLookupCallback callback); 
 
+
+Result getInstallationsOfGame(DatabaseConnection* connection, i64 gameId, i64 deviceId, u64 limit, u64 offset, InstallationLookupCallback callback);
 
 /**
  * \brief Marks an installation as just played by updating its play count, and last played timestamp in the database
@@ -441,11 +419,13 @@ struct FilterMeta {
     bool multiLine;
     bool showTitles;
     bool useIcons;
-    InstallationSearchCriteria criteria;
+    bool onlyInstalled;
+    bool showInstallations;
+    SearchCriteria criteria;
 };
 
 typedef std::function_ref<Result(const FilterMeta&)> FilterCallback;
-typedef std::function_ref<Result(const InstallationSearchCriteria&)> FilterCriteriaCallback;
+typedef std::function_ref<Result(const SearchCriteria&)> FilterCriteriaCallback;
 
 Result countFilters(DatabaseConnection* connection, u64* numFilters);
 
@@ -455,11 +435,13 @@ Result removeFilter(DatabaseConnection* connection, i64 filterId);
 
 Result getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback callback);
 
-Result setFilterCriteria(DatabaseConnection* connection, i64 filterId, const InstallationSearchCriteria& criteria);
+Result setFilterCriteria(DatabaseConnection* connection, i64 filterId, const SearchCriteria& criteria);
 
 Result updateFilter(DatabaseConnection* connection, const FilterMeta& meta);
 
 Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, InstallationLookupCallback callback);
+
+Result lookupGamesForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, GameLookupCallback callback);
 
 Result getFilterCriteria(DatabaseConnection* connection, i64 filterId, FilterCriteriaCallback callback);
 

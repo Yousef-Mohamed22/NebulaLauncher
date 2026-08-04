@@ -29,11 +29,10 @@ class NblInstallationDetails : public QObject {
     Q_PROPERTY(uint64_t lastPlayed READ lastPlayed CONSTANT)
     Q_PROPERTY(uint64_t added READ added CONSTANT)
     Q_PROPERTY(uint64_t releaseDate READ releaseDate CONSTANT)
-    Q_PROPERTY(uint64_t steamId READ steamId CONSTANT)
-    Q_PROPERTY(uint64_t igdbId READ igdbId CONSTANT)
     Q_PROPERTY(double rating READ rating CONSTANT)
     Q_PROPERTY(QByteArray gameTitle READ gameTitle CONSTANT)
     Q_PROPERTY(QByteArray gameDescription READ gameDescription CONSTANT)
+    Q_PROPERTY(QByteArray resolvedTitle READ resolvedTitle CONSTANT)
 
 public:
 
@@ -80,8 +79,6 @@ public:
         u64 added,
         u64 releaseDate,
         f64 rating,
-        u64 steamId,
-        u64 igdbId,
         QByteArray gameTitle,
         QByteArray gameDescription,
         QObject* parent = nullptr
@@ -105,8 +102,6 @@ public:
         _mAdded(added),
         _mReleaseDate(releaseDate),
         _mRating(rating),
-        _mSteamId(steamId),
-        _mIgdbId(igdbId),
         _mGameTitle(gameTitle),
         _mGameDescription(gameDescription)
     {}
@@ -130,8 +125,6 @@ public:
         _mAdded(other._mAdded),
         _mReleaseDate(other._mReleaseDate),
         _mRating(other._mRating),
-        _mSteamId(other._mSteamId),
-        _mIgdbId(other._mIgdbId),
         _mGameTitle(other._mGameTitle),
         _mGameDescription(other._mGameDescription)
     {}
@@ -157,8 +150,6 @@ public:
         _mAdded = other._mAdded;
         _mReleaseDate = other._mReleaseDate;
         _mRating = other._mRating;
-        _mSteamId = other._mSteamId;
-        _mIgdbId = other._mIgdbId;
         _mGameTitle = other._mGameTitle;
         _mGameDescription = other._mGameDescription;
 
@@ -183,20 +174,17 @@ public:
     u64 added() const { return _mAdded; }
     u64 releaseDate() const { return _mReleaseDate; }
     f64 rating() const { return _mRating; }
-    u64 steamId() const { return _mSteamId; }
-    u64 igdbId() const { return _mIgdbId; }
     QByteArray gameTitle() const { return _mGameTitle; }
     QByteArray gameDescription() const { return _mGameDescription; }
 
-    Q_INVOKABLE QByteArray posterPath();
-    Q_INVOKABLE QByteArray bannerPath();
-    Q_INVOKABLE QByteArray iconPath();
-    Q_INVOKABLE QByteArray logoPath();
+    QByteArray resolvedTitle() const {
+        return _mTitle.length() == 0 ? _mGameTitle : _mTitle;
+    }
 
-    Q_INVOKABLE QUrl posterUrl() { return QUrl::fromEncoded(posterPath()); }
-    Q_INVOKABLE QUrl bannerUrl() { return QUrl::fromEncoded(bannerPath()); }
-    Q_INVOKABLE QUrl iconUrl() { return QUrl::fromEncoded(iconPath()); }
-    Q_INVOKABLE QUrl logoUrl() { return QUrl::fromEncoded(logoPath()); }
+    Q_INVOKABLE QUrl posterUrl();
+    Q_INVOKABLE QUrl bannerUrl();
+    Q_INVOKABLE QUrl iconUrl();
+    Q_INVOKABLE QUrl logoUrl();
 
 private:
 
@@ -218,8 +206,6 @@ private:
     u64 _mAdded;
     u64 _mReleaseDate;
     f64 _mRating;
-    u64 _mSteamId;
-    u64 _mIgdbId;
     QByteArray _mGameTitle;
     QByteArray _mGameDescription;
 

@@ -18,7 +18,7 @@ Column {
         let details = ApplicationContext.getGameDetails(gameId)
         if(Object.keys(details).length == 0) return
 
-        gameId = details.id
+        gameId = details.gameId
         displayId = details.displayId
 
         gameTitleField.text = details.title
@@ -26,7 +26,7 @@ Column {
         gameDescriptionField.text = details.description
         gameDescriptionField.cursorPosition = 0 
 
-        gameTags.initialTags = details.tags
+        gameTags.initialTags = ApplicationContext.getGameTags(details.gameId)
 
         let dataFolder = ApplicationContext.dataFolder
 
@@ -40,8 +40,6 @@ Column {
         releaseDateField.setTime(details.releaseDate)
 
         ratingField.value = details.rating
-        steamIdField.value = details.steamId
-        igdbIdField.value = details.igdbId
 
         modified = false
     }
@@ -60,8 +58,6 @@ Column {
             logoPosition: logoPositionBox.currentIndex,
             releaseDate: releaseDateField.getTime(),
             rating: ratingField.value,
-            steamId: steamIdField.value,
-            igdbId: igdbIdField.value,
             tags: gameTags.getAddedTags(),
             removedTags: gameTags.getRemovedTags()
         }
@@ -163,30 +159,6 @@ Column {
         placeholderText: "100.0"
         onValueModified: { root.modified = true }
         tooltip: "The game's rating from 0-100"
-    }
-    NblNumberInput {
-        id: steamIdField
-        label: "Steam ID"
-        width: root.width
-
-        min: 0
-        max: 2147483647
-
-        placeholderText: "620"
-        onValueModified: { root.modified = true }
-        tooltip: "The game's Steam ID"
-    }
-    NblNumberInput {
-        id: igdbIdField
-        label: "IGDB ID"
-        width: root.width
-
-        min: 0
-        max: 2147483647
-
-        placeholderText: "7346"
-        onValueModified: { root.modified = true }
-        tooltip: "The game's ID on IGDB.com"
     }
 
 }

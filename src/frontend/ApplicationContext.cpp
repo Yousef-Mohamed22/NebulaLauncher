@@ -213,7 +213,7 @@ QString ApplicationContext::dataFolder() const {
 }
 
 
-NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
+NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) {
 
     if(!_mConnection.isValid()) {
         nbl::log(nbl::LogLevel::ERROR, "Cannot launch installation, database connection is not valid");
@@ -280,12 +280,12 @@ NblProcessHandle* ApplicationContext::launchInstallation(i64 installationId) {
     return handle;
 }
 
-NblProcessHandle* ApplicationContext::getRunningInstallation(i64 installationId) {
+NblProcessHandle* ApplicationContext::getRunningInstallation(qint64 installationId) {
     if(!_mRunningProcesses.contains(installationId)) return nullptr;
     return _mRunningProcesses[installationId];
 }
 
-int ApplicationContext::openInstallationFolder(i64 installationId) {
+int ApplicationContext::openInstallationFolder(qint64 installationId) {
  
     if(!_mConnection.isValid()) {
         nbl::log(nbl::LogLevel::ERROR, "Cannot open installation folder, database connection is not valid");
@@ -338,7 +338,7 @@ int ApplicationContext::openInstallationFolder(i64 installationId) {
     return res;
 }
 
-NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installationId) {
+NblInstallationDetails* ApplicationContext::getInstallationDetails(qint64 installationId) {
 
     if(!_mConnection.isValid()) {
         nbl::log(nbl::LogLevel::ERROR, "Cannot get installation details, database connection is not valid");
@@ -368,8 +368,6 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installat
             details.installation.added,
             details.game.releaseDate,
             details.game.rating,
-            details.game.steamId,
-            details.game.igdbId,
             fromNbl(details.game.title),
             fromNbl(details.game.description)
         );
@@ -382,6 +380,45 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(i64 installat
 
     return out;
 
+}
+
+
+NblGameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
+
+    if(!_mConnection.isValid()) {
+        nbl::log(nbl::LogLevel::ERROR, "Cannot get game details, database connection is not valid");
+        return nullptr;
+    }
+
+    NblGameDetails* out = nullptr;
+    if(nbl::getGameDetails(&_mConnection, gameId, [&](const nbl::GameDetails& details) {
+
+        out = new NblGameDetails(
+            details.game.id,
+            details.display.id,
+            fromNbl(details.game.title),
+            fromNbl(details.game.description),
+            fromNbl(details.display.poster),
+            fromNbl(details.display.banner),
+            fromNbl(details.display.icon),
+            fromNbl(details.display.logo),
+            static_cast<u64>(details.display.logoPosition),
+            details.playTime,
+            details.playCount,
+            details.lastPlayed,
+            details.added,
+            details.installationCount,
+            details.game.releaseDate,
+            details.game.rating
+        );
+
+        return nbl::Result::SUCCESS;
+    }).error()) {
+        nbl::log(nbl::LogLevel::ERROR, "Failed to get installation details for game with ID ", gameId);
+        return nullptr;
+    }
+
+    return out;
 }
 
 
@@ -438,8 +475,6 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
         // Add a new game
         QByteArray title = params.find("gameTitle")->toString().toUtf8();
         QByteArray description = params.find("gameDescription")->toString().toUtf8();
-        u64 steamId = params.find("steamId")->toUInt();
-        u64 igdbId = params.find("igdbId")->toUInt();
         u64 releaseDate = params.find("releaseDate")->toULongLong();
         f64 rating = params.find("rating")->toDouble();
 
@@ -448,8 +483,6 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
             .displayId = dId,
             .title = nbl::StringView(title.constData(), title.length()),
             .description = nbl::StringView(description.constData(), description.length()),
-            .steamId = steamId,
-            .igdbId = igdbId,
             .releaseDate = releaseDate,
             .rating = rating
         };
@@ -495,9 +528,10 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
     return 0;
 }
 
-int ApplicationContext::updateInstallation(int64_t installationId, const QVariantMap& params) {
+int ApplicationContext::updateInstallation(qint64 installationId, const QVariantMap& params) {
 
     bool okay = false;
+    bool deleteDisplay = false;
     i64 dId = params.find("displayId")->toLongLong(&okay);
     if(okay) {
         if(params.find("displayOverride")->toBool()) {
@@ -534,7 +568,7 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
 
         } else if(dId != 0) {
 
-            NBL_CHECK(nbl::removeDisplay(&_mConnection, dId));
+            deleteDisplay = true;
 
         }
     } else {
@@ -551,7 +585,7 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
 
     nbl::InstallationMeta meta = {
         .id = installationId,
-        .displayId = dId,
+        .displayId = deleteDisplay ? 0 : dId,
         .gameId = gId,
         .title = nbl::StringView(installationTitle.data(), installationTitle.length()),
         .description = nbl::StringView(installationDesc.data(), installationDesc.length()),
@@ -560,6 +594,10 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
     };
 
     nbl::updateInstallation(&_mConnection, meta);
+
+    if(deleteDisplay) {
+        NBL_CHECK(nbl::removeDisplay(&_mConnection, dId));
+    }
 
     for(QVariant qs : params.find("addedInstallationTags")->toList()) {
         tagInstallation(meta.id, qs.toLongLong());
@@ -571,13 +609,15 @@ int ApplicationContext::updateInstallation(int64_t installationId, const QVarian
     return nbl::Result::SUCCESS;
 }
 
-int ApplicationContext::deleteInstallation(int64_t installationId) {
+int ApplicationContext::deleteInstallation(qint64 installationId) {
     return nbl::removeInstallation(&_mConnection, installationId);
 }
 
 void ApplicationContext::saveSettings(const QVariantMap& settings) {
 
     QJsonObject obj = QJsonObject::fromVariantMap(settings);
+    obj["device_id"] = static_cast<qint64>(_mDeviceId);
+
     QJsonDocument doc(obj);
 
     QString filePath = dataFolder() + "/settings.json";
@@ -615,6 +655,12 @@ QVariantMap ApplicationContext::loadSettings() {
     return doc.object().toVariantMap();
 }
 
+
+QUrl ApplicationContext::mediaUrl(QByteArray relativePath, QByteArray repo) {
+    if(relativePath.length() == 0) return {};
+    return QUrl::fromEncoded(("file://" + dataFolder() + "/media/" + repo + "/" + relativePath).toUtf8());
+}
+
 // Tabs
 
 namespace {
@@ -634,6 +680,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         bool multiLine = filter["multiLine"].toBool();
         bool useIcons = filter["useIcons"].toBool();
         bool showTitles = filter["showTitles"].toBool();
+        bool showInstallations = filter["showInstallations"].toBool();
         i64 priority = filter["priority"].toLongLong();
 
         if(icon.endsWith(".png") || icon.endsWith(".svg")) {
@@ -641,7 +688,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         }
         QByteArray realIcon = icon.toUtf8();
 
-        nbl::InstallationSortBy sortBy = static_cast<nbl::InstallationSortBy>(filter["sortBy"].toInt());
+        nbl::SortBy sortBy = static_cast<nbl::SortBy>(filter["sortBy"].toInt());
         nbl::SortOrder sortOrder = static_cast<nbl::SortOrder>(filter["sortOrder"].toInt());
         
         u64 minReleaseDate = filter["minReleaseDate"].toULongLong();
@@ -689,6 +736,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
             .multiLine = multiLine,
             .showTitles = showTitles,
             .useIcons = useIcons,
+            .showInstallations = showInstallations,
             .criteria = {
                 .tags = tagSets,
                 .excludedTags = exclude,
@@ -815,9 +863,10 @@ QVariantMap ApplicationContext::getTabMeta(qint64 id) {
         filter["multiLine"] = meta.multiLine;
         filter["useIcons"] = meta.useIcons;
         filter["showTitles"] = meta.showTitles;
+        filter["showInstallations"] = meta.showInstallations;
         
 
-        nbl::getFilterCriteria(&_mConnection, meta.filterId, [&](const nbl::InstallationSearchCriteria& criteria) -> nbl::Result {
+        nbl::getFilterCriteria(&_mConnection, meta.filterId, [&](const nbl::SearchCriteria& criteria) -> nbl::Result {
 
             filter["sortBy"] = static_cast<i32>(criteria.sortBy);
             filter["sortOrder"] = static_cast<i32>(criteria.sortOrder);
@@ -1051,8 +1100,6 @@ int ApplicationContext::addGame(QVariantMap params) {
 
     QByteArray title = params.find("title")->toString().toUtf8();
     QByteArray description = params.find("description")->toString().toUtf8();
-    u64 steamId = params.find("steamId")->toUInt();
-    u64 igdbId = params.find("igdbId")->toUInt();
     u64 releaseDate = params.find("releaseDate")->toULongLong();
     f64 rating = params.find("rating")->toDouble();
 
@@ -1061,8 +1108,6 @@ int ApplicationContext::addGame(QVariantMap params) {
         .displayId = dId,
         .title = nbl::StringView(title.constData(), title.length()),
         .description = nbl::StringView(description.constData(), description.length()),
-        .steamId = steamId,
-        .igdbId = igdbId,
         .releaseDate = releaseDate,
         .rating = rating
     };
@@ -1114,8 +1159,6 @@ int ApplicationContext::updateGame(QVariantMap params) {
 
     QByteArray title = params.find("title")->toString().toUtf8();
     QByteArray description = params.find("description")->toString().toUtf8();
-    u64 steamId = params.find("steamId")->toUInt();
-    u64 igdbId = params.find("igdbId")->toUInt();
     u64 releaseDate = params.find("releaseDate")->toULongLong();
     f64 rating = params.find("rating")->toDouble();
 
@@ -1124,8 +1167,6 @@ int ApplicationContext::updateGame(QVariantMap params) {
         .displayId = dId,
         .title = nbl::StringView(title.constData(), title.length()),
         .description = nbl::StringView(description.constData(), description.length()),
-        .steamId = steamId,
-        .igdbId = igdbId,
         .releaseDate = releaseDate,
         .rating = rating
     };
@@ -1139,38 +1180,6 @@ int ApplicationContext::updateGame(QVariantMap params) {
         untagGame(gId, qs.toLongLong());
     }
     return 0;
-}
-
-QVariantMap ApplicationContext::getGameDetails(qint64 gameId) {
-
-    QVariantMap out = {};
-
-    nbl::Result res = nbl::getGameDetails(&_mConnection, gameId, [&](const nbl::GameDetails& details) {
-
-        out["id"] = static_cast<qint64>(details.game.id);
-        out["displayId"] = static_cast<qint64>(details.display.id);
-        out["title"] = fromNbl(details.game.title);
-        out["description"] = fromNbl(details.game.description);
-        out["poster"] = fromNbl(details.display.poster);
-        out["icon"] = fromNbl(details.display.icon);
-        out["logo"] = fromNbl(details.display.logo);
-        out["banner"] = fromNbl(details.display.banner);
-        out["logoPosition"] = static_cast<int>(details.display.logoPosition);
-        out["releaseDate"] = static_cast<quint64>(details.game.releaseDate);
-        out["rating"] = details.game.rating;
-        out["steamId"] = static_cast<quint64>(details.game.steamId);
-        out["igdbId"] = static_cast<quint64>(details.game.igdbId);
-
-        return nbl::Result::SUCCESS;
-    });
-
-    if(res != 0) {
-        nbl::log(nbl::LogLevel::ERROR, "An error occurred while looking up game details! ", res);
-        return {};
-    }
-
-    out["tags"] = getGameTags(gameId);
-    return out;
 }
 
 int ApplicationContext::deleteGame(qint64 gameId) {

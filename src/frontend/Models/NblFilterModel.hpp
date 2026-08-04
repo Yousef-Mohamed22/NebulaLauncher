@@ -7,8 +7,6 @@
 #include <QObject>
 #include <QtQml>
 
-#include <Models/NblInstallationRef.hpp>
-
 class NblFilterModel : public QAbstractListModel {
 
     Q_OBJECT
@@ -19,6 +17,7 @@ class NblFilterModel : public QAbstractListModel {
     Q_PROPERTY(int pageSize READ pageSize WRITE setPageSize NOTIFY pageSizeChanged)
     Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
     Q_PROPERTY(bool allLoaded READ allLoaded NOTIFY allLoadedChanged)
+    Q_PROPERTY(bool searchInstallations READ searchInstallations WRITE setSearchInstallations NOTIFY searchInstallationsChanged)
 
 public:
 
@@ -58,6 +57,7 @@ public:
     quint64 pageSize() const { return _mPageSize; }
     bool isLoading() const { return _mIsLoading; }
     bool allLoaded() const { return _mAllLoaded; }
+    bool searchInstallations() const { return _mSearchInstallations; }
 
     void setPageSize(int size) { 
         _mPageSize = nbl::max(1, size);
@@ -74,6 +74,13 @@ public:
         refresh();
     }
 
+    void setSearchInstallations(bool value) {
+        _mSearchInstallations = value;
+        emit searchInstallationsChanged();
+
+        refresh();
+    }
+
     Q_INVOKABLE void loadNextPage();
     Q_INVOKABLE void refresh();
 
@@ -84,8 +91,16 @@ signals:
     void pageSizeChanged();
     void isLoadingChanged();
     void allLoadedChanged();
+    void searchInstallationsChanged();
 
 private:
+
+    struct _Item {
+        qint64 id;
+        QString title;
+        QString poster;
+        QString icon;
+    };
 
     void _fetchPageData();
 
@@ -95,8 +110,9 @@ private:
     quint64 _mPageSize;
     bool _mIsLoading;
     bool _mAllLoaded;
+    bool _mSearchInstallations;
 
-    QList<NblInstallationRef> _mData;
+    QList<_Item> _mData;
 
 };
 

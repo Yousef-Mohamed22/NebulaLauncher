@@ -123,7 +123,7 @@ nbl::Result nbl::getInstallationDetails(DatabaseConnection* connection, i64 inst
 SELECT 
 
 installation.iId, installation.title, installation.description, installation.type, installation.command, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, installation.deviceId,
-game.gId, game.title, game.description, game.steamId, game.igdbId, game.releaseDate, game.rating, 
+game.gId, game.title, game.description, game.releaseDate, game.rating, 
 installation.dId, display.banner, display.poster, display.icon, display.logo, display.logoPosition, 
 game.dId, game_display.banner, game_display.poster, game_display.icon, game_display.logo, game_display.logoPosition
 
@@ -141,8 +141,8 @@ WHERE installation.iId = ?1;
 
     return connection->execute(&_getInstallationDetailsStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 29) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 29 columns in installation meta query result, but got ", columnCount);
+        if(columnCount != 27) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 27 columns in installation meta query result, but got ", columnCount);
             return nbl::Result::IO_ERROR;
         }
 
@@ -165,26 +165,24 @@ WHERE installation.iId = ?1;
                 .id = columnValues[10].intValue,
                 .title = columnValues[11].textValue,
                 .description = columnValues[12].textValue,
-                .steamId = columnValues[13].uintValue(),
-                .igdbId = columnValues[14].uintValue(),
-                .releaseDate = columnValues[15].uintValue(),
-                .rating = columnValues[16].floatValue
+                .releaseDate = columnValues[13].uintValue(),
+                .rating = columnValues[14].floatValue
             },
             .display = {
-                .id = columnValues[17].intValue,
-                .banner = columnValues[18].textValue,
-                .poster = columnValues[19].textValue,
-                .icon = columnValues[20].textValue,
-                .logo = columnValues[21].textValue,
-                .logoPosition = static_cast<LogoPosition>(columnValues[22].intValue)
+                .id = columnValues[15].intValue,
+                .banner = columnValues[16].textValue,
+                .poster = columnValues[17].textValue,
+                .icon = columnValues[18].textValue,
+                .logo = columnValues[19].textValue,
+                .logoPosition = static_cast<LogoPosition>(columnValues[20].intValue)
             },
             .gameDisplay = {
-                .id = columnValues[23].intValue,
-                .banner = columnValues[24].textValue,
-                .poster = columnValues[25].textValue,
-                .icon = columnValues[26].textValue,
-                .logo = columnValues[27].textValue,
-                .logoPosition = static_cast<LogoPosition>(columnValues[28].intValue)
+                .id = columnValues[21].intValue,
+                .banner = columnValues[22].textValue,
+                .poster = columnValues[23].textValue,
+                .icon = columnValues[24].textValue,
+                .logo = columnValues[25].textValue,
+                .logoPosition = static_cast<LogoPosition>(columnValues[26].intValue)
             }
         };
         return callback(details);
@@ -194,7 +192,7 @@ WHERE installation.iId = ?1;
 
 nbl::Result nbl::lookupInstallations(
         DatabaseConnection* connection, 
-        const InstallationSearchCriteria& criteria,
+        const SearchCriteria& criteria,
         InstallationLookupCallback callback) {
 
     
@@ -253,9 +251,10 @@ excluded_tags AS (
 )
 SELECT DISTINCT 
 installation.iId, installation.dId, installation.gId,
-IIF(installation.title IS NULL, game.title, game.title || ' - ' || installation.title) as resolved_title, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, 
+installation.title, game.title, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, 
 display.poster, display.icon, 
-game.releaseDate, game.rating
+game.releaseDate, game.rating,
+IFNULL(installation.title, game.title) AS resolved_title
 FROM installation
 LEFT JOIN matching_sets ON matching_sets.iId = installation.iId
 LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId
@@ -268,7 +267,7 @@ WHERE (?12 = 0 OR installation.deviceId = ?12)
   AND (?6 = 0 OR game.rating < ?6)
   AND installation.playTime >= ?7
   AND (?8 = 0 OR installation.playTime < ?8)
-  AND (?9 IS NULL OR IFNULL(installation.title, game.title) LIKE '%' || ?9 || '%')
+  AND (?9 IS NULL OR resolved_title LIKE '%' || ?9 || '%')
   AND (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
   AND (?2 IS NULL OR NOT EXISTS (SELECT tId FROM excluded_tags INTERSECT SELECT tId FROM all_installation_tags WHERE all_installation_tags.iId = installation.iId))
 GROUP BY installation.iId
@@ -283,29 +282,29 @@ OFFSET ?10;
         stmtBuilder.append(_stmtBegin);
 
         switch(criteria.sortBy) {
-            case InstallationSortBy::TITLE:
+            case SortBy::TITLE:
                 if(criteria.titleFilter.empty()) {
                     stmtBuilder.append("ORDER BY resolved_title");
                 } else {
                     stmtBuilder.append("ORDER BY nbl_str_distance(resolved_title, ?9)");
                 }
                 break;
-            case InstallationSortBy::LAST_PLAYED:
+            case SortBy::LAST_PLAYED:
                 stmtBuilder.append("ORDER BY installation.lastPlayed");
                 break;
-            case InstallationSortBy::ADDED:
+            case SortBy::ADDED:
                 stmtBuilder.append("ORDER BY installation.added");
                 break;
-            case InstallationSortBy::PLAY_COUNT:
+            case SortBy::PLAY_COUNT:
                 stmtBuilder.append("ORDER BY installation.playCount");
                 break;
-            case InstallationSortBy::PLAY_TIME:
+            case SortBy::PLAY_TIME:
                 stmtBuilder.append("ORDER BY installation.playTime");
                 break;
-            case InstallationSortBy::RELEASE_DATE:
+            case SortBy::RELEASE_DATE:
                 stmtBuilder.append("ORDER BY game.releaseDate");
                 break;
-            case InstallationSortBy::RATING:
+            case SortBy::RATING:
                 stmtBuilder.append("ORDER BY game.rating");
                 break;
             default:
@@ -382,7 +381,7 @@ OFFSET ?10;
         const char** columnNames, 
         i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount < 12) {
+        if(columnCount < 13) {
             return nbl::Result::IO_ERROR;
         }
         InstallationLookupResult res = {
@@ -390,14 +389,15 @@ OFFSET ?10;
             .displayId = columnValues[1].intValue,
             .gameId = columnValues[2].intValue,
             .title = columnValues[3].textValue,
-            .playTime = columnValues[4].uintValue(),
-            .playCount = columnValues[5].uintValue(),
-            .lastPlayed = columnValues[6].uintValue(),
-            .added = columnValues[7].uintValue(),
-            .poster = columnValues[8].textValue,
-            .icon = columnValues[9].textValue,
-            .releaseDate = columnValues[10].uintValue(),
-            .rating = columnValues[11].floatValue
+            .gameTitle = columnValues[4].textValue,
+            .playTime = columnValues[5].uintValue(),
+            .playCount = columnValues[6].uintValue(),
+            .lastPlayed = columnValues[7].uintValue(),
+            .added = columnValues[8].uintValue(),
+            .poster = columnValues[9].textValue,
+            .icon = columnValues[10].textValue,
+            .releaseDate = columnValues[11].uintValue(),
+            .rating = columnValues[12].floatValue
         };
 
         return callback(
@@ -406,6 +406,64 @@ OFFSET ?10;
     }));
 
     return nbl::Result::SUCCESS;
+}
+
+nbl::Result nbl::getInstallationsOfGame(DatabaseConnection* connection, i64 gameId, i64 deviceId, u64 limit, u64 offset, InstallationLookupCallback callback) {
+
+    static nbl::PreparedStatement _getInstallationsOfGameStmt;
+    if(!_getInstallationsOfGameStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT 
+installation.iId, display.dId, game.gId, installation.title, game.title, 
+installation.playTime, installation.playCount, installation.lastPlayed, installation.added, 
+display.poster, display.icon, game.releaseDate, game.rating
+FROM installation
+JOIN game ON installation.gId = game.gId
+JOIN display ON display.dId = IFNULL(installation.dId, game.dId)
+JOIN display AS game_display ON game_display.dId = game.dId
+WHERE installation.gId = ?1
+  AND (?2 IS NULL OR installation.deviceId = ?2)
+ORDER BY installation.lastPlayed DESC
+LIMIT ?3
+OFFSET ?4;
+        )", &_getInstallationsOfGameStmt));
+    }
+
+    NBL_CHECK(_getInstallationsOfGameStmt.bindInt(1, gameId));
+    NBL_CHECK(_getInstallationsOfGameStmt.bindInt(2, deviceId));
+    NBL_CHECK(_getInstallationsOfGameStmt.bindUint(3, limit));
+    NBL_CHECK(_getInstallationsOfGameStmt.bindUint(4, offset));
+
+    NBL_CHECK(connection->execute(&_getInstallationsOfGameStmt, [&](
+        i32 columnCount, 
+        DataValue* columnValues, 
+        const char** columnNames, 
+        i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount < 13) {
+            return nbl::Result::IO_ERROR;
+        }
+        InstallationLookupResult res = {
+            .installationId = columnValues[0].intValue,
+            .displayId = columnValues[1].intValue,
+            .gameId = columnValues[2].intValue,
+            .title = columnValues[3].textValue,
+            .gameTitle = columnValues[4].textValue,
+            .playTime = columnValues[5].uintValue(),
+            .playCount = columnValues[6].uintValue(),
+            .lastPlayed = columnValues[7].uintValue(),
+            .added = columnValues[8].uintValue(),
+            .poster = columnValues[9].textValue,
+            .icon = columnValues[10].textValue,
+            .releaseDate = columnValues[11].uintValue(),
+            .rating = columnValues[12].floatValue
+        };
+
+        return callback(res);
+    }));
+
+    return nbl::Result::SUCCESS;
+
 }
 
 

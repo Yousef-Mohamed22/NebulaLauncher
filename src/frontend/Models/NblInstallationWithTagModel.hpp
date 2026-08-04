@@ -100,7 +100,7 @@ private:
         nbl::Array<i64, 1> tags;
         nbl::Array<nbl::ConstSpan<i64>, 1> tagSets;
     } _mCriteriaData = {};
-    nbl::InstallationSearchCriteria _mCriteria = {};
+    nbl::SearchCriteria _mCriteria = {};
 
     QList<NblInstallationRef> _mData;
 

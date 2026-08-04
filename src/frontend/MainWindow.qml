@@ -150,9 +150,21 @@ Window {
         openDialog("Pages/EditInstallationDialog.qml", {
             "installationId": id
         }, function() {
-            let installationPage = pageLoader.currentItem as NblInstallationPage
-            if(installationPage) {
-                installationPage.refresh()
+            let gamePage = pageLoader.currentItem as NblGamePage
+            if(gamePage) {
+                gamePage.refresh()
+            }
+        })
+    }
+
+    function beginEditGame(id) {
+
+        openDialog("Pages/EditGameDialog.qml", {
+            "gameId": id
+        }, function() {
+            let gamePage = pageLoader.currentItem as NblGamePage
+            if(gamePage) {
+                gamePage.refresh()
             }
         })
     }
@@ -190,9 +202,24 @@ Window {
         while (pageLoader.depth > 1) {
             pageLoader.pop()
         }
-        let details = ApplicationContext.getInstallationDetails(installationId)
+        let iDetails = ApplicationContext.getInstallationDetails(installationId)
+        let gDetails = ApplicationContext.getGameDetails(iDetails.gameId)
 
-        pageLoader.push("Pages/NblInstallationPage.qml", {
+        pageLoader.push("Pages/NblGamePage.qml", {
+            details: gDetails,
+            installationDetails: iDetails,
+            mainWindow: root,
+        })
+    }
+ 
+    function openGameDetails(gameId) {
+
+        while (pageLoader.depth > 1) {
+            pageLoader.pop()
+        }
+        let details = ApplicationContext.getGameDetails(gameId)
+
+        pageLoader.push("Pages/NblGamePage.qml", {
             details: details,
             mainWindow: root,
         })

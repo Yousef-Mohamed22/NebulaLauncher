@@ -83,8 +83,10 @@ void NblInstallationWithTagModel::_fetchPageData() {
     if(nbl::lookupInstallations(db, _mCriteria, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
         NblInstallationRef ref(res.installationId,
             fromNbl(res.title),
+            fromNbl(res.gameTitle),
             fromNbl(res.poster),
-            fromNbl(res.icon)
+            fromNbl(res.icon),
+            res.lastPlayed
         );
         found.append(ref);
         return nbl::Result::SUCCESS;

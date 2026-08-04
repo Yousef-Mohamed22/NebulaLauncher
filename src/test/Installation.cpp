@@ -38,6 +38,7 @@ TEST(Installation, AddInstallation) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
+    ASSERT_TRUE(nbl::addDevice(&connection, { .name = "test" }, &_installMeta.deviceId).success());
     ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
@@ -50,6 +51,7 @@ TEST(Installation, RemoveInstallation) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
+    ASSERT_TRUE(nbl::addDevice(&connection, { .name = "test" }, &_installMeta.deviceId).success());
     ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
@@ -63,6 +65,7 @@ TEST(Installation, GetInstallationMeta) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
+    ASSERT_TRUE(nbl::addDevice(&connection, { .name = "test" }, &_installMeta.deviceId).success());
     ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());

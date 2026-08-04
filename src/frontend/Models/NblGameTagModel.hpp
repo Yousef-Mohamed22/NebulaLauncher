@@ -4,45 +4,45 @@
 #include <Platform/Logging.hpp>
 
 #include <QObject>
+#include <QColor>
 #include <QtQml>
 
-struct NblGameRef {
-    quint64 gId;
-    QString title;
-    QString poster;
-    QString icon;
-};
+#include "NblTagRef.hpp"
 
-
-class NblGameModel : public QAbstractListModel {
+class NblGameTagModel : public QAbstractListModel {
 
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(bool includeNewGame READ includeNewGame WRITE setIncludeNewGame NOTIFY includeNewGameChanged)
-
-    Q_PROPERTY(QString query READ query WRITE setQuery NOTIFY queryChanged)
+    Q_PROPERTY(qint64 gameId READ gameId WRITE setTabId NOTIFY gameIdChanged)
     Q_PROPERTY(int currentPage READ currentPage NOTIFY currentPageChanged)
     Q_PROPERTY(int pageSize READ pageSize WRITE setPageSize NOTIFY pageSizeChanged)
     Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
 
 public:
 
-    explicit NblGameModel(QObject* parent = nullptr) :
+    explicit NblGameTagModel(QObject* parent = nullptr) :
         QAbstractListModel(parent),
-        _mIncludeNewGame(false),
-        _mQuery{},
+        _mGameId(0),
         _mCurrentPage(0),
         _mPageSize(0),
         _mIsLoading(false),
         _mAllLoaded(false)
     { }
 
+    NblGameTagModel(i64 gameId, QObject* parent = nullptr) :
+        QAbstractListModel(parent),
+        _mGameId(gameId),
+        _mCurrentPage(1),
+        _mPageSize(10),
+        _mIsLoading(false),
+        _mAllLoaded(false)
+    { }
+
     enum Roles {
         IdRole,
-        TitleRole,
-        PosterRole,
-        IconRole
+        NameRole,
+        ColorRole
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override {
@@ -52,28 +52,19 @@ public:
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    bool includeNewGame() const { return _mIncludeNewGame; }
-    QString query() const { return _mQuery; }
     quint64 currentPage() const { return _mCurrentPage; }
     quint64 pageSize() const { return _mPageSize; }
     bool isLoading() const { return _mIsLoading; }
 
     void setPageSize(int size) { _mPageSize = size; }
 
-    void setQuery(QString query) {
-        if(query == _mQuery) return;
-
-        _mQuery = query.toUtf8();
-        emit queryChanged();
-
-        refresh();
+    qint64 gameId() const {
+        return _mGameId;
     }
 
-    void setIncludeNewGame(bool includeNewGame) {
-        if(includeNewGame == _mIncludeNewGame) return;
-
-        _mIncludeNewGame = includeNewGame;
-        emit includeNewGameChanged();
+    void setTabId(qint64 fid) {
+        _mGameId = fid;
+        emit gameIdChanged();
 
         refresh();
     }
@@ -83,8 +74,7 @@ public:
 
 signals:
 
-    void includeNewGameChanged();
-    void queryChanged();
+    void gameIdChanged();
     void currentPageChanged();
     void pageSizeChanged();
     void isLoadingChanged();
@@ -93,15 +83,14 @@ private:
 
     void _fetchPageData();
 
-    QByteArray _mQuery;
+    qint64 _mGameId;
 
-    bool _mIncludeNewGame;
     quint64 _mCurrentPage;
     quint64 _mPageSize;
     bool _mIsLoading;
     bool _mAllLoaded;
 
-    QList<NblGameRef> _mData;
+    QList<NblTagRef> _mData;
 
 };
 

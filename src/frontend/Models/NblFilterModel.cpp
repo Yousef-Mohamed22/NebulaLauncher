@@ -4,22 +4,23 @@
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include "Core/Result.hpp"
 
 QVariant NblFilterModel::data(const QModelIndex& index, int role) const {
 
     if(!index.isValid() || index.row() >= _mData.size()) return QVariant();
 
-    NblInstallationRef ref = _mData.at(index.row());
+    _Item item = _mData.at(index.row());
 
     switch(role) {
         case IdRole:
-            return static_cast<qint64>(ref.installationId());
+            return static_cast<qint64>(item.id);
         case TitleRole:
-            return ref.title();
+            return item.title;
         case PosterRole:
-            return ref.poster();
+            return item.poster;
         case IconRole:
-            return ref.icon();
+            return item.icon;
         default:
             return QVariant();
     }
@@ -69,21 +70,41 @@ void NblFilterModel::_fetchPageData() {
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
     
-    QList<NblInstallationRef> found = {};
+    QList<_Item> found = {};
     found.reserve(_mPageSize);
-    if(nbl::lookupInstallationsForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
-        NblInstallationRef ref(res.installationId,
-            fromNbl(res.title),
-            fromNbl(res.poster),
-            fromNbl(res.icon)
-        );
-        found.append(ref);
-        return nbl::Result::SUCCESS;
-    }).error()) {
+    
+    nbl::Result res;
+
+    if(_mSearchInstallations) {
+        res = nbl::lookupInstallationsForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
+            _Item item(res.installationId,
+                fromNbl(res.title),
+                fromNbl(res.poster),
+                fromNbl(res.icon)
+            );
+            found.append(item);
+            return nbl::Result::SUCCESS;
+        });    
+    } else {
+        res = nbl::lookupGamesForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::GameLookupResult& res) -> nbl::Result {
+            _Item item(res.id,
+                fromNbl(res.title),
+                fromNbl(res.poster),
+                fromNbl(res.icon)
+            );
+            found.append(item);
+            return nbl::Result::SUCCESS;
+        });   
+    }
+
+    if(res.error()) {
+        _mAllLoaded = true;
+        emit allLoadedChanged();
         _mIsLoading = false;
         emit isLoadingChanged();
         return;
     }
+
 
     if(found.size() > 0) {
         beginInsertRows(QModelIndex(), _mData.size(), _mData.size() + found.size() - 1);

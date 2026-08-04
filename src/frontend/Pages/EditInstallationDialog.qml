@@ -212,10 +212,10 @@ NblDialog {
                     displayId = details.displayId
                     overrideBox.checked = displayId != 0
 
-                    if(details.poster) installationPosterPicker.imageSource = details.posterPath()  
-                    if(details.icon) installationIconPicker.imageSource = details.iconPath() 
-                    if(details.logo) installationLogoPicker.imageSource = details.logoPath() 
-                    if(details.banner) installationBannerPicker.imageSource = details.bannerPath()
+                    if(details.poster) installationPosterPicker.imageSource = details.posterUrl()  
+                    if(details.icon) installationIconPicker.imageSource = details.iconUrl() 
+                    if(details.logo) installationLogoPicker.imageSource = details.logoUrl() 
+                    if(details.banner) installationBannerPicker.imageSource = details.bannerUrl()
 
                     installationLogoPositionBox.currentIndex = details.logoPosition
                 }

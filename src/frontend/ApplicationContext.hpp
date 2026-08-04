@@ -17,6 +17,7 @@
 #include <Plugin/PluginLoader.hpp>
 
 #include "Models/NblInstallationDetails.hpp"
+#include "Models/NblGameDetails.hpp"
 #include "NblProcessHandle.hpp"
 
 inline QByteArray fromNbl(nbl::StringView sv) {
@@ -50,15 +51,16 @@ public:
     QString dataFolder() const;
     qint64 deviceId() const { return _mDeviceId; }
 
-    Q_INVOKABLE NblProcessHandle* launchInstallation(i64 installationId);
-    Q_INVOKABLE NblProcessHandle* getRunningInstallation(i64 installationId);
-    Q_INVOKABLE int openInstallationFolder(i64 installationId);
+    Q_INVOKABLE NblProcessHandle* launchInstallation(qint64 installationId);
+    Q_INVOKABLE NblProcessHandle* getRunningInstallation(qint64 installationId);
+    Q_INVOKABLE int openInstallationFolder(qint64 installationId);
 
-    Q_INVOKABLE NblInstallationDetails* getInstallationDetails(i64 installationId);
+    Q_INVOKABLE NblInstallationDetails* getInstallationDetails(qint64 installationId);
+    Q_INVOKABLE NblGameDetails* getGameDetails(qint64 gameId);
 
     Q_INVOKABLE int addInstallation(const QVariantMap& params);
-    Q_INVOKABLE int updateInstallation(int64_t id, const QVariantMap& params);
-    Q_INVOKABLE int deleteInstallation(int64_t id);
+    Q_INVOKABLE int updateInstallation(qint64 id, const QVariantMap& params);
+    Q_INVOKABLE int deleteInstallation(qint64 id);
 
     Q_INVOKABLE int addTab(const QVariantMap& params);
     Q_INVOKABLE int updateTab(qint64 id, const QVariantMap& params);
@@ -84,7 +86,6 @@ public:
 
     Q_INVOKABLE int addGame(QVariantMap details);
     Q_INVOKABLE int updateGame(QVariantMap details);
-    Q_INVOKABLE QVariantMap getGameDetails(qint64 gameId);
     Q_INVOKABLE int deleteGame(qint64 gameId);
 
     Q_INVOKABLE void pushNotification(QVariantMap details) {
@@ -93,6 +94,8 @@ public:
 
     Q_INVOKABLE void saveSettings(const QVariantMap& settings);
     Q_INVOKABLE QVariantMap loadSettings();
+
+    Q_INVOKABLE QUrl mediaUrl(QByteArray relativePath, QByteArray repo);
 
     nbl::DatabaseConnection* connection() {
         return &_mConnection;

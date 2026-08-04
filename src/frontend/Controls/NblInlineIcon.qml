@@ -49,7 +49,7 @@ Item {
             source: root.useImage ? root.icon : ""
             fillMode: Image.PreserveAspectFit
             layer.enabled: true
-            visible: false //!root.colorize
+            visible: false
             smooth: true
             mipmap: true
         }

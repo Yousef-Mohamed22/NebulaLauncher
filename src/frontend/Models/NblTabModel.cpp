@@ -26,6 +26,8 @@ QVariant NblTabModel::data(const QModelIndex& index, int role) const {
             return ref.useIcons();
         case ShowTitlesRole:
             return ref.showTitles();
+        case ShowInstallationsRole:
+            return ref.showInstallations();
         default:
             return QVariant();
     }
@@ -40,6 +42,7 @@ QHash<int, QByteArray> NblTabModel::roleNames() const {
     roles[MultiLineRole] = "multiLine";
     roles[ShowTitlesRole] = "showTitles";
     roles[UseIconsRole] = "useIcons";
+    roles[ShowInstallationsRole] = "showInstallations";
     return roles;
 }
 
@@ -87,7 +90,8 @@ void NblTabModel::_fetchPageData() {
             meta.colorizeIcon,
             meta.multiLine,
             meta.showTitles,
-            meta.useIcons
+            meta.useIcons,
+            meta.showInstallations
         );
         found.append(ref);
         return nbl::Result::SUCCESS;

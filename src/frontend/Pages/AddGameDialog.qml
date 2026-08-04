@@ -44,7 +44,7 @@ NblDialog {
                     textRole: "title"
                     valueRole: "id"
 
-                    model: NblGameModel {
+                    model: NblGameSearchModel {
                         includeNewGame: true
                         pageSize: 10
                     }
@@ -178,26 +178,6 @@ NblDialog {
 
                         placeholderText: "100.0"
                     }
-                    NblNumberInput {
-                        id: steamIdField
-                        label: "Steam ID"
-                        width: parent.width
-
-                        min: 0
-                        max: 2147483647
-
-                        placeholderText: "620"
-                    }
-                    NblNumberInput {
-                        id: igdbIdField
-                        label: "IGDB ID"
-                        width: parent.width
-
-                        min: 0
-                        max: 2147483647
-
-                        placeholderText: "7346"
-                    }
                 }
             }
         }
@@ -206,20 +186,10 @@ NblDialog {
     onApply: {
 
         let rating = 0.0
-        let steamId = 0
-        let igdbId = 0
 
         if(root.newGame) {
             if(ratingField.text.length != 0) {
                 rating = ratingField.value
-            }
-
-            if(steamIdField.text.length != 0) {
-                steamId = steamIdField.value
-            }
-
-            if(igdbIdField.text.length != 0) {
-                igdbId = igdbIdField.value
             }
         }
 
@@ -254,8 +224,6 @@ NblDialog {
             logoPosition: logoPositionBox.currentIndex,
             releaseDate: releaseDateField.getTime(),
             rating: rating,
-            steamId: steamId,
-            igdbId: igdbId,
             addedInstallationTags: installationTags.getAddedTags(),
             removedInstallationTags: installationTags.getRemovedTags(),
             addedGameTags: gameTags.getAddedTags(),

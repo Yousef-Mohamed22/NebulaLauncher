@@ -17,7 +17,7 @@
 
 namespace {
 
-nbl::Result _serializeCriteria(const nbl::InstallationSearchCriteria& criteria, nbl::Writer writer) { 
+nbl::Result _serializeCriteria(const nbl::SearchCriteria& criteria, nbl::Writer writer) { 
 
     return nbl::JsonWriter(writer)
         .writeObject([&](auto obj) { obj
@@ -45,11 +45,12 @@ nbl::Result _serializeCriteria(const nbl::InstallationSearchCriteria& criteria, 
             .add("sortOrder", nbl::getName(criteria.sortOrder))
             .add("offset", criteria.offset)
             .add("limit", criteria.limit)
-            .add("titleFilter", criteria.titleFilter);
+            .add("titleFilter", criteria.titleFilter)
+            .add("gameId", criteria.gameId);
         });
 }
 
-nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* frame, nbl::InstallationSearchCriteria* outCriteria) {
+nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* frame, nbl::SearchCriteria* outCriteria) {
     
     nbl::JsonElement criteriaValue = {};
     nbl::log(nbl::LogLevel::DEBUG, "Parsing: ", criteriaJson, " as filter criteria");
@@ -166,6 +167,12 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* 
     NBL_CHECK(getChecked(criteriaObject, "titleFilter", nbl::JsonType::STRING, &titleFilterValue));
     if(titleFilterValue) outCriteria->titleFilter = titleFilterValue->string;
 
+    const nbl::JsonElement* gameIdValue = nullptr;
+    NBL_CHECK(getChecked(criteriaObject, "gameId", nbl::JsonType::NUMBER, &gameIdValue));
+    if(gameIdValue) outCriteria->gameId = gameIdValue->number.intValue;
+
+
+
     return nbl::Result::SUCCESS;
 }
 
@@ -194,7 +201,7 @@ nbl::Result nbl::addFilter(DatabaseConnection* connection, const FilterMeta& met
     static nbl::PreparedStatement _addFilterStmt;
     if(!_addFilterStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons, priority) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);
+INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons, onlyInstalled, showInstallations, priority) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);
         )", &_addFilterStmt));
     }
 
@@ -217,7 +224,9 @@ INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTi
     _addFilterStmt.bindInt(6, meta.multiLine ? 1 : 0);
     _addFilterStmt.bindInt(7, meta.showTitles ? 1 : 0);
     _addFilterStmt.bindInt(8, meta.useIcons ? 1 : 0);
-    _addFilterStmt.bindInt(9, meta.priority);
+    _addFilterStmt.bindInt(9, meta.onlyInstalled ? 1 : 0);
+    _addFilterStmt.bindInt(10, meta.showInstallations ? 1 : 0);
+    _addFilterStmt.bindInt(11, meta.priority);
 
     return connection->execute(&_addFilterStmt, outFilterId);
 
@@ -243,7 +252,7 @@ nbl::Result nbl::getFilter(DatabaseConnection* connection, i64 filterId, FilterC
     static nbl::PreparedStatement _getFilterStmt;
     if(!_getFilterStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons FROM filter WHERE fId = ?1;
+SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons, onlyInstalled, showInstallations FROM filter WHERE fId = ?1;
         )", &_getFilterStmt));
     }
 
@@ -251,8 +260,8 @@ SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons 
 
     return connection->execute(&_getFilterStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 8) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 8 columns in getFilter query result, but got ", columnCount);
+        if(columnCount != 10) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 10 columns in getFilter query result, but got ", columnCount);
             return nbl::Result::IO_ERROR;
         }
 
@@ -265,6 +274,8 @@ SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons 
             .multiLine = columnValues[5].intValue != 0,
             .showTitles = columnValues[6].intValue != 0,
             .useIcons = columnValues[7].intValue != 0,
+            .onlyInstalled = columnValues[8].intValue != 0,
+            .showInstallations = columnValues[9].intValue != 0,
             .criteria = {},
         };
 
@@ -274,7 +285,7 @@ SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons 
     });
 }
 
-nbl::Result nbl::setFilterCriteria(DatabaseConnection* connection, i64 filterId, const InstallationSearchCriteria& criteria) {
+nbl::Result nbl::setFilterCriteria(DatabaseConnection* connection, i64 filterId, const SearchCriteria& criteria) {
 
     static nbl::PreparedStatement _setFilterCriteriaStmt;
     if(!_setFilterCriteriaStmt.isValid(connection)) {
@@ -306,7 +317,7 @@ nbl::Result nbl::updateFilter(DatabaseConnection* connection, const FilterMeta& 
     if(!_updateFilterStmt.isValid(connection)) {
 
         NBL_CHECK(connection->prepare(R"(
-UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria = ?5, multiLine = ?6, showTitles = ?7, useIcons = ?8, priority = ?9 WHERE fId = ?10;
+UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria = ?5, multiLine = ?6, showTitles = ?7, useIcons = ?8, onlyInstalled = ?9, showInstallations = ?10, priority = ?11 WHERE fId = ?12;
         )", &_updateFilterStmt));
     }
 
@@ -329,9 +340,11 @@ UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria 
     _updateFilterStmt.bindInt(6, meta.multiLine ? 1 : 0);
     _updateFilterStmt.bindInt(7, meta.showTitles ? 1 : 0);
     _updateFilterStmt.bindInt(8, meta.useIcons ? 1 : 0);
-    _updateFilterStmt.bindInt(9, meta.priority);
+    _updateFilterStmt.bindInt(9, meta.onlyInstalled ? 1 : 0);
+    _updateFilterStmt.bindInt(10, meta.showInstallations ? 1 : 0);
+    _updateFilterStmt.bindInt(11, meta.priority);
 
-    NBL_CHECK(_updateFilterStmt.bindInt(10, meta.filterId));
+    NBL_CHECK(_updateFilterStmt.bindInt(12, meta.filterId));
 
     return connection->execute(&_updateFilterStmt);
 }
@@ -340,7 +353,7 @@ nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i6
 
     NBL_CHECK(getFilter(connection, filterId, [&](const nbl::FilterMeta& meta) -> nbl::Result {
 
-        InstallationSearchCriteria updatedCriteria = meta.criteria;
+        SearchCriteria updatedCriteria = meta.criteria;
         updatedCriteria.offset = offset;
         updatedCriteria.deviceId = deviceId;
 
@@ -357,6 +370,31 @@ nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i6
      }));
 
      return nbl::Result::SUCCESS;
+}
+
+
+nbl::Result nbl::lookupGamesForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, GameLookupCallback callback) {
+
+    NBL_CHECK(getFilter(connection, filterId, [&](const nbl::FilterMeta& meta) -> nbl::Result {
+
+        SearchCriteria updatedCriteria = meta.criteria;
+        updatedCriteria.offset = offset;
+        updatedCriteria.deviceId = meta.onlyInstalled ? deviceId : 0;
+
+        if(limit > 0) {
+            updatedCriteria.limit = updatedCriteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
+        }
+
+        return lookupGames(
+            connection,
+            updatedCriteria,
+            callback
+        );
+
+     }));
+
+     return nbl::Result::SUCCESS;
+
 }
 
 

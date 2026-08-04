@@ -112,6 +112,7 @@ NblDialog {
                             multiLine: true,
                             useIcons: false,
                             showTitles: false,
+                            showInstallations: false,
                             sortBy: 0,
                             sortOrder: 0,
                             tags: [],
@@ -157,6 +158,7 @@ NblDialog {
                                 multiLine: multiLineBox.checked,
                                 useIcons: useIconsBox.checked,
                                 showTitles: showTitlesBox.checked,
+                                showInstallations: searchBox.currentIndex == 1,
                                 sortBy: sortByBox.currentIndex,
                                 sortOrder: sortOrderBox.currentIndex,
                                 tags: tagSetsList.encode(),
@@ -189,6 +191,14 @@ NblDialog {
                                 id: filterIconPicker
                                 dbIcon: dropdown.modelData.icon
                                 colorize: dropdown.modelData.colorizeIcon
+                            }
+
+                            NblComboBox {
+                                id: searchBox
+                                width: parent.width
+                                label: "Search for"
+                                model: [ "Games", "Installations" ]
+                                currentIndex: dropdown.modelData.showInstallations ? 1 : 0
                             }
 
                             RowLayout {

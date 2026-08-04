@@ -146,7 +146,7 @@ nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64
     static nbl::PreparedStatement _getFiltersForTabStmt;
     if(!_getFiltersForTabStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT filter.fId, filter.name, filter.icon, filter.colorizeIcon, filter.multiLine, filter.showTitles, filter.useIcons
+SELECT filter.fId, filter.name, filter.icon, filter.colorizeIcon, filter.multiLine, filter.showTitles, filter.useIcons, filter.showInstallations
 FROM filter
 WHERE filter.tabId = ?1
 ORDER BY filter.priority DESC, filter.fId ASC
@@ -161,8 +161,8 @@ OFFSET ?3;
 
     return connection->execute(&_getFiltersForTabStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 7) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 7 columns in get filters for tab query result, but got ", columnCount);
+        if(columnCount != 8) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 8 columns in get filters for tab query result, but got ", columnCount);
             return nbl::Result::IO_ERROR;
         }
 
@@ -174,6 +174,7 @@ OFFSET ?3;
             .multiLine = columnValues[4].intValue != 0,
             .showTitles = columnValues[5].intValue != 0,
             .useIcons = columnValues[6].intValue != 0,
+            .showInstallations = columnValues[7].intValue != 0,
             .criteria = {}
         };
 
