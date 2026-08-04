@@ -22,5 +22,5 @@ vec3 hueShift(vec3 color, float hue) {
 void main() {
     vec4 srcColor = texture(source, qt_TexCoord0);
     vec3 shiftedColor = hueShift(srcColor.rgb, uHue);
-    fragColor = vec4(shiftedColor, 1.0);
+    fragColor = vec4(shiftedColor, srcColor.a);
 }

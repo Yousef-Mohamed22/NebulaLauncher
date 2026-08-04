@@ -43,15 +43,13 @@ Item {
 
         anchors.fill: parent
 
-        Image {
+        NblImage {
             id: imageSource
             anchors.fill: parent
             source: root.useImage ? root.icon : ""
             fillMode: Image.PreserveAspectFit
             layer.enabled: true
             visible: false
-            smooth: true
-            mipmap: true
         }
 
         Item {

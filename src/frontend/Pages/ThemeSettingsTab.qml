@@ -15,6 +15,7 @@ SettingsTab {
     onApplied: {
         Theme.colors.lightMode = !darkTheme
         Theme.colors.activeColor = selectedColor
+        Theme.colors.tintUi = tintBox.checked
     }
 
     Column {
@@ -27,6 +28,16 @@ SettingsTab {
             id: darkThemeBox
             text: "Dark Theme"
             checked: !Theme.colors.lightMode
+
+            onToggled: {
+                root.modified = true
+            }
+        }
+ 
+        NblCheckBox {
+            id: tintBox
+            text: "Tint UI"
+            checked: Theme.colors.tintUi
 
             onToggled: {
                 root.modified = true
@@ -70,7 +81,7 @@ SettingsTab {
                 }
 
                 property int selectedIndex: 0
-                property list<color> swatches: [ "#d658fc", "#4083ef", "#40efe4", "#4af755", "#f2ec3a", "#f2b43a", "#f23a65", "#f96bdf" ]
+                property list<color> swatches: [ "#cf67fc", "#4083ef", "#40efe4", "#4af755", "#f2ec3a", "#f2b43a", "#f23a65", "#f96bdf" ]
 
                 Repeater {
 

@@ -40,15 +40,13 @@ Item {
             Layout.fillHeight: true
             Layout.preferredWidth: parent.height
 
-            Image {
+            NblImage {
                 id: imageSource
                 anchors.fill: parent
                 anchors.verticalCenter: parent.verticalCenter
                 fillMode: Image.PreserveAspectFit
                 layer.enabled: true
                 visible: false
-                smooth: true
-                mipmap: true
                 source: root.selectedInstallation == null ? null : root.selectedInstallation.iconUrl()
             }
 
@@ -186,15 +184,13 @@ Item {
                         Layout.fillHeight: true
                         Layout.preferredWidth: parent.height
 
-                        Image {
+                        NblImage {
                             id: dImageSource
                             anchors.fill: parent
                             anchors.verticalCenter: parent.verticalCenter
                             fillMode: Image.PreserveAspectFit
                             layer.enabled: true
                             visible: false
-                            smooth: true
-                            mipmap: true
                             source: ApplicationContext.mediaUrl(installationItem.icon, "icon")
                         }
 

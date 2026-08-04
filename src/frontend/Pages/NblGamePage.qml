@@ -148,16 +148,17 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
 
-                RectangularShadow {
+                Item {
+                    width: parent.width + 16
+                    height: parent.height + 16
+                    x: -8
+                    y: -32
 
-                    width: parent.width - 4
-                    height: 10
-                    y: -22
-                    radius: 8
-
-                    spread: 4
-                    color: Theme.colors.shadow
-
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 16
+                        color: Theme.colors.layer0
+                    }
                 }
 
                 NblLaunchButton {

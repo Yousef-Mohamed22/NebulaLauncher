@@ -12,6 +12,7 @@ Item {
 
     required property MainWindow mainWindow
     property bool collapsed: true
+    property int selectedTab: 0
 
     implicitWidth: collapsed ? 64 : 240
 
@@ -84,7 +85,7 @@ Item {
                         id: tabsModel
                     }
 
-                    NblTabButton {
+                    delegate: NblTabButton {
                         required property var modelData
 
                         tabId: modelData.id
@@ -96,6 +97,7 @@ Item {
                         colorize: modelData.colorizeIcon
 
                         onClicked: {
+                            root.selectedTab = tabId
                             root.mainWindow.openTab(tabId)
                         }
                         onEditRequested: {

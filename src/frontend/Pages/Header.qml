@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import Nebula.Controls
+
 Item {
 
     id: root
@@ -49,6 +51,24 @@ Item {
                     onClicked: {
                         root.sidebar.collapsed = !root.sidebar.collapsed
                     }
+                }
+            }
+
+            Item {
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                NblImage {
+                    id: logoSource
+                    anchors.fill: parent
+                    source: "qrc:/qt/qml/Nebula/images/Nebula.png"
+                    layer.enabled: true
+                    visible: false
+                }
+                ShaderEffect {
+                    anchors.fill: parent
+                    property variant source: logoSource
+                    property real uHue: Theme.colors.accent.hsvHue * (2 * Math.PI)
+                    fragmentShader: "qrc:/shaders/hueShift.frag.qsb"
                 }
             }
 

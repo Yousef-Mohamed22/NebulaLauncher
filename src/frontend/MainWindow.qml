@@ -98,11 +98,14 @@ Window {
 
         var settings = ApplicationContext.loadSettings()
         if(settings.theme) {
-            if(settings.theme.activeColor) {
-                Theme.colors.activeColor = settings.theme.activeColor
+            if(settings.theme.active_color != null) {
+                Theme.colors.activeColor = settings.theme.active_color
             }
-            if(settings.theme.lightTheme) {
-                Theme.colors.lightMode = settings.theme.lightTheme
+            if(settings.theme.light_theme != null) {
+                Theme.colors.lightMode = settings.theme.light_theme
+            }
+            if(settings.theme.tint_ui != null) {
+                Theme.colors.tintUi = settings.theme.tint_ui
             }
         }
     }
@@ -138,8 +141,9 @@ Window {
         openDialog("Pages/AppSettingsDialog.qml", {}, function() { 
             ApplicationContext.saveSettings({
                 theme: {
-                    activeColor: Theme.colors.activeColor, 
-                    lightTheme: Theme.colors.lightMode
+                    active_color: Theme.colors.activeColor, 
+                    light_theme: Theme.colors.lightMode,
+                    tint_ui: Theme.colors.tintUi
                 }
             })
         })

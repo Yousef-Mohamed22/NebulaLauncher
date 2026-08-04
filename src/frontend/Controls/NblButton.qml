@@ -9,6 +9,7 @@ Item {
     required property string icon
     required property string text
 
+    property color activeColor: Theme.colors.border
     property color inactiveColor: "transparent"
 
     property int radius: 8
@@ -21,7 +22,7 @@ Item {
     Rectangle {
         id: background
         anchors.fill: parent
-        color: mouseArea.containsMouse ? Theme.colors.border : root.inactiveColor
+        color: mouseArea.containsMouse ? root.activeColor : root.inactiveColor
         radius: root.radius
     }
 

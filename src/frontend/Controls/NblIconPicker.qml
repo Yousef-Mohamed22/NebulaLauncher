@@ -170,15 +170,13 @@ Item {
                         width: 48
                         height: 48
                         anchors.centerIn: parent
-                        Image {
+                        NblImage {
                             id: iconImage
                             anchors.fill: parent
                             source: root.isImage ? root.icon : ""
                             fillMode: Image.PreserveAspectFit
                             layer.enabled: true
                             visible: !root.colorize
-                            smooth: true
-                            mipmap: true
                         }
                         MultiEffect {
                             visible: root.colorize
