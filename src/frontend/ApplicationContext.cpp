@@ -406,10 +406,10 @@ NblGameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
             fromNbl(details.game.icon),
             fromNbl(details.game.logo),
             static_cast<u64>(details.game.logoPosition),
-            details.playTime,
-            details.playCount,
+            details.totalPlayTime,
+            details.totalPlayCount,
             details.lastPlayed,
-            details.added,
+            details.game.added,
             details.installationCount,
             details.game.releaseDate,
             details.game.rating

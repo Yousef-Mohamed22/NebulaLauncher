@@ -12,6 +12,7 @@
 #include <Platform/StringBuilder.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Platform/Time.hpp>
 
 
 nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& meta, i64* outGameId) {
@@ -19,7 +20,7 @@ nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& me
     static nbl::PreparedStatement _addGameStmt;
     if(!_addGameStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO game (title, description, banner, poster, icon, logo, logoPosition, releaseDate, rating) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);
+INSERT INTO game (title, description, banner, poster, icon, logo, logoPosition, releaseDate, rating, added) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);
         )", &_addGameStmt));
     }
 
@@ -32,6 +33,7 @@ INSERT INTO game (title, description, banner, poster, icon, logo, logoPosition, 
     NBL_CHECK(_addGameStmt.bindUint(7, static_cast<u32>(meta.logoPosition)));
     NBL_CHECK(_addGameStmt.bindUint(8, meta.releaseDate));
     NBL_CHECK(_addGameStmt.bindFloat(9, meta.rating));
+    NBL_CHECK(_addGameStmt.bindUint(10, nbl::getCurrentTime()));
 
     return connection->execute(&_addGameStmt, outGameId); 
 }
@@ -142,7 +144,7 @@ nbl::Result nbl::getGameMeta(DatabaseConnection* connection, i64 gameId, GameMet
     if(!_getGameMetaStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT 
-game.gId, game.title, game.description, game.banner, game.poster, game.icon, game.logo, game.logoPosition, game.releaseDate, game.rating 
+game.gId, game.title, game.description, game.banner, game.poster, game.icon, game.logo, game.logoPosition, game.releaseDate, game.rating, game.previousPlayTime, game.previousPlayCount, game.lastPlayedDeleted, game.added 
 FROM game
 WHERE game.gId = ?1;
         )", &_getGameMetaStmt));
@@ -152,7 +154,7 @@ WHERE game.gId = ?1;
 
     return connection->execute(&_getGameMetaStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(argc != 10) return nbl::Result::IO_ERROR;
+        if(argc != 14) return nbl::Result::IO_ERROR;
 
         GameMeta meta = {
             .id = values[0].intValue,
@@ -164,7 +166,11 @@ WHERE game.gId = ?1;
             .logo = values[6].textValue,
             .logoPosition = static_cast<LogoPosition>(values[7].uintValue()),
             .releaseDate = values[8].uintValue(),
-            .rating = values[9].floatValue
+            .rating = values[9].floatValue,
+            .previousPlayTime = values[10].uintValue(),
+            .previousPlayCount = values[11].uintValue(),
+            .lastPlayedDeleted = values[12].uintValue(),
+            .added = values[13].uintValue()
         };
         return callback(meta);
 
@@ -177,8 +183,8 @@ nbl::Result nbl::getGameDetails(DatabaseConnection* connection, i64 gameId, Game
     if(!_getGameDetailsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT
-game.gId, game.title, game.description, game.banner, game.poster, game.icon, game.logo, game.logoPosition, game.releaseDate, game.rating,
-sum(installation.playTime), sum(installation.playCount), max(installation.lastPlayed), min(installation.added), count(installation.iId)
+game.gId, game.title, game.description, game.banner, game.poster, game.icon, game.logo, game.logoPosition, game.releaseDate, game.rating, game.previousPlayTime, game.previousPlayCount, game.lastPlayedDeleted, game.added,
+sum(installation.playTime) + game.previousPlayTime, sum(installation.playCount) + game.previousPlayCount, max(max(installation.lastPlayed), game.lastPlayedDeleted), count(installation.iId)
 FROM game
 FULL OUTER JOIN installation ON installation.gId = game.gId
 WHERE game.gId = ?1;
@@ -200,13 +206,16 @@ WHERE game.gId = ?1;
                 .logo = values[6].textValue,
                 .logoPosition = static_cast<LogoPosition>(values[7].intValue),
                 .releaseDate = values[8].uintValue(),
-                .rating = values[9].floatValue
+                .rating = values[9].floatValue,
+                .previousPlayTime = values[10].uintValue(),
+                .previousPlayCount = values[11].uintValue(),
+                .lastPlayedDeleted = values[12].uintValue(),
+                .added = values[13].uintValue()
             },
-            .playTime = values[10].uintValue(),
-            .playCount = values[11].uintValue(),
-            .lastPlayed = values[12].uintValue(),
-            .added = values[13].uintValue(),
-            .installationCount = values[14].uintValue()
+            .totalPlayTime = values[14].uintValue(),
+            .totalPlayCount = values[15].uintValue(),
+            .lastPlayed = values[16].uintValue(),
+            .installationCount = values[17].uintValue()
         };
         return callback(details);
 

@@ -7,6 +7,7 @@
  */
 
 #include <Core/Result.hpp>
+#include <Core/Array.hpp>
 #include <Platform/StringBuilder.hpp>
 #include <Platform/Time.hpp>
 #include <Data/Database.hpp>
@@ -43,6 +44,19 @@ VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 0, 0, 0, ?12);
 
 nbl::Result nbl::removeInstallation(DatabaseConnection* connection, i64 installationId) {
 
+    static nbl::PreparedStatement _updateGameStmt;
+    if(!_updateGameStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+UPDATE game SET 
+previousPlayTime = previousPlayTime + installation.playTime,
+previousPlayCount = previousPlayCount + installation.playCount,
+lastPlayedDeleted = max(lastPlayedDeleted, installation.lastPlayed)   
+FROM installation
+WHERE installation.gId = game.gId
+  AND installation.iId = ?1;
+        )", &_updateGameStmt));
+    }
+
     static nbl::PreparedStatement _removeInstallationStmt;
     if(!_removeInstallationStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
@@ -50,8 +64,11 @@ DELETE FROM installation WHERE iId = ?1;
         )", &_removeInstallationStmt));
     }
 
+
+
+    NBL_CHECK(_updateGameStmt.bindUint(1, installationId));
     NBL_CHECK(_removeInstallationStmt.bindUint(1, installationId));
-    return connection->execute(&_removeInstallationStmt);
+    return connection->doTransaction(nbl::Array{&_updateGameStmt,&_removeInstallationStmt});
 }
 
 nbl::Result nbl::updateInstallation(DatabaseConnection* connection, const InstallationMeta& meta) {

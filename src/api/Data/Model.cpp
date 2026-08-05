@@ -105,7 +105,11 @@ CREATE TABLE IF NOT EXISTS game (
     logo TEXT,
     logoPosition INTEGER NOT NULL DEFAULT 0,
     releaseDate INTEGER,
-    rating REAL
+    rating REAL,
+    previousPlayTime INTEGER,
+    previousPlayCount INTEGER,
+    lastPlayedDeleted INTEGER,
+    added INTEGER
 );
 CREATE TABLE IF NOT EXISTS device (
     deviceId INTEGER PRIMARY KEY AUTOINCREMENT,

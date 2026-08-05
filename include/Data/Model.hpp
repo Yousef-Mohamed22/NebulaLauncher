@@ -140,14 +140,17 @@ struct GameMeta {
     LogoPosition logoPosition;
     u64 releaseDate;
     f64 rating;
+    u64 previousPlayTime;
+    u64 previousPlayCount;
+    u64 lastPlayedDeleted;
+    u64 added;
 };
 
 struct GameDetails {
     GameMeta game;
-    u64 playTime;
-    u64 playCount;
+    u64 totalPlayTime;
+    u64 totalPlayCount;
     u64 lastPlayed;
-    u64 added;
     u64 installationCount;
 };
 
