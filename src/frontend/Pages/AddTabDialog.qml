@@ -158,6 +158,7 @@ NblDialog {
                                 multiLine: multiLineBox.checked,
                                 useIcons: useIconsBox.checked,
                                 showTitles: showTitlesBox.checked,
+                                onlyInstalled: onlyInstalledBox.checked,
                                 showInstallations: searchBox.currentIndex == 1,
                                 sortBy: sortByBox.currentIndex,
                                 sortOrder: sortOrderBox.currentIndex,
@@ -221,6 +222,13 @@ NblDialog {
                                     Layout.fillWidth: true
                                     text: "Show Titles"
                                     checked: dropdown.modelData.showTitles
+                                }
+                                NblCheckBox {
+                                    id: onlyInstalledBox
+                                    visible: searchBox.currentIndex == 0
+                                    Layout.fillWidth: true
+                                    text: "Only Installed"
+                                    checked: dropdown.modelData.onlyInstalled
                                 }
                             }
 

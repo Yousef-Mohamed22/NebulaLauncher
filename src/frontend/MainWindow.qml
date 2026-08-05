@@ -152,7 +152,8 @@ Window {
     function beginEditInstallation(id) {
 
         openDialog("Pages/EditInstallationDialog.qml", {
-            "installationId": id
+            "installationId": id,
+            "startOnInstallation": true
         }, function() {
             let gamePage = pageLoader.currentItem as NblGamePage
             if(gamePage) {
@@ -163,8 +164,8 @@ Window {
 
     function beginEditGame(id) {
 
-        openDialog("Pages/EditGameDialog.qml", {
-            "gameId": id
+        openDialog("Pages/EditInstallationDialog.qml", {
+            "installationId": id
         }, function() {
             let gamePage = pageLoader.currentItem as NblGamePage
             if(gamePage) {

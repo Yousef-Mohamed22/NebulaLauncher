@@ -11,6 +11,7 @@ NblDialog {
     id: root
     property int installationId: 0
     property int gameId: 0
+    property bool startOnInstallation: false
 
     padding: 8
     navigationPadding: 8
@@ -24,6 +25,7 @@ NblDialog {
         navigation.currentTab.apply()
     }
 
+
     ColumnLayout {
 
         anchors.fill: parent
@@ -31,7 +33,19 @@ NblDialog {
         Item {
             id: navigation
 
-            property SettingsTab currentTab: gameSettingsTab
+            property SettingsTab currentTab: null
+
+            Component.onCompleted: {
+                if(root.startOnInstallation) {
+                    currentTab = installationSettingsTab
+                } else {
+                    currentTab = gameSettingsTab
+                }
+            }
+
+            onCurrentTabChanged: {
+                currentTab.refresh()
+            }
 
             Layout.fillWidth: true
             Layout.preferredHeight: 40
@@ -116,7 +130,6 @@ NblDialog {
                                 navigation.currentTab.visible = false
 
                                 navigation.currentTab = parent.modelData.tab
-                                navigation.currentTab.refresh()
                                 navigation.currentTab.visible = true
                             }
                         }
@@ -133,6 +146,7 @@ NblDialog {
             SettingsTab {
 
                 id: gameSettingsTab
+                visible: !root.startOnInstallation
                 anchors.fill: parent
 
                 onRefreshed: {
@@ -187,7 +201,7 @@ NblDialog {
                 id: installationSettingsTab
 
                 anchors.fill: parent
-                visible: false
+                visible: root.startOnInstallation
 
                 onRefreshed: {
 

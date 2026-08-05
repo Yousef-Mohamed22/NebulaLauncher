@@ -54,7 +54,7 @@ Item {
                     }
 
                     Label {
-                        text: "Installations tagged" 
+                        text: "Games tagged" 
                         font.family: Theme.font
                         font.pixelSize: 20
                         font.bold: true
@@ -71,7 +71,7 @@ Item {
                     }
                 }
 
-                NblInstallationList {
+                NblGameList {
 
                     id: list
                     width: parent.width
@@ -89,8 +89,8 @@ Item {
                     useIcons: root.useIcons
                     showTitles: root.showTitles
 
-                    onInstallationClicked: id => {
-                        root.mainWindow.openInstallationDetails(id)
+                    onItemClicked: id => {
+                        root.mainWindow.openGameDetails(id)
                     }
                 }
             }

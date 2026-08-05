@@ -146,17 +146,13 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
 
-                Item {
+                Rectangle {
                     width: parent.width + 16
                     height: parent.height + 16
                     x: -8
                     y: -32
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: 16
-                        color: Theme.colors.layer0
-                    }
+                    radius: 16
+                    color: Theme.colors.layer0
                 }
 
                 NblLaunchButton {
@@ -172,6 +168,7 @@ Item {
             NblInstallationPicker {
                 id: installationPicker
                 gameId: root.details.gameId
+                mainWindow: root.mainWindow
                 Layout.maximumWidth: 250
                 Layout.minimumWidth: 48
                 Layout.fillWidth: true
@@ -252,7 +249,7 @@ Item {
                     Layout.fillWidth: true
                     icon: ""
                     onClicked: {
-                        root.mainWindow.beginEditInstallation(root.selectedInstallation)
+                        root.mainWindow.beginEditGame(root.selectedInstallation)
                     }
                 }
 

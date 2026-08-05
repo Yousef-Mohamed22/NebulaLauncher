@@ -9,6 +9,8 @@ Item {
 
     id: root
 
+    required property MainWindow mainWindow
+
     property int gameId
     property NblInstallationDetails selectedInstallation: null
     readonly property int selectedInstallationId: selectedInstallation == null ? 0 : selectedInstallation.installationId
@@ -216,6 +218,8 @@ Item {
                     }
 
                     Item {
+
+                        id: labels
                         Layout.fillHeight: true
                         Layout.fillWidth: true
 
@@ -251,6 +255,53 @@ Item {
                     onClicked: {
                         root.selectedInstallation = ApplicationContext.getInstallationDetails(installationItem.installationId)
                         dropdown.close()
+                    }
+                }
+                TapHandler {
+                    acceptedButtons: Qt.RightButton
+                    onTapped: {
+                        ctxMenu.open()
+                    }
+                }
+                
+                NblContextMenu {
+                    id: ctxMenu
+                    height: 96
+                    y: 0
+                    contentItem: ColumnLayout {
+                        spacing: 0
+                        NblButton {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            icon: ""
+                            text: "Edit"
+
+                            onClicked: {
+                                ctxMenu.close()
+                                dropdown.close()
+                                root.mainWindow.beginEditInstallation(installationItem.installationId)
+                            }
+                            radius: 2
+                        }
+                        NblButton {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            icon: ""
+                            text: "Delete"
+                            onClicked: {
+                                ctxMenu.close()     
+                                dropdown.close()
+                                root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
+                                    "text": "Are you sure you want to delete this installation?"
+                                }, function() {
+
+                                    ApplicationContext.deleteInstallation(installationItem.installationId)
+                                    root.selectedInstallation = null
+                                    root.refresh()
+                                })
+                            }
+                            radius: 2
+                        }
                     }
                 }
             }

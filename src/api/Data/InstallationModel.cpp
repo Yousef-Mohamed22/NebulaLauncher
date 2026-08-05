@@ -86,7 +86,7 @@ nbl::Result nbl::getInstallationMeta(DatabaseConnection* connection, i64 install
     static PreparedStatement _getInstallationMetaStmt;
     if(!_getInstallationMetaStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT iId, gId, deviceId, title, description, banner, poster, icon, logo, logoPostiion, type, command, playTime, playCount, lastPlayed, added
+SELECT iId, gId, deviceId, title, description, banner, poster, icon, logo, logoPosition, type, command, playTime, playCount, lastPlayed, added
 FROM installation
 WHERE iId = ?1;
         )", &_getInstallationMetaStmt));
@@ -245,7 +245,7 @@ excluded_tags AS (
 SELECT DISTINCT 
 installation.iId, installation.gId,
 installation.title, game.title, installation.playTime, installation.playCount, installation.lastPlayed, installation.added, 
-IFNULL(installation.poster, game.poster), IFNULL(installation.icon, game.icon)
+IFNULL(installation.poster, game.poster), IFNULL(installation.icon, game.icon),
 game.releaseDate, game.rating,
 IFNULL(installation.title, game.title) AS resolved_title
 FROM installation

@@ -643,6 +643,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         bool multiLine = filter["multiLine"].toBool();
         bool useIcons = filter["useIcons"].toBool();
         bool showTitles = filter["showTitles"].toBool();
+        bool onlyInstalled = filter["onlyInstalled"].toBool();
         bool showInstallations = filter["showInstallations"].toBool();
         i64 priority = filter["priority"].toLongLong();
 
@@ -699,6 +700,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
             .multiLine = multiLine,
             .showTitles = showTitles,
             .useIcons = useIcons,
+            .onlyInstalled = onlyInstalled,
             .showInstallations = showInstallations,
             .criteria = {
                 .tags = tagSets,
@@ -826,6 +828,7 @@ QVariantMap ApplicationContext::getTabMeta(qint64 id) {
         filter["multiLine"] = meta.multiLine;
         filter["useIcons"] = meta.useIcons;
         filter["showTitles"] = meta.showTitles;
+        filter["onlyInstalled"] = meta.onlyInstalled;
         filter["showInstallations"] = meta.showInstallations;
         
 
