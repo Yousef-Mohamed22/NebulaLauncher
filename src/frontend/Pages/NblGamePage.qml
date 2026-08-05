@@ -161,6 +161,8 @@ Item {
                     height: 72
                     y: -24
                     installationId: root.selectedInstallation
+                    mainWindow: root.mainWindow
+                    gameId: root.details.gameId
                 }                
             }
 

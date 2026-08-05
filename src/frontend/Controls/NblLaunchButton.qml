@@ -1,12 +1,13 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Effects
 
 Item {
 
     id: root
 
+    required property int gameId
     required property int installationId
+    required property MainWindow mainWindow
     property NblProcessHandle handle
 
     onInstallationIdChanged: {
@@ -17,6 +18,7 @@ Item {
     implicitWidth: 212
 
     enum State {
+        NOT_INSTALLED,
         NOT_RUNNING,
         STARTING,
         RUNNING,
@@ -26,6 +28,8 @@ Item {
     property int processState: getState()
 
     function getState() {
+
+        if(installationId == 0) return NblLaunchButton.State.NOT_INSTALLED
 
         if(!handle) return NblLaunchButton.State.NOT_RUNNING
         if(!handle.hasStarted) {
@@ -53,6 +57,29 @@ Item {
 
         color: (root.processState === NblLaunchButton.State.STOPPING || root.processState === NblLaunchButton.State.STARTING) ? Theme.colors.layer0 : Theme.colors.accent
         radius: 8
+
+        Row {
+
+            visible: root.processState === NblLaunchButton.State.NOT_INSTALLED
+
+            spacing: 8
+            anchors.centerIn: parent
+
+            Label {
+                text: ""
+                font.family: Theme.nerdFont
+                font.pixelSize: 28
+                color: Theme.colors.textOnAccent
+            }
+            Label {
+                visible: background.textVisible
+                text: "INSTALL"
+                font.family: Theme.font
+                font.pixelSize: 28
+                font.bold: true
+                color: Theme.colors.textOnAccent
+            }
+        }
 
         Row {
 
@@ -176,8 +203,11 @@ Item {
         cursorShape: (root.processState === NblLaunchButton.State.STOPPING || root.processState === NblLaunchButton.State.STARTING) ? Qt.ArrowCursor : Qt.PointingHandCursor
         hoverEnabled: true
         onClicked: {
-            if(root.processState === NblLaunchButton.State.STOPPING || root.processState === NblLaunchButton.State.STARTING) return
-            if(root.processState === NblLaunchButton.State.RUNNING) {
+            if(root.processState === NblLaunchButton.State.NOT_INSTALLED) {
+                root.mainWindow.beginAddInstallation(root.gameId)
+            }
+            else if(root.processState === NblLaunchButton.State.STOPPING || root.processState === NblLaunchButton.State.STARTING) return
+            else if(root.processState === NblLaunchButton.State.RUNNING) {
                 root.handle.stop()
             } else {
                 root.handle = ApplicationContext.launchInstallation(root.installationId)

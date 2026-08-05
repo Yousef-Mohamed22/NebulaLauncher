@@ -116,6 +116,24 @@ Window {
             if(tabPage) {
                 tabPage.refresh()
             }
+            let gamePage = pageLoader.currentItem as NblGamePage
+            if(gamePage) {
+                gamePage.refresh()
+            }
+        })
+    }
+    function beginAddInstallation(gameId) {
+        openDialog("Pages/AddGameDialog.qml", {
+            gameId: gameId
+        }, function() {
+            let tabPage = pageLoader.currentItem as NblTabPage
+            if(tabPage) {
+                tabPage.refresh()
+            }
+            let gamePage = pageLoader.currentItem as NblGamePage
+            if(gamePage) {
+                gamePage.refresh()
+            }
         })
     }
 

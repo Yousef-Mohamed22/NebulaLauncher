@@ -9,7 +9,15 @@ import Nebula.Controls
 NblDialog {
 
     id: root
-    property bool newGame: gameBox.currentIndex == 0
+
+    property int gameId: 0
+    property string gameName: "+ New Game"
+    property bool newGame: gameId == 0
+
+    onGameIdChanged: {
+        if(gameBox.accepting) return
+        gameName = ApplicationContext.getGameDetails(gameId).title
+    }
 
     ScrollView {
 
@@ -37,6 +45,8 @@ NblDialog {
                 NblComboBox {
 
                     id: gameBox
+                    property bool accepting: false
+
                     label: "Game"
                     width: parent.width
                     highlightFirst: true
@@ -44,9 +54,18 @@ NblDialog {
                     textRole: "title"
                     valueRole: "id"
 
+                    displayText: root.gameName
+
                     model: NblGameSearchModel {
                         includeNewGame: true
                         pageSize: 10
+                    }
+
+                    onAccepted: {
+                        accepting = true
+                        root.gameId = currentValue
+                        root.gameName = currentText
+                        accepting = false
                     }
                 }
 
@@ -65,12 +84,14 @@ NblDialog {
                 }
 
                 NblTextBox {
+                    visible: root.newGame
                     id: gameTitleField
                     label: "Game Title"
                     width: parent.width
                 }
 
                 NblTextBox {
+                    visible: root.newGame
                     id: gameDescriptionField
                     label: "Game Description"
                     width: parent.width
@@ -91,6 +112,7 @@ NblDialog {
                 }
 
                 NblTagList {
+                    visible: root.newGame
                     id: gameTags
                     label: "Game Tags"
                     width: parent.width
@@ -182,7 +204,7 @@ NblDialog {
             }
         }
 
-        let gId = gameBox.currentValue;
+        let gId = root.gameId
 
         let command = fieldList.saveToJson()
         let params = {

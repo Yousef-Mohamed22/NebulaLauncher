@@ -49,7 +49,7 @@ Item {
                 fillMode: Image.PreserveAspectFit
                 layer.enabled: true
                 visible: false
-                source: root.selectedInstallation == null ? null : root.selectedInstallation.resolvedIconUrl
+                source: root.selectedInstallation == null ? "" : root.selectedInstallation.resolvedIconUrl
             }
 
             Item {
@@ -127,7 +127,7 @@ Item {
             gameId: root.gameId
             pageSize: 10
             onIsLoadingChanged: {
-                if(!isLoading && root.selectedInstallation == null) {
+                if(!isLoading && root.selectedInstallation == null && count > 0) {
                     root.selectedInstallation = ApplicationContext.getInstallationDetails(getId(0))
                 }
             }
@@ -317,4 +317,53 @@ Item {
             dropdown.open()
         }
     }
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: {
+            selectedCtxMenu.open()
+        }
+    }
+
+    NblContextMenu {
+        id: selectedCtxMenu
+        height: 96
+        x: root.width + 8
+        y: 0
+        contentItem: ColumnLayout {
+            spacing: 0
+            NblButton {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                icon: ""
+                text: "Edit"
+
+                onClicked: {
+                    selectedCtxMenu.close()
+                    dropdown.close()
+                    root.mainWindow.beginEditInstallation(root.selectedInstallationId)
+                }
+                radius: 2
+            }
+            NblButton {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                icon: ""
+                text: "Delete"
+                onClicked: {
+                    selectedCtxMenu.close()
+                    dropdown.close()
+                    root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
+                        "text": "Are you sure you want to delete this installation?"
+                    }, function() {
+
+                        ApplicationContext.deleteInstallation(root.selectedInstallationId)
+                        root.selectedInstallation = null
+                        root.refresh()
+                    })
+                }
+                radius: 2
+            }
+        }
+    }
+
 }

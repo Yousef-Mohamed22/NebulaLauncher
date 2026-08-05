@@ -428,7 +428,6 @@ NblGameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
 int ApplicationContext::addInstallation(const QVariantMap& params) {
 
     bool ok;
-
     i64 gId = params.find("game")->toLongLong(&ok);
     if(!ok) return -1;
 
