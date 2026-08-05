@@ -8,7 +8,6 @@ Column {
     spacing: 16
 
     property int gameId: 0
-    property int displayId: 0
 
     property bool modified: false
     property alias icon: iconPicker.imageSource
@@ -19,7 +18,6 @@ Column {
         if(Object.keys(details).length == 0) return
 
         gameId = details.gameId
-        displayId = details.displayId
 
         gameTitleField.text = details.title
         gameTitleField.cursorPosition = 0 
@@ -48,7 +46,6 @@ Column {
 
         return {
             id: root.gameId,
-            displayId: root.displayId,
             title: gameTitleField.text,
             description: gameDescriptionField.text,
             poster: posterPicker.imageSource,

@@ -13,7 +13,6 @@ class NblGameDetails : public QObject {
     QML_ELEMENT
 
     Q_PROPERTY(qint64 gameId READ gameId CONSTANT)
-    Q_PROPERTY(qint64 displayId READ displayId CONSTANT)
     Q_PROPERTY(QByteArray title READ title CONSTANT)
     Q_PROPERTY(QByteArray description READ description CONSTANT)
     Q_PROPERTY(QByteArray poster READ poster CONSTANT)
@@ -34,7 +33,6 @@ public:
     NblGameDetails(QObject* parent = nullptr) : 
         QObject(parent),
         _mGameId(0),
-        _mDisplayId(0),
         _mTitle{},
         _mDescription{},
         _mPoster{},
@@ -53,7 +51,6 @@ public:
 
     NblGameDetails(
         qint64 gameId,
-        qint64 displayId,
         QByteArray title,
         QByteArray description,
         QByteArray poster,
@@ -72,7 +69,6 @@ public:
     ) : 
         QObject(parent),
         _mGameId(gameId),
-        _mDisplayId(displayId),
         _mTitle(title),
         _mDescription(description),
         _mPoster(poster),
@@ -92,7 +88,6 @@ public:
     NblGameDetails(const NblGameDetails& other) :
         QObject(other.parent()),
         _mGameId(other._mGameId),
-        _mDisplayId(other._mDisplayId),
         _mTitle(other._mTitle),
         _mDescription(other._mDescription),
         _mPoster(other._mPoster),
@@ -113,7 +108,6 @@ public:
 
         setParent(other.parent());
         _mGameId = other._mGameId;
-        _mDisplayId = other._mDisplayId;
         _mGameId = other._mGameId;
         _mTitle = other._mTitle;
         _mDescription = other._mDescription;
@@ -133,7 +127,6 @@ public:
     }
 
     qint64 gameId() const { return _mGameId; }
-    qint64 displayId() const { return _mDisplayId; }
     QByteArray title() const { return _mTitle; }
     QByteArray description() const { return _mDescription; }
     QByteArray poster() const { return _mPoster; }
@@ -157,7 +150,6 @@ public:
 private:
 
     qint64 _mGameId;
-    qint64 _mDisplayId;
     QByteArray _mTitle;
     QByteArray _mDescription;
     QByteArray _mPoster;

@@ -95,22 +95,17 @@ PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
 BEGIN EXCLUSIVE TRANSACTION;
-CREATE TABLE IF NOT EXISTS display (
-    dId INTEGER PRIMARY KEY AUTOINCREMENT,
-    poster TEXT,
-    banner TEXT,
-    icon TEXT,
-    logo TEXT,
-    logoPosition INTEGER NOT NULL DEFAULT 0
-);
 CREATE TABLE IF NOT EXISTS game (
     gId INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     description TEXT,
-    dId INTEGER NOT NULL,
+    poster TEXT,
+    banner TEXT,
+    icon TEXT,
+    logo TEXT,
+    logoPosition INTEGER NOT NULL DEFAULT 0,
     releaseDate INTEGER,
-    rating REAL,
-    FOREIGN KEY(dId) REFERENCES display(dId)
+    rating REAL
 );
 CREATE TABLE IF NOT EXISTS device (
     deviceId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,10 +114,14 @@ CREATE TABLE IF NOT EXISTS device (
 CREATE TABLE IF NOT EXISTS installation (
     iId INTEGER PRIMARY KEY AUTOINCREMENT,
     gId INTEGER NOT NULL,
-    dId INTEGER,
     deviceId INTEGER,
     title TEXT,
     description TEXT,
+    poster TEXT,
+    banner TEXT,
+    icon TEXT,
+    logo TEXT,
+    logoPosition INTEGER NOT NULL DEFAULT 4,
     type TEXT NOT NULL,
     command TEXT NOT NULL,
     playTime INTEGER NOT NULL DEFAULT 0,
@@ -130,7 +129,6 @@ CREATE TABLE IF NOT EXISTS installation (
     added INTEGER NOT NULL,
     lastPlayed INTEGER,
     FOREIGN KEY(gId) REFERENCES game(gId),
-    FOREIGN KEY(dId) REFERENCES display(dId),
     FOREIGN KEY(deviceId) REFERENCES device(deviceId)
 );
 CREATE TABLE IF NOT EXISTS tag (

@@ -49,6 +49,7 @@ enum class LogoPosition : u32 {
     CENTER,
     RIGHT,
     HIDDEN,
+    INHERIT,
     _END
 };
 
@@ -122,27 +123,6 @@ Result getTagsFromIds(DatabaseConnection* connection, StringView jsonIds, TagCal
 
 
 //
-// Display
-//
-struct DisplayMeta {
-    i64 id;
-    StringView banner;
-    StringView poster;
-    StringView icon;
-    StringView logo;
-    LogoPosition logoPosition;
-};
-
-typedef std::function_ref<Result(const DisplayMeta& meta)> DisplayCallback; 
-
-
-Result addDisplay(DatabaseConnection* connection, const DisplayMeta& meta, i64* outDisplayId);
-
-Result removeDisplay(DatabaseConnection* connection, i64 displayId);
-
-Result updateDisplay(DatabaseConnection* connection, i64 displayId, const DisplayMeta& meta);
-
-//
 // Games
 //
 
@@ -151,16 +131,19 @@ Result updateDisplay(DatabaseConnection* connection, i64 displayId, const Displa
  */
 struct GameMeta {
     i64 id;
-    i64 displayId;
     StringView title;
     StringView description;
+    StringView banner;
+    StringView poster;
+    StringView icon;
+    StringView logo;
+    LogoPosition logoPosition;
     u64 releaseDate;
     f64 rating;
 };
 
 struct GameDetails {
     GameMeta game;
-    DisplayMeta display;
     u64 playTime;
     u64 playCount;
     u64 lastPlayed;
@@ -277,11 +260,15 @@ Result updateDevice(DatabaseConnection* connection, DeviceMeta meta);
 
 struct InstallationMeta {
     i64 id;
-    i64 displayId;
     i64 gameId;
     i64 deviceId;
     StringView title;
     StringView description;
+    StringView banner;
+    StringView poster;
+    StringView icon;
+    StringView logo;
+    LogoPosition logoPosition;
     StringView type;
     StringView command;
     u64 playTime;
@@ -292,7 +279,6 @@ struct InstallationMeta {
 
 struct InstallationLookupResult {
     i64 installationId;
-    i64 displayId;
     i64 gameId;
     i64 deviceId;
 
@@ -313,8 +299,6 @@ struct InstallationLookupResult {
 struct InstallationDetails {
     InstallationMeta installation;
     GameMeta game;
-    DisplayMeta display;
-    DisplayMeta gameDisplay;
 };
 
 

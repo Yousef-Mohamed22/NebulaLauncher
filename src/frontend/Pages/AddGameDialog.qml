@@ -102,60 +102,49 @@ NblDialog {
                     width: parent.width
                 }
 
-                NblCheckBox {
-                    id: overrideBox
-                    text: "Override display assets for this installation"
-                    visible: !root.newGame
-                }
-
-                Column {
-                    visible: overrideBox.checked || root.newGame
+                RowLayout {
 
                     width: parent.width
-                    spacing: 8
-
-                    RowLayout {
-
-                        width: parent.width
-                        height: 200
-
-                        NblImagePicker {
-                            id: posterPicker
-                            label: "Poster"
-                            implicitHeight: parent.height
-                            Layout.fillWidth: true
-                            aspectRatio: 2.0 / 3.0
-                        }
-                        NblImagePicker {
-                            id: iconPicker
-                            label: "Icon"
-                            implicitHeight: parent.height
-                            Layout.fillWidth: true
-                        }
-                        NblImagePicker {
-                            id: logoPicker
-                            label: "Logo"
-                            implicitHeight: parent.height
-                            Layout.fillWidth: true
-                            fillMode: Image.PreserveAspectFit
-                        }
-                    }
+                    height: 200
 
                     NblImagePicker {
-                        id: bannerPicker
-                        label: "Banner"
-                        height: 200
-                        width: parent.width
-                        aspectRatio: 96.0 / 31.0
+                        id: posterPicker
+                        label: "Poster"
+                        implicitHeight: parent.height
+                        Layout.fillWidth: true
+                        aspectRatio: 2.0 / 3.0
                     }
-
-                    NblComboBox {
-                        id: logoPositionBox
-                        label: "Logo Position"
-                        width: parent.width
-                        model: [ "Left", "Center", "Right", "Hidden" ]
+                    NblImagePicker {
+                        id: iconPicker
+                        label: "Icon"
+                        implicitHeight: parent.height
+                        Layout.fillWidth: true
                     }
+                    NblImagePicker {
+                        id: logoPicker
+                        label: "Logo"
+                        implicitHeight: parent.height
+                        Layout.fillWidth: true
+                        fillMode: Image.PreserveAspectFit
+                    }
+                }
 
+                NblImagePicker {
+                    id: bannerPicker
+                    label: "Banner"
+                    height: 200
+                    width: parent.width
+                    aspectRatio: 96.0 / 31.0
+                }
+
+                NblComboBox {
+                    id: logoPositionBox
+                    label: "Logo Position"
+                    width: parent.width
+                    model: root.newGame 
+                        ? [ "Left", "Center", "Right", "Hidden" ]
+                        : [ "Left", "Center", "Right", "Hidden", "Inherit" ]
+                    currentIndex: root.newGame ? 0 : 4
                 }
 
                 Column {
@@ -193,17 +182,6 @@ NblDialog {
             }
         }
 
-        let poster = null
-        let icon = null
-        let logo = null
-        let banner = null
-        if(root.newGame || overrideBox.checked) {
-            poster = posterPicker.imageSource
-            icon = iconPicker.imageSource
-            logo = logoPicker.imageSource
-            banner = bannerPicker.imageSource
-        }
-
         let gId = gameBox.currentValue;
 
         let command = fieldList.saveToJson()
@@ -211,16 +189,14 @@ NblDialog {
             game: gId,
             type: commandTypeBox.currentValue,
             command: command,
-            displayOverride: overrideBox.checked,
-            displayId: 0,
             title: titleField.text,
             description: descriptionField.text,
             gameTitle: gameTitleField.text,
             gameDescription: gameDescriptionField.text,
-            banner: banner,
-            poster: poster,
-            icon: icon,
-            logo: logo,
+            banner: bannerPicker.imageSource,
+            poster: posterPicker.imageSource,
+            icon: iconPicker.imageSource,
+            logo: logoPicker.imageSource,
             logoPosition: logoPositionBox.currentIndex,
             releaseDate: releaseDateField.getTime(),
             rating: rating,

@@ -28,7 +28,8 @@ public:
         _mCurrentPage(0),
         _mPageSize(0),
         _mIsLoading(false),
-        _mAllLoaded(false)
+        _mAllLoaded(false),
+        _mIncludeNewGame(false)
     { }
 
     enum Roles {
@@ -54,7 +55,11 @@ public:
     bool includeNewGame() const { return _mIncludeNewGame; }
 
     void setPageSize(int size) { _mPageSize = size; }
-    void setIncludeNewGame(bool includeNewGame) { _mIncludeNewGame = includeNewGame; refresh(); }
+    void setIncludeNewGame(bool includeNewGame) { 
+        _mIncludeNewGame = includeNewGame; 
+        includeNewGameChanged();
+        refresh(); 
+    }
     void setSearchQuery(QByteArray searchQuery) {
         _mSearchQuery = searchQuery;
         searchQueryChanged();

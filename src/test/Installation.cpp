@@ -6,24 +6,19 @@
 
 namespace {
 
-nbl::DisplayMeta _displayMeta = {
-    .id = 0,
-    .banner = "banner.jpg",
-    .poster = "poster.jpg",
-    .icon = "icon.jpg",
-    .logo = "logo.jpg",
-};
-
 nbl::GameMeta _gameMeta = {
     .id = 0,
     .title = "Test Game",
     .description = "A test game",
+    .banner = "banner.jpg",
+    .poster = "poster.jpg",
+    .icon = "icon.jpg",
+    .logo = "logo.jpg",
     .releaseDate = 1600000000,
     .rating = 4.5
 };
 
 nbl::InstallationMeta _installMeta = {
-    .displayId = 0,
     .gameId = 0,
     .type = "dummy",
     .command = "C:/Games/Test Game"
@@ -39,7 +34,6 @@ TEST(Installation, AddInstallation) {
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
     ASSERT_TRUE(nbl::addDevice(&connection, { .name = "test" }, &_installMeta.deviceId).success());
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
     ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
@@ -52,7 +46,6 @@ TEST(Installation, RemoveInstallation) {
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
     ASSERT_TRUE(nbl::addDevice(&connection, { .name = "test" }, &_installMeta.deviceId).success());
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
     ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
@@ -66,7 +59,6 @@ TEST(Installation, GetInstallationMeta) {
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
     ASSERT_TRUE(nbl::addDevice(&connection, { .name = "test" }, &_installMeta.deviceId).success());
-    ASSERT_TRUE(nbl::addDisplay(&connection, _displayMeta, &_gameMeta.displayId).success());
 
     ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
     ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());

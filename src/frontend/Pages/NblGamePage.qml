@@ -20,9 +20,9 @@ Item {
         installationPicker.selectedInstallation = installationDetails
     }
 
-    property int logoPosition: installationDetails == null ? details.logoPosition : installationDetails.logoPosition
-    property string logo: installationDetails == null ? details.logoUrl() : installationDetails.logoUrl()
-    property string banner: installationDetails == null ? details.bannerUrl() : installationDetails.bannerUrl()
+    property int logoPosition: installationDetails == null ? details.logoPosition : installationDetails.resolvedLogoPosition
+    property string logo: installationDetails == null ? details.logoUrl() : installationDetails.resolvedLogoUrl
+    property string banner: installationDetails == null ? details.bannerUrl() : installationDetails.resolvedBannerUrl
 
     property bool isFavorite: false
 
@@ -90,8 +90,6 @@ Item {
                 height: parent.height
                 width: 256
                 visible: root.logoPosition < 3
-
-
                 x: _calculateX()
 
                 function _calculateX() {
@@ -116,7 +114,7 @@ Item {
 
                 NblCrossfadeImage {
                     id: logo
-                    source: root.logo
+                    source: root.logoPosition >= 3 ? "" : root.logo
                     anchors.centerIn: parent
                     width: parent.width - 16
                     height: parent.height - 16

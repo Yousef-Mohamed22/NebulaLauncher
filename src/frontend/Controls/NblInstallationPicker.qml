@@ -47,7 +47,7 @@ Item {
                 fillMode: Image.PreserveAspectFit
                 layer.enabled: true
                 visible: false
-                source: root.selectedInstallation == null ? null : root.selectedInstallation.iconUrl()
+                source: root.selectedInstallation == null ? null : root.selectedInstallation.resolvedIconUrl
             }
 
             Item {
@@ -158,7 +158,7 @@ Item {
             delegate: Item {
 
                 id: installationItem
-                width: parent.width
+                width: dropdown.width - 16
                 height: 48
 
                 required property var installationId

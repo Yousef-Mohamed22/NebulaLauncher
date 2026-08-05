@@ -189,8 +189,6 @@ NblDialog {
                 anchors.fill: parent
                 visible: false
 
-                property int displayId: 0
-
                 onRefreshed: {
 
                     let details = ApplicationContext.getInstallationDetails(root.installationId)
@@ -209,13 +207,10 @@ NblDialog {
 
                     installationTags.initialTags = ApplicationContext.getInstallationTags(root.installationId)
 
-                    displayId = details.displayId
-                    overrideBox.checked = displayId != 0
-
-                    if(details.poster) installationPosterPicker.imageSource = details.posterUrl()  
-                    if(details.icon) installationIconPicker.imageSource = details.iconUrl() 
-                    if(details.logo) installationLogoPicker.imageSource = details.logoUrl() 
-                    if(details.banner) installationBannerPicker.imageSource = details.bannerUrl()
+                    if(details.poster) installationPosterPicker.imageSource = details.resolvedPosterUrl
+                    if(details.icon) installationIconPicker.imageSource = details.resolvedIconUrl
+                    if(details.logo) installationLogoPicker.imageSource = details.resolvedLogoUrl 
+                    if(details.banner) installationBannerPicker.imageSource = details.resolvedBannerUrl
 
                     installationLogoPositionBox.currentIndex = details.logoPosition
                 }
@@ -223,32 +218,18 @@ NblDialog {
                 onApplied: {
 
                     if(root.installationId == 0) return
-
                     let command = fieldList.saveToJson()
-
-                    let poster = null
-                    let icon = null
-                    let logo = null
-                    let banner = null
-                    if(overrideBox.checked) {
-                        poster = installationPosterPicker.imageSource
-                        icon = installationIconPicker.imageSource
-                        logo = installationLogoPicker.imageSource
-                        banner = installationBannerPicker.imageSource
-                    }
 
                     let params = {
                         game: root.gameId,
                         type: commandTypeBox.currentValue,
                         command: command,
-                        displayOverride: overrideBox.checked,
-                        displayId: displayId,
                         title: installationTitleField.text,
                         description: installationDescriptionField.text,
-                        banner: banner,
-                        poster: poster,
-                        icon: icon,
-                        logo: logo,
+                        banner: installationBannerPicker.imageSource,
+                        poster: installationPosterPicker.imageSource,
+                        icon: installationIconPicker.imageSource,
+                        logo: installationLogoPicker.imageSource,
                         logoPosition: installationLogoPositionBox.currentIndex,
                         addedInstallationTags: installationTags.getAddedTags(),
                         removedInstallationTags: installationTags.getRemovedTags()
@@ -348,82 +329,65 @@ NblDialog {
 
                                 tooltip: "Tags that apply to this installation, but not necessarily all installations of its game"
                             }
-                            NblCheckBox {
 
-                                id: overrideBox
-                                text: "Override display assets for this installation"
-
-                                onToggled: {
-                                    installationSettingsTab.modified = true
-                                }
-                            }
-
-
-                            Column {
-                                visible: overrideBox.checked
+                            RowLayout {
 
                                 width: parent.width
-                                spacing: 8
-
-                                RowLayout {
-
-                                    width: parent.width
-                                    height: 200
-
-                                    NblImagePicker {
-                                        id: installationPosterPicker
-                                        label: "Poster"
-                                        implicitHeight: parent.height
-                                        Layout.fillWidth: true
-                                        aspectRatio: 2.0 / 3.0
-                                        onImageSourceChanged: {
-                                            installationSettingsTab.modified = true
-                                        }
-                                        tooltip: "The installation's poster"
-                                    }
-                                    NblImagePicker {
-                                        id: installationIconPicker
-                                        label: "Icon"
-                                        implicitHeight: parent.height
-                                        Layout.fillWidth: true
-                                        onImageSourceChanged: {
-                                            installationSettingsTab.modified = true
-                                        }
-                                        tooltip: "The installation's icon"
-                                    }
-                                    NblImagePicker {
-                                        id: installationLogoPicker
-                                        label: "Logo"
-                                        implicitHeight: parent.height
-                                        Layout.fillWidth: true
-                                        fillMode: Image.PreserveAspectFit
-                                        tooltip: "The installation's logo"
-                                    }
-                                }
+                                height: 200
 
                                 NblImagePicker {
-                                    id: installationBannerPicker
-                                    label: "Banner"
-                                    height: 200
-                                    width: parent.width
-                                    aspectRatio: 96.0 / 31.0
-
+                                    id: installationPosterPicker
+                                    label: "Poster"
+                                    implicitHeight: parent.height
+                                    Layout.fillWidth: true
+                                    aspectRatio: 2.0 / 3.0
                                     onImageSourceChanged: {
                                         installationSettingsTab.modified = true
                                     }
-                                    tooltip: "The installation's banner"
+                                    tooltip: "The installation's poster"
                                 }
-
-                                NblComboBox {
-                                    id: installationLogoPositionBox
-                                    label: "Logo Position"
-                                    width: parent.width
-                                    model: [ "Left", "Center", "Right", "Hidden" ]
-                                    onActivated: {
+                                NblImagePicker {
+                                    id: installationIconPicker
+                                    label: "Icon"
+                                    implicitHeight: parent.height
+                                    Layout.fillWidth: true
+                                    onImageSourceChanged: {
                                         installationSettingsTab.modified = true
                                     }
-                                    tooltip: "The position the logo will appear over the banner on the installation's detail page"
+                                    tooltip: "The installation's icon"
                                 }
+                                NblImagePicker {
+                                    id: installationLogoPicker
+                                    label: "Logo"
+                                    implicitHeight: parent.height
+                                    Layout.fillWidth: true
+                                    fillMode: Image.PreserveAspectFit
+                                    tooltip: "The installation's logo"
+                                }
+                            }
+
+                            NblImagePicker {
+                                id: installationBannerPicker
+                                label: "Banner"
+                                height: 200
+                                width: parent.width
+                                aspectRatio: 96.0 / 31.0
+
+                                onImageSourceChanged: {
+                                    installationSettingsTab.modified = true
+                                }
+                                tooltip: "The installation's banner"
+                            }
+
+                            NblComboBox {
+                                id: installationLogoPositionBox
+                                label: "Logo Position"
+                                width: parent.width
+                                model: [ "Left", "Center", "Right", "Hidden", "Inherit" ]
+                                onActivated: {
+                                    installationSettingsTab.modified = true
+                                }
+                                tooltip: "The position the logo will appear over the banner on the installation's detail page"
                             }
                         }
                     }
