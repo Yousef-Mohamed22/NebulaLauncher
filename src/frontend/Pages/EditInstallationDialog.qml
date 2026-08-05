@@ -221,10 +221,10 @@ NblDialog {
 
                     installationTags.initialTags = ApplicationContext.getInstallationTags(root.installationId)
 
-                    if(details.poster) installationPosterPicker.imageSource = details.resolvedPosterUrl
-                    if(details.icon) installationIconPicker.imageSource = details.resolvedIconUrl
-                    if(details.logo) installationLogoPicker.imageSource = details.resolvedLogoUrl 
-                    if(details.banner) installationBannerPicker.imageSource = details.resolvedBannerUrl
+                    if(details.poster) installationPosterPicker.imageSource = ApplicationContext.mediaUrl(details.poster, "poster")
+                    if(details.icon) installationIconPicker.imageSource = ApplicationContext.mediaUrl(details.icon, "icon")
+                    if(details.logo) installationLogoPicker.imageSource = ApplicationContext.mediaUrl(details.logo, "logo") 
+                    if(details.banner) installationBannerPicker.imageSource = ApplicationContext.mediaUrl(details.banner, "banner")
 
                     installationLogoPositionBox.currentIndex = details.logoPosition
                 }
