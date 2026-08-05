@@ -8,7 +8,8 @@ Item {
     required property var field
     required property int fieldIndex
     required property string typeId
-    
+    property NblFieldModel fieldModel
+
     property var value
 
     signal modified
@@ -54,11 +55,19 @@ Item {
             root.value = root.field.defaultValue
             if(root.field.type == 0) {
 
-                let textBox = loader.item as NblTextBox
+                let textBox = loader.item as NblSuggestionsTextBox
                 textBox.text = root.value
                 textBox.textEdited.connect(() => {
                     root.value = textBox.text
                     root.modified()
+
+                    textBox.clearSuggestions()
+                    root.fieldModel.suggest(root.fieldIndex, textBox.text, function(suggestion) {
+                        textBox.pushSuggestion(suggestion)
+                    })
+                })
+                root.fieldModel.suggest(root.fieldIndex, textBox.text, function(suggestion) {
+                    textBox.pushSuggestion(suggestion)
                 })
 
             } else if(root.field.type == 1 || root.field.type == 2) {
@@ -116,7 +125,7 @@ Item {
 
         if(root.field.type == 0) {
 
-            loader.setSource("NblTextBox.qml", {
+            loader.setSource("NblSuggestionsTextBox.qml", {
                 "width": root.width,
                 "label": root.field.name
             })

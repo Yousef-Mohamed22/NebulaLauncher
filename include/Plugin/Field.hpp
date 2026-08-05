@@ -1,6 +1,8 @@
 #include <Core/Types.hpp>
 #include <Core/String.hpp>
 
+#include <functional>
+
 namespace nbl {
 
 enum FieldType {
@@ -36,6 +38,16 @@ struct Field {
             f64 min;
             f64 max;
         } floatData;
+        struct {
+            void (*pfnSuggest)(StringView current, std::function_ref<void(StringView)> suggestionConsumer, void* userData);
+            void* userData;
+
+            void suggest(StringView current, std::function_ref<void(StringView)> suggestionConsumer) const {
+                if(pfnSuggest) {
+                    pfnSuggest(current, suggestionConsumer, userData);
+                }
+            }
+        } stringData;
         struct {
             u32 (*pfnIndex)(StringView name, void* userData);
             StringView (*pfnName)(u32 index, void* userData);

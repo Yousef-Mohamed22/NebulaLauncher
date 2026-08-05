@@ -21,6 +21,7 @@ Repeater {
         field: modelData
         fieldIndex: index
         typeId: root.typeId
+        fieldModel: root.model
 
         onModified: {
             root.modified()

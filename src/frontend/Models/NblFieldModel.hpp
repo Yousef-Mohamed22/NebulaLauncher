@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QtQml>
+#include <qjsvalue.h>
 #include <qstringview.h>
 #include <qtmetamacros.h>
 
@@ -103,6 +104,23 @@ public:
     Q_INVOKABLE NblEnumFieldModel* enumModel(quint32 index) {
 
         return new NblEnumFieldModel(index, _mTypeId, _mType);
+    }
+
+    Q_INVOKABLE void suggest(qsizetype index, QByteArray current, QJSValue callback) {
+
+        if(!callback.isCallable()) return;
+
+        const nbl::Field& field = _mType->fields[index];
+        if(field.type != nbl::FieldType::STRING) return;
+
+        nbl::StringView nblCurrent(current.data(), current.length());
+
+        field.stringData.suggest(nblCurrent, [&](nbl::StringView suggestion) {
+            QJSValueList args{};
+            args << QJSValue(QString::fromUtf8(suggestion.data, suggestion.length));
+            callback.call(args);
+        });
+
     }
 
     QByteArray typeId() {

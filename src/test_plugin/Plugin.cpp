@@ -2,6 +2,7 @@
 #include <Plugin/InstallationType.hpp>
 #include <Platform/Logging.hpp>
 #include <Core/Array.hpp>
+#include "Core/String.hpp"
 #include "Plugin/PluginContext.hpp"
 
 namespace {
@@ -33,11 +34,22 @@ u32 _index(nbl::StringView name, void* userData) {
     return 0;
 }
 
+void _suggest(nbl::StringView current, std::function_ref<void(nbl::StringView)> suggestionConsumer, void* userData) {
+
+    suggestionConsumer("Hello");
+    suggestionConsumer("World");
+
+}
+
 nbl::Array _fields = {
     nbl::Field {
         .type = nbl::FieldType::STRING,
         .key = "string",
-        .name = "String"
+        .name = "String",
+        .stringData = {
+            .pfnSuggest = _suggest,
+            .userData = nullptr
+        }
     },
     nbl::Field {
         .type = nbl::FieldType::INTEGER,
