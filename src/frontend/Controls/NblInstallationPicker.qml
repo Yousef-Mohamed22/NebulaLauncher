@@ -103,7 +103,7 @@ Item {
 
         Item {
 
-            visible: installationsModel.count > 1 && parent.width >= parent.height * 2
+            visible: parent.width >= parent.height * 2
 
             Layout.fillHeight: true
             Layout.preferredWidth: parent.height
@@ -136,7 +136,7 @@ Item {
         id: dropdown
 
         width: parent.width
-        height: Math.min(160, (installationsModel.count * 48) + 16)
+        height: Math.min(160, ((installationsModel.count + 1) * 48) + 16)
 
         y: parent.height + 8
 
@@ -148,159 +148,210 @@ Item {
             radius: 8
         }
 
-        contentItem: ListView {
+        contentItem: ScrollView { 
 
-            onAtYEndChanged: {
-                if(atYEnd && !installationsModel.allLoaded && !installationsModel.isLoading) {
-                    installationsModel.loadNextPage()
-                }
-            }
+            id: scrollView
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            contentWidth: width - 8
+            contentHeight: installationsColumn.height
 
-            model: installationsModel
-            delegate: Item {
+            Flickable {
 
-                id: installationItem
-                width: dropdown.width - 16
-                height: 48
-
-                required property var installationId
-                required property string icon
-                required property string resolvedTitle
-                required property var lastPlayed
-
-                Rectangle {
-                    anchors.fill: parent
-                    visible: mouseArea.containsMouse
-                    color: Theme.colors.layer1
-                    radius: 8
+                anchors.fill: parent
+                clip: true
+                onAtYEndChanged: {
+                    if(atYEnd && !installationsModel.allLoaded && !installationsModel.isLoading) {
+                        installationsModel.loadNextPage()
+                    }
                 }
 
-                RowLayout {
+                Column {
 
-                    anchors.fill: parent
-                    anchors.margins: 8
-                    spacing: 8
+                    id: installationsColumn
+                    width: scrollView.contentWidth
 
-                    Item {
+                    Repeater {
+                        model: installationsModel
+                        delegate: Item {
 
-                        Layout.fillHeight: true
-                        Layout.preferredWidth: parent.height
+                            id: installationItem
+                            width: installationsColumn.width
+                            height: 48
 
-                        NblImage {
-                            id: dImageSource
-                            anchors.fill: parent
-                            anchors.verticalCenter: parent.verticalCenter
-                            fillMode: Image.PreserveAspectFit
-                            layer.enabled: true
-                            visible: false
-                            source: ApplicationContext.mediaUrl(installationItem.icon, "icon")
-                        }
+                            required property var installationId
+                            required property string icon
+                            required property string resolvedTitle
+                            required property var lastPlayed
 
-                        Item {
-                            id: dMaskShape
-                            anchors.fill: dImageSource
-                            visible: false
-                            layer.enabled: true
                             Rectangle {
                                 anchors.fill: parent
+                                visible: mouseArea.containsMouse
+                                color: Theme.colors.layer1
                                 radius: 8
                             }
-                        }
 
-                        MultiEffect {
-                            anchors.fill: dImageSource
-                            source: dImageSource
-                            maskEnabled: true
-                            maskSource: dMaskShape
-                            maskThresholdMin: 0.5
-                            maskSpreadAtMin: 1.0
+                            RowLayout {
+
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 8
+
+                                Item {
+
+                                    Layout.fillHeight: true
+                                    Layout.preferredWidth: parent.height
+
+                                    NblImage {
+                                        id: dImageSource
+                                        anchors.fill: parent
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        fillMode: Image.PreserveAspectFit
+                                        layer.enabled: true
+                                        visible: false
+                                        source: ApplicationContext.mediaUrl(installationItem.icon, "icon")
+                                    }
+
+                                    Item {
+                                        id: dMaskShape
+                                        anchors.fill: dImageSource
+                                        visible: false
+                                        layer.enabled: true
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            radius: 8
+                                        }
+                                    }
+
+                                    MultiEffect {
+                                        anchors.fill: dImageSource
+                                        source: dImageSource
+                                        maskEnabled: true
+                                        maskSource: dMaskShape
+                                        maskThresholdMin: 0.5
+                                        maskSpreadAtMin: 1.0
+                                    }
+                                }
+
+                                Item {
+
+                                    id: labels
+                                    Layout.fillHeight: true
+                                    Layout.fillWidth: true
+
+                                    visible: parent.width > parent.height * 2
+
+                                    Label {
+                                        text: installationItem.resolvedTitle
+                                        y: -(parent.height / 7)
+                                        width: parent.width
+                                        color: Theme.colors.text
+                                        font.family: Theme.font
+                                        font.pixelSize: parent.height / 2
+                                        font.weight: 500
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Label {
+                                        text: "Last played: " + (installationItem.lastPlayed == 0 ? "Never" : Theme.formatDate(installationItem.lastPlayed))
+                                        width: parent.width
+                                        y: parent.height / 2
+                                        color: Theme.colors.textDim
+                                        font.family: Theme.font
+                                        font.pixelSize: parent.height / 2.5
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                            }
+                            MouseArea {
+                                id: mouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.selectedInstallation = ApplicationContext.getInstallationDetails(installationItem.installationId)
+                                    dropdown.close()
+                                }
+                            }
+                            TapHandler {
+                                acceptedButtons: Qt.RightButton
+                                onTapped: {
+                                    ctxMenu.open()
+                                }
+                            }
+
+                            NblContextMenu {
+                                id: ctxMenu
+                                height: 96
+                                y: 0
+                                contentItem: ColumnLayout {
+                                    spacing: 0
+                                    NblButton {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        icon: ""
+                                        text: "Edit"
+
+                                        onClicked: {
+                                            ctxMenu.close()
+                                            dropdown.close()
+                                            root.mainWindow.beginEditInstallation(installationItem.installationId)
+                                        }
+                                        radius: 2
+                                    }
+                                    NblButton {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        icon: ""
+                                        text: "Delete"
+                                        onClicked: {
+                                            ctxMenu.close()     
+                                            dropdown.close()
+                                            root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
+                                                "text": "Are you sure you want to delete this installation?"
+                                            }, function() {
+
+                                                ApplicationContext.deleteInstallation(installationItem.installationId)
+                                                root.selectedInstallation = null
+                                                root.refresh()
+                                            })
+                                        }
+                                        radius: 2
+                                    }
+                                }
+                            }
                         }
                     }
 
                     Item {
+                        width: installationsColumn.width
+                        height: 48
 
-                        id: labels
-                        Layout.fillHeight: true
-                        Layout.fillWidth: true
-
-                        visible: parent.width > parent.height * 2
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 8
+                            color: addMouseArea.containsMouse ? Theme.colors.layer1 : Theme.colors.layer0
+                        }
 
                         Label {
-                            text: installationItem.resolvedTitle
-                            y: -(parent.height / 7)
-                            width: parent.width
-                            color: Theme.colors.text
+                            anchors.fill: parent
+                            horizontalAlignment: Qt.AlignHCenter
+                            verticalAlignment: Qt.AlignVCenter
                             font.family: Theme.font
-                            font.pixelSize: parent.height / 2
+                            font.pixelSize: 16
                             font.weight: 500
-                            elide: Text.ElideRight
+                            text: "+ Add Installation"
+                            color: Theme.colors.text
                         }
 
-                        Label {
-                            text: "Last played: " + (installationItem.lastPlayed == 0 ? "Never" : Theme.formatDate(installationItem.lastPlayed))
-                            width: parent.width
-                            y: parent.height / 2
-                            color: Theme.colors.textDim
-                            font.family: Theme.font
-                            font.pixelSize: parent.height / 2.5
-                            elide: Text.ElideRight
-                        }
-                    }
-                }
-                MouseArea {
-                    id: mouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        root.selectedInstallation = ApplicationContext.getInstallationDetails(installationItem.installationId)
-                        dropdown.close()
-                    }
-                }
-                TapHandler {
-                    acceptedButtons: Qt.RightButton
-                    onTapped: {
-                        ctxMenu.open()
-                    }
-                }
-                
-                NblContextMenu {
-                    id: ctxMenu
-                    height: 96
-                    y: 0
-                    contentItem: ColumnLayout {
-                        spacing: 0
-                        NblButton {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            icon: ""
-                            text: "Edit"
-
+                        MouseArea {
+                            id: addMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                ctxMenu.close()
                                 dropdown.close()
-                                root.mainWindow.beginEditInstallation(installationItem.installationId)
+                                root.mainWindow.beginAddInstallation(root.gameId)
                             }
-                            radius: 2
-                        }
-                        NblButton {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            icon: ""
-                            text: "Delete"
-                            onClicked: {
-                                ctxMenu.close()     
-                                dropdown.close()
-                                root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
-                                    "text": "Are you sure you want to delete this installation?"
-                                }, function() {
-
-                                    ApplicationContext.deleteInstallation(installationItem.installationId)
-                                    root.selectedInstallation = null
-                                    root.refresh()
-                                })
-                            }
-                            radius: 2
                         }
                     }
                 }
@@ -309,7 +360,7 @@ Item {
     }
 
     MouseArea {
-        enabled: installationsModel.count > 1 && root.selectedInstallation != null
+        enabled: root.selectedInstallation != null
         anchors.fill: parent
         hoverEnabled: enabled
         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
