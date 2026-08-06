@@ -17,6 +17,8 @@ nbl::Result nbl::PluginLoader::loadAll() {
 
         if(pluginFolder == "." || pluginFolder == "..") continue;
 
+        nbl::log(nbl::LogLevel::DEBUG, "Attempting to load plugin in folder ", pluginFolder);
+
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
         nbl::StringView fullPath = {};
         NBL_CHECK(nbl::StringBuilder(&frame).append(_mPluginFolder).append('/').append(pluginFolder).build(&fullPath));
@@ -36,7 +38,7 @@ nbl::Result nbl::PluginLoader::_load(StringView folder) {
 
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 
-    StringView manifestPath;
+    StringView manifestPath{};
     NBL_CHECK(StringBuilder(&frame).append(folder).append("/plugin.json").build(&manifestPath));
 
     FileChannel manifestStream;
@@ -44,7 +46,6 @@ nbl::Result nbl::PluginLoader::_load(StringView folder) {
 
     JsonElement value = {};
     NBL_CHECK(parseJson(manifestStream.reader(), &frame, &value));
-
     if(value.type != JsonType::OBJECT) return nbl::Result::INVALID_ARGUMENT;
 
     const JsonElement* idValue = value.object.get("id");
@@ -98,8 +99,7 @@ nbl::Result nbl::PluginLoader::create(PluginContext* context, StringView pluginF
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 32, &out->_mDataArena));
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 4, &out->_mMetaArena));
 
-    nbl::ArenaFrame frame(&out->_mDataArena);
-    NBL_CHECK(nbl::StringBuilder(&frame).append(pluginFolder).build(&out->_mPluginFolder));
+    NBL_CHECK(nbl::StringBuilder(&out->_mDataArena).append(pluginFolder).build(&out->_mPluginFolder));
 
     out->_mPluginRefs.data = static_cast<LoadedPlugin*>(out->_mMetaArena.end());
 

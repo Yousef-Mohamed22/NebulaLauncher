@@ -197,8 +197,8 @@ nbl::Result _parseArrayInPlace(_ParseContext* context, usize depth = 0) {
             return nbl::Result::UNEXPECTED_TOKEN;
         }
 
-        if(elementCount >= 128) break;
         NBL_CHECK(_nextToken(context));
+        if(elementCount >= 128) break;
     }
 
     if(done) {

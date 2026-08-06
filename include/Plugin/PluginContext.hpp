@@ -44,15 +44,18 @@ public:
         _mNotificationConsumer.notify(type, title, message, icon, duration);
     }
 
-    StringView databasePath() const { return _mDatabasePath; }
+    inline StringView databasePath() const { return _mDatabasePath; }
 
-    static Result create(StringView databasePath, NotificationConsumer notificationConsumer, PluginContext* ctx);
+    inline StringView pluginDataPath() const { return _mPluginDataPath; }
+
+    static Result create(StringView databasePath, StringView pluginDataPath, NotificationConsumer notificationConsumer, PluginContext* ctx);
 
 private:
     Arena _mArena;
     InstallationType* _pTypes;
     usize _mNumTypes;
     StringView _mDatabasePath;
+    StringView _mPluginDataPath;
     StringView _mWrapperPath;
     NotificationConsumer _mNotificationConsumer;
 };

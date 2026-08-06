@@ -119,7 +119,7 @@ nbl::Result nbl::FileChannel::open(StringView path, FileChannel* outChannel, Fil
 
     int fd = ::open(nullTerminatedPath.data, openFlags, 0644);
     if(fd < 0) {
-        return nbl::Result::IO_ERROR;
+        return errno == ENOENT ? nbl::Result::NOT_FOUND : nbl::Result::IO_ERROR;
     }
 
     outChannel->_mHandle = reinterpret_cast<void*>(static_cast<intptr_t>(fd));
@@ -243,7 +243,7 @@ nbl::Result nbl::FolderIterator::create(StringView path, FolderIterator* outIter
 
 nbl::Result nbl::makeDirectories(StringView path) {
 
-    if(path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 
     char temp[PATH_MAX] = {};
     memcpy(temp, path.data, path.length);

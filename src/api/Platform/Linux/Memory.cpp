@@ -12,10 +12,12 @@
 
 #include <Core/Math.hpp>
 #include <Core/Result.hpp>
+#include <Platform/Logging.hpp>
 
 #include "../Memory.hpp"
 
 
+#include <errno.h>
 #include <unistd.h>
 #include <sys/mman.h>
 
@@ -49,12 +51,15 @@ nbl::Result nbl::unmapMemory(void* ptr, usize* size) noexcept {
 }
 
 nbl::Result nbl::commitMemory(void* ptr, usize* size) noexcept {
-    if(ptr == nullptr || size == nullptr || *size == 0) return nbl::Result::INVALID_ARGUMENT;
+    NBL_ASSERT(ptr != nullptr);
+    NBL_ASSERT(size != nullptr);
+    NBL_ASSERT(*size != 0);
 
     *size = nbl::alignUp(*size, getpagesize());
     int rc = ::mprotect(ptr, *size, PROT_READ | PROT_WRITE);
 
     if(rc != 0) {
+        nbl::log(nbl::LogLevel::DEBUG, "Failed to commit memory! ", errno);
         return nbl::Result::INVALID_ARGUMENT;
     }
     return nbl::Result::SUCCESS;

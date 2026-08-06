@@ -35,6 +35,7 @@ using namespace Qt::StringLiterals;
 namespace {
 
 
+// TODO: Scale images to their optimal sizes before saving them 
 nbl::Result pushImage(QString url, QString repo, QString* outPath) {
 
     if(url.isEmpty()) {
@@ -153,7 +154,10 @@ void ApplicationContext::_initialize() {
     nbl::StringView path;
     NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/nebula.db").build(&path).success());
 
-    NBL_ASSERT(nbl::PluginContext::create(path, {
+    nbl::StringView pluginDataPath;
+    NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/plugindata").build(&pluginDataPath).success());
+
+    NBL_ASSERT(nbl::PluginContext::create(path, pluginDataPath, {
         .pfnNotify = [](void* userData, nbl::NotificationType type, nbl::StringView title, nbl::StringView message, nbl::Optional<nbl::StringView> icon, nbl::Optional<u32> duration) {
         
             ApplicationContext* ctx = static_cast<ApplicationContext*>(userData);
@@ -274,6 +278,7 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
     });
     if(res.error()) {
         delete handle;
+        _mContext.pushNotification(nbl::NotificationType::ERROR, "Failed to launch", "An error occurred while launching an installation");
         return nullptr;
     }
 

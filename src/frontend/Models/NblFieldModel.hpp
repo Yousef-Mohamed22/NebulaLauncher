@@ -70,7 +70,7 @@ public:
             case DefaultRole: {
                 switch(field.type) {
                     case nbl::FieldType::STRING:
-                        return QByteArray(field.defaultValue.stringValue.data, field.defaultValue.stringValue.length);
+                        return QString::fromUtf8(field.defaultValue.stringValue.data, field.defaultValue.stringValue.length);
                     case nbl::FieldType::INTEGER:
                         return static_cast<qint64>(field.defaultValue.integerValue);
                     case nbl::FieldType::FLOAT:
@@ -79,7 +79,7 @@ public:
                         return field.defaultValue.booleanValue;
                     case nbl::FieldType::ENUM: {
                         nbl::StringView name = field.enumData.name(field.defaultValue.enumValue);
-                        return QByteArray(name.data, name.length);
+                        return QString::fromUtf8(name.data, name.length);
                     }
                     default:
                         return QVariant();

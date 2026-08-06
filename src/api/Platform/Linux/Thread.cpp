@@ -9,37 +9,56 @@
 #include <Platform/Process.hpp>
 #include <Platform/Assert.hpp>
 #include <Core/Result.hpp>
+#include <Platform/Logging.hpp>
 
 #include <pthread.h>
-
 
 namespace {
 
 struct _ThreadData {
+    pthread_t handle;
     nbl::Thread::EntryPointFn function;
     void* userData;
+    u32 refCount;
 };
 
 void* _threadEntryPoint(void* data) {
     _ThreadData* threadData = static_cast<_ThreadData*>(data);
-    _ThreadData localData = *threadData;
+    threadData->refCount += 1;
 
-    delete threadData;
+    i32 result = threadData->function(threadData->userData);
+    
+    threadData->refCount -= 1;
+    if(threadData->refCount == 0) {
+        delete threadData;
+    }
 
-    i32 result = localData.function(localData.userData);
     return reinterpret_cast<void*>(static_cast<intptr_t>(result));
 }
 
 
 }
 
+nbl::Thread::~Thread() {
+    detach();
+}
+
+
+bool nbl::Thread::isRunning() const {
+    if(_pHandle == nullptr) return false;
+
+    _ThreadData* data = static_cast<_ThreadData*>(_pHandle);
+    return data->refCount == 2;
+}
+
 
 nbl::Result nbl::Thread::join(i32* outReturnValue) {
 
-    if(!_pHandle) return nbl::Result::INVALID_STATE;
+    if(!_pHandle) return nbl::Result::SUCCESS;
 
+    _ThreadData* data = static_cast<_ThreadData*>(_pHandle);
     void* threadResult;
-    int result = pthread_join(reinterpret_cast<pthread_t>(_pHandle), &threadResult);
+    int result = pthread_join(data->handle, &threadResult);
     if(result != 0) {
         return nbl::Result::THREAD_ERROR;
     }
@@ -53,29 +72,45 @@ nbl::Result nbl::Thread::join(i32* outReturnValue) {
 
 nbl::Result nbl::Thread::detach() {
 
-    int result = pthread_detach(reinterpret_cast<pthread_t>(_pHandle));
-    if(result != 0) {
-        return nbl::Result::THREAD_ERROR;
+    if(_pHandle) {
+
+        _ThreadData* data = static_cast<_ThreadData*>(_pHandle);
+        _pHandle = nullptr;
+
+        data->refCount -= 1;
+
+        if(data->refCount > 0) { // Thread is alive
+            int result = pthread_detach(data->handle);
+            if(result != 0) {
+                return nbl::Result::THREAD_ERROR;
+            }
+        } else {
+            delete data;
+        }
     }
 
     return nbl::Result::SUCCESS;
+
 }
 
 nbl::Result nbl::Thread::create(EntryPointFn function, void* userData, Thread* outThread) {
 
     NBL_ASSERT(outThread != nullptr);
 
-    _ThreadData* threadData = new _ThreadData{ function, userData };
+    _ThreadData* threadData = new _ThreadData { 
+        .handle = {}, 
+        .function = function, 
+        .userData = userData, 
+        .refCount = 1 
+    };
 
-    pthread_t handle;
-    int result = pthread_create(&handle, nullptr, _threadEntryPoint, threadData);
+    int result = pthread_create(&threadData->handle, nullptr, _threadEntryPoint, threadData);
     if(result != 0) {
         delete threadData;
         return nbl::Result::THREAD_ERROR;
     }
 
-    outThread->_pHandle = reinterpret_cast<void*>(handle);
-    outThread->_mRunning = true;
+    outThread->_pHandle = threadData;
 
     return nbl::Result::SUCCESS;
 

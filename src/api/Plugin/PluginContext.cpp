@@ -36,7 +36,7 @@ nbl::Span<nbl::InstallationType> nbl::PluginContext::types() const {
 }
 
 
-nbl::Result nbl::PluginContext::create(StringView databasePath, NotificationConsumer consumer, PluginContext* ctx) {
+nbl::Result nbl::PluginContext::create(StringView databasePath, StringView pluginDataPath, NotificationConsumer consumer, PluginContext* ctx) {
 
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 16, &ctx->_mArena));
 
@@ -45,6 +45,10 @@ nbl::Result nbl::PluginContext::create(StringView databasePath, NotificationCons
         NBL_CHECK(nbl::StringBuilder(&frame)
                 .append(databasePath)
                 .buildNullTerminated(&ctx->_mDatabasePath));
+
+        NBL_CHECK(nbl::StringBuilder(&frame)
+                .append(pluginDataPath)
+                .buildNullTerminated(&ctx->_mPluginDataPath));
 
         StringView binaryPath = getBinaryPath();
         usize index;

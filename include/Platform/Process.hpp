@@ -37,6 +37,8 @@ StringView getBinaryPath();
 class Thread {
 public:
    
+    ~Thread();
+
     /**
      * \brief A function pointer type representing the entry point of a thread. The function should take a single void* argument for user data and return an i32 value as the thread's exit code.
      */
@@ -46,9 +48,7 @@ public:
      * \brief Determines if the thread is currently running.
      * \return true if the thread is running, false otherwise.
      */
-    bool isRunning() const {
-        return _mRunning;
-    }
+    bool isRunning() const;
 
     /**
      * \brief Waits for the thread to finish execution and retrieves its exit code.
@@ -75,7 +75,6 @@ public:
 private:
 
     void* _pHandle;
-    bool _mRunning;
 };
 
 
