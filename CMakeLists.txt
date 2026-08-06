@@ -28,6 +28,7 @@ option(NBL_BUILD_TEST_PLUGIN "Build Test Plugin" ON)
 option(NBL_BUILD_SGDB_PLUGIN "Build SteamGridDB Plugin" ON)
 option(NBL_BUILD_IGDB_PLUGIN "Build IGDB.com Plugin" ON)
 option(NBL_BUILD_RA_PLUGIN "Build RetroAchivements Plugin" ON)
+option(NBL_BUILD_MINECRAFT_PLUGIN "Build Minecraft Plugin" ON)
 
 #
 # Dependencies
@@ -127,7 +128,6 @@ if(${NBL_BUILD_SGDB_PLUGIN})
         COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/plugin_sgdb/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/sgdb"
         VERBATIM
     )
-
 endif()
 
 if(${NBL_BUILD_IGDB_PLUGIN}) 
@@ -168,6 +168,27 @@ if(${NBL_BUILD_RA_PLUGIN})
         TARGET Nebula_RaPlugin
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/plugin_retroachievements/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/retroachievements"
+        VERBATIM
+    )
+endif()
+
+
+if(${NBL_BUILD_MINECRAFT_PLUGIN}) 
+
+    file(GLOB_RECURSE NBL_TEST_PLUGIN_SOURCES ${NBL_SRC_DIR}/plugin_minecraft/**.cpp)
+    add_library(Nebula_MinecraftPlugin SHARED ${NBL_TEST_PLUGIN_SOURCES})
+    target_link_libraries(Nebula_MinecraftPlugin PRIVATE Nebula_Api)
+    set_target_properties(Nebula_MinecraftPlugin PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/minecraft"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/minecraft"
+        PREFIX ""
+        OUTPUT_NAME "plugin"
+    )
+
+    add_custom_command(
+        TARGET Nebula_MinecraftPlugin
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/plugin_minecraft/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/minecraft"
         VERBATIM
     )
 

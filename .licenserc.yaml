@@ -29,6 +29,7 @@ header:
     - '**/*.json'
     - 'LICENSE'
     - 'NOTICE'
+    - 'src/plugin_minecraft/vendor/*'
 
   language:
     Qml:

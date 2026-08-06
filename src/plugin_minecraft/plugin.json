@@ -1,0 +1,6 @@
+{
+    "id": "minecraft",
+    "version": "0.1.0",
+    "name": "Minecraft",
+    "description": "Adds the Minecraft installation type, which allows direct launching of Minecraft: Java Edition."
+}

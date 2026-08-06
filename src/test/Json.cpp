@@ -15,8 +15,11 @@
  */
 
 
-#include <Codec/Json.hpp>
 #include <gtest/gtest.h>
+
+#include <Platform/Logging.hpp>
+#include <Codec/Json.hpp>
+#include <Core/Stream.hpp>
 
 TEST(Json, ParseNull) {
     nbl::JsonElement element = {};
@@ -876,7 +879,4 @@ TEST(Json, ParseUnicode) {
 
     EXPECT_EQ(element.type, nbl::JsonType::STRING);
     EXPECT_EQ(element.string, "'");
-
-
-
 }
