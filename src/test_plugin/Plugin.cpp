@@ -106,7 +106,7 @@ nbl::Result _launch(
         nbl::PluginContext* ctx, 
         nbl::Span<nbl::FieldValue> fields, 
         i64 installationId, 
-        nbl::ProcessHandle* handle, 
+        nbl::ProcessTracker* handle, 
         void* userData) {
 
     nbl::log(nbl::LogLevel::INFO, "String: ", fields.data[0].stringValue);
@@ -114,6 +114,9 @@ nbl::Result _launch(
     nbl::log(nbl::LogLevel::INFO, "Float: ", fields.data[2].floatValue);
     nbl::log(nbl::LogLevel::INFO, "Boolean: ", fields.data[3].booleanValue);
     nbl::log(nbl::LogLevel::INFO, "Enum: ", _name(fields.data[4].enumValue, nullptr));
+
+    ctx->pushNotification(nbl::NotificationType::INFO, "Hello", "Hello from test plugin");
+    handle->markComplete();
 
     return nbl::Result::SUCCESS;
 }

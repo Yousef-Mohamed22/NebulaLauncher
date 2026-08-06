@@ -4,6 +4,7 @@
 #include <Core/Span.hpp>
 #include <Codec/Json.hpp>
 #include <Plugin/PluginContext.hpp>
+#include <Plugin/ProcessTracker.hpp>
 #include <Plugin/Field.hpp>
 
 namespace nbl {
@@ -15,7 +16,7 @@ struct LaunchInstallationFunction {
             PluginContext* ctx, 
             nbl::Span<FieldValue> fields, 
             i64 installationId,
-            ProcessHandle* handle, 
+            ProcessTracker* tracker, 
             void* userData);
     void* userData;
 };
@@ -37,7 +38,7 @@ struct InstallationType {
     LaunchInstallationFunction launchFunc;
     GetFolderFunction getFolderFunc;
 
-    inline Result launch(PluginContext* ctx, nbl::Span<FieldValue> fields, i64 installationId, ProcessHandle* handle) const {
+    inline Result launch(PluginContext* ctx, nbl::Span<FieldValue> fields, i64 installationId, ProcessTracker* handle) const {
         return launchFunc.pfnLaunchInstallation(this, ctx, fields, installationId, handle, launchFunc.userData);
     }
 

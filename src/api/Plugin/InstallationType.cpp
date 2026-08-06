@@ -23,10 +23,10 @@ nbl::Result _launch(
         nbl::PluginContext* ctx, 
         nbl::Span<nbl::FieldValue> fields, 
         i64 installationId, 
-        nbl::ProcessHandle* handle, 
+        nbl::ProcessTracker* tracker, 
         void* userData) {
 
-    return ctx->runCommand(installationId, fields[0].stringValue, fields[1].stringValue, handle);
+    return tracker->run(ctx, fields[0].stringValue, fields[1].stringValue);
 }
 
 nbl::Result _getFolder(

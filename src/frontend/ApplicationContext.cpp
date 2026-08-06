@@ -164,8 +164,8 @@ void ApplicationContext::_initialize() {
 
             QVariantMap map = {};
             map["type"] = type == nbl::NotificationType::ERROR ? "error" : "info";
-            map["title"] = fromNbl(title);
-            map["message"] = fromNbl(message);
+            map["title"] = QString::fromUtf8(title.data, title.length);
+            map["message"] = QString::fromUtf8(message.data, message.length);
             if(icon.hasValue()) map["icon"] = fromNbl(*icon);
             if(duration.hasValue()) map["duration"] = *duration;
             
@@ -239,9 +239,14 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
 
     connect(handle, &NblProcessHandle::stopped, this, [this, installationId, handle]() {
         _mRunningProcesses.remove(installationId);
-        delete handle;
+        handle->deleteLater();
     });
 
+    if(nbl::ProcessTracker::create(installationId, handle->tracker()).error()) {
+        _mContext.pushNotification(nbl::NotificationType::ERROR, "Failed to launch", "Failed to create process tracker");
+        handle->deleteLater();
+        return nullptr;
+    }
     _mRunningProcesses[installationId] = handle;
 
     nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
@@ -270,14 +275,14 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
             NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
             NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
         }
-        NBL_CHECK(installType->launch(&_mContext, values, installationId, handle->handle()));
+        NBL_CHECK(installType->launch(&_mContext, values, installationId, handle->tracker()));
         NBL_CHECK(handle->initLogging());
         handle->check();
 
         return nbl::Result::SUCCESS;
     });
     if(res.error()) {
-        delete handle;
+        handle->deleteLater();
         _mContext.pushNotification(nbl::NotificationType::ERROR, "Failed to launch", "An error occurred while launching an installation");
         return nullptr;
     }

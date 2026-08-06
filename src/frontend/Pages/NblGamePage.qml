@@ -128,13 +128,15 @@ Item {
             id: launchBar
 
             Layout.fillWidth: true
-            Layout.preferredHeight: 48
+            Layout.preferredHeight: 72
+            Layout.topMargin: -24
 
             spacing: 8
 
             Rectangle {
                 Layout.preferredWidth: 8
                 Layout.preferredHeight: 48
+                Layout.alignment: Qt.AlignBottom
                 radius: 8
                 color: Theme.colors.layer1
             }
@@ -144,22 +146,21 @@ Item {
                 Layout.maximumWidth: 250
                 Layout.minimumWidth: 48
                 Layout.fillWidth: true
-                Layout.preferredHeight: 48
+                Layout.preferredHeight: 72
 
                 Rectangle {
                     width: parent.width + 16
                     height: parent.height + 16
                     x: -8
-                    y: -32
+                    y: -8
                     radius: 16
                     color: Theme.colors.layer0
+                    enabled: false
                 }
 
                 NblLaunchButton {
                     id: launchBtn
-                    width: parent.width
-                    height: 72
-                    y: -24
+                    anchors.fill: parent
                     installationId: root.selectedInstallation
                     mainWindow: root.mainWindow
                     gameId: root.details.gameId
@@ -175,6 +176,7 @@ Item {
                 Layout.minimumWidth: 48
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
+                Layout.alignment: Qt.AlignBottom
 
                 onSelectedInstallationChanged: {
                     root.installationDetails = selectedInstallation
@@ -184,6 +186,7 @@ Item {
                 visible: root.width > 808
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
+                Layout.alignment: Qt.AlignBottom
                 radius: 8
                 color: Theme.colors.layer1
             }

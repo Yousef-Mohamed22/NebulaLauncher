@@ -16,7 +16,7 @@ i32 _threadProc(void* userData) {
 
     static const QRegularExpression ansiRegex("\x1B\\[[0-9;]*[a-zA-Z]");
 
-    nbl::Reader reader = handle->handle()->stdoutReader();
+    nbl::Reader reader = handle->tracker()->handle()->stdoutReader();
     while(true) {
 
         char copyBuffer[4096];

@@ -12,6 +12,7 @@
 #include <Platform/Assert.hpp>
 
 #include <utility>
+#include <new>
 
 namespace nbl {
 

@@ -5,6 +5,7 @@
 #include <QtQml>
 
 #include <Platform/Process.hpp>
+#include <Plugin/ProcessTracker.hpp>
 
 class NblProcessHandle : public QObject {
 
@@ -21,9 +22,8 @@ public:
     NblProcessHandle(QObject* parent = nullptr) :
         QObject(parent),
         _bHasStarted(false),
-        _bWasRunning(false),
         _bIsStopping(false),
-        _mHandle{},
+        _mTracker{},
         _mWatcherThread{},
         _mLogs("")
     { }
@@ -39,7 +39,7 @@ public:
     }
 
     inline bool isRunning() {
-        return _bWasRunning;
+        return _mPrevState == nbl::ProcessTracker::State::RUNNING;
     }
 
     inline bool isStopping() {
@@ -53,28 +53,39 @@ public:
         _bIsStopping = true;
         emit isStoppingUpdated();
 
-        _mHandle.kill();
+        _mTracker.kill();
     }
 
     Q_INVOKABLE void check() {
 
-        bool nowRunning = _mHandle.isRunning();
-        if(nowRunning != _bWasRunning) {
+        _mTracker.check();
+        nbl::ProcessTracker::State state = _mTracker.state();
 
-            if(nowRunning && !_bHasStarted) {
+        if(state != _mPrevState) {
+
+            if(_mPrevState == nbl::ProcessTracker::State::RUNNING) {
+                _mPrevState = state;
+                emit isRunningUpdated();
+            } else {
+                _mPrevState = state;
+            }
+
+            if(state == nbl::ProcessTracker::State::RUNNING) {
                 _bHasStarted = true;
                 emit hasStartedUpdated();
+            } 
+            else if(state == nbl::ProcessTracker::State::COMPLETE) {
+                emit complete();
+                emit stopped();
             }
-            _bWasRunning = nowRunning;
-            emit isRunningUpdated();
-
-            if(!nowRunning) {
+            else if(state == nbl::ProcessTracker::State::FAILED) {
+                emit failed();
                 emit stopped();
             }
         }
     }
 
-    inline nbl::ProcessHandle* handle() { return &_mHandle; } 
+    inline nbl::ProcessTracker* tracker() { return &_mTracker; }
 
     inline QString logs() {
         return _mLogs;
@@ -94,13 +105,15 @@ signals:
     void isStoppingUpdated();
     void logsUpdated();
     void stopped();
+    void complete();
+    void failed();
 
 private:
 
     bool _bHasStarted;
-    bool _bWasRunning;
     bool _bIsStopping;
-    nbl::ProcessHandle _mHandle;
+    nbl::ProcessTracker _mTracker;
+    nbl::ProcessTracker::State _mPrevState;
     nbl::Thread _mWatcherThread;
     QString _mLogs;
 

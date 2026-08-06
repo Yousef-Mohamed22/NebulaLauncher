@@ -23,6 +23,13 @@ Item {
             }
         }
 
+        if(details.color == null) {
+            if(details.type == "error") {
+                details.color = "#af1f43"
+            } else {
+                details.color = Theme.colors.layer1
+            }
+        }
         if(details.duration == null) details.duration = 5000
 
         activeNotifications.insert(0, details)
@@ -54,7 +61,11 @@ Item {
             id: notif
 
             required property int index
-            required property var modelData
+            required property string title
+            required property string message
+            required property string icon
+            required property color color
+            required property int duration
 
             property int renderX: root.notificationStart
 
@@ -63,7 +74,7 @@ Item {
             width: root.width
             height: root.notificationHeight
 
-            property int remainingMillis: modelData.duration
+            property int remainingMillis: duration
 
             onDismissedChanged: {
                 if(dismissed) {
@@ -85,7 +96,7 @@ Item {
 
                 property int prevTime: Date.now()
 
-                running: notif.modelData.duration > 0
+                running: notif.duration
                 repeat: true
                 interval: 100
                 onTriggered: {
@@ -119,7 +130,7 @@ Item {
                 hoverEnabled: !notif.dismissed
                 onContainsMouseChanged: {
                     if(notif.dismissed) return
-                    notif.remainingMillis = notif.modelData.duration
+                    notif.remainingMillis = notif.duration
                 }
             }
 
@@ -136,16 +147,16 @@ Item {
                 Rectangle {
                     id: notifBg
                     anchors.fill: parent
-                    color: notif.modelData.type == "error" ? "#af1f43" : Theme.colors.layer1
+                    color: notif.color
                     radius: 8
                     visible: false
 
                     Rectangle {
                         id: barShape
-                        width: parent.width * (notif.remainingMillis / notif.modelData.duration)
+                        width: parent.width * (notif.remainingMillis / notif.duration)
                         height: 8
                         anchors.bottom: parent.bottom
-                        color: Theme.colors.readableOn(notifBg.color) //Qt.hsla(notifBg.color.hslHue, 0.9, 0.75)
+                        color: Theme.colors.readableOn(notifBg.color)
 
                         Behavior on width {
                             NumberAnimation { duration: 100 }
@@ -179,7 +190,7 @@ Item {
                     spacing: 8
 
                     NblInlineIcon {
-                        icon: notif.modelData.icon
+                        icon: notif.icon
                         Layout.preferredWidth: 64
                         Layout.fillHeight: true
                     }
@@ -201,12 +212,12 @@ Item {
                                 Label {
                                     width: parent.width
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: notif.modelData.title
+                                    text: notif.title
                                     font.family: Theme.font
                                     font.pixelSize: 16
                                     font.bold: true
                                     elide: Text.ElideRight
-                                    color: Theme.colors.blackOrWhite(notifBg.color)
+                                    color: Theme.colors.blackOrWhite(notif.color)
                                 }
                             }
 
@@ -219,7 +230,7 @@ Item {
                                     font.family: Theme.nerdFont
                                     font.pixelSize: 16
                                     anchors.centerIn: parent
-                                    color: notifXArea.containsMouse ? Theme.colors.text : Theme.colors.readableOn(notifBg.color)
+                                    color: notifXArea.containsMouse ? Theme.colors.text : Theme.colors.readableOn(notif.color)
                                 }
                                 MouseArea {
                                     id: notifXArea
@@ -237,7 +248,7 @@ Item {
                         Label {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            text: notif.modelData.message
+                            text: notif.message
                             font.family: Theme.font
                             font.pixelSize: 16
                             color: Theme.colors.blackOrWhite(notifBg.color)
