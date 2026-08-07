@@ -71,6 +71,10 @@ struct Result {
         PLUGIN_ERROR = -11,
         OUT_OF_SPACE = -12,
         PARSE_ERROR = -13,
+        TIMEOUT = -14,
+        OS_ERROR = -15,
+        FORMAT_ERROR = -16,
+        INTERRUPTED = -17,
         UNIMPLEMENTED = -998,
         UNEXPECTED_ERROR = -999
     };

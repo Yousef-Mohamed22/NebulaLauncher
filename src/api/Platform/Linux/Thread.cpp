@@ -12,6 +12,7 @@
 #include <Platform/Logging.hpp>
 
 #include <pthread.h>
+#include <stdatomic.h>
 
 namespace {
 
@@ -19,17 +20,16 @@ struct _ThreadData {
     pthread_t handle;
     nbl::Thread::EntryPointFn function;
     void* userData;
-    u32 refCount;
+    atomic_int refCount;
 };
 
 void* _threadEntryPoint(void* data) {
-    _ThreadData* threadData = static_cast<_ThreadData*>(data);
-    threadData->refCount += 1;
+    volatile _ThreadData* threadData = static_cast<_ThreadData*>(data);
 
     i32 result = threadData->function(threadData->userData);
     
-    threadData->refCount -= 1;
-    if(threadData->refCount == 0) {
+    int old = atomic_fetch_sub(&threadData->refCount, 1);
+    if(old == 1) {
         delete threadData;
     }
 
@@ -77,9 +77,8 @@ nbl::Result nbl::Thread::detach() {
         _ThreadData* data = static_cast<_ThreadData*>(_pHandle);
         _pHandle = nullptr;
 
-        data->refCount -= 1;
-
-        if(data->refCount > 0) { // Thread is alive
+        int old = atomic_fetch_sub(&data->refCount, 1);
+        if(data->refCount > 1) { // Thread is alive
             int result = pthread_detach(data->handle);
             if(result != 0) {
                 return nbl::Result::THREAD_ERROR;
@@ -101,7 +100,7 @@ nbl::Result nbl::Thread::create(EntryPointFn function, void* userData, Thread* o
         .handle = {}, 
         .function = function, 
         .userData = userData, 
-        .refCount = 1 
+        .refCount = ATOMIC_VAR_INIT(2) 
     };
 
     int result = pthread_create(&threadData->handle, nullptr, _threadEntryPoint, threadData);

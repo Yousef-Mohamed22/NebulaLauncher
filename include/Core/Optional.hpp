@@ -92,7 +92,7 @@ public:
      */
     Optional& operator=(const Optional& other) {
         if(this == &other) return *this;
-        ~Optional();
+        this->~Optional();
 
         _mHasValue = other._mHasValue;
         if(_mHasValue) {
@@ -171,8 +171,8 @@ public:
     }
 
 private:
+    alignas(T) u8 _mValue[sizeof(T)];
     bool _mHasValue;
-    u8 _mValue[sizeof(T)];
 };
 
 }

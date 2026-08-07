@@ -1,90 +1,110 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
-
-/**
- * \file HttpClient.cpp
- * \author jwall64
- * \brief Implementation of Network/HttpClient.hpp.
- */
-
 #include <Network/HttpClient.hpp>
-
-#include <Core/Result.hpp>
 #include <Platform/StringBuilder.hpp>
-#include <Platform/Pipe.hpp>
+#include "Platform/File.hpp"
+#include "Platform/Logging.hpp"
 
-#include <curl/curl.h>
 #include <curl/multi.h>
-
+#include <curl/curl.h>
 
 namespace {
 
+static bool _sInitialized = false;
 constexpr const char* _USER_AGENT = "Nebula/0.1.0 curl/8.20.0";
-
-bool _sInitialized = false;
 
 usize _writeCallback(char* ptr, usize size, usize nmemb, void* userData) {
 
-    if(nmemb == 0) return 0;
-
-    // Hack: uninitialized pipe still produces writer with correct pfnWrite
-    nbl::Writer writer = nbl::Pipe().writer();
-    writer.impl = userData;
-
-    nbl::Result res = writer.writeAll(ptr, nmemb);
-    if(res.error()) {
-        return 0;
+    nbl::Writer writer = *static_cast<nbl::Writer*>(userData);
+    if(writer.writeAll(ptr, size * nmemb).error()) {
+        nbl::log(nbl::LogLevel::INFO, "An error occurred, this should cause a failure to be reported!");
+        return static_cast<usize>(0);
     }
-
-    return nmemb;
+    return size * nmemb;
 }
 
 }
 
-void nbl::HttpReader::close() {
+nbl::HttpClient::~HttpClient() {
 
-    if(_pHandle && _pParent && _pParent->_pHandle) {
-        CURL* handle = static_cast<CURL*>(_pHandle);
-        CURLM* multi = static_cast<CURLM*>(_pParent->_pHandle);
+    if(_pHandle) {
+        _mRequestMutex.lock();
+        curl_multi_wakeup(_pHandle);
 
-        _pParent->_mRequestMutex.lock();
-        curl_multi_wakeup(multi);
+        CURLM* handle = static_cast<CURLM*>(_pHandle);
 
-        curl_multi_remove_handle(multi, handle);
+        for(_ActiveRequest& req : _mRequests) {
 
-        _pParent->_mRequestMutex.unlock();
+            CURL* easy = static_cast<CURL*>(req.handle);
+
+            req.finished(nbl::Result::INTERRUPTED);
+
+            curl_multi_remove_handle(handle, easy);
+            curl_easy_cleanup(easy);
+
+            _mRequests.pop(&req);
+        }
+
+        _mRequestMutex.unlock();
+        _mReaderThread.join(nullptr);
+
+        curl_multi_cleanup(handle);
         _pHandle = nullptr;
     }
-
-    _mPipe.closeWriter();
-}
-
-nbl::Result nbl::HttpReader::_read(void* impl, void* buffer, usize bufLen, usize* bytesRead) {
-
-    HttpReader* reader = static_cast<HttpReader*>(impl);
-    nbl::Result res = reader->_mPipe.reader().read(buffer, bufLen, bytesRead);
-    if(reader->_mError.error()) {
-        return reader->_mError;
-    }
-    return res;
 }
 
 
-nbl::Result nbl::HttpClient::makeRequest(StringView url, HttpReader* outReader, Span<HttpHeader> headers) {
+nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers) {
 
+    auto frameLock = _mRequestMutex.frameLock();
+
+    _ActiveRequest* req = nullptr;
+    NBL_CHECK(_mRequests.push(&req));
+    NBL_CHECK(nbl::FileChannel::open(file, &req->file, FileOpenFlag::CREATE | FileOpenFlag::WRITE));
+
+    req->writer = req->file.writer();
+    req->download = true;
+    req->callback = doneCallback;
+    req->retryCount = 0;
+
+    return _setupConnection(url, req);
+}
+
+nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers) {
+
+    auto frameLock = _mRequestMutex.frameLock();
+
+    _ActiveRequest* req = nullptr;
+    NBL_CHECK(_mRequests.push(&req));
+
+    req->writer = writer;
+    req->callback = doneCallback;
+    req->retryCount = 0;
+
+    return _setupConnection(url, req);
+}
+
+nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* req, Span<HttpHeader> headers) {
+    
     CURLM* multiHandle = static_cast<CURLM*>(_pHandle);
     CURL* easyHandle = curl_easy_init();
+    if(!easyHandle) {
+        return nbl::Result::IO_ERROR;
+    }
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    ArenaFrame frame(Arena::threadLocal());
 
-    StringView urlCopy;
-    NBL_CHECK(nbl::StringBuilder::nullTerminate(url, &urlCopy, &frame));
+    if(!url.nullTerminated) {
+        NBL_CHECK(StringBuilder::nullTerminate(url, &url, &frame));
+    }
 
-    NBL_CHECK(nbl::Pipe::create(&outReader->_mPipe));
-
-    curl_easy_setopt(easyHandle, CURLOPT_USERAGENT, _USER_AGENT);
     curl_easy_setopt(easyHandle, CURLOPT_WRITEFUNCTION, _writeCallback);
-    curl_easy_setopt(easyHandle, CURLOPT_WRITEDATA, outReader->_mPipe.writer().impl);
-    curl_easy_setopt(easyHandle, CURLOPT_PRIVATE, outReader);
+    curl_easy_setopt(easyHandle, CURLOPT_USERAGENT, _USER_AGENT);
+    curl_easy_setopt(easyHandle, CURLOPT_WRITEDATA, &req->writer);
+    curl_easy_setopt(easyHandle, CURLOPT_PRIVATE, req);
+    curl_easy_setopt(easyHandle, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(easyHandle, CURLOPT_MAXREDIRS, 5L);
+    curl_easy_setopt(easyHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+    curl_easy_setopt(easyHandle, CURLOPT_UPKEEP_INTERVAL_MS, 5000L);
+    curl_easy_setopt(easyHandle, CURLOPT_NOSIGNAL, 1L);
 
     if(headers.length > 0) {
         curl_slist* list = nullptr;
@@ -104,29 +124,126 @@ nbl::Result nbl::HttpClient::makeRequest(StringView url, HttpReader* outReader, 
         }
 
         curl_easy_setopt(easyHandle, CURLOPT_HTTPHEADER, list);
+        req->headers = list;
     }
-    curl_easy_setopt(easyHandle, CURLOPT_URL, urlCopy.data);
+    curl_easy_setopt(easyHandle, CURLOPT_URL, url.data);
 
-    _mRequestMutex.lock();
+    req->handle = easyHandle;
+    req->queued = true;
+
+    _mAllDone.increment();
     curl_multi_wakeup(multiHandle);
+    _startThread();
 
-    CURLMcode rc = curl_multi_add_handle(multiHandle, easyHandle);
-    if(rc != 0) {
-        return nbl::Result::IO_ERROR;
-    }
-    _mRequestMutex.unlock();
-
-    if(!_mThread.isRunning()) {
-        _mThread.~Thread();
-        nbl::Thread::create(_threadProc, this, &_mThread);
-    }
-    
-    outReader->_pParent = this;
-    outReader->_pHandle = easyHandle;
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::HttpClient::create(nbl::HttpClient* outClient) {
+void nbl::HttpClient::awaitAll(u32* numFailures) {
+    _mAllDone.wait();
+    if(numFailures) *numFailures = _mFailures;
+    _mFailures = 0;
+}
+
+
+
+nbl::Result nbl::HttpClient::_startThread() {
+
+    if(_mReaderThread.isRunning()) return nbl::Result::SUCCESS;
+
+    _mReaderThread.~Thread();
+    return nbl::Thread::create([](void* userData) {
+
+        HttpClient* client = static_cast<HttpClient*>(userData);
+        CURLM* handle = static_cast<CURLM*>(client->_pHandle);
+
+        int runningRequests = 0;
+        do {
+
+            if(curl_multi_perform(handle, &runningRequests) != CURLM_OK) {
+                return 1;
+            }
+
+
+            if(curl_multi_poll(handle, nullptr, 0, 0, nullptr) != CURLM_OK) {
+                return 2;
+            }
+
+            client->_mRequestMutex.lock();
+            for(_ActiveRequest& req : client->_mRequests) {
+                if(req.queued) {
+                    curl_multi_add_handle(handle, static_cast<CURL*>(req.handle));
+                    runningRequests++;
+                    req.queued = false;
+                }
+            }
+
+            client->_mRequestMutex.unlock();
+
+            CURLMsg* msg;
+            int msgsLeft;
+            while((msg = curl_multi_info_read(handle, &msgsLeft)) != nullptr) {
+                if(msg->msg == CURLMSG_DONE) {
+
+                    CURL* easy = msg->easy_handle;
+                    _ActiveRequest* req = nullptr;
+                    curl_easy_getinfo(easy, CURLINFO_PRIVATE, &req);
+
+                    if(msg->data.result == CURLE_OPERATION_TIMEDOUT) { // Timeout, OK to retry
+                        if(req->retryCount++ < client->_mMaxRetries) {
+                            curl_multi_remove_handle(handle, easy);
+                            curl_multi_add_handle(handle, easy);
+                            continue;
+                        }
+                        req->finished(nbl::Result::TIMEOUT);
+                        client->_mFailures++;
+
+                    } else if(msg->data.result == CURLE_OK) {
+
+                        long responseCode;
+                        curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &responseCode);
+
+                        if(responseCode >= 500 && responseCode < 600) {
+                            if(req->retryCount++ < client->_mMaxRetries) { // Server error, OK to retry
+                                curl_multi_remove_handle(handle, easy);
+                                curl_multi_add_handle(handle, easy);
+                                continue;
+                            }
+                            req->finished(nbl::Result::IO_ERROR);
+                            client->_mFailures++;
+                        } else {
+
+                            req->finished(nbl::Result::SUCCESS);
+                        }
+
+                    } else {
+                        nbl::log(nbl::LogLevel::ERROR, "HTTP connection failed! ", curl_easy_strerror(msg->data.result));
+                        req->finished(nbl::Result::IO_ERROR);
+                        client->_mFailures++;
+                    }
+
+                    if(req->headers) {
+                        curl_slist_free_all(static_cast<curl_slist*>(req->headers));
+                    }
+
+                    curl_multi_remove_handle(handle, easy);
+                    curl_easy_cleanup(easy);
+                    client->_mRequests.pop(req);
+
+                    client->_mAllDone.decrement();
+                }
+            }
+
+        } while(runningRequests > 0);
+
+        return 0;
+    }, this, &_mReaderThread);
+
+}
+
+nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out) {
+
+    NBL_CHECK(nbl::Pool<_ActiveRequest>::create(maxRequests, &out->_mRequests));
+    NBL_CHECK(nbl::Latch::create(0, &out->_mAllDone));
 
     if(!_sInitialized) {
         curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -136,77 +253,14 @@ nbl::Result nbl::HttpClient::create(nbl::HttpClient* outClient) {
     CURLM* multiHandle = curl_multi_init();
     if(multiHandle == nullptr) return nbl::Result::IO_ERROR;
 
-    NBL_CHECK(nbl::Mutex::create(&outClient->_mRequestMutex));
+    curl_multi_setopt(multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, maxConnections);
+    curl_multi_setopt(multiHandle, CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
 
-    outClient->_pHandle = multiHandle;
+    NBL_CHECK(nbl::Mutex::create(&out->_mRequestMutex));
+
+    out->_mMaxRetries = maxRetries;
+    out->_pHandle = multiHandle;
     return nbl::Result::SUCCESS;
 }
 
-void nbl::HttpClient::close() {
 
-    if(_pHandle) {
-        _mRequestMutex.lock();
-        curl_multi_wakeup(_pHandle);
-
-        CURL** handles = curl_multi_get_handles(_pHandle);
-        CURL* current = handles[0];
-        usize index = 0;
-        while(current != nullptr) {
-        
-            HttpReader* reader;
-            curl_easy_getinfo(current, CURLINFO_PRIVATE, &reader);
-
-            reader->_mError = nbl::Result::INVALID_STATE;
-            reader->close();
-
-            index++;
-            current = handles[index];
-        }
-
-        _mThread.join(nullptr);
-        _mRequestMutex.unlock();
-
-        CURLM* multi = static_cast<CURLM*>(_pHandle);
-        curl_multi_cleanup(multi);
-        _pHandle = nullptr;
-    }
-}
-
-
-i32 nbl::HttpClient::_threadProc(void* userData) {
-    
-    nbl::HttpClient* client = static_cast<nbl::HttpClient*>(userData);
-    CURLM* handle = static_cast<CURLM*>(client->_pHandle);
-
-    int runningRequests = 0;
-    do {
-        if(curl_multi_perform(handle, &runningRequests) != CURLM_OK) {
-            return 1;
-        }
-        if(curl_multi_poll(handle, nullptr, 0, 0, nullptr) != CURLM_OK) {
-            return 2;
-        }
-
-        client->_mRequestMutex.lock();
-        client->_mRequestMutex.unlock();
-
-        CURLMsg* msg;
-        int msgsLeft;
-        while((msg = curl_multi_info_read(handle, &msgsLeft)) != nullptr) {
-            if(msg->msg == CURLMSG_DONE) {
-                CURL* easy = msg->easy_handle;
-                HttpReader* reader;
-                curl_easy_getinfo(easy, CURLINFO_PRIVATE, &reader);
-
-                if(msg->data.result != CURLE_OK) {
-                    nbl::log(nbl::LogLevel::ERROR, "HTTP connection failed! ", curl_easy_strerror(msg->data.result));
-                    reader->_mError = nbl::Result::IO_ERROR;
-                }
-                reader->close();
-            }
-        }
-
-    } while(runningRequests > 0);
-
-    return 0;
-}

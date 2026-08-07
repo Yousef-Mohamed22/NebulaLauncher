@@ -58,7 +58,6 @@ enum class FileSeekOrigin : u8 {
 
 class FileChannel {
 public:
-    FileChannel() : _mHandle(nullptr) {}
 
     ~FileChannel() { _close(); }
 

@@ -272,6 +272,9 @@ Result writeUint(u64 value, Writer writer);
 Result writeFloat(f64 value, Writer writer, u8 precision = 15);
 
 
+Result writeHex(u64 value, Writer writer, u8 minDigits = 0);
+
+
 /**
 * \brief Converts a value of any type to a string representation and writes it to a writer. This is a template function that can be specialized for different types.
 * \tparam T The type of the value to convert to a string.
@@ -282,6 +285,12 @@ Result writeFloat(f64 value, Writer writer, u8 precision = 15);
 template<typename T>
 Result toString(T value, Writer writer) {
     return nbl::Result::UNIMPLEMENTED;
+}
+
+template<typename T>
+inline Result toString(T* ptr, Writer writer) {
+    NBL_CHECK(writer.writeAll("0x", 2));
+    return writeHex(reinterpret_cast<u64>(ptr), writer, sizeof(T*) * 2);
 }
 
 

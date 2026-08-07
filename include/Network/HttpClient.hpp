@@ -11,11 +11,18 @@
 #include <Core/Array.hpp>
 #include <Platform/Process.hpp>
 #include <Platform/Arena.hpp>
+#include <Platform/Pool.hpp>
 #include <Platform/Pipe.hpp>
 #include <Platform/Mutex.hpp>
+#include <Platform/File.hpp>
+#include <Platform/PlatformDefines.hpp>
+#include <Core/Optional.hpp>
+#include <Core/Result.hpp>
+
+#include <functional>
+
 
 namespace nbl {
-
 
 struct HttpHeader {
     StringView name;
@@ -39,62 +46,50 @@ struct HttpHeader {
     }
 };
 
-
-
-class HttpReader;
 class HttpClient {
 public:
 
-    HttpClient() = default;
-    ~HttpClient() { close(); }
+    ~HttpClient();
 
-    Result makeRequest(StringView url, HttpReader* responseReader, Span<HttpHeader> headers = {});
+    Result downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers = {});
+    Result makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers = {});
 
-    void close();
+    void awaitAll(u32* numFailures);
 
-    static Result create(HttpClient* outClient);
-
-private:
- 
-    friend class HttpReader;
-
-    static i32 _threadProc(void* userData);
-
-    void* _pHandle;
-
-    nbl::Mutex _mRequestMutex;
-    nbl::Thread _mThread;
-
-};
-
-
-class HttpReader {
-public:
-
-    HttpReader() = default;
-    ~HttpReader() { close(); }
-
-    inline operator Reader() { return reader(); }
-
-    inline Reader reader() { 
-        return {
-            .impl = this,
-            .pfnRead = _read
-        }; 
-    }
-
-    void close();
+    static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out);
 
 private:
 
-    friend class HttpClient;
+    struct _ActiveRequest {
+        Writer writer;
+        FileChannel file;
+        void* handle;
+        void* headers;
 
-    static Result _read(void* impl, void* buffer, usize bufLen, usize* bytesRead);
+        Optional<std::function_ref<void(Result)>> callback;
+        u32 retryCount;
+        bool download;
+        bool queued;
 
+        inline void finished(Result res) {
+            if(callback.hasValue()) {
+                (*callback)(res);
+            }
+        }
+    };
+
+    nbl::Result _setupConnection(StringView url, _ActiveRequest* req, Span<HttpHeader> headers = {});
+    nbl::Result _startThread();
+
+
+    nbl::Pool<_ActiveRequest> _mRequests;
     void* _pHandle;
-    HttpClient* _pParent;
-    nbl::Pipe _mPipe;
-    nbl::Result _mError;
+    Thread _mReaderThread;
+    Mutex _mRequestMutex;
+    Latch _mAllDone;
+    u32 _mMaxRetries;
+    u32 _mFailures;
+
 };
 
 }

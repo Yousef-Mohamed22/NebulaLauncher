@@ -99,3 +99,25 @@ nbl::Result nbl::writeFloat(f64 value, Writer writer, u8 precision) {
         return writer.writeAll(buffer, lastNonZeroIndex);
     }
 }
+
+nbl::Result nbl::writeHex(u64 value, Writer writer, u8 minDigits) {
+ 
+    u8 buffer[16]{};
+    u8 index = 16;
+
+    while(value > 0) {
+        u8 lastDigit = value & 0xF;
+        if(lastDigit > 9) {
+            buffer[--index] = 'A' + (lastDigit - 10);
+        } else {
+            buffer[--index] = '0' + lastDigit;
+        }
+        value >>= 4;
+    }
+    while((16 - index) < minDigits) {
+        buffer[--index] = '0';
+    }
+
+    return writer.writeAll(buffer + index, 16 - index);
+
+}
