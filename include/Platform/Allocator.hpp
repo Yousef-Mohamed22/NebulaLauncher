@@ -52,6 +52,11 @@ private:
 class InPlaceAllocator : public LinearAllocator {
 public:
 
+    InPlaceAllocator(void* buffer, usize capacity) : 
+        _pData(buffer),
+        _mCapacity(capacity)
+    { }
+
     inline void* begin() const noexcept override { return _pData; }
     inline void* end() const noexcept override { return static_cast<u8*>(_pData) + _mIndex; }
 
