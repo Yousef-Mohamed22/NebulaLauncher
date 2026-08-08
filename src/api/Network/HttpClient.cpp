@@ -133,7 +133,7 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
 
     _mAllDone.increment();
     curl_multi_wakeup(multiHandle);
-    _startThread();
+    NBL_CHECK(_startThread());
 
     return nbl::Result::SUCCESS;
 }

@@ -109,7 +109,7 @@ public:
      */
     Optional& operator=(Optional&& other) {
         if(this == &other) return *this;
-        ~Optional();
+        this->~Optional();
 
         _mHasValue = other._mHasValue;
         if(_mHasValue) {
@@ -126,7 +126,7 @@ public:
      * \return A reference to the optional after assignment.
      */
     Optional& operator=(const T& value) {
-        ~Optional();
+        this->~Optional();
         _mHasValue = true;
         new (_mValue) T(value);
         return *this;
@@ -138,7 +138,7 @@ public:
      * \return A reference to the optional after assignment.
      */
     Optional& operator=(T&& value) {
-        ~Optional();
+        this->~Optional();
         _mHasValue = true;
         new (_mValue) T(std::move(value));
         return *this;
