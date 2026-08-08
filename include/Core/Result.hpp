@@ -75,6 +75,7 @@ struct Result {
         OS_ERROR = -15,
         FORMAT_ERROR = -16,
         INTERRUPTED = -17,
+        LIBRARY_ERROR = -18,
         UNIMPLEMENTED = -998,
         UNEXPECTED_ERROR = -999
     };
