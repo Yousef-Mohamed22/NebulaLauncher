@@ -96,7 +96,7 @@ struct AccountProvider {
             void* userData;
             OAuthResponseType responseType;
             StringView clientId;
-            StringView reirectUrl;
+            StringView loginUrl;
             Span<StringView> scopes;
 
             Result finishOAuthLogin(StringView response, LoginTracker* tracker) const {

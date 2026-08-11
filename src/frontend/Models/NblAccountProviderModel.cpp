@@ -3,8 +3,10 @@
 #include <Platform/Process.hpp>
 #include <Plugin/AccountProvider.hpp>
 #include <Plugin/PluginContext.hpp>
+#include "Network/HttpServer.hpp"
 
 #include <qstringview.h>
+#include <QDesktopServices>
 
 namespace {
 
@@ -54,6 +56,56 @@ i32 _sThreadProc(void* userData) {
     }
 
     return 0;
+}
+
+nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
+
+    nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
+    const nbl::AccountProvider& prov = ctx->accountProviders().data[_sTracker.current];
+    
+    if(prov.oAuthData.responseType == nbl::AccountProvider::OAuthResponseType::NONE) {
+        _sTracker.tracker.postStatus("Logging in");
+        return prov.oAuthData.finishOAuthLogin("", &_sTracker.tracker);
+    }
+
+    QString qpath = QString::fromUtf8(path.data, path.length);
+    QStringList parts = qpath.split("?");
+
+    if(parts.length() != 2) {
+        _sTracker.tracker.finishTracking(false, "Invalid response");
+        return nbl::Result::FORMAT_ERROR;
+    }
+
+    QStringList params = qpath.split("&");
+    for(QString param : params) {
+        QStringList paramParts = qpath.split("=");
+        if(paramParts.length() != 2) {
+            _sTracker.tracker.finishTracking(false, "Invalid response");
+            return nbl::Result::FORMAT_ERROR;
+        }
+
+        switch(prov.oAuthData.responseType) {
+            default:
+            case nbl::AccountProvider::OAuthResponseType::CODE: {
+                if(param != "code") continue;
+                QByteArray arr = paramParts[1].toUtf8();
+                nbl::StringView code(arr.data(), arr.length());
+                _sTracker.tracker.postStatus("Logging in");
+                return prov.oAuthData.finishOAuthLogin(code, &_sTracker.tracker);
+            }
+            case nbl::AccountProvider::OAuthResponseType::TOKEN: {
+                if(param != "token") continue;
+                QByteArray arr = paramParts[1].toUtf8();
+                nbl::StringView token(arr.data(), arr.length());
+                _sTracker.tracker.postStatus("Logging in");
+                return prov.oAuthData.finishOAuthLogin(token, &_sTracker.tracker);
+            }
+        }
+
+    }
+
+    _sTracker.tracker.finishTracking(false, "Invalid response");
+    return nbl::Result::FORMAT_ERROR;
 }
 
 
@@ -108,13 +160,60 @@ void NblAccountProviderModel::loginBasic(quint32 index, QString username, QStrin
     res = nbl::Thread::create(_sThreadProc, this, &thread);
 
     if(res.error()) {
-        ctx->pushNotification(nbl::NotificationType::ERROR, "Login failed", "Failed to spawn a login thread");
+        _sTracker.tracker.finishTracking(false, "Failed to spawn a login thread");
         return;
     }
 }
 
 void NblAccountProviderModel::loginOAuth(quint32 index) {
-    nbl::log(nbl::LogLevel::INFO, "Login oauth");
+
+    nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
+    nbl::Result res = _sTracker.startTracking(this);
+    if(res.error()) {
+        ctx->pushNotification(nbl::NotificationType::ERROR, "Cannot log in", "Already trying to login to another account");
+        return;
+    }
+    const nbl::AccountProvider& type = ctx->accountProviders().data[index];
+    _sTracker.current = index;
+
+    nbl::OAuthHttpServer server{};
+    res = nbl::OAuthHttpServer::create(43569, _sServerHandler, &server, &server);
+    if(res.error()) {
+        _sTracker.tracker.finishTracking(false, "Failed to spawn a login thread");
+        return;
+    }
+
+    _sTracker.tracker.postStatus("Awaiting OAuth response");
+
+    QString url = QString::fromUtf8(type.oAuthData.loginUrl.data, type.oAuthData.loginUrl.length);
+    url += "?client_id=" + QString::fromUtf8(type.oAuthData.clientId.data, type.oAuthData.clientId.length);
+    url += "&response_type=";
+    switch(type.oAuthData.responseType) {
+        default:
+        case nbl::AccountProvider::OAuthResponseType::NONE:
+            url += "none";
+            break;
+        case nbl::AccountProvider::OAuthResponseType::CODE:
+            url += "code";
+            break;
+        case nbl::AccountProvider::OAuthResponseType::TOKEN:
+            url += "token";
+            break;
+    }
+
+    url += "&redirect_uri=http://localhost:43569";
+    
+    if(type.oAuthData.scopes.length > 0) {
+        url += "&scope=";
+        for(usize i = 0 ; i < type.oAuthData.scopes.length ; i++) {
+            if(i > 0) {
+                url += "%20";
+            }
+            url += QString::fromUtf8(type.oAuthData.scopes[i].data, type.oAuthData.scopes[i].length);
+        }
+    }
+    QDesktopServices::openUrl(QUrl(url));
+
 }
 
 void NblAccountProviderModel::logout(quint32 index, quint32 accountId) {

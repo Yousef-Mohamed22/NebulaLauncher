@@ -5,17 +5,15 @@
 #include <Platform/Arena.hpp>
 #include <Platform/StringBuilder.hpp>
 
-void nbl::HttpServer::close() {
-
-
-
+void nbl::OAuthHttpServer::close() {
+    _mSocket.close();
 }
 
 
 
-i32 nbl::HttpServer::_threadProc(void* userData) {
+i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
 
-    HttpServer* self = static_cast<HttpServer*>(userData);
+    OAuthHttpServer* self = static_cast<OAuthHttpServer*>(userData);
 
     constexpr StringView okResponse = 
         "HTTP/1.1 200 OK\r\n"
@@ -32,7 +30,9 @@ i32 nbl::HttpServer::_threadProc(void* userData) {
         "Connection: close\r\n"
         "\r\n";
 
-    while(true) {
+    bool succeeded = false;
+
+    while(!succeeded) {
 
         Socket client;
         nbl::Result res = self->_mSocket.accept(&client);
@@ -103,12 +103,19 @@ i32 nbl::HttpServer::_threadProc(void* userData) {
                         }
 
                         res = self->_pfnHandler(path, self->_pUserData);
-                        if(res.error()) break;
+                        if(res.error()) {
+                            client.writer().writeString(errorResponse);
+                            client.close();
+                            done = true;
+                            break;
+                        }
 
                         client.writer().writeString(okResponse);
                         client.close();
 
+                        succeeded = true;
                         done = true;
+                        break;
                     };
                     pathBuilder.append(lastRead);
                     break;
@@ -122,11 +129,11 @@ i32 nbl::HttpServer::_threadProc(void* userData) {
         }
     }
 
-    return 0;
+    return succeeded ? 0 : -1;
 }
 
 
-nbl::Result nbl::HttpServer::create(u16 port, Result(*pfnHandler)(StringView, void*), void* userData, HttpServer* outServer) {
+nbl::Result nbl::OAuthHttpServer::create(u16 port, Result(*pfnHandler)(StringView, void*), void* userData, OAuthHttpServer* outServer) {
 
     NBL_CHECK(nbl::ServerSocket::listen(port, SocketType::TCP, &outServer->_mSocket));
     NBL_CHECK(nbl::Thread::create(_threadProc, outServer, nullptr));

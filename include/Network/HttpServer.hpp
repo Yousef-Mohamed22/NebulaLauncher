@@ -7,16 +7,16 @@
 namespace nbl {
 
 
-class HttpServer {
+class OAuthHttpServer {
 public:
 
-    ~HttpServer() {
+    ~OAuthHttpServer() {
         close();
     }
 
     void close();
 
-    static Result create(u16 port, Result(*pfnHandler)(StringView, void*), void* userData, HttpServer* outServer);
+    static Result create(u16 port, Result(*pfnHandler)(StringView, void*), void* userData, OAuthHttpServer* outServer);
 
 private:
 
