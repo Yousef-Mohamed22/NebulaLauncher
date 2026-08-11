@@ -9,7 +9,8 @@ Item {
 
     enum Type {
         BASIC = 0,
-        OAUTH = 1
+        OAUTH = 1,
+        TOKEN = 2
     }
 
     property int type: NblAccountInput.Type.BASIC
@@ -22,6 +23,7 @@ Item {
     function clear() {
         usernameBox.clear()
         passwordBox.clear()
+        tokenBox.clear()
     }
 
     RowLayout {
@@ -113,4 +115,52 @@ Item {
             }
         }
     }
+
+    RowLayout {
+
+        anchors.fill: parent
+        spacing: 8
+        visible: root.type == NblAccountInput.Type.TOKEN
+
+        NblTextBox {
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            Layout.preferredWidth: 360
+            id: tokenBox
+            label: "Token / API Key"
+        }
+        NblButton {
+            Layout.fillWidth: true
+            Layout.preferredWidth: 120
+            Layout.preferredHeight: usernameBox.borderHeight
+            Layout.alignment: Qt.AlignBottom
+            text: "Login"
+            inactiveColor: Theme.colors.accent
+            activeColor: Theme.colors.accent
+            textColor: Theme.colors.textOnAccent
+            centered: true
+            fontWeight: 500
+            onClicked: {
+                root.loginPressed({
+                    token: tokenBox.text
+                })
+            }
+        }
+        NblButton {
+            Layout.fillWidth: true
+            Layout.preferredWidth: 120
+            Layout.preferredHeight: usernameBox.borderHeight
+            Layout.alignment: Qt.AlignBottom
+            text: "Cancel"
+            enabled: root.cancelEnabled
+            inactiveColor: Theme.colors.layer1
+            textColor: root.cancelEnabled ? Theme.colors.text : Theme.colors.textDim
+            centered: true
+            fontWeight: 500
+            onClicked: {
+                root.canceled()
+            }
+        }
+    }
+
 }

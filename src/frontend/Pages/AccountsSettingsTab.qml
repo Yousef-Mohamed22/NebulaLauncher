@@ -201,8 +201,10 @@ SettingsTab {
                                     providerRepeater.loggingInIndex = providerItem.index
                                     if(providerItem.modelData.accountType == 0) {
                                         providerModel.loginBasic(providerItem.index, args.username, args.password)
-                                    } else {
+                                    } else if(providerItem.modelData.accountType == 1) {
                                         providerModel.loginOAuth(providerItem.index)
+                                    } else {
+                                        providerModel.loginToken(providerItem.index, args.token)
                                     }
                                 }
                             }

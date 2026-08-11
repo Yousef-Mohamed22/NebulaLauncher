@@ -124,7 +124,6 @@ nbl::AccountProvider _provider {
     .basicData = {
         .pfnLogin = [](nbl::StringView username, nbl::StringView password, nbl::LoginTracker* tracker, void* userData) -> nbl::Result {
 
-            nbl::log(nbl::LogLevel::INFO, "Login: ", username, ":", password);
             if(username.length == 0) return nbl::Result::INVALID_ARGUMENT;
             if(_firstFree == 3) return nbl::Result::INVALID_STATE;
 
@@ -132,8 +131,6 @@ nbl::AccountProvider _provider {
             _firstFree = _infos[id].info.id;
             _infos[id].info.id = id;
             _infos[id].isLoggedIn = true;
-
-            nbl::log(nbl::LogLevel::INFO, "id: ", id, " first free: ", _firstFree);
 
             tracker->postStatus("3...");
             nbl::sleep(1000);
@@ -153,8 +150,6 @@ nbl::AccountProvider _provider {
                 _infos[accountId].info.id = _firstFree;
                 _firstFree = accountId;
             }
-
-            nbl::log(nbl::LogLevel::INFO, "Logged out id: ", accountId, " first free: ", _firstFree);
 
             return nbl::Result::SUCCESS;
         }

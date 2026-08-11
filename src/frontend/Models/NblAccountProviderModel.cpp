@@ -21,9 +21,17 @@ struct {
     nbl::LoginTracker tracker;
     u32 current = 0;
     bool setup = false;
-    QByteArray username{};
-    QByteArray password{};
-    nbl::OAuthHttpServer server;
+
+    struct {
+        QByteArray username;
+        QByteArray password;
+    } basicData;
+    struct {
+        nbl::OAuthHttpServer server;
+    } oAuthData;
+    struct {
+        QByteArray token;
+    } tokenData;
 
     nbl::Result startTracking(void* userData) {
         if(!setup) {
@@ -52,7 +60,7 @@ struct {
 } _sTracker;
 
 void _stopServer() {
-    _sTracker.server.close();
+    _sTracker.oAuthData.server.close();
 }
 
 
@@ -62,12 +70,12 @@ i32 _sThreadProc(void* userData) {
     const nbl::AccountProvider& prov = ctx->accountProviders().data[_sTracker.current];
 
     nbl::Result result = prov.basicData.login(
-        nbl::StringView(_sTracker.username.data(), _sTracker.username.length()),
-        nbl::StringView(_sTracker.password.data(), _sTracker.password.length()),
+        nbl::StringView(_sTracker.basicData.username.data(), _sTracker.basicData.username.length()),
+        nbl::StringView(_sTracker.basicData.password.data(), _sTracker.basicData.password.length()),
         &_sTracker.tracker
     );
-    _sTracker.username = {};
-    _sTracker.password = {};
+    _sTracker.basicData.username = {};
+    _sTracker.basicData.password = {};
 
     if(result.error()) {
         ctx->pushNotification(nbl::NotificationType::ERROR, "Login Failed", "An error occurred while logging in");
@@ -126,6 +134,23 @@ nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
     return nbl::Result::FORMAT_ERROR;
 }
 
+i32 _sTokenThreadProc(void* userData) {
+
+    nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
+    const nbl::AccountProvider& prov = ctx->accountProviders().data[_sTracker.current];
+
+    nbl::Result result = prov.tokenData.login(
+        nbl::StringView(_sTracker.tokenData.token.data(), _sTracker.tokenData.token.length()),
+        &_sTracker.tracker
+    );
+    _sTracker.tokenData.token = {};
+
+    if(result.error()) {
+        ctx->pushNotification(nbl::NotificationType::ERROR, "Login Failed", "An error occurred while logging in");
+    }
+
+    return 0;
+}
 
 }
 
@@ -170,8 +195,8 @@ void NblAccountProviderModel::loginBasic(quint32 index, QString username, QStrin
     }
     const nbl::AccountProvider& type = ctx->accountProviders().data[index];
     _sTracker.current = index;
-    _sTracker.username = username.toUtf8();
-    _sTracker.password = password.toUtf8();
+    _sTracker.basicData.username = username.toUtf8();
+    _sTracker.basicData.password = password.toUtf8();
 
 
     nbl::Thread thread{};
@@ -200,9 +225,9 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
 
     u16 port = 40000 + (random.next() % 10000);
 
-    res = nbl::OAuthHttpServer::create(port, _sServerHandler, &_sTracker.server, &_sTracker.server);
+    res = nbl::OAuthHttpServer::create(port, _sServerHandler, &_sTracker.oAuthData.server, &_sTracker.oAuthData.server);
     if(res.error()) {
-        _sTracker.tracker.finishTracking(false, "Failed to spawn a login thread");
+        _sTracker.tracker.finishTracking(false, "Failed to start an OAuth callback server");
         return;
     }
 
@@ -237,6 +262,26 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
     }
     QDesktopServices::openUrl(QUrl(url));
 
+}
+
+void NblAccountProviderModel::loginToken(quint32 index, QString token) { 
+    nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
+    nbl::Result res = _sTracker.startTracking(this);
+    if(res.error()) {
+        ctx->pushNotification(nbl::NotificationType::ERROR, "Cannot log in", "Already trying to login to another account");
+        return;
+    }
+    const nbl::AccountProvider& type = ctx->accountProviders().data[index];
+    _sTracker.current = index;
+    _sTracker.tokenData.token = token.toUtf8();
+
+    nbl::Thread thread{};
+    res = nbl::Thread::create(_sTokenThreadProc, this, &thread);
+
+    if(res.error()) {
+        _sTracker.tracker.finishTracking(false, "Failed to spawn a login thread");
+        return;
+    }
 }
 
 void NblAccountProviderModel::logout(quint32 index, quint32 accountId) {

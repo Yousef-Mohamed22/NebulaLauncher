@@ -67,7 +67,8 @@ struct AccountProvider {
 
     enum class Type {
         BASIC = 0,
-        OAUTH = 1
+        OAUTH = 1,
+        TOKEN = 2
     };
 
     enum class OAuthResponseType {
@@ -104,6 +105,15 @@ struct AccountProvider {
             }
 
         } oAuthData;
+        struct {
+            Result(*pfnLogin)(StringView token, LoginTracker* tracker, void* userData);
+            Result(*pfnLogout)(u32 accountId, void* userData);
+            void* userData;
+
+            Result login(StringView token, LoginTracker* tracker) const {
+                return pfnLogin(token, tracker, userData);
+            }
+        } tokenData;
     };
 
     struct {
@@ -113,9 +123,10 @@ struct AccountProvider {
     } accountInfo;
 
     Result logout(u32 accountId) const {
-        NBL_ASSERT(type == Type::BASIC || type == Type::OAUTH);
+        NBL_ASSERT(type <= Type::TOKEN);
         if(type == Type::BASIC) return basicData.pfnLogout(accountId, basicData.userData);
-        return oAuthData.pfnLogout(accountId, oAuthData.userData);
+        if(type == Type::OAUTH) return oAuthData.pfnLogout(accountId, basicData.userData);
+        return tokenData.pfnLogout(accountId, oAuthData.userData);
     }
 
     Result getAccountInfo(u32 accountId, AccountInfo* info) const {

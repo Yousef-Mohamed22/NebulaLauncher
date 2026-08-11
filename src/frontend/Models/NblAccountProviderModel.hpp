@@ -34,6 +34,7 @@ public:
 
     Q_INVOKABLE void loginBasic(quint32 index, QString username, QString password);
     Q_INVOKABLE void loginOAuth(quint32 index);
+    Q_INVOKABLE void loginToken(quint32 index, QString token);
     Q_INVOKABLE void logout(quint32 index, quint32 accountId);
 
     Q_INVOKABLE NblAccountsModel* accounts(quint32 index);
