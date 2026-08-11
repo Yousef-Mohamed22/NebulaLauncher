@@ -5,10 +5,13 @@
 #include <Plugin/PluginContext.hpp>
 #include "Network/HttpServer.hpp"
 
+#include <qlogging.h>
 #include <qstringview.h>
 #include <QDesktopServices>
 
 namespace {
+
+void _stopServer();
 
 struct {
 
@@ -17,13 +20,21 @@ struct {
     bool setup = false;
     QByteArray username{};
     QByteArray password{};
+    nbl::OAuthHttpServer server;
 
     nbl::Result startTracking(void* userData) {
         if(!setup) {
             setup = true;
             NBL_CHECK(nbl::LoginTracker::create(
                 [](bool success, nbl::StringView message, void* userData) -> void {
+
+                    if(!success) {                  
+                        nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
+                        ctx->pushNotification(nbl::NotificationType::ERROR, "Failed to log in", message);
+                    }
+
                     NblAccountProviderModel* model = static_cast<NblAccountProviderModel*>(userData);
+                    _stopServer();
                     emit model->loginFinished(success, QString::fromUtf8(message.data, message.length));
                 }, 
                 [](nbl::StringView message, void* userData) -> void {
@@ -36,6 +47,10 @@ struct {
     }
 
 } _sTracker;
+
+void _stopServer() {
+    _sTracker.server.close();
+}
 
 
 i32 _sThreadProc(void* userData) {
@@ -76,9 +91,9 @@ nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
         return nbl::Result::FORMAT_ERROR;
     }
 
-    QStringList params = qpath.split("&");
+    QStringList params = parts[1].split("&");
     for(QString param : params) {
-        QStringList paramParts = qpath.split("=");
+        QStringList paramParts = param.split("=");
         if(paramParts.length() != 2) {
             _sTracker.tracker.finishTracking(false, "Invalid response");
             return nbl::Result::FORMAT_ERROR;
@@ -87,14 +102,14 @@ nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
         switch(prov.oAuthData.responseType) {
             default:
             case nbl::AccountProvider::OAuthResponseType::CODE: {
-                if(param != "code") continue;
+                if(paramParts[0] != "code") continue;
                 QByteArray arr = paramParts[1].toUtf8();
                 nbl::StringView code(arr.data(), arr.length());
                 _sTracker.tracker.postStatus("Logging in");
                 return prov.oAuthData.finishOAuthLogin(code, &_sTracker.tracker);
             }
             case nbl::AccountProvider::OAuthResponseType::TOKEN: {
-                if(param != "token") continue;
+                if(paramParts[0] != "token") continue;
                 QByteArray arr = paramParts[1].toUtf8();
                 nbl::StringView token(arr.data(), arr.length());
                 _sTracker.tracker.postStatus("Logging in");
@@ -176,8 +191,7 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
     const nbl::AccountProvider& type = ctx->accountProviders().data[index];
     _sTracker.current = index;
 
-    nbl::OAuthHttpServer server{};
-    res = nbl::OAuthHttpServer::create(43569, _sServerHandler, &server, &server);
+    res = nbl::OAuthHttpServer::create(43569, _sServerHandler, &_sTracker.server, &_sTracker.server);
     if(res.error()) {
         _sTracker.tracker.finishTracking(false, "Failed to spawn a login thread");
         return;

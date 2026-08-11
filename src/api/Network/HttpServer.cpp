@@ -7,6 +7,7 @@
 
 void nbl::OAuthHttpServer::close() {
     _mSocket.close();
+    _mListenThread.detach();
 }
 
 
@@ -18,7 +19,8 @@ i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
     constexpr StringView okResponse = 
         "HTTP/1.1 200 OK\r\n"
         "Connection: close\r\n"
-        "\r\n";
+        "\r\n"
+        "You may now close this page and return to Nebula";
     
     constexpr StringView clientErrorResponse = 
         "HTTP/1.1 400 Bad Request\r\n"
@@ -129,6 +131,7 @@ i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
         }
     }
 
+    self->close();
     return succeeded ? 0 : -1;
 }
 
@@ -136,7 +139,7 @@ i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
 nbl::Result nbl::OAuthHttpServer::create(u16 port, Result(*pfnHandler)(StringView, void*), void* userData, OAuthHttpServer* outServer) {
 
     NBL_CHECK(nbl::ServerSocket::listen(port, SocketType::TCP, &outServer->_mSocket));
-    NBL_CHECK(nbl::Thread::create(_threadProc, outServer, nullptr));
+    NBL_CHECK(nbl::Thread::create(_threadProc, outServer, &outServer->_mListenThread));
 
     outServer->_pUserData = userData;
     outServer->_pfnHandler = pfnHandler;
