@@ -1,12 +1,15 @@
 #include "NblAccountProviderModel.hpp"
 
+#include <Core/Random.hpp>
 #include <Platform/Process.hpp>
+#include <Platform/Time.hpp>
 #include <Plugin/AccountProvider.hpp>
 #include <Plugin/PluginContext.hpp>
-#include "Network/HttpServer.hpp"
+#include <Network/HttpServer.hpp>
 
 #include <qlogging.h>
 #include <qstringview.h>
+#include <qtypes.h>
 #include <QDesktopServices>
 
 namespace {
@@ -191,7 +194,13 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
     const nbl::AccountProvider& type = ctx->accountProviders().data[index];
     _sTracker.current = index;
 
-    res = nbl::OAuthHttpServer::create(43569, _sServerHandler, &_sTracker.server, &_sTracker.server);
+
+    nbl::Random random{};
+    random.seed(nbl::getCurrentTime());
+
+    u16 port = 40000 + (random.next() % 10000);
+
+    res = nbl::OAuthHttpServer::create(port, _sServerHandler, &_sTracker.server, &_sTracker.server);
     if(res.error()) {
         _sTracker.tracker.finishTracking(false, "Failed to spawn a login thread");
         return;
@@ -215,7 +224,7 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
             break;
     }
 
-    url += "&redirect_uri=http://localhost:43569";
+    url += "&redirect_uri=http://localhost:" + QString(static_cast<quint16>(port));
     
     if(type.oAuthData.scopes.length > 0) {
         url += "&scope=";
