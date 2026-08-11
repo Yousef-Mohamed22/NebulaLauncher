@@ -23,16 +23,19 @@ struct NotificationConsumer {
     }
 };
 
+struct AccountProvider;
 struct InstallationType;
 
 class PluginContext {
 public:
 
     const InstallationType* getInstallationType(StringView id) const;
-
     Result registerInstallationType(const InstallationType& type);
+    ConstSpan<InstallationType> types() const;
 
-    Span<InstallationType> types() const;
+    const AccountProvider* getAccountProvider(StringView id) const;
+    Result registerAccountProvider(const AccountProvider& type);
+    ConstSpan<AccountProvider> accountProviders() const;
 
     Result runCommand(i64 installationId, StringView commandLine, StringView workingDir, ProcessHandle* handle);
 
@@ -45,15 +48,16 @@ public:
     }
 
     inline StringView databasePath() const { return _mDatabasePath; }
-
     inline StringView pluginDataPath() const { return _mPluginDataPath; }
 
     static Result create(StringView databasePath, StringView pluginDataPath, NotificationConsumer notificationConsumer, PluginContext* ctx);
 
 private:
     Arena _mArena;
-    InstallationType* _pTypes;
+    Arena _mAccountProviderArena;
+
     usize _mNumTypes;
+    InstallationType* _pTypes;
     StringView _mDatabasePath;
     StringView _mPluginDataPath;
     StringView _mWrapperPath;

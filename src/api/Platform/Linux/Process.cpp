@@ -7,7 +7,6 @@
  */
 
 #include <Platform/PlatformDefines.hpp>
-#include <climits>
 #ifdef NBL_PLATFORM_LINUX
 
 #include <Core/Result.hpp>
@@ -24,6 +23,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <poll.h>
+#include <time.h>
+#include <limits.h>
+#include <errno.h>
 
 #include <linux/limits.h>
 #include <sys/wait.h>
@@ -74,6 +76,27 @@ nbl::StringView nbl::getBinaryPath() {
 
     path[len] = '\0';
     return nbl::StringView(path, len);
+}
+
+
+nbl::Result nbl::sleep(u32 millis) {
+    timespec ts{};
+    ts.tv_nsec = (millis * 1000000) % 1000000000;
+    ts.tv_sec = (millis / 1000);
+
+    while(true) {
+        int rc = nanosleep(&ts, &ts);
+        if(rc == -1) {
+            if(errno == EINTR) {
+                continue;
+            }
+            if(errno == EINVAL) {
+                return nbl::Result::INVALID_ARGUMENT;
+            }
+        } else {
+            return nbl::Result::SUCCESS;
+        }
+    }
 }
 
 

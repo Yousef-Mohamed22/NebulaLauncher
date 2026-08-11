@@ -3,6 +3,7 @@
 #include <Platform/Logging.hpp>
 #include <Core/Array.hpp>
 #include "Core/String.hpp"
+#include "Plugin/AccountProvider.hpp"
 #include "Plugin/PluginContext.hpp"
 
 namespace {
@@ -101,6 +102,83 @@ nbl::Array _fields = {
     },
 };
 
+struct _TestAccount {
+    nbl::AccountInfo info;
+    bool isLoggedIn;
+};
+
+nbl::Array<_TestAccount, 3> _infos = {
+    _TestAccount{ .info = nbl::AccountInfo{ .userName = "Test1", .icon = "", .id = 1 }, .isLoggedIn = false },
+    _TestAccount{ .info = nbl::AccountInfo{ .userName = "Test2", .icon = "", .id = 2 }, .isLoggedIn = false },
+    _TestAccount{ .info = nbl::AccountInfo{ .userName = "Test3", .icon = "", .id = 3 }, .isLoggedIn = false },
+};
+
+u32 _firstFree = 0;
+
+
+nbl::AccountProvider _provider {
+    .id = "test",
+    .name = "Test",
+    .type = nbl::AccountProvider::Type::BASIC,
+    .maxAccounts = 3,
+    .basicData = {
+        .pfnLogin = [](nbl::StringView username, nbl::StringView password, nbl::LoginTracker* tracker, void* userData) -> nbl::Result {
+
+            nbl::log(nbl::LogLevel::INFO, "Login: ", username, ":", password);
+            if(username.length == 0) return nbl::Result::INVALID_ARGUMENT;
+            if(_firstFree == 3) return nbl::Result::INVALID_STATE;
+
+            u32 id = _firstFree;
+            _firstFree = _infos[id].info.id;
+            _infos[id].info.id = id;
+            _infos[id].isLoggedIn = true;
+
+            nbl::log(nbl::LogLevel::INFO, "id: ", id, " first free: ", _firstFree);
+
+            tracker->postStatus("3...");
+            nbl::sleep(1000);
+            tracker->postStatus("2...");
+            nbl::sleep(1000);
+            tracker->postStatus("1...");
+            nbl::sleep(1000);
+
+            tracker->finishTracking(true, {});
+            return nbl::Result::SUCCESS;
+        },
+        .pfnLogout = [](u32 accountId, void* userData) -> nbl::Result {
+            if(accountId > 2) return nbl::Result::INVALID_STATE;
+
+            _infos[accountId].isLoggedIn = false;
+            if(accountId < _firstFree) {
+                _infos[accountId].info.id = _firstFree;
+                _firstFree = accountId;
+            }
+
+            nbl::log(nbl::LogLevel::INFO, "Logged out id: ", accountId, " first free: ", _firstFree);
+
+            return nbl::Result::SUCCESS;
+        }
+    },
+    .accountInfo = {
+        .pfnGet = [](u32 accountId, nbl::AccountInfo* info, void* userData) -> nbl::Result {
+            nbl::log(nbl::LogLevel::INFO, "Get: ", accountId);
+            if(accountId == 0 || accountId > 3) return nbl::Result::NOT_FOUND;
+            if(!_infos[accountId].isLoggedIn) return nbl::Result::NOT_FOUND;
+            *info = _infos[accountId - 1].info;
+            return nbl::Result::SUCCESS;
+        },
+        .pfnEnumerate = [](nbl::AccountCallback callback, void* userData) -> nbl::Result {
+            for(_TestAccount& acc : _infos) {
+                if(acc.isLoggedIn) {
+                    callback(acc.info);
+                }
+            }
+            return nbl::Result::SUCCESS;
+        }
+    }
+};
+
+
 nbl::Result _launch(
         const nbl::InstallationType* type, 
         nbl::PluginContext* ctx, 
@@ -140,6 +218,7 @@ extern "C" i32 initPlugin(nbl::PluginContext *context) {
     nbl::log(nbl::LogLevel::INFO, "Hello from plugin");
 
     context->registerInstallationType(_type);
+    context->registerAccountProvider(_provider);
 
     return 0;
 }

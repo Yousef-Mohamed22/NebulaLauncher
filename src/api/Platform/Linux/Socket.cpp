@@ -1,0 +1,140 @@
+#include <Platform/Socket.hpp>
+
+#include "LinuxUtil.hpp"
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+
+namespace {
+
+    int gGetFd(void* handle) {
+    return static_cast<int>(reinterpret_cast<intptr_t>(handle));
+}
+
+}
+
+nbl::Writer nbl::Socket::writer() {
+    return {
+        .impl = _mHandle,
+        .pfnWrite = nbl::linux::writeFd
+    };
+}
+
+nbl::Reader nbl::Socket::reader() {
+    return {
+        .impl = _mHandle,
+        .pfnRead = nbl::linux::readFd
+    };
+}
+
+void nbl::Socket::close() {
+    if(_mHandle) {
+        ::close(gGetFd(_mHandle));
+        _mHandle = nullptr;
+    }
+}
+
+nbl::Result nbl::Socket::connectIPv4(u32 address, u16 port, SocketType type, Socket* outSocket) {
+
+    int sockType;
+    if(type == SocketType::TCP) {
+        sockType = SOCK_STREAM;
+    } else if(type == SocketType::UDP) {
+        sockType = SOCK_DGRAM;
+    } else {
+        return nbl::Result::INVALID_ARGUMENT;
+    }
+
+    int fd = ::socket(AF_INET, sockType, 0);
+
+    if(fd < 0) {
+        return nbl::Result::IO_ERROR;
+    }
+
+    sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_port = htons(port),
+        .sin_addr = {
+            .s_addr = address
+        }
+    };
+
+    if(::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_in)) < 0) {
+        ::close(fd);
+        return nbl::Result::IO_ERROR;
+    }
+
+    outSocket->_mHandle = reinterpret_cast<void*>(static_cast<intptr_t>(fd));
+    return nbl::Result::SUCCESS;
+}
+
+
+nbl::Result nbl::ServerSocket::accept(Socket* client) {
+
+    int serverFd = static_cast<int>(reinterpret_cast<intptr_t>(_mHandle));
+    int clientFd;
+    if((clientFd = ::accept(serverFd, nullptr, nullptr)) < 0) {
+        return nbl::Result::IO_ERROR;
+    }
+
+    client->close();
+    client->_mHandle = reinterpret_cast<void*>(static_cast<intptr_t>(clientFd));
+    return nbl::Result::SUCCESS;
+}
+
+bool nbl::ServerSocket::isClosed() {
+    return _mHandle == nullptr;
+}
+
+void nbl::ServerSocket::close() {
+    if(_mHandle) {
+        int serverFd = static_cast<int>(reinterpret_cast<intptr_t>(_mHandle));
+        _mHandle = nullptr;
+        ::close(serverFd);
+    }
+}
+
+nbl::Result nbl::ServerSocket::listen(u16 port, SocketType type, ServerSocket *outSocket) {
+
+    int sockType;
+    if(type == SocketType::TCP) {
+        sockType = SOCK_STREAM;
+    } else if(type == SocketType::UDP) {
+        sockType = SOCK_DGRAM;
+    } else {
+        return nbl::Result::INVALID_ARGUMENT;
+    }
+
+    int fd = ::socket(AF_INET, sockType, 0);
+
+    if(fd < 0) {
+        return nbl::Result::IO_ERROR;
+    }
+
+    sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_port = htons(port),
+        .sin_addr = {
+            .s_addr = INADDR_ANY
+        }
+    };
+
+    if(::bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+        ::close(fd);
+        return nbl::Result::IO_ERROR;
+    }
+
+    if(::listen(fd, 10) < 0) {
+        ::close(fd);
+        return nbl::Result::IO_ERROR;
+    }
+
+    outSocket->_mHandle = reinterpret_cast<void*>(static_cast<intptr_t>(fd));
+    return nbl::Result::SUCCESS;
+
+
+}
+

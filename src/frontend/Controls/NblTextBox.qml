@@ -8,6 +8,8 @@ TextField {
     property string tooltip
     property int tooltipDelay: 1000
 
+    readonly property int borderHeight: height - 6
+
     color: enabled ? Theme.colors.text : Theme.colors.textDim
     placeholderTextColor: Theme.colors.border
 

@@ -24,7 +24,6 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <dirent.h>
 #include <errno.h>
@@ -159,62 +158,6 @@ nbl::StringView nbl::getDataDirectory() {
 
     }
     return StringView(gDataDir);
-}
-
-
-nbl::Writer nbl::Socket::writer() {
-    return {
-        .impl = _mHandle,
-        .pfnWrite = nbl::linux::writeFd
-    };
-}
-
-nbl::Reader nbl::Socket::reader() {
-    return {
-        .impl = _mHandle,
-        .pfnRead = nbl::linux::readFd
-    };
-}
-
-void nbl::Socket::close() {
-    if(_mHandle) {
-        ::close(gGetFd(_mHandle));
-        _mHandle = nullptr;
-    }
-}
-
-nbl::Result nbl::Socket::connectIPv4(u32 address, u16 port, SocketType type, Socket* outSocket) {
-
-    int sockType;
-    if(type == SocketType::TCP) {
-        sockType = SOCK_STREAM;
-    } else if(type == SocketType::UDP) {
-        sockType = SOCK_DGRAM;
-    } else {
-        return nbl::Result::INVALID_ARGUMENT;
-    }
-
-    int fd = ::socket(AF_INET, sockType, 0);
-
-    if(fd < 0) {
-        return nbl::Result::IO_ERROR;
-    }
-
-    sockaddr_in addr = {
-        .sin_family = AF_INET,
-        .sin_port = port,
-        .sin_addr = {
-            .s_addr = address
-        }
-    };
-
-    if(::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_in)) < 0) {
-        ::close(fd);
-        return nbl::Result::IO_ERROR;
-    }
-
-    outSocket->_mHandle = reinterpret_cast<void*>(static_cast<intptr_t>(fd));
-    return nbl::Result::SUCCESS;
 }
 
 bool nbl::FolderIterator::next(StringView* name) {

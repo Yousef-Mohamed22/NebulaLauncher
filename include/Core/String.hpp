@@ -30,12 +30,10 @@ constexpr usize cStringLength(const char* str) {
 struct StringView {
 
     const char* data;
-    usize length;
-    bool nullTerminated;
-    // struct {
-    //     usize nullTerminated: 1;
-    //     usize length : sizeof(usize) - 1;
-    // };
+    struct {
+        usize length : (sizeof(usize) * 8) - 1;
+        usize nullTerminated: 1;
+    };
     
     /**
      * \brief Default constructor that creates an empty string view.

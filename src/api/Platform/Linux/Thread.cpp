@@ -12,7 +12,7 @@
 #include <Platform/Logging.hpp>
 
 #include <pthread.h>
-#include <stdatomic.h>
+#include <atomic>
 
 namespace {
 
@@ -20,18 +20,18 @@ struct _ThreadData {
     pthread_t handle;
     nbl::Thread::EntryPointFn function;
     void* userData;
-    atomic_int refCount;
+    std::atomic_int refCount;
 };
 
 void* _threadEntryPoint(void* data) {
-    volatile _ThreadData* threadData = static_cast<_ThreadData*>(data);
+    _ThreadData* threadData = static_cast<_ThreadData*>(data);
 
     i32 result = threadData->function(threadData->userData);
     
-    int old = atomic_fetch_sub(&threadData->refCount, 1);
+    int old = threadData->refCount.fetch_sub(1);
     if(old == 1) {
         delete threadData;
-    }
+    } 
 
     return reinterpret_cast<void*>(static_cast<intptr_t>(result));
 }
@@ -77,14 +77,14 @@ nbl::Result nbl::Thread::detach() {
         _ThreadData* data = static_cast<_ThreadData*>(_pHandle);
         _pHandle = nullptr;
 
-        int old = atomic_fetch_sub(&data->refCount, 1);
-        if(data->refCount > 1) { // Thread is alive
-            int result = pthread_detach(data->handle);
-            if(result != 0) {
-                return nbl::Result::THREAD_ERROR;
-            }
-        } else {
+        int old = data->refCount.fetch_sub(1);
+        if(old == 1) {
             delete data;
+        }
+
+        int result = pthread_detach(data->handle);
+        if(result != 0) {
+            return nbl::Result::THREAD_ERROR;
         }
     }
 
@@ -100,17 +100,17 @@ nbl::Result nbl::Thread::create(EntryPointFn function, void* userData, Thread* o
         .handle = {}, 
         .function = function, 
         .userData = userData, 
-        .refCount = ATOMIC_VAR_INIT(2) 
+        .refCount = 2
     };
 
     int result = pthread_create(&threadData->handle, nullptr, _threadEntryPoint, threadData);
     if(result != 0) {
+        nbl::log(nbl::LogLevel::DEBUG, "Thread create failed: ", result);
         delete threadData;
         return nbl::Result::THREAD_ERROR;
     }
 
     outThread->_pHandle = threadData;
-
     return nbl::Result::SUCCESS;
 
 }

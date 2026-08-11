@@ -10,6 +10,7 @@ Item {
 
     property string label
     property bool allowReorder: false
+    property int maxItems: 999
 
     property list<var> initialItems
     property ListModel items: ListModel {}
@@ -232,6 +233,9 @@ Item {
         }
 
         Item {
+
+            visible: root.items.count < root.maxItems 
+
             width: parent.width
             height: 48
 

@@ -14,6 +14,9 @@ NblDialog {
 
     targetWidth: 960
 
+    showCancelButton: sidebar.currentTab.showCancelButton
+    showApplyButton: sidebar.currentTab.showApplyButton
+
     Item {
 
         anchors.fill: parent
@@ -64,7 +67,8 @@ NblDialog {
                         model: [
                             { icon: "", name: "Theme", tab: themeSettingsTab },
                             { icon: "", name: "Tags", tab: tagSettingsTab },
-                            { icon: "󰊗", name: "Games", tab: gameSettingsTab }
+                            { icon: "󰊗", name: "Games", tab: gameSettingsTab },
+                            { icon: "", name: "Online Accounts", tab: accountSettingsTab },
                         ]
 
                         delegate: Item {
@@ -160,6 +164,13 @@ NblDialog {
                 id: gameSettingsTab
                 anchors.fill: parent
                 visible: false
+            }
+
+            AccountsSettingsTab {
+                id: accountSettingsTab
+                anchors.fill: parent
+                visible: false
+                mainWindow: root.mainWindow
             }
         }
 

@@ -69,7 +69,7 @@ public:
     /**
      * \brief Static method to connect to a remote address using the specified protocol and create a Socket object for the connection. This method establishes a network connection to the specified address and port, and returns a Socket object that can be used to read/write data over that connection.
      * \param address The IPv4 address to connect to, represented as a 32-bit unsigned integer in network byte order.
-     * \param port The port number to connect to, represented as a 16-bit unsigned integer in network byte order.
+     * \param port The port number to connect to, represented as a 16-bit unsigned integer in host byte order.
      * \param type The type of socket to create, either TCP or UDP.
      * \param outSocket Pointer to a variable that will receive the connected Socket object if the connection is successful.
      * \return A Result indicating success or failure of the connection attempt. If the connection is successful, it returns Result::SUCCESS and sets outSocket to the connected Socket object. If there is an error during the connection attempt, it returns an appropriate error code.
@@ -79,7 +79,26 @@ public:
 private:
     void* _mHandle;
 
+    friend class ServerSocket;
+
 };
+
+
+class ServerSocket {
+public:
+
+    Result accept(Socket* client);
+
+    bool isClosed();
+    void close();
+
+    static Result listen(u16 port, SocketType type, ServerSocket* outSocket);
+private:
+
+    void* _mHandle;
+
+};
+
 
 
 }

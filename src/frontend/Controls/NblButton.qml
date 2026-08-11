@@ -6,12 +6,14 @@ Item {
 
     id: root
 
-    required property string icon
+    property string icon: ""
     required property string text
 
     property color activeColor: Theme.colors.border
     property color inactiveColor: "transparent"
-
+    property color textColor: Theme.colors.text
+    property int fontWeight: 400 
+    
     property int radius: 8
     property bool centered: false
 
@@ -29,7 +31,7 @@ Item {
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-        hoverEnabled: true
+        hoverEnabled: root.enabled
         cursorShape: Qt.PointingHandCursor
         onClicked: {
             root.clicked()
@@ -40,16 +42,17 @@ Item {
 
         anchors.centerIn: parent
 
-        width: root.centered ? textLabel.implicitWidth + 8 + 24 : (parent.width - 16)
+        width: root.centered ? textLabel.implicitWidth + (root.icon.length > 0 ? 8 + 24 : 0) : (parent.width - 16)
 
         spacing: 8
 
         Label {
+            visible: root.icon.length > 0
             Layout.preferredWidth: 24
             text: root.icon
             font.family: Theme.nerdFont
             font.pixelSize: 24
-            color: Theme.colors.text
+            color: root.textColor
         }
 
         Label {
@@ -58,7 +61,8 @@ Item {
             text: root.text
             font.family: Theme.font
             font.pixelSize: 16
-            color: Theme.colors.text
+            font.weight: root.fontWeight
+            color: root.textColor
         }
     }
 }

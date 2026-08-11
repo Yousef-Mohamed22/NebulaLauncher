@@ -193,6 +193,7 @@ Item {
                         icon: notif.icon
                         Layout.preferredWidth: 64
                         Layout.fillHeight: true
+                        color: Theme.colors.blackOrWhite(notif.color)
                     }
                     ColumnLayout {
 

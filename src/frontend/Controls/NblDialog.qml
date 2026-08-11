@@ -32,8 +32,8 @@ Item {
 
     readonly property int navigationHeight: navigationContainer.height + navigationPadding * 2
 
-    width: parent.width
-    height: parent.height
+    width: Window.width
+    height: Window.height
 
     signal apply
     signal cancel

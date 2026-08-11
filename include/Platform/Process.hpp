@@ -31,6 +31,10 @@ StringView getEnv(StringView name);
  */
 StringView getBinaryPath();
 
+
+Result sleep(u32 millis);
+
+
 /**
  * \brief A class representing a thread of execution in the program. This class provides methods for creating, joining, and detaching threads, as well as checking if a thread is currently running.
  */ 
@@ -57,7 +61,7 @@ public:
      */
     Result join(i32* outReturnValue);
 
-    /**
+    /**Proce
      * \brief Detaches the thread, allowing it to run independently without the need for joining. After detaching, the thread will continue to run in the background and its resources will be automatically cleaned up when it finishes execution.
      * \return A Result indicating success or failure of the detach operation.
      */

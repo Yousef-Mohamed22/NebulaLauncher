@@ -2,6 +2,9 @@ import QtQuick
 
 Item {
 
+    property bool showApplyButton: true
+    property bool showCancelButton: true
+
     property bool modified: false
 
     function refresh() {

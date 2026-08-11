@@ -1,5 +1,6 @@
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/InstallationType.hpp>
+#include <Plugin/AccountProvider.hpp>
 #include <Core/Result.hpp>
 #include <Core/Array.hpp>
 #include <Core/Math.hpp>
@@ -27,11 +28,34 @@ nbl::Result nbl::PluginContext::registerInstallationType(const InstallationType&
     return nbl::Result::SUCCESS;
 }
 
-nbl::Span<nbl::InstallationType> nbl::PluginContext::types() const {
-
-    return nbl::Span(
+nbl::ConstSpan<nbl::InstallationType> nbl::PluginContext::types() const {
+    return nbl::ConstSpan(
         _pTypes,
         _mNumTypes
+    );
+}
+
+const nbl::AccountProvider* nbl::PluginContext::getAccountProvider(StringView id) const {
+    for(const auto& prov : accountProviders()) {
+        if(prov.id == id) {
+            return &prov;
+        }
+    }
+    return nullptr;
+}
+
+nbl::Result nbl::PluginContext::registerAccountProvider(const AccountProvider& type) {
+
+    AccountProvider* registered = nullptr;
+    NBL_CHECK(_mAccountProviderArena.allocate(&registered));
+    *registered = type;
+    return nbl::Result::SUCCESS;
+}
+
+nbl::ConstSpan<nbl::AccountProvider> nbl::PluginContext::accountProviders() const {
+    return nbl::ConstSpan(
+        static_cast<AccountProvider*>(_mAccountProviderArena.begin()),
+        _mAccountProviderArena.index() / sizeof(AccountProvider)
     );
 }
 
@@ -39,6 +63,7 @@ nbl::Span<nbl::InstallationType> nbl::PluginContext::types() const {
 nbl::Result nbl::PluginContext::create(StringView databasePath, StringView pluginDataPath, NotificationConsumer consumer, PluginContext* ctx) {
 
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 16, &ctx->_mArena));
+    NBL_CHECK(nbl::Arena::create(1024 * 1024 * 4, &ctx->_mAccountProviderArena));
 
     {
         nbl::ArenaFrame frame(&ctx->_mArena);
