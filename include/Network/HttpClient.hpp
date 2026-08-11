@@ -53,6 +53,7 @@ public:
 
     Result downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers = {});
     Result makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers = {});
+    Result makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers = {});
 
     void awaitAll(u32* numFailures);
 
@@ -78,7 +79,7 @@ private:
         }
     };
 
-    nbl::Result _setupConnection(StringView url, _ActiveRequest* req, Span<HttpHeader> headers = {});
+    nbl::Result _setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, Span<HttpHeader> headers);
     nbl::Result _startThread();
 
 

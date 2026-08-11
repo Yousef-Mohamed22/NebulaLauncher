@@ -65,7 +65,7 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optio
     req->callback = doneCallback;
     req->retryCount = 0;
 
-    return _setupConnection(url, req);
+    return _setupConnection(url, req, {}, headers);
 }
 
 nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers) {
@@ -79,10 +79,24 @@ nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional
     req->callback = doneCallback;
     req->retryCount = 0;
 
-    return _setupConnection(url, req);
+    return _setupConnection(url, req, {}, headers);
 }
 
-nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* req, Span<HttpHeader> headers) {
+nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers) {
+
+    auto frameLock = _mRequestMutex.frameLock();
+
+    _ActiveRequest* req = nullptr;
+    NBL_CHECK(_mRequests.push(&req));
+
+    req->writer = output;
+    req->callback = doneCallback;
+    req->retryCount = 0;
+
+    return _setupConnection(url, req, body, headers);
+}
+
+nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, Span<HttpHeader> headers) {
     
     CURLM* multiHandle = static_cast<CURLM*>(_pHandle);
     CURL* easyHandle = curl_easy_init();
@@ -105,6 +119,15 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
     curl_easy_setopt(easyHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
     curl_easy_setopt(easyHandle, CURLOPT_UPKEEP_INTERVAL_MS, 5000L);
     curl_easy_setopt(easyHandle, CURLOPT_NOSIGNAL, 1L);
+
+    if(postData.hasValue()) {
+
+        StringView postStr = *postData;
+        if(!postStr.nullTerminated) {
+            NBL_CHECK(nbl::StringBuilder::nullTerminate(postStr, &postStr, &frame));
+        }
+        curl_easy_setopt(easyHandle, CURLOPT_POSTFIELDS, postStr.data);
+    }
 
     if(headers.length > 0) {
         curl_slist* list = nullptr;
