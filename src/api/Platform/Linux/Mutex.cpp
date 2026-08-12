@@ -41,6 +41,7 @@ nbl::Result nbl::Mutex::create(Mutex* out) {
 
 
 nbl::Condition::~Condition() {
+    ::pthread_cond_broadcast(&_mHandle);
     ::pthread_cond_destroy(&_mHandle);
     ::pthread_mutex_destroy(&_mMutex);
 }
@@ -71,6 +72,7 @@ nbl::Result nbl::Condition::create(Condition* out) {
 
 
 nbl::Latch::~Latch() {
+    ::pthread_cond_broadcast(&_mCondition);
     ::pthread_cond_destroy(&_mCondition);
     ::pthread_mutex_destroy(&_mMutex);
 }
