@@ -249,7 +249,7 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
             break;
     }
 
-    url += "&redirect_uri=http://localhost:" + QString(static_cast<quint16>(port));
+    url += "&redirect_uri=http://localhost:" + QString::number(static_cast<quint16>(port));
     
     if(type.oAuthData.scopes.length > 0) {
         url += "&scope=";
