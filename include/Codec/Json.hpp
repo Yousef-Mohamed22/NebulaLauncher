@@ -61,10 +61,14 @@ struct JsonNumber {
     }
 };
 
+struct JsonObject;
 struct JsonElement;
 struct JsonArray {
     JsonElement* elements;
     usize count;
+
+    JsonElement* get(usize index);
+    const JsonElement* get(usize index) const;
 
     JsonElement& operator[](usize index);
     const JsonElement& operator[](usize index) const;
@@ -74,6 +78,13 @@ struct JsonArray {
 
     inline const JsonElement* begin() const { return elements; }
     const JsonElement* end() const;
+
+    JsonObject getObject(usize index) const;
+    JsonObject getObject(usize index, JsonObject defaultValue) const;
+    JsonArray getArray(usize index, JsonArray defaultValue={}) const;
+    StringView getString(usize index, StringView defaultValue={}) const;
+    JsonNumber getNumber(usize index, JsonNumber defaultValue={}) const;
+    bool getBoolean(usize index, bool defaultValue=false) const;
 };
 
 struct JsonObject {
@@ -97,6 +108,12 @@ struct JsonObject {
 
     inline const Entry* begin() const { return entries; }
     const Entry* end() const;
+
+    JsonObject getObject(StringView key, JsonObject defaultValue={}) const;
+    JsonArray getArray(StringView key, JsonArray defaultValue={}) const;
+    StringView getString(StringView key, StringView defaultValue={}) const;
+    JsonNumber getNumber(StringView key, JsonNumber defaultValue={}) const;
+    bool getBoolean(StringView key, bool defaultValue=false) const;
 };
 
 struct JsonElement {
