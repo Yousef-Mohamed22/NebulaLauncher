@@ -1,6 +1,7 @@
 #include <Codec/Json.hpp>
 
 #include <cmath>
+#include "Platform/Logging.hpp"
 
 nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
 

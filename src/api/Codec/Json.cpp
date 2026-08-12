@@ -21,6 +21,12 @@ const nbl::JsonElement* nbl::JsonArray::get(usize index) const {
     return elements + index;
 }
 
+nbl::JsonObject nbl::JsonArray::getObject(usize index) const {
+    const JsonElement* element = get(index);
+    if(element == nullptr || element->type != JsonType::OBJECT) return {};
+    return element->object;
+}
+
 nbl::JsonObject nbl::JsonArray::getObject(usize index, JsonObject defaultValue) const {
     const JsonElement* element = get(index);
     if(element == nullptr || element->type != JsonType::OBJECT) return defaultValue;

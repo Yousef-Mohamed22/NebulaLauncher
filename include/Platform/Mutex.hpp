@@ -17,6 +17,7 @@
 #ifdef NBL_PLATFORM_LINUX
 
 #include <pthread.h>
+#include <atomic>
 
 #endif
 
@@ -97,7 +98,8 @@ private:
 #ifdef NBL_PLATFORM_LINUX
     pthread_mutex_t _mMutex;
     pthread_cond_t _mCondition;
-    usize _mCount;
+    std::atomic_int _mCount;
+    //usize _mCount;
 #else
     void* _mHandle;
 #endif

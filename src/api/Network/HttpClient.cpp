@@ -70,6 +70,7 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optio
 
 nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers) {
 
+    nbl::log(nbl::LogLevel::DEBUG, "GET ", url);
     auto frameLock = _mRequestMutex.frameLock();
 
     _ActiveRequest* req = nullptr;
@@ -84,6 +85,8 @@ nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional
 
 nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers) {
 
+
+    nbl::log(nbl::LogLevel::DEBUG, "POST ", url, ":\n", body);
     auto frameLock = _mRequestMutex.frameLock();
 
     _ActiveRequest* req = nullptr;
@@ -155,7 +158,7 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
     req->queued = true;
 
     _mAllDone.increment();
-    curl_multi_wakeup(multiHandle);
+
     NBL_CHECK(_startThread());
 
     return nbl::Result::SUCCESS;
@@ -171,9 +174,14 @@ void nbl::HttpClient::awaitAll(u32* numFailures) {
 
 nbl::Result nbl::HttpClient::_startThread() {
 
-    if(_mReaderThread.isRunning()) return nbl::Result::SUCCESS;
+    if(_mReaderThread.isRunning()) {
+        CURLM* multiHandle = static_cast<CURLM*>(_pHandle);
+        curl_multi_wakeup(multiHandle);
+        return nbl::Result::SUCCESS;
+    }
 
-    _mReaderThread.~Thread();
+    _mReaderThread.detach();
+
     return nbl::Thread::create([](void* userData) {
 
         HttpClient* client = static_cast<HttpClient*>(userData);

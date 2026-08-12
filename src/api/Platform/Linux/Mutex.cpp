@@ -78,20 +78,13 @@ nbl::Latch::~Latch() {
 }
 
 void nbl::Latch::increment() {
-    ::pthread_mutex_lock(&_mMutex);
     _mCount++;
-    ::pthread_mutex_unlock(&_mMutex);
 }
 
 void nbl::Latch::decrement() {
-    ::pthread_mutex_lock(&_mMutex);
-    if(_mCount > 0) {
-        _mCount--;
-        if(_mCount == 0) {
-            ::pthread_cond_broadcast(&_mCondition);
-        }
+    if(_mCount.fetch_sub(1) == 1) {
+        ::pthread_cond_broadcast(&_mCondition);
     }
-    ::pthread_mutex_unlock(&_mMutex);
 }
 
 void nbl::Latch::wait() {

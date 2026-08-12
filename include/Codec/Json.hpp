@@ -164,6 +164,11 @@ struct JsonElement {
         type(JsonType::STRING),
         string(string)
     {}
+ 
+    JsonElement(const char* string) :
+        type(JsonType::STRING),
+        string(string)
+    {}
 
     JsonElement(const JsonArray& array) :
         type(JsonType::ARRAY),

@@ -57,15 +57,23 @@ nbl::Result nbl::Thread::join(i32* outReturnValue) {
     if(!_pHandle) return nbl::Result::SUCCESS;
 
     _ThreadData* data = static_cast<_ThreadData*>(_pHandle);
-    void* threadResult;
-    int result = pthread_join(data->handle, &threadResult);
-    if(result != 0) {
-        return nbl::Result::THREAD_ERROR;
+    _pHandle = nullptr;
+
+    int old = data->refCount.fetch_sub(1);
+    if(old == 1) {
+        if(outReturnValue) *outReturnValue = 0;
+        delete data;
+    } else {
+        void* ret;
+        int result = pthread_join(data->handle, &ret);
+        if(result != 0) {
+            return nbl::Result::THREAD_ERROR;
+        }
+        if(outReturnValue) {
+            *outReturnValue = reinterpret_cast<intptr_t>(ret);
+        }
     }
 
-    if(outReturnValue) {
-        *outReturnValue = reinterpret_cast<intptr_t>(threadResult);
-    }
 
     return nbl::Result::SUCCESS;
 }
@@ -80,11 +88,11 @@ nbl::Result nbl::Thread::detach() {
         int old = data->refCount.fetch_sub(1);
         if(old == 1) {
             delete data;
-        }
-
-        int result = pthread_detach(data->handle);
-        if(result != 0) {
-            return nbl::Result::THREAD_ERROR;
+        } else {
+            int result = pthread_detach(data->handle);
+            if(result != 0) {
+                return nbl::Result::THREAD_ERROR;
+            }
         }
     }
 

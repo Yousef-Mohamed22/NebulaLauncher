@@ -99,6 +99,7 @@ struct AccountProvider {
             StringView clientId;
             StringView loginUrl;
             Span<StringView> scopes;
+            u16 port;
 
             Result finishOAuthLogin(StringView response, LoginTracker* tracker) const {
                 return pfnFinishLogin(response, tracker, userData);

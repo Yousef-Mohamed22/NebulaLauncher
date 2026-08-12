@@ -218,12 +218,13 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
     }
     const nbl::AccountProvider& type = ctx->accountProviders().data[index];
     _sTracker.current = index;
-
-
-    nbl::Random random{};
-    random.seed(nbl::getCurrentTime());
-
-    u16 port = 40000 + (random.next() % 10000);
+ 
+    u16 port = type.oAuthData.port;
+    if(port == 0) {
+        nbl::Random random{};
+        random.seed(nbl::getCurrentTime());
+        port = 40000 + (random.next() % 10000);
+    } 
 
     res = nbl::OAuthHttpServer::create(port, _sServerHandler, &_sTracker.oAuthData.server, &_sTracker.oAuthData.server);
     if(res.error()) {
