@@ -105,6 +105,7 @@ SettingsTab {
                                     Layout.preferredWidth: height
                                     imageRadius: 8;
                                     icon: accountItem.modelData.icon
+                                    smoothImage: !accountItem.modelData.iconNearestScaling
                                     color: Theme.colors.text
                                     colorize: false
                                 }

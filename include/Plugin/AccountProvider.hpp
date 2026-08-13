@@ -58,6 +58,7 @@ struct AccountInfo {
     StringView userName;
     StringView icon;
     u32 id;
+    bool iconNearestScaling;
 };
 
 typedef std::function_ref<Result(const AccountInfo&)> AccountCallback;

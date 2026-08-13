@@ -227,6 +227,20 @@ nbl::Result nbl::makeDirectories(StringView path) {
     return nbl::Result::SUCCESS;
 }
 
+
+bool nbl::fileExists(StringView path) {
+
+    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+
+    if(path.nullTerminated) {
+        return access(path.data, F_OK) == 0;
+    } else {
+        char temp[PATH_MAX] = {};
+        memcpy(temp, path.data, path.length);
+        return access(temp, F_OK) == 0;
+    }
+}
+
 void nbl::FolderIterator::_close() {
     ::closedir(static_cast<DIR*>(_mHandle));
 }

@@ -67,7 +67,8 @@ public:
     enum Roles {
         IdRole,
         NameRole,
-        IconRole
+        IconRole,
+        IconNearestScalingRole,
     };
 
     inline int rowCount(const QModelIndex& parent = QModelIndex()) const override {
@@ -85,6 +86,8 @@ public:
                 return _mData[index.row()].name;
             case IconRole:
                 return _mData[index.row()].icon;
+            case IconNearestScalingRole:
+                return _mData[index.row()].nearest;
             default:
                 return QVariant();
         }
@@ -95,6 +98,7 @@ public:
         roles[IdRole] = "id";
         roles[NameRole] = "name";
         roles[IconRole] = "icon";
+        roles[IconNearestScalingRole] = "iconNearestScaling";
         return roles;
     }
 
@@ -105,7 +109,7 @@ public:
 
         if(_pProvider) {
             _pProvider->enumerateAccountInfo([&](const nbl::AccountInfo& info) -> nbl::Result {
-                _mData.append({fromNbl(info.userName), fromNbl(info.icon), info.id});
+                _mData.append({fromNbl(info.userName), fromNbl(info.icon), info.id, info.iconNearestScaling});
                 return nbl::Result::SUCCESS;
             });
         }
@@ -119,6 +123,7 @@ private:
         QString name;
         QString icon;
         quint32 id;
+        bool nearest;
     };
 
     const nbl::AccountProvider* _pProvider;

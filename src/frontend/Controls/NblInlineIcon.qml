@@ -13,6 +13,7 @@ Item {
 
     property bool colorize: true
     property int imageRadius: 0
+    property bool smoothImage: true
 
     property string dbIcon: ""
     onDbIconChanged: {
@@ -43,12 +44,15 @@ Item {
 
         anchors.fill: parent
 
-        NblImage {
+        Image {
             id: imageSource
             anchors.fill: parent
             source: root.useImage ? root.icon : ""
+            smooth: root.smoothImage
+            mipmap: root.smoothImage
             fillMode: Image.PreserveAspectFit
             layer.enabled: true
+            layer.smooth: root.smoothImage
             visible: false
         }
 

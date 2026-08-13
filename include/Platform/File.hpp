@@ -153,6 +153,8 @@ public:
 
 Result makeDirectories(StringView path);
 
+bool fileExists(StringView path);
+
 StringView getWorkingDirectory();
 
 StringView getDataDirectory();
