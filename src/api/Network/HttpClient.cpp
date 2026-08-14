@@ -195,7 +195,24 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
         NBL_CHECK(StringBuilder::nullTerminate(url, &url, &frame));
     }
 
-    curl_easy_setopt(easyHandle, CURLOPT_WRITEFUNCTION, _writeCallback);
+    curl_easy_setopt(easyHandle, CURLOPT_WRITEFUNCTION, [](char* ptr, usize size, usize nmemb, void* userData) -> usize {
+
+        _ActiveRequest* req = static_cast<_ActiveRequest*>(userData);
+        if(req->download && !req->fileOpened) {
+            nbl::Result res = nbl::FileChannel::open(req->filePath, &req->file, FileOpenFlag::WRITE | FileOpenFlag::CREATE);
+            if(res.error()) {
+                return 0;
+            }
+            req->writer = req->file.writer();
+            req->fileOpened = true;
+        }
+
+        if(req->writer.writeAll(ptr, size * nmemb).error()) {
+            return 0;
+        }
+        return size * nmemb;
+    });
+
     curl_easy_setopt(easyHandle, CURLOPT_USERAGENT, _USER_AGENT);
     curl_easy_setopt(easyHandle, CURLOPT_WRITEDATA, &req->writer);
     curl_easy_setopt(easyHandle, CURLOPT_PRIVATE, req);
