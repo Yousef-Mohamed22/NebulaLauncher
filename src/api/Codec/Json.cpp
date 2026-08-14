@@ -1,6 +1,9 @@
 #include <Codec/Json.hpp>
 
 const nbl::JsonElement* nbl::JsonObject::get(nbl::StringView key) const {
+
+    if(bucketCount == 0) return nullptr;
+
     usize bucket = key.hash() % bucketCount;
     for(usize i = 0 ; i < buckets[bucket].count ; i++) {
         Entry& ent = entries[i + buckets[bucket].offset];
