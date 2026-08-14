@@ -42,21 +42,27 @@ nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
         }
         case(nbl::JsonType::ARRAY): {
             NBL_CHECK(writer.writeChar('['));
+            usize index = 0;
             for(JsonElement& ele : element.array) {
+                if(index++ > 0) {
+                    NBL_CHECK(writer.writeChar(','));
+                }
                 NBL_CHECK(writeJson(writer, ele));
-                NBL_CHECK(writer.writeChar(','));
             }
             NBL_CHECK(writer.writeChar(']'));
             return nbl::Result::SUCCESS;
         }
         case(nbl::JsonType::OBJECT): {
             NBL_CHECK(writer.writeChar('{'));
+            usize index = 0;
             for(JsonObject::Entry& ent : element.object) {
+                if(index++ > 0) {
+                    NBL_CHECK(writer.writeChar(','));
+                }
                 NBL_CHECK(writer.writeChar('"'));
                 NBL_CHECK(writer.writeString(ent.key));
                 NBL_CHECK(writer.writeString("\":"));
                 NBL_CHECK(writeJson(writer, ent.value));
-                NBL_CHECK(writer.writeChar(','));
             }
             NBL_CHECK(writer.writeChar('}'));
             return nbl::Result::SUCCESS;

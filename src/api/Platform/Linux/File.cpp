@@ -273,6 +273,69 @@ bool nbl::fileExists(StringView path) {
     }
 }
 
+
+bool nbl::isExecutable(StringView path) {
+    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+
+    if(path.nullTerminated) {
+        return access(path.data, X_OK) == 0;
+    } else {
+        char temp[PATH_MAX] = {};
+        memcpy(temp, path.data, path.length);
+        return access(temp, X_OK) == 0;
+    }
+}
+
+nbl::Result nbl::setExecutable(StringView path) {
+
+    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+
+    struct stat fileStat;
+
+    if(path.nullTerminated) {
+
+        if(access(path.data, X_OK) == 0) return nbl::Result::SUCCESS;
+
+        if(stat(path.data, &fileStat) != 0) return nbl::Result::OS_ERROR;
+        int mode = fileStat.st_mode & 0777;
+
+        if(chmod(path.data, mode | 0100) != 0) return nbl::Result::OS_ERROR;
+        return nbl::Result::SUCCESS;
+
+    } else {
+        char temp[PATH_MAX] = {};
+        memcpy(temp, path.data, path.length);
+
+        if(access(temp, X_OK) == 0) return nbl::Result::SUCCESS;
+
+        if(stat(temp, &fileStat) != 0) return nbl::Result::OS_ERROR;
+        int mode = fileStat.st_mode & 0777;
+
+        if(chmod(temp, mode | 0100) != 0) return nbl::Result::OS_ERROR;
+        return nbl::Result::SUCCESS;
+    }
+
+}
+
+
+nbl::Result nbl::createLink(StringView target, StringView path) {
+
+    ArenaFrame frame(nbl::Arena::threadLocal());
+
+    if(!target.nullTerminated) {
+        NBL_CHECK(StringBuilder::nullTerminate(target, &target, &frame));
+    }
+    if(!path.nullTerminated) {
+        NBL_CHECK(StringBuilder::nullTerminate(path, &path, &frame));
+    }
+
+    int rc = symlink(target.data, path.data);
+    if(rc != 0) return nbl::Result::OS_ERROR;
+
+    return nbl::Result::SUCCESS;
+}
+
+
 void nbl::FolderIterator::_close() {
     ::closedir(static_cast<DIR*>(_mHandle));
 }

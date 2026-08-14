@@ -298,9 +298,14 @@ nbl::Result nbl::HttpClient::_startThread() {
                             }
                             req->finished(nbl::Result::IO_ERROR);
                             client->_mFailures++;
-                        } else {
+                        } else if(responseCode >= 200 && responseCode < 300){
 
                             req->finished(nbl::Result::SUCCESS);
+
+                        } else {
+                            nbl::log(nbl::LogLevel::DEBUG, "Response Code: ", responseCode);
+                            req->finished(nbl::Result::IO_ERROR);
+                            client->_mFailures++;
                         }
 
                     } else {

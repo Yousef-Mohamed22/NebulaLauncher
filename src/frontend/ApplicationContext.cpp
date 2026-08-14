@@ -259,7 +259,7 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
         NblProcessHandle* handle = ctx->_mRunningProcesses[installationId];
         if(handle == nullptr) return -1;
 
-        nbl::getInstallationMeta(&ctx->_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
+        nbl::Result res = nbl::getInstallationMeta(&ctx->_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
             if(meta.deviceId != ctx->_mDeviceId) {
                 nbl::log(nbl::LogLevel::ERROR, "Attempt to launch an installation from another device! (", meta.deviceId, " != ", ctx->_mDeviceId, ")");
@@ -292,14 +292,19 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
             return nbl::Result::SUCCESS;
         });
 
-        return 0;
+        if(res.error()) {
+            handle->deleteLater();
+            ctx->_mContext.pushNotification(nbl::NotificationType::ERROR, "Failed to launch", "An error occurred while launching an installation");
+        }
+
+        return res.value;
 
     }, reinterpret_cast<void*>(installationId), &launchThread);
 
 
     if(res.error()) {
         handle->deleteLater();
-        _mContext.pushNotification(nbl::NotificationType::ERROR, "Failed to launch", "An error occurred while launching an installation");
+        _mContext.pushNotification(nbl::NotificationType::ERROR, "Failed to launch", "Failed to spawn a new thread");
         return nullptr;
     }
 

@@ -58,7 +58,10 @@ nbl::Result nbl::formatPlaceholders(StringView format, StringBuilder *builder, S
             }
         }
 
-        if(!found) return nbl::Result::NOT_FOUND;
+        if(!found) {
+            nbl::log(nbl::LogLevel::DEBUG, "Placeholder ", placeholderName, " not found");
+            return nbl::Result::NOT_FOUND;
+        }
 
         placeholderStart += index;
         placeholderEnd += index;

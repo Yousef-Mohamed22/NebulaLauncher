@@ -186,6 +186,12 @@ Result makeDirectories(StringView path);
 
 bool fileExists(StringView path);
 
+bool isExecutable(StringView path);
+
+Result setExecutable(StringView path);
+
+Result createLink(StringView target, StringView path);
+
 StringView getWorkingDirectory();
 
 StringView getDataDirectory();
