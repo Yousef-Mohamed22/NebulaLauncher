@@ -24,6 +24,30 @@
 
 namespace nbl {
 
+
+enum class HttpClientFlag : u32 {
+    REFERENCE_FILE_PATHS = 1
+};
+typedef u32 HttpClientFlags;
+
+
+inline HttpClientFlags operator&(HttpClientFlag flag, HttpClientFlags other) {
+    return static_cast<u32>(flag) & other;
+}
+
+inline HttpClientFlags operator&(HttpClientFlags other, HttpClientFlag flag) {
+    return static_cast<u32>(flag) & other;
+}
+
+inline HttpClientFlags operator|(HttpClientFlag flag, HttpClientFlags other) {
+    return static_cast<u32>(flag) | other;
+}
+
+inline HttpClientFlags operator|(HttpClientFlags other, HttpClientFlag flag) {
+    return static_cast<u32>(flag) | other;
+}
+
+
 struct HttpHeader {
     StringView name;
     StringView value;
@@ -57,13 +81,24 @@ public:
 
     void awaitAll(u32* numFailures);
 
-    static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out);
+    static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out, HttpClientFlags flags = 0);
 
 private:
 
     struct _ActiveRequest {
+
+        inline ~_ActiveRequest() {
+            callback.~Optional<std::function_ref<void(Result)>>();
+            if(download && fileOpened) {
+                file.~FileChannel();
+            }
+        };
+
         Writer writer;
-        FileChannel file;
+        union {
+            FileChannel file;
+            StringView filePath;
+        };
         void* handle;
         void* headers;
 
@@ -71,6 +106,7 @@ private:
         u32 retryCount;
         bool download;
         bool queued;
+        bool fileOpened;
 
         inline void finished(Result res) {
             if(callback.hasValue()) {
@@ -79,17 +115,20 @@ private:
         }
     };
 
+    static usize _writeCallback(char* data, usize size, usize nmemb, void* userData);
+
     nbl::Result _setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, Span<HttpHeader> headers);
     nbl::Result _startThread();
 
-
     nbl::Pool<_ActiveRequest> _mRequests;
+    nbl::Arena _mPaths;
     void* _pHandle;
     Thread _mReaderThread;
     Mutex _mRequestMutex;
     Latch _mAllDone;
     u32 _mMaxRetries;
     u32 _mFailures;
+    HttpClientFlags _mFlags;
 
 };
 

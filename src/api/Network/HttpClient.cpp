@@ -1,5 +1,6 @@
 #include <Network/HttpClient.hpp>
 #include <Platform/StringBuilder.hpp>
+#include "Core/Result.hpp"
 #include "Platform/File.hpp"
 #include "Platform/Logging.hpp"
 
@@ -10,16 +11,6 @@ namespace {
 
 static bool _sInitialized = false;
 constexpr const char* _USER_AGENT = "Nebula/0.1.0 curl/8.20.0";
-
-usize _writeCallback(char* ptr, usize size, usize nmemb, void* userData) {
-
-    nbl::Writer writer = *static_cast<nbl::Writer*>(userData);
-    if(writer.writeAll(ptr, size * nmemb).error()) {
-        nbl::log(nbl::LogLevel::INFO, "An error occurred, this should cause a failure to be reported!");
-        return static_cast<usize>(0);
-    }
-    return size * nmemb;
-}
 
 }
 
@@ -58,9 +49,29 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optio
 
     _ActiveRequest* req = nullptr;
     NBL_CHECK(_mRequests.push(&req));
-    NBL_CHECK(nbl::FileChannel::open(file, &req->file, FileOpenFlag::CREATE | FileOpenFlag::WRITE));
+    
+    Result res = nbl::FileChannel::open(file, &req->file, FileOpenFlag::CREATE | FileOpenFlag::WRITE);
+    if(res == Result::TOO_MANY_OPEN_FILES) {
+        if(!(_mFlags & HttpClientFlag::REFERENCE_FILE_PATHS)) {
+            if(_mPaths.begin() == nullptr) {
+                NBL_CHECK(nbl::Arena::create(_mRequests.capacity() * 4096U, &_mPaths));
+            }
+            void* data;
+            _mPaths.push(file.length, &data);
+            memcpy(data, file.data, file.length);
+            file.data = static_cast<char*>(data);
+        }
 
-    req->writer = req->file.writer();
+        req->fileOpened = false;
+        req->filePath = file;
+
+    } else if(res.error()) {
+        return res;
+    } else {
+        req->writer = req->file.writer();
+        req->fileOpened = true;
+    }
+
     req->download = true;
     req->callback = doneCallback;
     req->retryCount = 0;
@@ -99,6 +110,24 @@ nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Wr
     return _setupConnection(url, req, body, headers);
 }
 
+usize nbl::HttpClient::_writeCallback(char* ptr, usize size, usize nmemb, void* userData) {
+
+    _ActiveRequest* req = static_cast<_ActiveRequest*>(userData);
+    if(req->download && !req->fileOpened) {
+        nbl::Result res = nbl::FileChannel::open(req->filePath, &req->file, FileOpenFlag::WRITE | FileOpenFlag::CREATE);
+        if(res.error()) {
+            return 0;
+        }
+        req->writer = req->file.writer();
+        req->fileOpened = true;
+    }
+
+    if(req->writer.writeAll(ptr, size * nmemb).error()) {
+        return 0;
+    }
+    return size * nmemb;
+}
+
 nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, Span<HttpHeader> headers) {
     
     CURLM* multiHandle = static_cast<CURLM*>(_pHandle);
@@ -115,7 +144,7 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
 
     curl_easy_setopt(easyHandle, CURLOPT_WRITEFUNCTION, _writeCallback);
     curl_easy_setopt(easyHandle, CURLOPT_USERAGENT, _USER_AGENT);
-    curl_easy_setopt(easyHandle, CURLOPT_WRITEDATA, &req->writer);
+    curl_easy_setopt(easyHandle, CURLOPT_WRITEDATA, req);
     curl_easy_setopt(easyHandle, CURLOPT_PRIVATE, req);
     curl_easy_setopt(easyHandle, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(easyHandle, CURLOPT_MAXREDIRS, 5L);
@@ -166,6 +195,9 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
 
 void nbl::HttpClient::awaitAll(u32* numFailures) {
     _mAllDone.wait();
+    if(_mPaths.begin() != nullptr) {
+        _mPaths.popTo(0);
+    }
     if(numFailures) *numFailures = _mFailures;
     _mFailures = 0;
 }
@@ -271,7 +303,7 @@ nbl::Result nbl::HttpClient::_startThread() {
 
 }
 
-nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out) {
+nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out, HttpClientFlags flags) {
 
     NBL_CHECK(nbl::Pool<_ActiveRequest>::create(maxRequests, &out->_mRequests));
     NBL_CHECK(nbl::Latch::create(0, &out->_mAllDone));
@@ -291,6 +323,7 @@ nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 max
 
     out->_mMaxRetries = maxRetries;
     out->_pHandle = multiHandle;
+    out->_mFlags = flags;
     return nbl::Result::SUCCESS;
 }
 

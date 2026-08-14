@@ -100,6 +100,10 @@ public:
         return nbl::Result::SUCCESS;
     }
 
+    usize capacity() const {
+        return _mArena.capacity() / sizeof(T);
+    }
+
     static Result create(usize numItems, Pool* outPool) {
         NBL_CHECK(nbl::Arena::create(numItems * sizeof(T), &outPool->_mArena));
         outPool->_pFirstFree = outPool->_mArena.end();
