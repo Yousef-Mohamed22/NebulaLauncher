@@ -17,31 +17,32 @@ Item {
     implicitHeight: field.type == 3 ? 32 : 54
 
     function setValue(newValue) {
-        value = newValue
+
+        root.value = newValue
         if(root.field.type == 0) {
 
-            let textBox = loader.item as NblTextBox
-            textBox.text = root.value
+            let textBox = loader.item as NblSuggestionsTextBox
+            textBox.text = newValue
 
         } else if(root.field.type == 1 || root.field.type == 2) {
 
             let numberBox = loader.item as NblNumberInput
-            numberBox.value = root.value
+            numberBox.value = newValue
 
         } else if(root.field.type == 3) {
 
             let checkBox = loader.item as NblCheckBox
-            checkBox.checked = root.value
+            checkBox.checked = newValue
 
         } else if(root.field.type == 4) {
 
             let comboBox = loader.item as NblComboBox
-            comboBox.currentIndex = enumModel.indexOf(root.value)
+            comboBox.currentIndex = enumModel.indexOf(newValue)
         
         } else if(root.field.type == 5) {
 
             let dateBox = loader.item as NblDateInput
-            dateBox.setTime(root.value)
+            dateBox.setTime(newValue)
 
         }
     }
