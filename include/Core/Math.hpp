@@ -18,7 +18,7 @@ namespace nbl {
  * \return The smaller of the two values.
  */
 template<typename T>
-T min(T v1, T v2) {
+constexpr T min(T v1, T v2) {
     return v1 > v2 ? v2 : v1;
 }
 
@@ -29,7 +29,7 @@ T min(T v1, T v2) {
  * \return The larger of the two values.
  */
 template<typename T>
-T max(T v1, T v2) {
+constexpr T max(T v1, T v2) {
     return v1 < v2 ? v2 : v1;
 }
 
@@ -41,7 +41,7 @@ T max(T v1, T v2) {
  * \return The clamped value.
  */
 template<typename T>
-T clamp(T value, T minBound, T maxBound) {
+constexpr T clamp(T value, T minBound, T maxBound) {
     if(value < minBound) return minBound;
     if(value > maxBound) return maxBound;
     return value;

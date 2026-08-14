@@ -20,6 +20,7 @@
 #include <Core/Result.hpp>
 
 #include <functional>
+#include "Core/Either.hpp"
 
 
 namespace nbl {
@@ -32,20 +33,53 @@ enum class HttpClientFlag : u32 {
 typedef u32 HttpClientFlags;
 
 
-inline HttpClientFlags operator&(HttpClientFlag flag, HttpClientFlags other) {
-    return static_cast<u32>(flag) & other;
+
+inline HttpClientFlags operator&(HttpClientFlag flag, HttpClientFlag other) {
+    return static_cast<u8>(flag) & static_cast<u8>(other);
 }
 
-inline HttpClientFlags operator&(HttpClientFlags other, HttpClientFlag flag) {
-    return static_cast<u32>(flag) & other;
+inline HttpClientFlags operator&(HttpClientFlags existing, HttpClientFlag flag) {
+    return static_cast<u8>(flag) & existing;
 }
 
-inline HttpClientFlags operator|(HttpClientFlag flag, HttpClientFlags other) {
-    return static_cast<u32>(flag) | other;
+inline HttpClientFlags operator&(HttpClientFlag flag, HttpClientFlags existing) {
+    return static_cast<u8>(flag) & existing;
 }
 
-inline HttpClientFlags operator|(HttpClientFlags other, HttpClientFlag flag) {
-    return static_cast<u32>(flag) | other;
+inline HttpClientFlags operator&=(HttpClientFlag& flag, HttpClientFlag other) {
+    return static_cast<u8>(flag) & static_cast<u8>(other);
+}
+
+inline HttpClientFlags operator&=(HttpClientFlags& existing, HttpClientFlag flag) {
+    return static_cast<u8>(flag) & existing;
+}
+
+inline HttpClientFlags operator&=(HttpClientFlag& flag, HttpClientFlags existing) {
+    return static_cast<u8>(flag) & existing;
+}
+
+inline HttpClientFlags operator|(HttpClientFlag flag, HttpClientFlag other) {
+    return static_cast<u8>(flag) | static_cast<u8>(other);
+}
+
+inline HttpClientFlags operator|(HttpClientFlag flag, HttpClientFlags existing) {
+    return static_cast<u8>(flag) | existing;
+}
+
+inline HttpClientFlags operator|(HttpClientFlags existing, HttpClientFlag flag) {
+    return static_cast<u8>(flag) | existing;
+}
+
+inline HttpClientFlags operator|=(HttpClientFlag& flag, HttpClientFlag other) {
+    return static_cast<u8>(flag) | static_cast<u8>(other);
+}
+
+inline HttpClientFlags operator|=(HttpClientFlag& flag, HttpClientFlags existing) {
+    return static_cast<u8>(flag) | existing;
+}
+
+inline HttpClientFlags operator|=(HttpClientFlags& existing, HttpClientFlag flag) {
+    return static_cast<u8>(flag) | existing;
 }
 
 
@@ -91,18 +125,8 @@ private:
 
     struct _ActiveRequest {
 
-        inline ~_ActiveRequest() {
-            callback.~Optional<std::function_ref<void(Result)>>();
-            if(download && fileOpened) {
-                file.~FileChannel();
-            }
-        };
-
         Writer writer;
-        union {
-            FileChannel file;
-            StringView filePath;
-        };
+        nbl::Either<FileChannel, StringView> file;
         void* handle;
         void* headers;
 
@@ -110,8 +134,9 @@ private:
         u32 retryCount;
         bool download;
         bool queued;
-        bool fileOpened;
         bool createParents;
+
+        inline bool fileOpened() { return file.hasLeft(); }
 
         inline void finished(Result res) {
             if(callback.hasValue()) {
@@ -129,9 +154,10 @@ private:
     Thread _mReaderThread;
     Mutex _mRequestMutex;
     Latch _mAllDone;
+    HttpClientFlags _mFlags;
     u32 _mMaxRetries;
     u32 _mFailures;
-    HttpClientFlags _mFlags;
+    std::atomic<u32> _mQueuedRequests;
     bool _bQueuePaused;
 
 };

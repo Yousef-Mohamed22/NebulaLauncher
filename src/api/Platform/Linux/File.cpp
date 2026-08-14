@@ -43,6 +43,19 @@ int gGetFd(void* handle) {
 }
 
 
+nbl::FileChannel::FileChannel(FileChannel&& other) :
+    _mHandle(other._mHandle) {
+    other._mHandle = nullptr;
+}
+
+nbl::FileChannel& nbl::FileChannel::operator=(FileChannel&& other) {
+    if(&other == this) return *this;
+    _mHandle = other._mHandle;
+    other._mHandle = nullptr;
+    return *this;
+}
+
+
 nbl::Writer nbl::FileChannel::writer() {
     return {
         .impl = _mHandle,

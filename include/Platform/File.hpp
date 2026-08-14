@@ -37,6 +37,18 @@ inline FileOpenFlags operator&(FileOpenFlag flag, FileOpenFlags existing) {
     return static_cast<u8>(flag) & existing;
 }
 
+inline FileOpenFlags operator&=(FileOpenFlag& flag, FileOpenFlag other) {
+    return static_cast<u8>(flag) & static_cast<u8>(other);
+}
+
+inline FileOpenFlags operator&=(FileOpenFlags& existing, FileOpenFlag flag) {
+    return static_cast<u8>(flag) & existing;
+}
+
+inline FileOpenFlags operator&=(FileOpenFlag& flag, FileOpenFlags existing) {
+    return static_cast<u8>(flag) & existing;
+}
+
 inline FileOpenFlags operator|(FileOpenFlag flag, FileOpenFlag other) {
     return static_cast<u8>(flag) | static_cast<u8>(other);
 }
@@ -46,6 +58,18 @@ inline FileOpenFlags operator|(FileOpenFlag flag, FileOpenFlags existing) {
 }
 
 inline FileOpenFlags operator|(FileOpenFlags existing, FileOpenFlag flag) {
+    return static_cast<u8>(flag) | existing;
+}
+
+inline FileOpenFlags operator|=(FileOpenFlag& flag, FileOpenFlag other) {
+    return static_cast<u8>(flag) | static_cast<u8>(other);
+}
+
+inline FileOpenFlags operator|=(FileOpenFlag& flag, FileOpenFlags existing) {
+    return static_cast<u8>(flag) | existing;
+}
+
+inline FileOpenFlags operator|=(FileOpenFlags& existing, FileOpenFlag flag) {
     return static_cast<u8>(flag) | existing;
 }
 
@@ -60,10 +84,16 @@ enum class FileSeekOrigin : u8 {
 class FileChannel {
 public:
 
-    ~FileChannel() { _close(); }
+    inline FileChannel() : _mHandle(nullptr) {}
+    inline ~FileChannel() { _close(); }
+
+    FileChannel(const FileChannel& other) = delete;
+    FileChannel(FileChannel&& other);
+
+    FileChannel& operator=(const FileChannel& other) = delete;
+    FileChannel& operator=(FileChannel&& other);
 
     Writer writer();
-
     Reader reader();
 
     nbl::Result seek(isize offset, FileSeekOrigin origin, usize* outOffset);

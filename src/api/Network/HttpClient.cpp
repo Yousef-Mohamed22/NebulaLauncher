@@ -54,6 +54,7 @@ nbl::HttpClient::~HttpClient() {
 
 nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers) {
 
+    nbl::log(nbl::LogLevel::DEBUG, "GET ", url, " > ", file);
     auto frameLock = _mRequestMutex.frameLock();
 
     _ActiveRequest* req = nullptr;
@@ -63,7 +64,8 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optio
     FileOpenFlags flags = FileOpenFlag::WRITE | FileOpenFlag::CREATE;
     if(_mFlags & HttpClientFlag::CREATE_FILE_PARENTS) flags = flags | FileOpenFlag::CREATE_PARENTS;
 
-    Result res = nbl::FileChannel::open(file, &req->file, flags);
+    nbl::FileChannel channel{};
+    Result res = nbl::FileChannel::open(file, &channel, flags);
     if(res == Result::TOO_MANY_OPEN_FILES) {
         if(!(_mFlags & HttpClientFlag::REFERENCE_FILE_PATHS)) {
             if(_mPaths.begin() == nullptr) {
@@ -76,14 +78,13 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optio
         }
 
         req->createParents = _mFlags & HttpClientFlag::CREATE_FILE_PARENTS;
-        req->fileOpened = false;
-        req->filePath = file;
+        req->file = file;
 
     } else if(res.error()) {
         return res;
     } else {
-        req->writer = req->file.writer();
-        req->fileOpened = true;
+        req->file = std::move(channel);
+        req->writer = req->file.left()->writer();
     }
 
     req->download = true;
@@ -182,6 +183,7 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
 
     req->handle = easyHandle;
     req->queued = true;
+    _mQueuedRequests++;
 
     _mAllDone.increment();
 
@@ -223,7 +225,6 @@ nbl::Result nbl::HttpClient::_startThread() {
                 return 1;
             }
 
-
             if(curl_multi_poll(handle, nullptr, 0, 0, nullptr) != CURLM_OK) {
                 return 2;
             }
@@ -232,13 +233,13 @@ nbl::Result nbl::HttpClient::_startThread() {
             if(!client->_bQueuePaused) {
                 for(_ActiveRequest& req : client->_mRequests) {
                     if(req.queued) {
-                        if(req.download && !req.fileOpened) {
+                        if(req.download && !req.fileOpened()) {
 
                             FileOpenFlags flags = FileOpenFlag::WRITE | FileOpenFlag::CREATE;
-                            if(req.createParents) flags = flags | FileOpenFlag::CREATE_PARENTS;
+                            if(req.createParents) flags |= FileOpenFlag::CREATE_PARENTS;
 
                             FileChannel channel{};
-                            nbl::Result res = nbl::FileChannel::open(req.filePath, &channel, flags);
+                            nbl::Result res = nbl::FileChannel::open(*req.file.right(), &channel, flags);
                             if(runningRequests > 0 && res == Result::TOO_MANY_OPEN_FILES) {
                                 client->_bQueuePaused = true;
                                 break;
@@ -247,15 +248,17 @@ nbl::Result nbl::HttpClient::_startThread() {
                                 req.finished(nbl::Result::IO_ERROR);
                                 client->_mFailures++;
                             } else {
-                                req.writer = req.file.writer();
-                                req.fileOpened = true;
+                                req.file = std::move(channel);
+                                req.writer = req.file.left()->writer();
                                 curl_multi_add_handle(handle, static_cast<CURL*>(req.handle));
                                 runningRequests++;
+                                client->_mQueuedRequests--;
                                 req.queued = false;
                             }
                         } else {
                             curl_multi_add_handle(handle, static_cast<CURL*>(req.handle));
                             runningRequests++;
+                            client->_mQueuedRequests--;
                             req.queued = false;
                         }
                     }
@@ -319,7 +322,7 @@ nbl::Result nbl::HttpClient::_startThread() {
                 }
             }
 
-        } while(runningRequests > 0);
+        } while(runningRequests > 0 || client->_mQueuedRequests > 0);
 
         return 0;
     }, this, &_mReaderThread);
