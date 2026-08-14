@@ -249,38 +249,54 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
     }
     _mRunningProcesses[installationId] = handle;
 
-    nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
-        if(meta.deviceId != _mDeviceId) {
-            nbl::log(nbl::LogLevel::ERROR, "Attempt to launch an installation from another device! (", meta.deviceId, " != ", _mDeviceId, ")");
-            return nbl::Result::INVALID_STATE;
-        }
+    nbl::Thread launchThread{};
+    nbl::Result res = nbl::Thread::create([](void* userData) -> i32 {
 
-        const nbl::InstallationType* installType = _mContext.getInstallationType(meta.type);
-        if(installType == nullptr) {
-            nbl::log(nbl::LogLevel::ERROR, "Unknown installation type: ", meta.type);
-            return nbl::Result::INVALID_STATE;
-        }
+        i64 installationId = reinterpret_cast<i64>(userData);
+        ApplicationContext* ctx = ApplicationContext::instance();
 
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-        nbl::Span<nbl::FieldValue> values = {
-            .data = nullptr,
-            .length = installType->fields.length
-        };
+        NblProcessHandle* handle = ctx->_mRunningProcesses[installationId];
+        if(handle == nullptr) return -1;
 
-        if(installType->fields.length > 0) {
-            frame.allocate(&values.data, installType->fields.length);
+        nbl::getInstallationMeta(&ctx->_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
-            nbl::JsonElement value = {};
-            NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
-            NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
-        }
-        NBL_CHECK(installType->launch(&_mContext, values, installationId, handle->tracker()));
-        NBL_CHECK(handle->initLogging());
-        handle->check();
+            if(meta.deviceId != ctx->_mDeviceId) {
+                nbl::log(nbl::LogLevel::ERROR, "Attempt to launch an installation from another device! (", meta.deviceId, " != ", ctx->_mDeviceId, ")");
+                return nbl::Result::INVALID_STATE;
+            }
 
-        return nbl::Result::SUCCESS;
-    });
+            const nbl::InstallationType* installType = ctx->_mContext.getInstallationType(meta.type);
+            if(installType == nullptr) {
+                nbl::log(nbl::LogLevel::ERROR, "Unknown installation type: ", meta.type);
+                return nbl::Result::INVALID_STATE;
+            }
+
+            nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+            nbl::Span<nbl::FieldValue> values = {
+                .data = nullptr,
+                .length = installType->fields.length
+            };
+
+            if(installType->fields.length > 0) {
+                frame.allocate(&values.data, installType->fields.length);
+
+                nbl::JsonElement value = {};
+                NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
+                NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
+            }
+            NBL_CHECK(installType->launch(&ctx->_mContext, values, installationId, handle->tracker()));
+            NBL_CHECK(handle->initLogging());
+            handle->check();
+
+            return nbl::Result::SUCCESS;
+        });
+
+        return 0;
+
+    }, reinterpret_cast<void*>(installationId), &launchThread);
+
+
     if(res.error()) {
         handle->deleteLater();
         _mContext.pushNotification(nbl::NotificationType::ERROR, "Failed to launch", "An error occurred while launching an installation");

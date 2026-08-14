@@ -8,6 +8,7 @@
 
 
 #include <Platform/PlatformDefines.hpp>
+#include <cerrno>
 #ifdef NBL_PLATFORM_LINUX
 
 #include <Core/Result.hpp>
@@ -112,13 +113,25 @@ nbl::Result nbl::FileChannel::open(StringView path, FileChannel* outChannel, Fil
         openFlags |= O_APPEND;
     }
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    StringView nullTerminatedPath;
-    NBL_CHECK(nbl::StringBuilder::nullTerminate(path, &nullTerminatedPath, &frame));
+    int fd;
+    if(path.nullTerminated) {
+        fd = ::open(path.data, openFlags, 0644);
+    } else {
 
-    int fd = ::open(nullTerminatedPath.data, openFlags, 0644);
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        StringView nullTerminatedPath{};
+        NBL_CHECK(nbl::StringBuilder::nullTerminate(path, &nullTerminatedPath, &frame));
+        fd = ::open(nullTerminatedPath.data, openFlags, 0644);
+    }   
+
     if(fd < 0) {
-        return errno == ENOENT ? nbl::Result::NOT_FOUND : nbl::Result::IO_ERROR;
+        nbl::log(nbl::LogLevel::DEBUG, "Failed to open file: ", path, " (", errno, ")");
+
+        switch(errno) {
+            case ENOENT: return nbl::Result::NOT_FOUND;
+            case EMFILE: return nbl::Result::TOO_MANY_OPEN_FILES;
+            default: return nbl::Result::IO_ERROR;
+        }
     }
 
     outChannel->_mHandle = reinterpret_cast<void*>(static_cast<intptr_t>(fd));

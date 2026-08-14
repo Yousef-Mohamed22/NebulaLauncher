@@ -76,6 +76,7 @@ struct Result {
         FORMAT_ERROR = -16,
         INTERRUPTED = -17,
         LIBRARY_ERROR = -18,
+        TOO_MANY_OPEN_FILES = -19,
         UNIMPLEMENTED = -998,
         UNEXPECTED_ERROR = -999
     };

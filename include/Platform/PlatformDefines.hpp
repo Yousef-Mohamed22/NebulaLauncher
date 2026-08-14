@@ -26,6 +26,20 @@
 
 
 //
+// Architectures
+//
+#if defined(__amd64__) or defined(__x86_64__) or defined(_M_X64)
+#define NBL_ARCH_AMD64
+
+#elif defined(__i386__) or defined(_M_IX86)
+#define NBL_ARCH_X86
+
+#elif defined(__aarch64__) or defined(_M_ARM64)
+#define NBL_ARCH_AARCH64
+#endif
+
+
+//
 // Debug Breakpoints
 //
 

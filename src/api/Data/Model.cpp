@@ -182,6 +182,7 @@ CREATE TABLE IF NOT EXISTS filter (
     useIcons BOOLEAN NOT NULL DEFAULT 0,
     showTitles BOOLEAN NOT NULL DEFAULT 0,
     onlyInstalled BOOLEAN NOT NULL DEFAULT 0,
+    showInstallations BOOLEAN NOT NULL DEFAULT 0,
     priority INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY(tabId) REFERENCES tab(tabId) ON DELETE CASCADE
 );
@@ -216,7 +217,7 @@ VALUES
 INSERT INTO filter 
 (fId,tabId,name,icon,criteria,multiLine,priority) 
 VALUES
-(3,2,'Favorites','','{"sortBy":"title","sortOrder":"ascending","tags":[["1"]]}',1,0);
+(3,2,'Favorites','','{"sortBy":"title","sortOrder":"ascending","tags":[[1]]}',1,0);
 
 PRAGMA user_version = 1;
 COMMIT;

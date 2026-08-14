@@ -12,7 +12,6 @@ class NblProcessHandle : public QObject {
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(bool hasStarted READ hasStarted NOTIFY hasStartedUpdated)
     Q_PROPERTY(bool isRunning READ isRunning NOTIFY isRunningUpdated)
     Q_PROPERTY(bool isStopping READ isStopping NOTIFY isStoppingUpdated)
     Q_PROPERTY(QString logs READ logs NOTIFY logsUpdated)
@@ -21,7 +20,6 @@ public:
 
     NblProcessHandle(QObject* parent = nullptr) :
         QObject(parent),
-        _bHasStarted(false),
         _bIsStopping(false),
         _mTracker{},
         _mWatcherThread{},
@@ -32,10 +30,6 @@ public:
         if(_mWatcherThread.isRunning()) {
             _mWatcherThread.join(nullptr);
         }
-    }
-
-    inline bool hasStarted() {
-        return _bHasStarted;
     }
 
     inline bool isRunning() {
@@ -68,13 +62,11 @@ public:
                 emit isRunningUpdated();
             } else {
                 _mPrevState = state;
+                if(state == nbl::ProcessTracker::State::RUNNING) {
+                    emit isRunningUpdated();
+                }
             }
-
-            if(state == nbl::ProcessTracker::State::RUNNING) {
-                _bHasStarted = true;
-                emit hasStartedUpdated();
-            } 
-            else if(state == nbl::ProcessTracker::State::COMPLETE) {
+            if(state == nbl::ProcessTracker::State::COMPLETE) {
                 emit complete();
                 emit stopped();
             }
@@ -100,7 +92,6 @@ public:
 
 signals:
 
-    void hasStartedUpdated();
     void isRunningUpdated();
     void isStoppingUpdated();
     void logsUpdated();
@@ -110,7 +101,6 @@ signals:
 
 private:
 
-    bool _bHasStarted;
     bool _bIsStopping;
     nbl::ProcessTracker _mTracker;
     nbl::ProcessTracker::State _mPrevState;

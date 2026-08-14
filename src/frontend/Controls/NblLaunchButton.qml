@@ -32,18 +32,15 @@ Item {
         if(installationId == 0) return NblLaunchButton.State.NOT_INSTALLED
 
         if(!handle) return NblLaunchButton.State.NOT_RUNNING
-        if(!handle.hasStarted) {
-            return NblLaunchButton.State.STARTING
-        }
         if(handle.isRunning) {
             if(handle.isStopping) {
                 return NblLaunchButton.State.STOPPING 
             } else {
                 return NblLaunchButton.State.RUNNING
             }
+        } else {
+            return NblLaunchButton.State.STARTING
         }
-
-        return NblLaunchButton.State.NOT_RUNNING
     }
 
     Rectangle {
