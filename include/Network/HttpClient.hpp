@@ -120,8 +120,6 @@ private:
         }
     };
 
-    static usize _writeCallback(char* data, usize size, usize nmemb, void* userData);
-
     nbl::Result _setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, Span<HttpHeader> headers);
     nbl::Result _startThread();
 
@@ -134,6 +132,7 @@ private:
     u32 _mMaxRetries;
     u32 _mFailures;
     HttpClientFlags _mFlags;
+    bool _bQueuePaused;
 
 };
 

@@ -12,6 +12,15 @@ namespace {
 static bool _sInitialized = false;
 constexpr const char* _USER_AGENT = "Nebula/0.1.0 curl/8.20.0";
 
+usize _writeCallback(char* ptr, usize size, usize nmemb, void* userData) {
+
+    nbl::Writer writer = *static_cast<nbl::Writer*>(userData);
+    if(writer.writeAll(ptr, size * nmemb).error()) {
+        return 0;
+    }
+    return size * nmemb;
+}
+
 }
 
 nbl::HttpClient::~HttpClient() {
@@ -115,27 +124,6 @@ nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Wr
     return _setupConnection(url, req, body, headers);
 }
 
-usize nbl::HttpClient::_writeCallback(char* ptr, usize size, usize nmemb, void* userData) {
-
-    _ActiveRequest* req = static_cast<_ActiveRequest*>(userData);
-    if(req->download && !req->fileOpened) {
-
-        FileOpenFlags flags = FileOpenFlag::WRITE | FileOpenFlag::CREATE;
-        if(req->createParents) flags = flags | FileOpenFlag::CREATE_PARENTS;
-
-        nbl::Result res = nbl::FileChannel::open(req->filePath, &req->file, flags);
-        if(res.error()) {
-            return 0;
-        }
-        req->writer = req->file.writer();
-        req->fileOpened = true;
-    }
-
-    if(req->writer.writeAll(ptr, size * nmemb).error()) {
-        return 0;
-    }
-    return size * nmemb;
-}
 
 nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, Span<HttpHeader> headers) {
     
@@ -153,7 +141,7 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
 
     curl_easy_setopt(easyHandle, CURLOPT_WRITEFUNCTION, _writeCallback);
     curl_easy_setopt(easyHandle, CURLOPT_USERAGENT, _USER_AGENT);
-    curl_easy_setopt(easyHandle, CURLOPT_WRITEDATA, req);
+    curl_easy_setopt(easyHandle, CURLOPT_WRITEDATA, &req->writer);
     curl_easy_setopt(easyHandle, CURLOPT_PRIVATE, req);
     curl_easy_setopt(easyHandle, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(easyHandle, CURLOPT_MAXREDIRS, 5L);
@@ -241,11 +229,36 @@ nbl::Result nbl::HttpClient::_startThread() {
             }
 
             client->_mRequestMutex.lock();
-            for(_ActiveRequest& req : client->_mRequests) {
-                if(req.queued) {
-                    curl_multi_add_handle(handle, static_cast<CURL*>(req.handle));
-                    runningRequests++;
-                    req.queued = false;
+            if(!client->_bQueuePaused) {
+                for(_ActiveRequest& req : client->_mRequests) {
+                    if(req.queued) {
+                        if(req.download && !req.fileOpened) {
+
+                            FileOpenFlags flags = FileOpenFlag::WRITE | FileOpenFlag::CREATE;
+                            if(req.createParents) flags = flags | FileOpenFlag::CREATE_PARENTS;
+
+                            FileChannel channel{};
+                            nbl::Result res = nbl::FileChannel::open(req.filePath, &channel, flags);
+                            if(runningRequests > 0 && res == Result::TOO_MANY_OPEN_FILES) {
+                                client->_bQueuePaused = true;
+                                break;
+                            }
+                            if(res.error()) {
+                                req.finished(nbl::Result::IO_ERROR);
+                                client->_mFailures++;
+                            } else {
+                                req.writer = req.file.writer();
+                                req.fileOpened = true;
+                                curl_multi_add_handle(handle, static_cast<CURL*>(req.handle));
+                                runningRequests++;
+                                req.queued = false;
+                            }
+                        } else {
+                            curl_multi_add_handle(handle, static_cast<CURL*>(req.handle));
+                            runningRequests++;
+                            req.queued = false;
+                        }
+                    }
                 }
             }
 
@@ -300,6 +313,7 @@ nbl::Result nbl::HttpClient::_startThread() {
                     curl_multi_remove_handle(handle, easy);
                     curl_easy_cleanup(easy);
                     client->_mRequests.pop(req);
+                    client->_bQueuePaused = false;
 
                     client->_mAllDone.decrement();
                 }
