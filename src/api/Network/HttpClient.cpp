@@ -50,7 +50,11 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optio
     _ActiveRequest* req = nullptr;
     NBL_CHECK(_mRequests.push(&req));
     
-    Result res = nbl::FileChannel::open(file, &req->file, FileOpenFlag::CREATE | FileOpenFlag::WRITE);
+
+    FileOpenFlags flags = FileOpenFlag::WRITE | FileOpenFlag::CREATE;
+    if(_mFlags & HttpClientFlag::CREATE_FILE_PARENTS) flags = flags | FileOpenFlag::CREATE_PARENTS;
+
+    Result res = nbl::FileChannel::open(file, &req->file, flags);
     if(res == Result::TOO_MANY_OPEN_FILES) {
         if(!(_mFlags & HttpClientFlag::REFERENCE_FILE_PATHS)) {
             if(_mPaths.begin() == nullptr) {
@@ -62,6 +66,7 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optio
             file.data = static_cast<char*>(data);
         }
 
+        req->createParents = _mFlags & HttpClientFlag::CREATE_FILE_PARENTS;
         req->fileOpened = false;
         req->filePath = file;
 
@@ -114,7 +119,11 @@ usize nbl::HttpClient::_writeCallback(char* ptr, usize size, usize nmemb, void* 
 
     _ActiveRequest* req = static_cast<_ActiveRequest*>(userData);
     if(req->download && !req->fileOpened) {
-        nbl::Result res = nbl::FileChannel::open(req->filePath, &req->file, FileOpenFlag::WRITE | FileOpenFlag::CREATE);
+
+        FileOpenFlags flags = FileOpenFlag::WRITE | FileOpenFlag::CREATE;
+        if(req->createParents) flags = flags | FileOpenFlag::CREATE_PARENTS;
+
+        nbl::Result res = nbl::FileChannel::open(req->filePath, &req->file, flags);
         if(res.error()) {
             return 0;
         }

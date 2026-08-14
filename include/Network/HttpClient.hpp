@@ -26,7 +26,8 @@ namespace nbl {
 
 
 enum class HttpClientFlag : u32 {
-    REFERENCE_FILE_PATHS = 1
+    REFERENCE_FILE_PATHS = 0b0001,
+    CREATE_FILE_PARENTS = 0b0010,
 };
 typedef u32 HttpClientFlags;
 
@@ -82,6 +83,9 @@ public:
     void awaitAll(u32* numFailures);
 
     static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out, HttpClientFlags flags = 0);
+    inline static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out, HttpClientFlag flag) {
+        return create(maxRequests, maxConnections, maxRetries, out, static_cast<HttpClientFlags>(flag));
+    }
 
 private:
 
@@ -107,6 +111,7 @@ private:
         bool download;
         bool queued;
         bool fileOpened;
+        bool createParents;
 
         inline void finished(Result res) {
             if(callback.hasValue()) {
