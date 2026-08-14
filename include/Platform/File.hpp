@@ -19,7 +19,8 @@ enum class FileOpenFlag : u8 {
     READ   = 0b0001,
     WRITE  = 0b0010,
     CREATE = 0b0100,
-    APPEND = 0b1000
+    APPEND = 0b1000,
+    CREATE_PARENTS = 0b10000
 };
 
 typedef u8 FileOpenFlags;

@@ -108,6 +108,12 @@ nbl::Result nbl::FileChannel::open(StringView path, FileChannel* outChannel, Fil
 
     if(flags & FileOpenFlag::CREATE) {
         openFlags |= O_CREAT;
+
+        if(flags & FileOpenFlag::CREATE_PARENTS) {
+            usize last = 0;
+            NBL_CHECK(path.findLast('/', &last));
+            NBL_CHECK(makeDirectories(path.slice(0, last)));
+        }
     }
     if(flags & FileOpenFlag::APPEND) {
         openFlags |= O_APPEND;
