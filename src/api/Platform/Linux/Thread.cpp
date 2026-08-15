@@ -6,10 +6,11 @@
  * \brief Partial implementation of Platform/Process.hpp for Linux. Includes thread functions.
  */
 
+#include <Core/Result.hpp>
 #include <Platform/Process.hpp>
 #include <Platform/Assert.hpp>
-#include <Core/Result.hpp>
 #include <Platform/Logging.hpp>
+#include <Platform/Pool.hpp>
 
 #include <pthread.h>
 #include <atomic>
@@ -17,11 +18,13 @@
 namespace {
 
 struct _ThreadData {
-    pthread_t handle;
     nbl::Thread::EntryPointFn function;
     void* userData;
     std::atomic_int refCount;
+    pthread_t handle;
 };
+
+nbl::Pool<_ThreadData> _sThreadPool;
 
 void* _threadEntryPoint(void* data) {
     _ThreadData* threadData = static_cast<_ThreadData*>(data);
@@ -30,12 +33,11 @@ void* _threadEntryPoint(void* data) {
     
     int old = threadData->refCount.fetch_sub(1);
     if(old == 1) {
-        delete threadData;
+        _sThreadPool.pop(threadData);
     } 
 
     return reinterpret_cast<void*>(static_cast<intptr_t>(result));
 }
-
 
 }
 
@@ -62,7 +64,7 @@ nbl::Result nbl::Thread::join(i32* outReturnValue) {
     int old = data->refCount.fetch_sub(1);
     if(old == 1) {
         if(outReturnValue) *outReturnValue = 0;
-        delete data;
+        _sThreadPool.pop(data);
     } else {
         void* ret;
         int result = pthread_join(data->handle, &ret);
@@ -87,7 +89,7 @@ nbl::Result nbl::Thread::detach() {
 
         int old = data->refCount.fetch_sub(1);
         if(old == 1) {
-            delete data;
+            _sThreadPool.pop(data);
         } else {
             int result = pthread_detach(data->handle);
             if(result != 0) {
@@ -102,19 +104,23 @@ nbl::Result nbl::Thread::detach() {
 
 nbl::Result nbl::Thread::create(EntryPointFn function, void* userData, Thread* outThread) {
 
+    if(_sThreadPool.capacity() == 0) {
+        NBL_CHECK(nbl::Pool<_ThreadData>::create(128, &_sThreadPool));
+    }
+
     NBL_ASSERT(outThread != nullptr);
 
-    _ThreadData* threadData = new _ThreadData { 
-        .handle = {}, 
-        .function = function, 
-        .userData = userData, 
-        .refCount = 2
-    };
+    _ThreadData* threadData;
+    NBL_CHECK(_sThreadPool.push(&threadData));
+
+    threadData->function = function; 
+    threadData->userData = userData;
+    threadData->refCount = 2;
 
     int result = pthread_create(&threadData->handle, nullptr, _threadEntryPoint, threadData);
     if(result != 0) {
         nbl::log(nbl::LogLevel::DEBUG, "Thread create failed: ", result);
-        delete threadData;
+        _sThreadPool.pop(threadData);
         return nbl::Result::THREAD_ERROR;
     }
 
