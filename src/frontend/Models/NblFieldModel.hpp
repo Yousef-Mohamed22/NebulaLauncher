@@ -48,37 +48,46 @@ public:
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override {
         if(!index.isValid() || index.row() >= rowCount()) return QVariant();
         
-        const nbl::Field& field = _mType->fields[index.row()];
+        const nbl::Field* field = &_mType->fields[index.row()];
+        if(index.column() > 0) {
+            if(field->type == nbl::FieldType::LIST) {
+                field = field->listData.templateField;
+            } else if(field->type == nbl::FieldType::STRUCT) {
+                if(index.column() >= field->structData.fields.length) return QVariant();
+                field = &field->structData.fields[index.column()];
+            }
+        }
+
 
         switch(role) {
             case TypeRole:
-                return static_cast<int>(field.type);
+                return static_cast<int>(field->type);
             case KeyRole:
-                return QByteArray(field.key.data, field.key.length);
+                return QByteArray(field->key.data, field->key.length);
             case NameRole:
-                return QByteArray(field.name.data, field.name.length);
+                return QByteArray(field->name.data, field->name.length);
             case MinRole: {
-                if(field.type == nbl::FieldType::INTEGER) return static_cast<qint64>(field.integerData.min);
-                if(field.type == nbl::FieldType::FLOAT) return field.floatData.min;
+                if(field->type == nbl::FieldType::INTEGER) return static_cast<qint64>(field->integerData.min);
+                if(field->type == nbl::FieldType::FLOAT) return field->floatData.min;
                 return QVariant();
             }
             case MaxRole: {
-                if(field.type == nbl::FieldType::INTEGER) return static_cast<qint64>(field.integerData.max);
-                if(field.type == nbl::FieldType::FLOAT) return field.floatData.max;
+                if(field->type == nbl::FieldType::INTEGER) return static_cast<qint64>(field->integerData.max);
+                if(field->type == nbl::FieldType::FLOAT) return field->floatData.max;
                 return QVariant();
             }
             case DefaultRole: {
-                switch(field.type) {
+                switch(field->type) {
                     case nbl::FieldType::STRING:
-                        return QString::fromUtf8(field.defaultValue.stringValue.data, field.defaultValue.stringValue.length);
+                        return QString::fromUtf8(field->defaultValue.stringValue.data, field->defaultValue.stringValue.length);
                     case nbl::FieldType::INTEGER:
-                        return static_cast<qint64>(field.defaultValue.integerValue);
+                        return static_cast<qint64>(field->defaultValue.integerValue);
                     case nbl::FieldType::FLOAT:
-                        return field.defaultValue.floatValue;
+                        return field->defaultValue.floatValue;
                     case nbl::FieldType::BOOLEAN:
-                        return field.defaultValue.booleanValue;
+                        return field->defaultValue.booleanValue;
                     case nbl::FieldType::ENUM: {
-                        nbl::StringView name = field.enumData.name(field.defaultValue.enumValue);
+                        nbl::StringView name = field->enumData.name(field->defaultValue.enumValue);
                         return QString::fromUtf8(name.data, name.length);
                     }
                     default:

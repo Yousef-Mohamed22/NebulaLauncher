@@ -11,17 +11,21 @@ enum FieldType {
     FLOAT = 2,
     BOOLEAN = 3,
     ENUM = 4,
-    DATE = 5
+    DATE = 5,
+    ACCOUNT = 6,
+    LIST = 7,
+    STRUCT = 8
 };
 
 struct FieldValue {
     union {
-        StringView stringValue;
-        i64 integerValue;
-        u64 uintegerValue;
-        f64 floatValue;
-        bool booleanValue;
-        u32 enumValue;
+        StringView stringValue; // for STRING
+        i64 integerValue; // for INTEGER
+        u64 uintegerValue; // for DATE
+        f64 floatValue; // for FLOAT
+        bool booleanValue; // for BOOLEAN
+        u32 enumValue; // for ENUM and ACCOUNT
+        Span<FieldValue> compositeValue; // for LIST and STRUCT
     };
 };
 
@@ -73,6 +77,18 @@ struct Field {
                 return "";
             }
         } enumData;
+        struct {
+            StringView accountProvider;
+            bool showDefaultOption;
+        } accountData;
+        struct {
+            Field* templateField;
+            u32 min;
+            u32 max;
+        } listData;
+        struct {
+            Span<Field> fields;
+        } structData;
     };
     FieldValue defaultValue;
 };

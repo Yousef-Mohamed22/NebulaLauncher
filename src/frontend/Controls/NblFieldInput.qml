@@ -18,6 +18,8 @@ Item {
 
     function setValue(newValue) {
 
+        console.log(typeof field)
+
         root.value = newValue
         if(root.field.type == 0) {
 
