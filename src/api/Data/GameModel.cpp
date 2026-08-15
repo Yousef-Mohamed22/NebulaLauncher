@@ -52,7 +52,7 @@ DELETE FROM game WHERE gId = ?1;
 }
 
 
-nbl::Result nbl::updateGame(DatabaseConnection* connection, i64 gameId, const GameMeta& meta) {
+nbl::Result nbl::updateGame(DatabaseConnection* connection, const GameMeta& meta) {
 
     static nbl::PreparedStatement _updateGameStmt;
     if(!_updateGameStmt.isValid(connection)) {

@@ -19,176 +19,171 @@ NblDialog {
         gameName = ApplicationContext.getGameDetails(gameId).title
     }
 
-    ScrollView {
+    NblScrollView {
 
         width: parent.width
         height: parent.height - 16
         y: 16
 
+        clip: true
+
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
         contentWidth: width - 48
         contentHeight: controls.height
 
-        Flickable {
+        Column {
 
-            anchors.fill: parent
-            id: flickable
-            clip: true
+            id: controls
+            x: 24
+            width: parent.width
+            spacing: 16
 
-            Column {
+            NblComboBox {
 
-                id: controls
-                x: 24
+                id: gameBox
+                property bool accepting: false
+
+                label: "Game"
                 width: parent.width
-                spacing: 16
+                highlightFirst: true
 
-                NblComboBox {
+                textRole: "title"
+                valueRole: "id"
 
-                    id: gameBox
-                    property bool accepting: false
+                displayText: root.gameName
 
-                    label: "Game"
-                    width: parent.width
-                    highlightFirst: true
-
-                    textRole: "title"
-                    valueRole: "id"
-
-                    displayText: root.gameName
-
-                    model: NblGameSearchModel {
-                        includeNewGame: true
-                        pageSize: 10
-                    }
-
-                    onAccepted: {
-                        accepting = true
-                        root.gameId = currentValue
-                        root.gameName = currentText
-                        accepting = false
-                    }
+                model: NblGameSearchModel {
+                    includeNewGame: true
+                    pageSize: 10
                 }
 
-                NblComboBox {
-                    id: commandTypeBox
-                    label: "Type"
-                    width: parent.width
-                    model: NblInstallationTypeModel { }
-                    textRole: "name"
-                    valueRole: "id"
+                onAccepted: {
+                    accepting = true
+                    root.gameId = currentValue
+                    root.gameName = currentText
+                    accepting = false
                 }
+            }
 
-                NblFieldList { 
-                    id: fieldList
-                    typeId: commandTypeBox.currentValue
-                }
+            NblComboBox {
+                id: commandTypeBox
+                label: "Type"
+                width: parent.width
+                model: NblInstallationTypeModel { }
+                textRole: "name"
+                valueRole: "id"
+            }
 
-                NblTextBox {
-                    visible: root.newGame
-                    id: gameTitleField
-                    label: "Game Title"
-                    width: parent.width
-                }
+            NblFieldList { 
+                id: fieldList
+                typeId: commandTypeBox.currentValue
+            }
 
-                NblTextBox {
-                    visible: root.newGame
-                    id: gameDescriptionField
-                    label: "Game Description"
-                    width: parent.width
-                }
+            NblTextBox {
+                visible: root.newGame
+                id: gameTitleField
+                label: "Game Title"
+                width: parent.width
+            }
 
-                NblTextBox {
-                    id: titleField
-                    label: "Installation Title"
-                    placeholderText: "Optional"
-                    width: parent.width
-                }
+            NblTextBox {
+                visible: root.newGame
+                id: gameDescriptionField
+                label: "Game Description"
+                width: parent.width
+            }
 
-                NblTextBox {
-                    id: descriptionField
-                    label: "Installation Description"
-                    placeholderText: "Optional"
-                    width: parent.width
-                }
+            NblTextBox {
+                id: titleField
+                label: "Installation Title"
+                placeholderText: "Optional"
+                width: parent.width
+            }
 
-                NblTagList {
-                    visible: root.newGame
-                    id: gameTags
-                    label: "Game Tags"
-                    width: parent.width
-                }
+            NblTextBox {
+                id: descriptionField
+                label: "Installation Description"
+                placeholderText: "Optional"
+                width: parent.width
+            }
 
-                NblTagList {
-                    id: installationTags
-                    label: "Installation Tags"
-                    width: parent.width
-                }
+            NblTagList {
+                visible: root.newGame
+                id: gameTags
+                label: "Game Tags"
+                width: parent.width
+            }
 
-                RowLayout {
+            NblTagList {
+                id: installationTags
+                label: "Installation Tags"
+                width: parent.width
+            }
 
-                    width: parent.width
-                    height: 200
+            RowLayout {
 
-                    NblImagePicker {
-                        id: posterPicker
-                        label: "Poster"
-                        implicitHeight: parent.height
-                        Layout.fillWidth: true
-                        aspectRatio: 2.0 / 3.0
-                    }
-                    NblImagePicker {
-                        id: iconPicker
-                        label: "Icon"
-                        implicitHeight: parent.height
-                        Layout.fillWidth: true
-                    }
-                    NblImagePicker {
-                        id: logoPicker
-                        label: "Logo"
-                        implicitHeight: parent.height
-                        Layout.fillWidth: true
-                        fillMode: Image.PreserveAspectFit
-                    }
-                }
+                width: parent.width
+                height: 200
 
                 NblImagePicker {
-                    id: bannerPicker
-                    label: "Banner"
-                    height: 200
-                    width: parent.width
-                    aspectRatio: 96.0 / 31.0
+                    id: posterPicker
+                    label: "Poster"
+                    implicitHeight: parent.height
+                    Layout.fillWidth: true
+                    aspectRatio: 2.0 / 3.0
                 }
-
-                NblComboBox {
-                    id: logoPositionBox
-                    label: "Logo Position"
-                    width: parent.width
-                    model: root.newGame 
-                        ? [ "Left", "Center", "Right", "Hidden" ]
-                        : [ "Left", "Center", "Right", "Hidden", "Inherit" ]
-                    currentIndex: root.newGame ? 0 : 4
+                NblImagePicker {
+                    id: iconPicker
+                    label: "Icon"
+                    implicitHeight: parent.height
+                    Layout.fillWidth: true
                 }
+                NblImagePicker {
+                    id: logoPicker
+                    label: "Logo"
+                    implicitHeight: parent.height
+                    Layout.fillWidth: true
+                    fillMode: Image.PreserveAspectFit
+                }
+            }
 
-                Column {
-                    visible: root.newGame
-                    spacing: 8
+            NblImagePicker {
+                id: bannerPicker
+                label: "Banner"
+                height: 200
+                width: parent.width
+                aspectRatio: 96.0 / 31.0
+            }
+
+            NblComboBox {
+                id: logoPositionBox
+                label: "Logo Position"
+                width: parent.width
+                model: root.newGame 
+                    ? [ "Left", "Center", "Right", "Hidden" ]
+                    : [ "Left", "Center", "Right", "Hidden", "Inherit" ]
+                currentIndex: root.newGame ? 0 : 4
+            }
+
+            Column {
+                visible: root.newGame
+                spacing: 8
+                width: parent.width
+                NblDateInput {
+                    id: releaseDateField
+                    label: "Release Date"
                     width: parent.width
-                    NblDateInput {
-                        id: releaseDateField
-                        label: "Release Date"
-                        width: parent.width
-                    }
-                    NblNumberInput {
-                        id: ratingField
-                        label: "Rating"
-                        width: parent.width
+                }
+                NblNumberInput {
+                    id: ratingField
+                    label: "Rating"
+                    width: parent.width
 
-                        allowDecimal: true
-                        min: 0
-                        max: 100
+                    allowDecimal: true
+                    min: 0
+                    max: 100
 
-                        placeholderText: "100.0"
-                    }
+                    placeholderText: "100.0"
                 }
             }
         }

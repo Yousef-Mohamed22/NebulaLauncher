@@ -210,7 +210,7 @@ SettingsTab {
         return output
     }
 
-    Flickable {
+    NblScrollView {
 
         width: root.width + 8
         height: parent.height - 64
@@ -220,17 +220,7 @@ SettingsTab {
 
         contentWidth: root.width
         contentHeight: tagColumn.height
-        flickableDirection: Flickable.VerticalFlick
         clip: true
-
-        ScrollBar.horizontal: null
-        ScrollBar.vertical: ScrollBar {
-            parent: flickable
-            anchors.top: flickable.top
-            anchors.bottom: flickable.bottom
-            anchors.right: flickable.right
-            active: flickable.movingVertically
-        }
 
         onAtYEndChanged: {
             if(atYEnd) {

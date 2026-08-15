@@ -12,64 +12,56 @@ Item {
     required property int tabId
     required property MainWindow mainWindow
 
-    ScrollView {
+    NblScrollView {
 
         id: scrollView
-        width: parent.width
+        width: parent.width + 16
         height: parent.height - 8
         y: 8
+        clip: true
 
-        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
         contentHeight: content.height
+        contentWidth: width
 
-        Flickable {
+        Column {
 
-            anchors.fill: parent
-            interactive: true
-            clip: true
+            id: content
 
-            id: flickable
+            width: scrollView.contentWidth
+            spacing: 8
 
-            Column {
+            Repeater {
+                model: NblTabModel {
+                    id: tabModel
+                    pageSize: 10
+                    tabId: root.tabId
+                }
+                delegate: NblFilterRow {
 
-                id: content
+                    id: row
+                    required property var modelData
+                    width: content.width - 8
 
-                width: root.width
-                spacing: 8
+                    filterId: modelData.id
+                    name: modelData.name
+                    icon: modelData.icon
+                    colorizeIcon: modelData.colorizeIcon
+                    multiLine: modelData.multiLine
+                    showTitles: modelData.showTitles
+                    useIcons: modelData.useIcons
+                    showInstallations: modelData.showInstallations
 
-                Repeater {
-                    model: NblTabModel {
-                        id: tabModel
-                        pageSize: 10
-                        tabId: root.tabId
+                    onInstallationClicked: id => {
+                        root.mainWindow.openInstallationDetails(id)
                     }
-                    delegate: NblFilterRow {
+                    onGameClicked: id => {
+                        root.mainWindow.openGameDetails(id)
+                    }
 
-                        id: row
-                        required property var modelData
-                        width: root.width - 8
-
-                        filterId: modelData.id
-                        name: modelData.name
-                        icon: modelData.icon
-                        colorizeIcon: modelData.colorizeIcon
-                        multiLine: modelData.multiLine
-                        showTitles: modelData.showTitles
-                        useIcons: modelData.useIcons
-                        showInstallations: modelData.showInstallations
-
-                        onInstallationClicked: id => {
-                            root.mainWindow.openInstallationDetails(id)
-                        }
-                        onGameClicked: id => {
-                            root.mainWindow.openGameDetails(id)
-                        }
-
-                        Connections {
-                            target: flickable
-                            function onContentYChanged() {
-                                row.scrolled()
-                            }
+                    Connections {
+                        target: scrollView
+                        function onContentYChanged() {
+                            row.scrolled()
                         }
                     }
                 }

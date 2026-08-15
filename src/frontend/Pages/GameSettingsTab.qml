@@ -125,7 +125,7 @@ SettingsTab {
         }
     }
 
-    Flickable {
+    NblScrollView {
 
         width: parent.width
         height: parent.height - 64
@@ -135,17 +135,7 @@ SettingsTab {
 
         contentWidth: width
         contentHeight: root.addingNew ? newGameColumn.height : gameColumn.height
-        flickableDirection: Flickable.VerticalFlick
         clip: true
-
-        ScrollBar.horizontal: null
-        ScrollBar.vertical: ScrollBar {
-            parent: flickable
-            anchors.top: flickable.top
-            anchors.bottom: flickable.bottom
-            anchors.right: flickable.right
-            active: flickable.movingVertically
-        }
 
         onAtYEndChanged: {
             if(atYEnd && !root.addingNew) {

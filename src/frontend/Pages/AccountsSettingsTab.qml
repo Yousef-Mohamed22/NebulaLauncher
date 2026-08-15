@@ -21,7 +21,7 @@ SettingsTab {
 
     property MainWindow mainWindow
 
-    Flickable {
+    NblScrollView {
 
         width: parent.width
         height: parent.height
@@ -30,17 +30,7 @@ SettingsTab {
 
         contentWidth: width
         contentHeight: providersColumn.height
-        flickableDirection: Flickable.VerticalFlick
         clip: true
-
-        ScrollBar.horizontal: null
-        ScrollBar.vertical: ScrollBar {
-            parent: flickable
-            anchors.top: flickable.top
-            anchors.bottom: flickable.bottom
-            anchors.right: flickable.right
-            active: flickable.movingVertically
-        }
 
         Column {
             width: flickable.width

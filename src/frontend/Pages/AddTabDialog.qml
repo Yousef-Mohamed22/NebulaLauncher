@@ -55,326 +55,320 @@ NblDialog {
         }
     }
 
-    ScrollView {
+    NblScrollView {
 
         width: parent.width
         height: parent.height - 16
         y: 16
 
-        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
         contentWidth: width - 48
         contentHeight: controls.height
+        clip: true
 
-        Flickable {
+        Column {
 
-            anchors.fill: parent
-            id: flickable
-            clip: true
+            id: controls
+            x: 24
+            width: parent.width
+            spacing: 16
 
-            Column {
-
-                id: controls
-                x: 24
+            NblTextBox {
+                id: nameInput
                 width: parent.width
-                spacing: 16
+                label: "Name"
+            }
 
-                NblTextBox {
-                    id: nameInput
-                    width: parent.width
-                    label: "Name"
+            NblIconPicker {
+                id: iconPicker
+            }
+
+            NblCheckBox {
+                id: hiddenBox
+                width: parent.width
+                text: "Hidden"
+            }
+
+            
+            NblListInput {
+
+                id: filterList
+                label: "Filters"
+                width: parent.width
+
+                allowReorder: true
+
+                createNew: function(index) {
+                    return {
+                        id: 0,
+                        name: "Filter",
+                        icon: "󰊗",
+                        colorizeIcon: true,
+                        multiLine: true,
+                        useIcons: false,
+                        showTitles: false,
+                        showInstallations: false,
+                        onlyInstalled: false,
+                        sortBy: 0,
+                        sortOrder: 0,
+                        tags: [],
+                        excludeTags: [],
+                        minReleaseDate: 0,
+                        maxReleaseDate: 0,
+                        minRating: 0,
+                        maxRating: 0,
+                        minTime: 0,
+                        maxTime: 0
+                    }
                 }
 
-                NblIconPicker {
-                    id: iconPicker
+                onItemPopped: index => {
+
+                    let item = itemAt(index)
+                    let id = item.modelData.id
+
+                    if(id != 0 && !root.removedFilters.includes(id)) {
+                        root.removedFilters.push(id)
+                    }
                 }
 
-                NblCheckBox {
-                    id: hiddenBox
+                delegate: NblDropdown {
+
+                    id: dropdown
                     width: parent.width
-                    text: "Hidden"
-                }
+                    icon: filterIconPicker.icon
+                    iconSize: 20
 
-                
-                NblListInput {
+                    contentHeight: filterContent.height
+                    label: filterNameBox.text
 
-                    id: filterList
-                    label: "Filters"
-                    width: parent.width
+                    required property var modelData
 
-                    allowReorder: true
-
-                    createNew: function(index) {
+                    function encode(index, count) {
                         return {
-                            id: 0,
-                            name: "Filter",
-                            icon: "󰊗",
-                            colorizeIcon: true,
-                            multiLine: true,
-                            useIcons: false,
-                            showTitles: false,
-                            showInstallations: false,
-                            sortBy: 0,
-                            sortOrder: 0,
-                            tags: [],
-                            excludeTags: [],
-                            minReleaseDate: 0,
-                            maxReleaseDate: 0,
-                            minRating: 0,
-                            maxRating: 0,
-                            minTime: 0,
-                            maxTime: 0
+                            id: modelData.id,
+                            priority: count - index - 1,
+                            name: filterNameBox.text,
+                            icon: filterIconPicker.icon,
+                            colorizeIcon: filterIconPicker.colorize,
+                            multiLine: multiLineBox.checked,
+                            useIcons: useIconsBox.checked,
+                            showTitles: showTitlesBox.checked,
+                            onlyInstalled: onlyInstalledBox.checked,
+                            showInstallations: searchBox.currentIndex == 1,
+                            sortBy: sortByBox.currentIndex,
+                            sortOrder: sortOrderBox.currentIndex,
+                            tags: tagSetsList.encode(),
+                            excludeTags: excludeTagsList.encode(),
+                            minReleaseDate: minReleaseBox.getTime(),
+                            maxReleaseDate: maxReleaseBox.getTime(),
+                            minRating: minRatingBox.value,
+                            maxRating: maxRatingBox.value,
+                            minTime: minTimeBox.value,
+                            maxTime: maxTimeBox.value
                         }
                     }
 
-                    onItemPopped: index => {
+                    Column {
 
-                        let item = itemAt(index)
-                        let id = item.modelData.id
-
-                        if(id != 0 && !root.removedFilters.includes(id)) {
-                            root.removedFilters.push(id)
-                        }
-                    }
-
-                    delegate: NblDropdown {
-
-                        id: dropdown
                         width: parent.width
-                        icon: filterIconPicker.icon
-                        iconSize: 20
 
-                        contentHeight: filterContent.height
-                        label: filterNameBox.text
+                        id: filterContent
+                        spacing: 8
 
-                        required property var modelData
 
-                        function encode(index, count) {
-                            return {
-                                id: modelData.id,
-                                priority: count - index - 1,
-                                name: filterNameBox.text,
-                                icon: filterIconPicker.icon,
-                                colorizeIcon: filterIconPicker.colorize,
-                                multiLine: multiLineBox.checked,
-                                useIcons: useIconsBox.checked,
-                                showTitles: showTitlesBox.checked,
-                                onlyInstalled: onlyInstalledBox.checked,
-                                showInstallations: searchBox.currentIndex == 1,
-                                sortBy: sortByBox.currentIndex,
-                                sortOrder: sortOrderBox.currentIndex,
-                                tags: tagSetsList.encode(),
-                                excludeTags: excludeTagsList.encode(),
-                                minReleaseDate: minReleaseBox.getTime(),
-                                maxReleaseDate: maxReleaseBox.getTime(),
-                                minRating: minRatingBox.value,
-                                maxRating: maxRatingBox.value,
-                                minTime: minTimeBox.value,
-                                maxTime: maxTimeBox.value
-                            }
+                        NblTextBox {
+                            id: filterNameBox
+                            width: parent.width
+                            label: "Name"
+                            text: dropdown.modelData.name
                         }
 
-                        Column {
+                        NblIconPicker {
+                            id: filterIconPicker
+                            dbIcon: dropdown.modelData.icon
+                            colorize: dropdown.modelData.colorizeIcon
+                        }
 
+                        NblComboBox {
+                            id: searchBox
+                            width: parent.width
+                            label: "Search for"
+                            model: [ "Games", "Installations" ]
+                            currentIndex: dropdown.modelData.showInstallations ? 1 : 0
+                        }
+
+                        RowLayout {
                             width: parent.width
 
-                            id: filterContent
-                            spacing: 8
-
-
-                            NblTextBox {
-                                id: filterNameBox
-                                width: parent.width
-                                label: "Name"
-                                text: dropdown.modelData.name
+                            NblCheckBox {
+                                id: multiLineBox
+                                Layout.fillWidth: true
+                                text: "Multi-line"
+                                checked: dropdown.modelData.multiLine
                             }
-
-                            NblIconPicker {
-                                id: filterIconPicker
-                                dbIcon: dropdown.modelData.icon
-                                colorize: dropdown.modelData.colorizeIcon
+                            NblCheckBox {
+                                id: useIconsBox
+                                Layout.fillWidth: true
+                                text: "Use Icons"
+                                checked: dropdown.modelData.useIcons
                             }
-
-                            NblComboBox {
-                                id: searchBox
-                                width: parent.width
-                                label: "Search for"
-                                model: [ "Games", "Installations" ]
-                                currentIndex: dropdown.modelData.showInstallations ? 1 : 0
+                            NblCheckBox {
+                                id: showTitlesBox
+                                Layout.fillWidth: true
+                                text: "Show Titles"
+                                checked: dropdown.modelData.showTitles
                             }
-
-                            RowLayout {
-                                width: parent.width
-
-                                NblCheckBox {
-                                    id: multiLineBox
-                                    Layout.fillWidth: true
-                                    text: "Multi-line"
-                                    checked: dropdown.modelData.multiLine
-                                }
-                                NblCheckBox {
-                                    id: useIconsBox
-                                    Layout.fillWidth: true
-                                    text: "Use Icons"
-                                    checked: dropdown.modelData.useIcons
-                                }
-                                NblCheckBox {
-                                    id: showTitlesBox
-                                    Layout.fillWidth: true
-                                    text: "Show Titles"
-                                    checked: dropdown.modelData.showTitles
-                                }
-                                NblCheckBox {
-                                    id: onlyInstalledBox
-                                    visible: searchBox.currentIndex == 0
-                                    Layout.fillWidth: true
-                                    text: "Only Installed"
-                                    checked: dropdown.modelData.onlyInstalled
-                                }
+                            NblCheckBox {
+                                id: onlyInstalledBox
+                                visible: searchBox.currentIndex == 0
+                                Layout.fillWidth: true
+                                text: "Only Installed"
+                                checked: dropdown.modelData.onlyInstalled
                             }
+                        }
 
-                            NblComboBox {
-                                id: sortByBox
-                                width: parent.width
-                                label: "Sort By"
-                                model: [ "Title", "Last Played", "Added", "Play Count", "Play Time", "Release Date", "Rating" ]
-                                currentIndex: dropdown.modelData.sortBy
-                            }
+                        NblComboBox {
+                            id: sortByBox
+                            width: parent.width
+                            label: "Sort By"
+                            model: [ "Title", "Last Played", "Added", "Play Count", "Play Time", "Release Date", "Rating" ]
+                            currentIndex: dropdown.modelData.sortBy
+                        }
 
-                            NblComboBox {
-                                id: sortOrderBox
-                                width: parent.width
-                                label: "Sort Order"
-                                model: [ "Ascending", "Descending" ]
-                                currentIndex: dropdown.modelData.sortOrder
-                            }
+                        NblComboBox {
+                            id: sortOrderBox
+                            width: parent.width
+                            label: "Sort Order"
+                            model: [ "Ascending", "Descending" ]
+                            currentIndex: dropdown.modelData.sortOrder
+                        }
 
-                            NblListInput {
-                                id: tagSetsList
-                                label: "Tag Sets"
-                                width: parent.width
+                        NblListInput {
+                            id: tagSetsList
+                            label: "Tag Sets"
+                            width: parent.width
 
-                                initialItems: getInitialItems()
+                            initialItems: getInitialItems()
 
-                                function getInitialItems() {
-                                    let tagLists = dropdown.modelData.tags
-                                    let out = []
-                                    for(let i = 0 ; i < tagLists.length ; i++) {
-                                        out.push({
-                                            index: i + 1,
-                                            initialTagIds: tagLists[i]
-                                        })
-                                    }
-                                    return out
-                                }
-
-                                createNew: function(i) {
-                                    return {
+                            function getInitialItems() {
+                                let tagLists = dropdown.modelData.tags
+                                let out = []
+                                for(let i = 0 ; i < tagLists.length ; i++) {
+                                    out.push({
                                         index: i + 1,
-                                        initialTagIds: []
-                                    }
+                                        initialTagIds: tagLists[i]
+                                    })
                                 }
-                                delegate: NblTagList {
-                                    required property var modelData
-                                    width: parent.width
-                                    labelIndent: 24
-                                    label: "Tag Set " + modelData.index
-                                    initialTags: ApplicationContext.getTagsFromIds(modelData.initialTagIds)
-                                }
-
-                                function encode() {
-
-                                    let out = []
-
-                                    for(let i = 0 ; i < count ; i ++) {
-
-                                        let set = []
-
-                                        let tagList = itemAt(i) as NblTagList
-                                        let tags = tagList.getListedTags()
-                                        for(let t = 0 ; t < tags.length ; t++) {
-                                            set.push(tags[t])
-                                        }
-
-                                        out.push(set)
-                                    }
-
-                                    return out
-                                }
+                                return out
                             }
 
-                            NblTagList {
-                                id: excludeTagsList
+                            createNew: function(i) {
+                                return {
+                                    index: i + 1,
+                                    initialTagIds: []
+                                }
+                            }
+                            delegate: NblTagList {
+                                required property var modelData
                                 width: parent.width
-                                label: "Exclude Tags"
-                                initialTags: ApplicationContext.getTagsFromIds(dropdown.modelData.excludeTags)
+                                labelIndent: 24
+                                label: "Tag Set " + modelData.index
+                                initialTags: ApplicationContext.getTagsFromIds(modelData.initialTagIds)
+                            }
 
-                                function encode() {
+                            function encode() {
+
+                                let out = []
+
+                                for(let i = 0 ; i < count ; i ++) {
 
                                     let set = []
-                                    let tags = getListedTags()
+
+                                    let tagList = itemAt(i) as NblTagList
+                                    let tags = tagList.getListedTags()
                                     for(let t = 0 ; t < tags.length ; t++) {
                                         set.push(tags[t])
                                     }
 
-                                    return set
+                                    out.push(set)
                                 }
-                            }
 
-                            function getDate(time) {
-                                let out = new Date()
-                                out.setTime(time)
                                 return out
                             }
+                        }
 
-                            NblDateInput {
-                                id: minReleaseBox
-                                width: parent.width
-                                label: "Minimum Release Date"
-                                date: parent.getDate(dropdown.modelData.minReleaseDate)
-                            }
+                        NblTagList {
+                            id: excludeTagsList
+                            width: parent.width
+                            label: "Exclude Tags"
+                            initialTags: ApplicationContext.getTagsFromIds(dropdown.modelData.excludeTags)
 
-                            NblDateInput {
-                                id: maxReleaseBox
-                                width: parent.width
-                                label: "Maximum Release Date (exclusive)"
-                                date: parent.getDate(dropdown.modelData.maxReleaseDate)
-                            }
+                            function encode() {
 
-                            NblNumberInput {
-                                id: minRatingBox
-                                width: parent.width
-                                label: "Minimum Rating"
-                                min: 0
-                                max: 100
-                                allowDecimal: true
-                                value: dropdown.modelData.minRating
-                            }
+                                let set = []
+                                let tags = getListedTags()
+                                for(let t = 0 ; t < tags.length ; t++) {
+                                    set.push(tags[t])
+                                }
 
-                            NblNumberInput {
-                                id: maxRatingBox
-                                width: parent.width
-                                label: "Maximum Rating (exclusive)"
-                                min: 0
-                                max: 100
-                                allowDecimal: true
-                                value: dropdown.modelData.minRating
+                                return set
                             }
+                        }
 
-                            NblNumberInput {
-                                id: minTimeBox
-                                width: parent.width
-                                label: "Minimum Play Time (ms)"
-                                min: 0
-                                value: dropdown.modelData.minTime
-                            }
+                        function getDate(time) {
+                            let out = new Date()
+                            out.setTime(time)
+                            return out
+                        }
 
-                            NblNumberInput {
-                                id: maxTimeBox
-                                width: parent.width
-                                label: "Maximum Play Time (ms) (exclusive)"
-                                min: 0
-                                value: dropdown.modelData.maxTime
-                            }
+                        NblDateInput {
+                            id: minReleaseBox
+                            width: parent.width
+                            label: "Minimum Release Date"
+                            date: parent.getDate(dropdown.modelData.minReleaseDate)
+                        }
+
+                        NblDateInput {
+                            id: maxReleaseBox
+                            width: parent.width
+                            label: "Maximum Release Date (exclusive)"
+                            date: parent.getDate(dropdown.modelData.maxReleaseDate)
+                        }
+
+                        NblNumberInput {
+                            id: minRatingBox
+                            width: parent.width
+                            label: "Minimum Rating"
+                            min: 0
+                            max: 100
+                            allowDecimal: true
+                            value: dropdown.modelData.minRating
+                        }
+
+                        NblNumberInput {
+                            id: maxRatingBox
+                            width: parent.width
+                            label: "Maximum Rating (exclusive)"
+                            min: 0
+                            max: 100
+                            allowDecimal: true
+                            value: dropdown.modelData.minRating
+                        }
+
+                        NblNumberInput {
+                            id: minTimeBox
+                            width: parent.width
+                            label: "Minimum Play Time (ms)"
+                            min: 0
+                            value: dropdown.modelData.minTime
+                        }
+
+                        NblNumberInput {
+                            id: maxTimeBox
+                            width: parent.width
+                            label: "Maximum Play Time (ms) (exclusive)"
+                            min: 0
+                            value: dropdown.modelData.maxTime
                         }
                     }
                 }

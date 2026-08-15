@@ -15,7 +15,7 @@ Item {
     property real requestedWidth: 180
 
     readonly property real aspectRatio: useIcons ? 1 : (2/3)
-    readonly property real itemWidth: calculateWidth(width, requestedWidth)
+    readonly property real itemWidth: calculateWidth(width - 16, requestedWidth)
     readonly property real rowHeight: (itemWidth / aspectRatio) + (showTitles ? 24 : 0)
 
     function calculateWidth(rootWidth, itemWidth) {
@@ -28,7 +28,7 @@ Item {
         let spacePerItem = remainingSpace / wholeNumItems
 
         let realWidth = (idealWidth - 16) * (1 + spacePerItem)
-        return realWidth
+        return realWidth// - 4
     }
 
     signal itemClicked(int id)

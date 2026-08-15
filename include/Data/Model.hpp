@@ -190,7 +190,7 @@ Result addGame(DatabaseConnection* connection, const GameMeta& meta, i64* outGam
 Result removeGame(DatabaseConnection* connection, i64 gameId);
 
 
-Result updateGame(DatabaseConnection* connection, i64 gameId, const GameMeta& meta);
+Result updateGame(DatabaseConnection* connection, const GameMeta& meta);
 
 /**
  * \brief Adds a tag to a game in the database

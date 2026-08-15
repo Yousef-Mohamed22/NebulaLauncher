@@ -527,6 +527,7 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
         meta.poster = nbl::StringView(poster.data(), poster.length());
         meta.icon = nbl::StringView(icon.data(), icon.length());
         meta.logo = nbl::StringView(logo.data(), logo.length());
+        meta.logoPosition = position;
     }
 
     NBL_CHECK(nbl::addInstallation(&_mConnection, meta, &meta.id));
@@ -1139,7 +1140,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
     f64 rating = params.find("rating")->toDouble();
 
     nbl::GameMeta gameMeta = {
-        .id = 0,
+        .id = gId,
         .title = nbl::StringView(title.constData(), title.length()),
         .description = nbl::StringView(description.constData(), description.length()),
         .banner = nbl::StringView(banner.data(), banner.length()),
@@ -1151,7 +1152,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
         .rating = rating
     };
 
-    NBL_CHECK(nbl::updateGame(&_mConnection, gId, gameMeta));
+    NBL_CHECK(nbl::updateGame(&_mConnection, gameMeta));
 
     for(QVariant qs : params.find("tags")->toList()) {
         tagGame(gId, qs.toLongLong());
