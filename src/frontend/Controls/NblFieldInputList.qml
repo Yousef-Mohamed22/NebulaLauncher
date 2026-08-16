@@ -1,27 +1,18 @@
 pragma ComponentBehavior: Bound
+
 import QtQuick
 
 Repeater {
     id: root
 
-    required property string typeId
-
+    required property NblFieldList fields
     signal modified
 
-    model: NblFieldModel {
-        id: fieldModel
-        typeId: root.typeId
-    }
-
-    NblFieldInput {
-        required property var modelData
+    model: fields.count
+    delegate: NblFieldInput {
         required property var index
-
+        field: root.fields.itemAt(index)
         width: parent.width
-        field: modelData
-        fieldIndex: index
-        typeId: root.typeId
-        fieldModel: root.model
 
         onModified: {
             root.modified()
@@ -30,8 +21,8 @@ Repeater {
 
     function loadFromJson(commandJson) {
 
-        let fields = JSON.parse(commandJson)
-        for (const [key, value] of Object.entries(fields)) {
+        let encodedFields = JSON.parse(commandJson)
+        for (const [key, value] of Object.entries(encodedFields)) {
             for(let i = 0 ; i < count ; i++) {
                 let item = itemAt(i) as NblFieldInput
                 if(item.field.key == key) {

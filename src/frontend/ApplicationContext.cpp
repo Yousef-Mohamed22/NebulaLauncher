@@ -1168,3 +1168,16 @@ int ApplicationContext::deleteGame(qint64 gameId) {
 }
 
 
+NblFieldList* ApplicationContext::getInstallationTypeFields(QString installationType) {
+
+    QByteArray utf = installationType.toUtf8();
+    nbl::StringView name(utf.data(), utf.length());
+
+    const nbl::InstallationType* type = _mContext.getInstallationType(name);
+    if(type == nullptr) return nullptr;
+
+    return new NblFieldList(type->fields);
+}
+
+
+

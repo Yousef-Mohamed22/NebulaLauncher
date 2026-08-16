@@ -73,10 +73,9 @@ NblDialog {
                 textRole: "name"
                 valueRole: "id"
             }
-
-            NblFieldList { 
+            NblFieldInputList { 
                 id: fieldList
-                typeId: commandTypeBox.currentValue
+                fields: ApplicationContext.getInstallationTypeFields(commandTypeBox.currentValue)
             }
 
             NblTextBox {

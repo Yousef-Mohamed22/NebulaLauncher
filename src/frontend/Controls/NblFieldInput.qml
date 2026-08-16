@@ -5,11 +5,8 @@ import QtQuick
 Item {
 
     id: root
-    required property var field
-    required property int fieldIndex
-    required property string typeId
-    property NblFieldModel fieldModel
 
+    required property NblFieldRef field
     property var value
 
     signal modified
@@ -65,11 +62,11 @@ Item {
                     root.modified()
 
                     textBox.clearSuggestions()
-                    root.fieldModel.suggest(root.fieldIndex, textBox.text, function(suggestion) {
+                    root.field.suggest(textBox.text, function(suggestion) {
                         textBox.pushSuggestion(suggestion)
                     })
                 })
-                root.fieldModel.suggest(root.fieldIndex, textBox.text, function(suggestion) {
+                root.field.suggest(textBox.text, function(suggestion) {
                     textBox.pushSuggestion(suggestion)
                 })
 
@@ -111,16 +108,7 @@ Item {
     }
     
 
-    property NblEnumFieldModel enumModel: NblEnumFieldModel {
-        typeId: root.typeId
-        fieldIndex: root.fieldIndex
-
-        onRowsInserted: {
-            if(root.field.type == 4 && loader.status == Loader.Ready) {
-                loader.item.currentValue = root.value
-            }
-        }
-    }
+    property NblEnumFieldModel enumModel: field.enumModel()
 
     Component.onCompleted: {
 

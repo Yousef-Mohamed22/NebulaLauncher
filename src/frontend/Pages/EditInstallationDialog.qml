@@ -297,10 +297,9 @@ NblDialog {
                                 tooltip: "The type of installation. This determines how the installation is launched."
                             }
 
-                            NblFieldList { 
+                            NblFieldInputList { 
                                 id: fieldList
-                                typeId: commandTypeBox.currentValue
-
+                                fields: ApplicationContext.getInstallationTypeFields(commandTypeBox.currentValue)
                                 onModified: {
                                     installationSettingsTab.modified = true
                                 }
