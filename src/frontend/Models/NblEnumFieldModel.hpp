@@ -13,6 +13,7 @@ class NblEnumFieldModel : public QAbstractListModel {
 
     Q_OBJECT
     QML_ELEMENT
+    QML_UNCREATABLE("Obtain from NblFieldRef")
 
 public:
 

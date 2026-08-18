@@ -1,7 +1,5 @@
 #pragma once
 
-#include <qstringview.h>
-#include <qtmetamacros.h>
 #include <QObject>
 #include <QtQml>
 
@@ -15,7 +13,9 @@ class NblInstallationDetails : public QObject {
     Q_PROPERTY(qint64 installationId READ installationId CONSTANT)
     Q_PROPERTY(qint64 gameId READ gameId CONSTANT)
     Q_PROPERTY(QByteArray type READ type CONSTANT)
-    Q_PROPERTY(QByteArray command READ command CONSTANT)
+    //Q_PROPERTY(QByteArray command READ command CONSTANT)
+    //Q_PROPERTY(NblFieldList* fields READ fields CONSTANT)
+    Q_PROPERTY(QVariantMap fields READ fields CONSTANT)
     Q_PROPERTY(QByteArray title READ title CONSTANT)
     Q_PROPERTY(QByteArray description READ description CONSTANT)
     Q_PROPERTY(QByteArray poster READ poster CONSTANT)
@@ -51,7 +51,8 @@ public:
         _mInstallationId(0),
         _mGameId(0),
         _mType{},
-        _mCommand{},
+        //_mCommand{},
+        _mFields{},
         _mTitle{},
         _mDescription{},
         _mPoster{},
@@ -78,7 +79,9 @@ public:
         qint64 installationId,
         qint64 gameId,
         QByteArray type,
-        QByteArray command,
+        //QByteArray command,
+        //NblFieldList* fields,
+        QVariantMap fields,
         QByteArray title,
         QByteArray description,
         QByteArray poster,
@@ -105,7 +108,8 @@ public:
         _mInstallationId(installationId),
         _mGameId(gameId),
         _mType(type),
-        _mCommand(command),
+        //_mCommand(command),
+        _mFields(fields),
         _mTitle(title),
         _mDescription(description),
         _mPoster(poster),
@@ -128,18 +132,19 @@ public:
         _mGameLogoPosition(gameLogoPosition)
     {}
 
-    NblInstallationDetails(const NblInstallationDetails& other) :
+    NblInstallationDetails(NblInstallationDetails&& other) :
         QObject(other.parent()),
         _mInstallationId(other._mInstallationId),
         _mGameId(other._mGameId),
-        _mType(other._mType),
-        _mCommand(other._mCommand),
-        _mTitle(other._mTitle),
-        _mDescription(other._mDescription),
-        _mPoster(other._mPoster),
-        _mBanner(other._mBanner),
-        _mIcon(other._mIcon),
-        _mLogo(other._mLogo),
+        _mType(std::move(other._mType)),
+        //_mCommand(other._mCommand),
+        _mFields(std::move(other._mFields)),
+        _mTitle(std::move(other._mTitle)),
+        _mDescription(std::move(other._mDescription)),
+        _mPoster(std::move(other._mPoster)),
+        _mBanner(std::move(other._mBanner)),
+        _mIcon(std::move(other._mIcon)),
+        _mLogo(std::move(other._mLogo)),
         _mLogoPosition(other._mLogoPosition),
         _mPlayTime(other._mPlayTime),
         _mPlayCount(other._mPlayCount),
@@ -147,23 +152,24 @@ public:
         _mAdded(other._mAdded),
         _mReleaseDate(other._mReleaseDate),
         _mRating(other._mRating),
-        _mGameTitle(other._mGameTitle),
-        _mGameDescription(other._mGameDescription),
-        _mGamePoster(other._mGamePoster),
-        _mGameBanner(other._mGameBanner),
-        _mGameIcon(other._mGameIcon),
-        _mGameLogo(other._mGameLogo),
-        _mGameLogoPosition(other._mGameLogoPosition)
-    {}
+        _mGameTitle(std::move(other._mGameTitle)),
+        _mGameDescription(std::move(other._mGameDescription)),
+        _mGamePoster(std::move(other._mGamePoster)),
+        _mGameBanner(std::move(other._mGameBanner)),
+        _mGameIcon(std::move(other._mGameIcon)),
+        _mGameLogo(std::move(other._mGameLogo)),
+        _mGameLogoPosition(std::move(other._mGameLogoPosition))
+    { }
 
-    NblInstallationDetails& operator=(const NblInstallationDetails& other) {
+    NblInstallationDetails& operator=(NblInstallationDetails&& other) {
         if(this == &other) return *this;
 
         setParent(other.parent());
         _mInstallationId = other._mInstallationId;
         _mGameId = other._mGameId;
         _mType = other._mType;
-        _mCommand = other._mCommand;
+        //_mCommand = other._mCommand;
+        _mFields = other._mFields;
         _mTitle = other._mTitle;
         _mDescription = other._mDescription;
         _mPoster = other._mPoster;
@@ -191,7 +197,9 @@ public:
     qint64 installationId() const { return _mInstallationId; }
     qint64 gameId() const { return _mGameId; }
     QByteArray type() const { return _mType; }
-    QByteArray command() const { return _mCommand; }
+    //QByteArray command() const { return _mCommand; }
+    //NblFieldList* fields() const { return _pFields; }
+    QVariantMap fields() const { return _mFields; }
     QByteArray title() const { return _mTitle; }
     QByteArray description() const { return _mDescription; }
     QByteArray poster() const { return _mPoster; }
@@ -240,7 +248,9 @@ private:
     qint64 _mInstallationId;
     qint64 _mGameId;
     QByteArray _mType;
-    QByteArray _mCommand;
+    //QByteArray _mCommand;
+    //NblFieldList* _pFields;
+    QVariantMap _mFields;
     QByteArray _mTitle;
     QByteArray _mDescription;
     QByteArray _mPoster;

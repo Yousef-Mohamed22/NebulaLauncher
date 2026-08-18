@@ -73,8 +73,10 @@ NblDialog {
                 textRole: "name"
                 valueRole: "id"
             }
+
             NblFieldInputList { 
                 id: fieldList
+                width: parent.width
                 fields: ApplicationContext.getInstallationTypeFields(commandTypeBox.currentValue)
             }
 
@@ -200,7 +202,7 @@ NblDialog {
 
         let gId = root.gameId
 
-        let command = fieldList.saveToJson()
+        let command = fieldList.save()
         let params = {
             game: gId,
             type: commandTypeBox.currentValue,

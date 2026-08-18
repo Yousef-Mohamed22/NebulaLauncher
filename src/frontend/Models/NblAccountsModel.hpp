@@ -1,14 +1,11 @@
 #pragma once
 
-#include <qtmetamacros.h>
 #include <Core/Types.hpp>
 #include <Platform/Logging.hpp>
 #include <Plugin/AccountProvider.hpp>
 
 #include <QObject>
 #include <QtQml>
-
-#include "ApplicationContext.hpp"
 
 class NblAccountsModel : public QAbstractListModel {
 
@@ -109,7 +106,12 @@ public:
 
         if(_pProvider) {
             _pProvider->enumerateAccountInfo([&](const nbl::AccountInfo& info) -> nbl::Result {
-                _mData.append({fromNbl(info.userName), fromNbl(info.icon), info.id, info.iconNearestScaling});
+                _mData.append({
+                    QString::fromUtf8(info.userName.data, info.userName.length), 
+                    QString::fromUtf8(info.icon.data, info.icon.length), 
+                    info.id, 
+                    info.iconNearestScaling
+                });
                 return nbl::Result::SUCCESS;
             });
         }

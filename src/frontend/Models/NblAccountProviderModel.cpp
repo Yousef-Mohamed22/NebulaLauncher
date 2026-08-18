@@ -7,10 +7,9 @@
 #include <Plugin/PluginContext.hpp>
 #include <Network/HttpServer.hpp>
 
-#include <qlogging.h>
-#include <qstringview.h>
-#include <qtypes.h>
 #include <QDesktopServices>
+
+#include "ApplicationContext.hpp"
 
 namespace {
 

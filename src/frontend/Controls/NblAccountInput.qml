@@ -50,7 +50,7 @@ Item {
         NblButton {
             Layout.fillWidth: true
             Layout.preferredWidth: 120
-            Layout.preferredHeight: usernameBox.borderHeight
+            Layout.preferredHeight: usernameBox.height - usernameBox.backgroundOffset
             Layout.alignment: Qt.AlignBottom
             text: "Login"
             inactiveColor: Theme.colors.accent
@@ -68,7 +68,7 @@ Item {
         NblButton {
             Layout.fillWidth: true
             Layout.preferredWidth: 120
-            Layout.preferredHeight: usernameBox.borderHeight
+            Layout.preferredHeight: usernameBox.height - usernameBox.backgroundOffset
             Layout.alignment: Qt.AlignBottom
             text: "Cancel"
             enabled: root.cancelEnabled
@@ -132,7 +132,7 @@ Item {
         NblButton {
             Layout.fillWidth: true
             Layout.preferredWidth: 120
-            Layout.preferredHeight: usernameBox.borderHeight
+            Layout.preferredHeight: tokenBox.height - tokenBox.backgroundOffset
             Layout.alignment: Qt.AlignBottom
             text: "Login"
             inactiveColor: Theme.colors.accent
@@ -149,7 +149,7 @@ Item {
         NblButton {
             Layout.fillWidth: true
             Layout.preferredWidth: 120
-            Layout.preferredHeight: usernameBox.borderHeight
+            Layout.preferredHeight: tokenBox.height - tokenBox.backgroundOffset
             Layout.alignment: Qt.AlignBottom
             text: "Cancel"
             enabled: root.cancelEnabled

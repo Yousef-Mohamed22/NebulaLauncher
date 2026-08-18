@@ -211,7 +211,7 @@ NblDialog {
                     gameNameBox.text = details.gameTitle
 
                     commandTypeBox.currentValue = details.type
-                    fieldList.loadFromJson(details.command)
+                    fieldList.load(details.fields)
 
                     installationTitleField.text = details.title
                     installationTitleField.cursorPosition = 0
@@ -232,14 +232,13 @@ NblDialog {
                 onApplied: {
 
                     if(root.installationId == 0) return
-                    let command = fieldList.saveToJson()
 
                     let params = {
                         game: root.gameId,
                         type: commandTypeBox.currentValue,
-                        command: command,
                         title: installationTitleField.text,
                         description: installationDescriptionField.text,
+                        fields: fieldList.save(),
                         banner: installationBannerPicker.imageSource,
                         poster: installationPosterPicker.imageSource,
                         icon: installationIconPicker.imageSource,
@@ -292,6 +291,7 @@ NblDialog {
 
                                 onActivated: {
                                     installationSettingsTab.modified = true
+                                    fieldList.fields = ApplicationContext.getInstallationTypeFields(currentValue)
                                 }
 
                                 tooltip: "The type of installation. This determines how the installation is launched."
@@ -299,9 +299,10 @@ NblDialog {
 
                             NblFieldInputList { 
                                 id: fieldList
+                                width: parent.width
                                 fields: ApplicationContext.getInstallationTypeFields(commandTypeBox.currentValue)
-                                onModified: {
-                                    installationSettingsTab.modified = true
+                                onModifiedChanged: {
+                                    if(modified) installationSettingsTab.modified = true
                                 }
                             }
 

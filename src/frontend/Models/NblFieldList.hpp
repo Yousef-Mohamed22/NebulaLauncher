@@ -11,20 +11,17 @@ class NblFieldList : public QObject {
 
     Q_OBJECT
     QML_ELEMENT
+    QML_UNCREATABLE("Obtain from ApplicationContext")
 
     Q_PROPERTY(qsizetype count READ count CONSTANT)
 
 public:
 
-    NblFieldList(nbl::Span<nbl::Field> fields, QObject* parent = nullptr) :
-        QObject(parent),
-        _mFields(fields)
-    { }
+    NblFieldList(nbl::Span<nbl::Field> fields, QObject* parent = nullptr);
 
     quint32 count() const;
 
-    Q_INVOKABLE NblFieldRef* itemAt(qsizetype index) const;
-
+    Q_INVOKABLE NblFieldRef* itemAt(qsizetype index);
 
 private:
 

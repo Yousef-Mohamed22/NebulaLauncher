@@ -8,7 +8,7 @@ TextField {
     property string tooltip
     property int tooltipDelay: 1000
 
-    readonly property int borderHeight: height - 6
+    readonly property int backgroundOffset: (label == null || label.length == 0) ? 0 : root.font.pixelSize * 0.9
 
     color: enabled ? Theme.colors.text : Theme.colors.textDim
     placeholderTextColor: Theme.colors.border
@@ -16,16 +16,16 @@ TextField {
     font.pixelSize: 16
     font.family: Theme.font
 
-    implicitHeight: 54
+    implicitHeight: 48 + backgroundOffset
 
-    topPadding: 12
+    topPadding: 8 + backgroundOffset
     leftPadding: 16
     rightPadding: 16
 
     background: Rectangle {
         color: Theme.colors.layer0
-        height: parent.height - 6
-        y: 6
+        height: parent.height - root.backgroundOffset
+        y: root.backgroundOffset
         radius: 8
         border.width: 2
         border.color: root.cursorVisible ? Theme.colors.accent : Theme.colors.border
@@ -38,7 +38,6 @@ TextField {
         width: 0
         height: 0
         x: 16
-        y: -6
 
         Rectangle { 
             width: labelText.width + 12

@@ -1,161 +1,77 @@
-pragma ComponentBehavior: Bound
-
 import QtQuick
+
+import Nebula
+import Nebula.Controls.Field
 
 Item {
 
     id: root
 
-    required property NblFieldRef field
-    property var value
+    property NblFieldRef field
+    property bool modified
 
-    signal modified
+    implicitHeight: loader.item == null ? 0 : (loader.item as Item).height
 
-    implicitHeight: field.type == 3 ? 32 : 54
-
-    function setValue(newValue) {
-
-        console.log(typeof field)
-
-        root.value = newValue
-        if(root.field.type == 0) {
-
-            let textBox = loader.item as NblSuggestionsTextBox
-            textBox.text = newValue
-
-        } else if(root.field.type == 1 || root.field.type == 2) {
-
-            let numberBox = loader.item as NblNumberInput
-            numberBox.value = newValue
-
-        } else if(root.field.type == 3) {
-
-            let checkBox = loader.item as NblCheckBox
-            checkBox.checked = newValue
-
-        } else if(root.field.type == 4) {
-
-            let comboBox = loader.item as NblComboBox
-            comboBox.currentIndex = enumModel.indexOf(newValue)
-        
-        } else if(root.field.type == 5) {
-
-            let dateBox = loader.item as NblDateInput
-            dateBox.setTime(newValue)
-
-        }
+    function save() {
+        if(loader.item == null) return null
+        modified = false
+        let out = (loader.item as FieldInputDelegate).value
+        return out
     }
+
+    function load(value) {
+        if(loader.item == null) {
+            console.log("Not loaded!")
+            return null
+        }
+        (loader.item as FieldInputDelegate).value = value
+        modified = false
+    }
+
 
     Loader {
         id: loader
-        width: root.width
-        active: false
+        width: parent.width
+    }
 
-        onLoaded: {
-            root.value = root.field.defaultValue
-            if(root.field.type == 0) {
-
-                let textBox = loader.item as NblSuggestionsTextBox
-                textBox.text = root.value
-                textBox.textEdited.connect(() => {
-                    root.value = textBox.text
-                    root.modified()
-
-                    textBox.clearSuggestions()
-                    root.field.suggest(textBox.text, function(suggestion) {
-                        textBox.pushSuggestion(suggestion)
-                    })
-                })
-                root.field.suggest(textBox.text, function(suggestion) {
-                    textBox.pushSuggestion(suggestion)
-                })
-
-            } else if(root.field.type == 1 || root.field.type == 2) {
-
-                let numberBox = loader.item as NblNumberInput
-                numberBox.value = root.value
-                numberBox.valueModified.connect(() => {
-                    root.value = numberBox.value
-                    root.modified()
-                })
-
-            } else if(root.field.type == 3) {
-
-                let checkBox = loader.item as NblCheckBox
-                checkBox.checked = root.value
-                checkBox.toggled.connect(() => {
-                    root.value = checkBox.checked
-                    root.modified()
-                })
-            } else if(root.field.type == 4) {
-
-                let comboBox = loader.item as NblComboBox
-                comboBox.currentValue = root.value
-                comboBox.activated.connect(() => {
-                    root.value = comboBox.currentValue.toString()
-                    root.modified()
-                })
-            } else if(root.field.type == 5) {
-
-                let dateBox = loader.item as NblDateInput
-                dateBox.setTime(root.value)
-                dateBox.dateEdited.connect(() => {
-                    root.value = dateBox.getTime()
-                    root.modified()
-                })
-            }
+    Connections {
+        target: loader.item
+        function onValueChanged() {
+            root.modified = true
         }
     }
-    
 
-    property NblEnumFieldModel enumModel: field.enumModel()
+    onFieldChanged: {
 
-    Component.onCompleted: {
+        if(field == null) return
 
-        root.value = root.field.defaultValue
-
-        if(root.field.type == 0) {
-
-            loader.setSource("NblSuggestionsTextBox.qml", {
-                "width": root.width,
-                "label": root.field.name
-            })
-
-        } else if(root.field.type == 1 || root.field.type == 2) {
-
-            loader.setSource("NblNumberInput.qml", {
-                "width": root.width,
-                "label": root.field.name,
-                "min": root.field.min,
-                "max": root.field.max,
-                "allowDecimal": root.field.type == 2
-            })
-
-        } else if(root.field.type == 3) {
-
-            loader.setSource("NblCheckBox.qml", {
-                "width": root.width,
-                "text": root.field.name
-            })
-
-        } else if(root.field.type == 4) {
-
-            loader.setSource("NblComboBox.qml", {
-                "width": root.width,
-                "label": root.field.name,
-                "model": root.enumModel,
-                "textRole": "name",
-                "valueRole": "name"
-            })
-
-        } else if(root.field.type == 5) {
-
-            loader.setSource("NblDateInput.qml", {
-                "width": root.width,
-                "label": root.field.name,
-            })
+        let source = null
+        if(field.type == 0) {
+            source = "Field/StringFieldInput.qml"
+        } else if(field.type == 1 || field.type == 2) {
+            source = "Field/NumberFieldInput.qml"
+        } else if(field.type == 3) {
+            source = "Field/BoolFieldInput.qml"
+        } else if(field.type == 4) {
+            source = "Field/EnumFieldInput.qml"
+        } else if(field.type == 5) {
+            source = "Field/DateFieldInput.qml"
+        } else if(field.type == 6) {
+            source = "Field/AccountFieldInput.qml"
+        } else if(field.type == 7) {
+            source = "Field/ListFieldInput.qml"
+        } else if(field.type == 8) {
+            source = "Field/StructFieldInput.qml"
         }
 
+        if(source == null) {
+            console.warn("Unknown field type: ", field.type)
+            return
+        }
+        loader.setSource(source, {
+            "field": field
+        })
         loader.active = true
     }
 }
+

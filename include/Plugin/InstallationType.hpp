@@ -49,9 +49,4 @@ struct InstallationType {
     static InstallationType COMMAND;
 };
 
-
-Result encodeFieldValues(const InstallationType* type, Span<FieldValue> values, Writer writer);
-
-Result decodeFieldValues(const InstallationType* type, JsonObject obj, Span<FieldValue> values);
-
 }

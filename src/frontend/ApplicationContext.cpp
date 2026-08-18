@@ -21,13 +21,18 @@
 #include <QColor>
 #include <qcontainerfwd.h>
 #include <qjsonparseerror.h>
+#include <qlogging.h>
 #include <qprocess.h>
 
 #include <openssl/evp.h>
 #include <qvariant.h>
 
 #include "Models/NblInstallationDetails.hpp"
+#include "NblAccountsModel.hpp"
+#include "NblFieldList.hpp"
 #include "NblProcessHandle.hpp"
+#include "Plugin/AccountProvider.hpp"
+#include "Plugin/Field.hpp"
 
 
 using namespace Qt::StringLiterals;
@@ -273,17 +278,12 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
             }
 
             nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-            nbl::Span<nbl::FieldValue> values = {
-                .data = nullptr,
-                .length = installType->fields.length
-            };
+            nbl::Span<nbl::FieldValue> values = {};
 
             if(installType->fields.length > 0) {
-                frame.allocate(&values.data, installType->fields.length);
-
                 nbl::JsonElement value = {};
                 NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
-                NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
+                NBL_CHECK(nbl::decodeFieldValues(installType->fields, value.object, &values, &frame));
             }
             NBL_CHECK(installType->launch(&ctx->_mContext, values, installationId, handle->tracker()));
             NBL_CHECK(handle->initLogging());
@@ -344,11 +344,9 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
             .length = installType->fields.length
         };
 
-        frame.allocate(&values.data, installType->fields.length);
-
         nbl::JsonElement value = {};
         NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
-        NBL_CHECK(nbl::decodeFieldValues(installType, value.object, values));
+        NBL_CHECK(nbl::decodeFieldValues(installType->fields, value.object, &values, &frame));
 
         nbl::StringView folder = {};
         NBL_CHECK(installType->getFolder(&_mContext, values, installationId, &folder));
@@ -378,13 +376,32 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(qint64 instal
 
     NblInstallationDetails* out;
 
-    if(nbl::getInstallationDetails(&_mConnection, installationId, [&](const nbl::InstallationDetails& details) {
+    if(nbl::getInstallationDetails(&_mConnection, installationId, [&](const nbl::InstallationDetails& details) -> nbl::Result {
 
-         out = new NblInstallationDetails(
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+
+        const nbl::InstallationType* type = _mContext.getInstallationType(details.installation.type);
+        nbl::Span<nbl::Field> fields = type->fields;
+
+        NblFieldList* list = new NblFieldList(fields);
+        nbl::Span<nbl::FieldValue> values;
+
+        nbl::JsonElement value = {};
+        NBL_CHECK(nbl::parseJson(nbl::StringReader(details.installation.command), &frame, &value));
+        NBL_CHECK(nbl::decodeFieldValues(type->fields, value.object, &values, &frame));
+
+        nbl::Field dummy {
+            .type = nbl::FieldType::STRUCT,
+            .structData = { .fields = type->fields }
+        };
+
+        QVariant qtFields = NblFieldRef(&dummy).fromNbl({ .compositeValue = values });
+
+        out = new NblInstallationDetails(
             details.installation.id,
             details.game.id,
             fromNbl(details.installation.type),
-            fromNbl(details.installation.command),
+            qtFields.toMap(),
             fromNbl(details.installation.title),
             fromNbl(details.installation.description),
             fromNbl(details.installation.poster),
@@ -506,14 +523,32 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
 
     // Add a new installation
     QByteArray type = params.find("type")->toString().toUtf8();
-    QByteArray command = params.find("command")->toString().toUtf8();
+    QVariantMap fields = params.find("fields")->toMap();
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    const nbl::InstallationType* it = _mContext.getInstallationType(nbl::StringView(type.data(), type.length()));
+
+    nbl::Field dummy {
+        .type = nbl::FieldType::STRUCT,
+        .structData = { .fields = it->fields }
+    };
+
+    nbl::FieldValue value = NblFieldRef(&dummy).toNbl(fields, &frame);
+
+
+    nbl::StringBuilder builder(&frame);
+    NBL_CHECK(nbl::encodeFieldValues(it->fields, value.compositeValue, builder));
+
+    nbl::StringView cmd;
+    NBL_CHECK(builder.buildNullTerminated(&cmd));
+
 
     nbl::InstallationMeta meta = {
         .id = 0,
         .gameId = realGId,
         .deviceId = _mDeviceId,
         .type = nbl::StringView(type.data(), type.length()),
-        .command = nbl::StringView(command.data(), command.length()),
+        .command = cmd,
     };
 
     QByteArray installationTitle = params.find("title")->toString().toUtf8();
@@ -521,6 +556,7 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
 
     meta.title = nbl::StringView(installationTitle.data(), installationTitle.length());
     meta.description = nbl::StringView(installationDesc.data(), installationDesc.length());
+    meta.logoPosition = nbl::LogoPosition::INHERIT;
 
     if(gId != 0) {
         meta.banner = nbl::StringView(banner.data(), banner.length());
@@ -572,9 +608,25 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     if(!okay) return -1;
 
     QByteArray type = params.find("type")->toString().toUtf8();
-    QByteArray cmd = params.find("command")->toString().toUtf8();
     QByteArray installationTitle = params.find("title")->toString().toUtf8();
     QByteArray installationDesc = params.find("description")->toString().toUtf8();
+
+    QVariantMap fields = params.find("fields")->toMap();
+    const nbl::InstallationType* it = _mContext.getInstallationType(nbl::StringView(type.data(), type.length()));
+
+    nbl::Field dummy {
+        .type = nbl::FieldType::STRUCT,
+        .structData = { .fields = it->fields }
+    };
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::FieldValue value = NblFieldRef(&dummy).toNbl(fields, &frame);
+
+    nbl::StringBuilder builder(&frame);
+    NBL_CHECK(nbl::encodeFieldValues(it->fields, value.compositeValue, builder));
+
+    nbl::StringView cmd;
+    NBL_CHECK(builder.buildNullTerminated(&cmd));
 
     nbl::InstallationMeta meta = {
         .id = installationId,
@@ -588,7 +640,7 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
         .logo = nbl::StringView(logo.data(), logo.length()),
         .logoPosition = position,
         .type = nbl::StringView(type.data(), type.length()),
-        .command = nbl::StringView(cmd.data(), cmd.length())
+        .command = cmd
     };
 
     nbl::updateInstallation(&_mConnection, meta);
@@ -1179,5 +1231,16 @@ NblFieldList* ApplicationContext::getInstallationTypeFields(QString installation
     return new NblFieldList(type->fields);
 }
 
+
+NblAccountsModel* ApplicationContext::accountsModel(QString accountProvider) {
+
+    QByteArray utf = accountProvider.toUtf8();
+    nbl::StringView name(utf.data(), utf.length());
+
+    const nbl::AccountProvider* prov = _mContext.getAccountProvider(name);
+    if(prov == nullptr) return nullptr;
+
+    return new NblAccountsModel(prov);
+}
 
 

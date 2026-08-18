@@ -10,6 +10,7 @@ Item {
 
     property string label
     property bool allowReorder: false
+    property int minItems: 0
     property int maxItems: 999
 
     property list<var> initialItems
@@ -57,6 +58,7 @@ Item {
 
             Rectangle {
                 id: labelBg
+                visible: root.label.length > 0
                 width: labelLabel.width + 12
                 height: parent.height
                 x: 12
@@ -197,6 +199,9 @@ Item {
                             }
 
                             Item {
+
+                                enabled: root.count > root.minItems
+
                                 Layout.fillHeight: true
                                 Layout.fillWidth: true
                                 Rectangle {
@@ -212,7 +217,7 @@ Item {
                                     font.family: Theme.font
                                     font.pixelSize: 24
                                     font.weight: 600
-                                    color: Theme.colors.text
+                                    color: parent.enabled ? Theme.colors.text : Theme.colors.textDim
                                 }
 
                                 MouseArea {

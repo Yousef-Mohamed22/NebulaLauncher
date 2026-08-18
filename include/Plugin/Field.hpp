@@ -2,8 +2,10 @@
 
 #include <Core/Types.hpp>
 #include <Core/String.hpp>
+#include <Codec/Json.hpp>
 
 #include <functional>
+#include "Platform/Allocator.hpp"
 
 namespace nbl {
 
@@ -26,7 +28,11 @@ struct FieldValue {
         u64 uintegerValue; // for DATE
         f64 floatValue; // for FLOAT
         bool booleanValue; // for BOOLEAN
-        u32 enumValue; // for ENUM and ACCOUNT
+        u32 enumValue; // for ENUM 
+        struct {
+            u32 id;
+            bool isDefault;
+        } accountValue; // for ACCOUNT
         Span<FieldValue> compositeValue; // for LIST and STRUCT
     };
 };
@@ -95,5 +101,9 @@ struct Field {
     FieldValue defaultValue;
 };
 
+
+
+Result encodeFieldValues(Span<Field> fields, Span<FieldValue> values, Writer writer);
+Result decodeFieldValues(Span<Field> fields, JsonObject obj, Span<FieldValue>* outValues, LinearAllocator* allocator);
 
 }

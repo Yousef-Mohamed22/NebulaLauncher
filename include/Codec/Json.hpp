@@ -232,6 +232,7 @@ public:
     class ArrayWriter {
     public:
         ArrayWriter& add(JsonElement element);
+        ArrayWriter& write(std::function_ref<Result(Writer writer)> writer);
         ArrayWriter& writeObject(std::function_ref<void(ObjectWriter& writer)> writer);
         ArrayWriter& writeArray(std::function_ref<void(ArrayWriter& writer)> writer);
     private:
@@ -248,6 +249,7 @@ public:
     class ObjectWriter {
     public:
         ObjectWriter& add(StringView key, JsonElement element);
+        ObjectWriter& write(StringView key, std::function_ref<Result(Writer writer)> writer);
         ObjectWriter& writeObject(StringView key, std::function_ref<void(ObjectWriter& writer)> writer);
         ObjectWriter& writeArray(StringView key, std::function_ref<void(ArrayWriter& writer)> writer);
     private:

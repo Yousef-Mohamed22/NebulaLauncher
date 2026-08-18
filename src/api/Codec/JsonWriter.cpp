@@ -1,7 +1,7 @@
 #include <Codec/Json.hpp>
+#include <Platform/Logging.hpp>
 
 #include <cmath>
-#include "Platform/Logging.hpp"
 
 nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
 
@@ -36,7 +36,35 @@ nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
         }
         case(nbl::JsonType::STRING): {
             NBL_CHECK(writer.writeChar('"'));
-            NBL_CHECK(writer.writeString(element.string));
+            for(char c : element.string) {
+                switch(c) {
+                    case '"':
+                    case '\\':
+                        writer.writeChar('\\');
+                        writer.writeChar(c);
+                        continue;
+                    case '\b':
+                        writer.writeString("\\b");
+                        continue;
+                    case '\f':
+                        writer.writeString("\\f");
+                        continue;
+                    case '\n':
+                        writer.writeString("\\n");
+                        continue;
+                    case '\r':
+                        writer.writeString("\\r");
+                        continue;
+                    case '\t':
+                        writer.writeString("\\t");
+                        continue;
+                }
+                if(c < 0x20) {
+                    nbl::log(nbl::LogLevel::ERROR, "Cannot escape character ", static_cast<i32>(c), " to encode in JSON string");
+                    return nbl::Result::FORMAT_ERROR;
+                }
+                writer.writeChar(c);
+            }
             NBL_CHECK(writer.writeChar('"'));
             return nbl::Result::SUCCESS;
         }
@@ -84,6 +112,19 @@ nbl::JsonWriter::ArrayWriter& nbl::JsonWriter::ArrayWriter::add(JsonElement elem
     }
 
     _rParent._mLastResult = writeJson(_rParent._mSink, element);
+    return *this;
+}
+
+nbl::JsonWriter::ArrayWriter& nbl::JsonWriter::ArrayWriter::write(std::function_ref<Result(Writer writer)> writer) {
+
+    if(_rParent._mLastResult.error()) return *this;
+    
+    if(_mNumElements++ > 0) {
+        _rParent._mLastResult = _rParent._mSink.writeChar(',');
+        if(_rParent._mLastResult.error()) return *this;
+    }
+
+    _rParent._mLastResult = writer(_rParent._mSink);
     return *this;
 }
 
@@ -151,6 +192,27 @@ nbl::JsonWriter::ObjectWriter& nbl::JsonWriter::ObjectWriter::add(StringView key
     return *this;
 }
 
+nbl::JsonWriter::ObjectWriter& nbl::JsonWriter::ObjectWriter::write(StringView key, std::function_ref<Result(Writer writer)> writer) {
+
+    if(_rParent._mLastResult.error()) return *this;
+    
+    if(_mNumElements++ > 0) {
+        _rParent._mLastResult = _rParent._mSink.writeChar(',');
+        if(_rParent._mLastResult.error()) return *this;
+    }
+
+    _rParent._mLastResult = _rParent._mSink.writeChar('"');
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = _rParent._mSink.writeString(key);
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = _rParent._mSink.writeString("\":");
+    if(_rParent._mLastResult.error()) return *this;
+
+    _rParent._mLastResult = writer(_rParent._mSink);
+    return *this;
+}
 
 
 nbl::JsonWriter::ObjectWriter& nbl::JsonWriter::ObjectWriter::writeObject(StringView key, std::function_ref<void(ObjectWriter& writer)> writer) {
