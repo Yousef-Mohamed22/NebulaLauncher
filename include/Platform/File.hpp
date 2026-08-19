@@ -192,6 +192,8 @@ Result setExecutable(StringView path);
 
 Result createLink(StringView target, StringView path);
 
+u64 modifyTime(StringView path);
+
 StringView getWorkingDirectory();
 
 StringView getDataDirectory();

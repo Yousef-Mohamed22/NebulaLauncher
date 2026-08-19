@@ -110,9 +110,9 @@ public:
 
     ~HttpClient();
 
-    Result downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers = {});
-    Result makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers = {});
-    Result makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result)>> doneCallback, Span<HttpHeader> headers = {});
+    Result downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
+    Result makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
+    Result makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
 
     void awaitAll(u32* numFailures);
 
@@ -126,21 +126,21 @@ private:
     struct _ActiveRequest {
 
         Writer writer;
-        nbl::Either<FileChannel, StringView> file;
+        FileChannel file; 
+        StringView filePath;
         void* handle;
         void* headers;
 
-        Optional<std::function_ref<void(Result)>> callback;
+        Optional<std::function_ref<void(Result, i32, StringView)>> callback;
         u32 retryCount;
         bool download;
         bool queued;
         bool createParents;
+        bool fileOpened;
 
-        inline bool fileOpened() { return file.hasLeft(); }
-
-        inline void finished(Result res) {
+        inline void finished(Result res, i32 statusCode, StringView path) {
             if(callback.hasValue()) {
-                (*callback)(res);
+                (*callback)(res, statusCode, path);
             }
         }
     };

@@ -333,6 +333,27 @@ nbl::Result nbl::createLink(StringView target, StringView path) {
     if(rc != 0) return nbl::Result::OS_ERROR;
 
     return nbl::Result::SUCCESS;
+
+}
+
+u64 nbl::modifyTime(StringView path) {
+
+    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+
+    struct stat fileStat;
+
+    if(path.nullTerminated) {
+
+        if(stat(path.data, &fileStat) != 0) return nbl::Result::OS_ERROR;
+        return fileStat.st_mtime;
+
+    } else {
+        char temp[PATH_MAX] = {};
+        memcpy(temp, path.data, path.length);
+
+        if(stat(temp, &fileStat) != 0) return nbl::Result::OS_ERROR;
+        return fileStat.st_mtime;
+    }
 }
 
 
