@@ -36,7 +36,7 @@ nbl::HttpClient::~HttpClient() {
 
             CURL* easy = static_cast<CURL*>(req.handle);
 
-            req.finished(nbl::Result::INTERRUPTED, 0, req.filePath);
+            req.finished(nbl::Result::INTERRUPTED, 0);
 
             curl_multi_remove_handle(handle, easy);
             curl_easy_cleanup(easy);
@@ -53,7 +53,7 @@ nbl::HttpClient::~HttpClient() {
 }
 
 
-nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers) {
+nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result, i32)>> doneCallback, Span<HttpHeader> headers, bool markExecutable) {
 
     nbl::log(nbl::LogLevel::DEBUG, "GET ", url, " > ", file);
     auto frameLock = _mRequestMutex.frameLock();
@@ -79,23 +79,27 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optio
         }
 
         req->createParents = _mFlags & HttpClientFlag::CREATE_FILE_PARENTS;
-        req->filePath = file;
+        req->file = file;
 
     } else if(res.error()) {
         return res;
     } else {
+        if(req->markExecutable) {
+            nbl::setExecutable(file);
+        }
         req->file = std::move(channel);
-        req->writer = req->file.writer();
+        req->writer = req->file.left()->writer();
     }
 
     req->download = true;
     req->callback = doneCallback;
     req->retryCount = 0;
+    req->markExecutable = markExecutable;
 
     return _setupConnection(url, req, {}, headers);
 }
 
-nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers) {
+nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result, i32)>> doneCallback, Span<HttpHeader> headers) {
 
     nbl::log(nbl::LogLevel::DEBUG, "GET ", url);
     auto frameLock = _mRequestMutex.frameLock();
@@ -110,7 +114,7 @@ nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional
     return _setupConnection(url, req, {}, headers);
 }
 
-nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers) {
+nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result, i32)>> doneCallback, Span<HttpHeader> headers) {
 
 
     nbl::log(nbl::LogLevel::DEBUG, "POST ", url, ":\n", body);
@@ -234,24 +238,27 @@ nbl::Result nbl::HttpClient::_startThread() {
             if(!client->_bQueuePaused) {
                 for(_ActiveRequest& req : client->_mRequests) {
                     if(req.queued) {
-                        if(req.download && !req.fileOpened) {
+                        if(req.download && !req.fileOpened()) {
 
-                            req.fileOpened = true;
                             FileOpenFlags flags = FileOpenFlag::WRITE | FileOpenFlag::CREATE;
                             if(req.createParents) flags |= FileOpenFlag::CREATE_PARENTS;
 
                             FileChannel channel{};
-                            nbl::Result res = nbl::FileChannel::open(req.filePath, &channel, flags);
+                            StringView path = *req.file.right();
+                            nbl::Result res = nbl::FileChannel::open(path, &channel, flags);
                             if(runningRequests > 0 && res == Result::TOO_MANY_OPEN_FILES) {
                                 client->_bQueuePaused = true;
                                 break;
                             }
                             if(res.error()) {
-                                req.finished(nbl::Result::IO_ERROR, 0, req.filePath);
+                                req.finished(nbl::Result::IO_ERROR, 0);
                                 client->_mFailures++;
                             } else {
+                                if(req.markExecutable) {
+                                    nbl::setExecutable(path);
+                                }
                                 req.file = std::move(channel);
-                                req.writer = req.file.writer();
+                                req.writer = req.file.left()->writer();
                                 curl_multi_add_handle(handle, static_cast<CURL*>(req.handle));
                                 runningRequests++;
                                 client->_mQueuedRequests--;
@@ -284,7 +291,7 @@ nbl::Result nbl::HttpClient::_startThread() {
                             curl_multi_add_handle(handle, easy);
                             continue;
                         }
-                        req->finished(nbl::Result::TIMEOUT, 0, req->filePath);
+                        req->finished(nbl::Result::TIMEOUT, 0);
                         client->_mFailures++;
 
                     } else if(msg->data.result == CURLE_OK) {
@@ -298,22 +305,22 @@ nbl::Result nbl::HttpClient::_startThread() {
                                 curl_multi_add_handle(handle, easy);
                                 continue;
                             }
-                            req->finished(nbl::Result::IO_ERROR, responseCode, req->filePath);
+                            req->finished(nbl::Result::IO_ERROR, responseCode);
                             client->_mFailures++;
                         } else if(responseCode >= 200 && responseCode < 300){
 
-                            req->finished(nbl::Result::SUCCESS, responseCode, req->filePath);
+                            req->finished(nbl::Result::SUCCESS, responseCode);
 
                         } else {
                             nbl::log(nbl::LogLevel::DEBUG, "Response Code: ", responseCode);
-                            req->finished(nbl::Result::IO_ERROR, responseCode, req->filePath);
+                            req->finished(nbl::Result::IO_ERROR, responseCode);
                             client->_mFailures++;
                         }
 
                     } else {
 
                         nbl::log(nbl::LogLevel::ERROR, "HTTP connection failed! ", curl_easy_strerror(msg->data.result));
-                        req->finished(nbl::Result::IO_ERROR, 0, req->filePath);
+                        req->finished(nbl::Result::IO_ERROR, 0);
                         client->_mFailures++;
                     }
 

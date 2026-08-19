@@ -9,6 +9,9 @@
 #pragma once
 
 #include <Core/Array.hpp>
+#include <Core/Either.hpp>
+#include <Core/Optional.hpp>
+#include <Core/Result.hpp>
 #include <Platform/Process.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/Pool.hpp>
@@ -16,8 +19,6 @@
 #include <Platform/Mutex.hpp>
 #include <Platform/File.hpp>
 #include <Platform/PlatformDefines.hpp>
-#include <Core/Optional.hpp>
-#include <Core/Result.hpp>
 
 #include <functional>
 
@@ -109,27 +110,18 @@ public:
 
     ~HttpClient();
 
-    Result downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
-    inline Result downloadFile(StringView url, StringView file, Span<HttpHeader> headers = {}) {
-        return downloadFile(url, file, {}, headers);
-    }
-    inline Result downloadFile(StringView url, StringView file, std::function_ref<void(Result, i32, StringView)> doneCallback, Span<HttpHeader> headers = {}) { 
+    Result downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result, i32)>> doneCallback = {}, Span<HttpHeader> headers = {}, bool executable = false);
+    inline Result downloadFile(StringView url, StringView file, std::function_ref<void(Result, i32)> doneCallback, Span<HttpHeader> headers = {}, bool executable = false) { 
         return downloadFile(url, file, Optional(doneCallback), headers);
     }
 
-    Result makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
-    inline Result makeRequest(StringView url, Writer writer, Span<HttpHeader> headers = {}) {
-        return makeRequest(url, writer, {}, headers);
-    }
-    inline Result makeRequest(StringView url, Writer writer, std::function_ref<void(Result, i32, StringView)> doneCallback, Span<HttpHeader> headers = {}) {
+    Result makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result, i32)>> doneCallback = {}, Span<HttpHeader> headers = {});
+    inline Result makeRequest(StringView url, Writer writer, std::function_ref<void(Result, i32)> doneCallback, Span<HttpHeader> headers = {}) {
         return makeRequest(url, writer, Optional(doneCallback), headers);
     }
 
-    Result makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
-    inline Result makePostRequest(StringView url, StringView body, Writer output, Span<HttpHeader> headers = {}) {
-        return makePostRequest(url, body, output, {}, headers);
-    }
-    inline Result makePostRequest(StringView url, StringView body, Writer output, std::function_ref<void(Result, i32, StringView)> doneCallback, Span<HttpHeader> headers = {}) {
+    Result makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result, i32)>> doneCallback = {}, Span<HttpHeader> headers = {});
+    inline Result makePostRequest(StringView url, StringView body, Writer output, std::function_ref<void(Result, i32)> doneCallback, Span<HttpHeader> headers = {}) {
         return makePostRequest(url, body, output, Optional(doneCallback), headers);
     }
 
@@ -145,21 +137,24 @@ private:
     struct _ActiveRequest {
 
         Writer writer;
-        FileChannel file; 
-        StringView filePath;
+        Either<FileChannel, StringView> file; 
         void* handle;
         void* headers;
 
-        Optional<std::function_ref<void(Result, i32, StringView)>> callback;
+        Optional<std::function_ref<void(Result, i32)>> callback;
         u32 retryCount;
         bool download;
         bool queued;
         bool createParents;
-        bool fileOpened;
+        bool markExecutable;
 
-        inline void finished(Result res, i32 statusCode, StringView path) {
+        inline bool fileOpened() {
+            return file.hasLeft();
+        }
+
+        inline void finished(Result res, i32 statusCode) {
             if(callback.hasValue()) {
-                (*callback)(res, statusCode, path);
+                (*callback)(res, statusCode);
             }
         }
     };

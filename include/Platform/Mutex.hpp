@@ -56,7 +56,7 @@ private:
 #else 
     void* _mHandle;
 #endif
-
+    friend class Condition;
 };
 
 
@@ -68,13 +68,12 @@ public:
 
     void signal();
     void broadcast();
-    void wait();
+    void wait(Mutex& mutex);
 
     static Result create(Condition* out);
 
 private:
 #ifdef NBL_PLATFORM_LINUX
-    pthread_mutex_t _mMutex;
     pthread_cond_t _mHandle;
 #else
     void* _mHandle;

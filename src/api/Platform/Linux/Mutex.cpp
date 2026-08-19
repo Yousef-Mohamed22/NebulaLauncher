@@ -43,7 +43,6 @@ nbl::Result nbl::Mutex::create(Mutex* out) {
 nbl::Condition::~Condition() {
     ::pthread_cond_broadcast(&_mHandle);
     ::pthread_cond_destroy(&_mHandle);
-    ::pthread_mutex_destroy(&_mMutex);
 }
 
 void nbl::Condition::signal() {
@@ -52,17 +51,12 @@ void nbl::Condition::signal() {
 void nbl::Condition::broadcast() {
     ::pthread_cond_broadcast(&_mHandle);
 }
-void nbl::Condition::wait() {
-    ::pthread_cond_wait(&_mHandle, &_mMutex);
+void nbl::Condition::wait(Mutex& mutex) {
+    ::pthread_cond_wait(&_mHandle, &mutex._mHandle);
 }
 
 nbl::Result nbl::Condition::create(Condition* out) {
     int rc = ::pthread_cond_init(&out->_mHandle, nullptr);
-    if(rc != 0) {
-        return nbl::Result::THREAD_ERROR;
-    }
-
-    rc = ::pthread_mutex_init(&out->_mMutex, nullptr);
     if(rc != 0) {
         return nbl::Result::THREAD_ERROR;
     }
