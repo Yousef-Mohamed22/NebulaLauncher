@@ -3,6 +3,12 @@
 #include <Plugin/PluginContext.hpp>
 #include <Platform/Assert.hpp>
 
+void nbl::ProcessTracker::pushStatus(nbl::StringView status, f64 progress) {
+    if(_mState != State::STARTING) return;
+    _fStatusConsumer(_mInstallationId, status, progress);
+}
+
+
 nbl::Result nbl::ProcessTracker::run(PluginContext* context, StringView command, StringView workingDir) {
     NBL_ASSERT(_mState == State::STARTING);
 
@@ -28,9 +34,10 @@ void nbl::ProcessTracker::kill() {
     _mState = State::KILLED;
 }
 
-nbl::Result nbl::ProcessTracker::create(i64 installationId, ProcessTracker* outTracker) {
-    NBL_ASSERT(outTracker->_mState == State::NOT_STARTED);
+nbl::Result nbl::ProcessTracker::create(i64 installationId, void(*statusConsumer)(i64, StringView, f64), ProcessTracker* outTracker) {
+    if(outTracker->_mState != State::NOT_STARTED) return nbl::Result::INVALID_ARGUMENT;
     outTracker->_mInstallationId = installationId;
     outTracker->_mState = State::STARTING;
+    outTracker->_fStatusConsumer = statusConsumer;
     return nbl::Result::SUCCESS;
 }

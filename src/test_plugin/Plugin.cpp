@@ -278,6 +278,17 @@ nbl::Result _launch(
     nbl::log(nbl::LogLevel::INFO, "Struct.Int: ", fields.data[9].compositeValue[1].integerValue);
 
     ctx->pushNotification(nbl::NotificationType::INFO, "Hello", "Hello from test plugin");
+
+    nbl::sleep(1000);
+    handle->pushStatus("Status", 0.33);
+
+    nbl::sleep(1000);
+    handle->pushStatus("Status 2", 0.66);
+
+    nbl::sleep(1000);
+    handle->pushStatus("Status 3", 1.0);
+
+    nbl::sleep(1000);
     handle->markComplete();
 
     return nbl::Result::SUCCESS;

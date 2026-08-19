@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 
 Item {
 
@@ -9,6 +10,9 @@ Item {
     required property int installationId
     required property MainWindow mainWindow
     property NblProcessHandle handle
+
+    property string message: "Starting..."
+    property double progress: 0
 
     onInstallationIdChanged: {
         handle = ApplicationContext.getRunningInstallation(installationId)
@@ -52,7 +56,9 @@ Item {
 
         property bool textVisible: width > 150
 
-        color: (root.processState === NblLaunchButton.State.STOPPING || root.processState === NblLaunchButton.State.STARTING) ? Theme.colors.layer0 : Theme.colors.accent
+        color: (root.processState === NblLaunchButton.State.STOPPING || root.processState === NblLaunchButton.State.STARTING) 
+            ? Theme.colors.layer1
+            : Theme.colors.accent
         radius: 8
 
         Row {
@@ -141,11 +147,54 @@ Item {
 
             Label {
                 visible: background.textVisible
-                text: "Starting..."
+                text: root.message
                 font.family: Theme.font
                 font.pixelSize: 20
-                font.weight: 600
+                font.weight: 500
                 color: Theme.colors.textDim
+            }
+        }
+
+        Item {
+            visible: root.processState === NblLaunchButton.State.STARTING
+            anchors.fill: background
+
+            Item {
+                id: maskShape
+                anchors.fill: parent
+                layer.enabled: true
+                visible: false
+                Rectangle {
+                    anchors.fill: parent
+                    radius: background.radius
+                }
+            }
+
+            Rectangle {
+                id: fillShape
+                anchors.fill: parent
+
+                color: "transparent"
+                layer.enabled: true
+                visible: false
+
+                Rectangle {
+                    width: parent.width * Math.min(1, Math.max(0, root.progress))
+                    height: 8
+                    anchors.bottom: parent.bottom
+                    color: Theme.colors.textDim
+
+                    Behavior on width {
+                        NumberAnimation { duration: 250 }
+                    }
+                }
+            }
+
+            MultiEffect {
+                source: fillShape
+                anchors.fill: fillShape
+                maskEnabled: true
+                maskSource: maskShape
             }
         }
 
@@ -169,7 +218,7 @@ Item {
                 text: "Stopping..."
                 font.family: Theme.font
                 font.pixelSize: 20
-                font.weight: 600
+                font.weight: 500
                 color: Theme.colors.textDim
             }
         }
@@ -191,7 +240,14 @@ Item {
     Connections {
         target: root.handle
         function onStopped() {
+            root.message = "Starting..."
+            root.progress = 0
             root.handle = null
+        }
+        function onStatusUpdated(message, progress) {
+            root.message = message
+            root.progress = progress
+            root.handle.check()
         }
     }
 

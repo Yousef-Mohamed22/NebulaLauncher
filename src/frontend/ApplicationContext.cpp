@@ -144,6 +144,16 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
     return nbl::Result::SUCCESS;
 }
 
+void _pushStatus(i64 id, nbl::StringView status, f64 progress) {
+    ApplicationContext* ctx = ApplicationContext::instance();
+    NblProcessHandle* hnd = ctx->getRunningInstallation(id);
+    if(hnd == nullptr) return;
+
+    QString statusStr = QString::fromUtf8(status.data, status.length);
+    hnd->pushStatus(statusStr, progress);
+}
+
+
 }
 
 
@@ -247,7 +257,7 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
         handle->deleteLater();
     });
 
-    if(nbl::ProcessTracker::create(installationId, handle->tracker()).error()) {
+    if(nbl::ProcessTracker::create(installationId, _pushStatus, handle->tracker()).error()) {
         _mContext.pushNotification(nbl::NotificationType::ERROR, "Failed to launch", "Failed to create process tracker");
         handle->deleteLater();
         return nullptr;
