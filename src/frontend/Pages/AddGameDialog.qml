@@ -10,6 +10,8 @@ NblDialog {
 
     id: root
 
+    showApplyButton: false
+
     property int gameId: 0
     property string gameName: "+ New Game"
     property bool newGame: gameId == 0
@@ -202,11 +204,11 @@ NblDialog {
 
         let gId = root.gameId
 
-        let command = fieldList.save()
+        let fields = fieldList.save()
         let params = {
             game: gId,
             type: commandTypeBox.currentValue,
-            command: command,
+            fields: fields,
             title: titleField.text,
             description: descriptionField.text,
             gameTitle: gameTitleField.text,
