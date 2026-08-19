@@ -244,8 +244,11 @@ Item {
             root.progress = 0
             root.handle = null
         }
-        function onStatusUpdated(message, progress) {
+        function onStatusUpdated(message) {
             root.message = message
+            root.handle.check()
+        }
+        function onProgressUpdated(progress) {
             root.progress = progress
             root.handle.check()
         }

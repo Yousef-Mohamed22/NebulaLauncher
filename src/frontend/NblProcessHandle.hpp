@@ -90,8 +90,11 @@ public:
 
     nbl::Result initLogging();
 
-    inline void pushStatus(QString message, double progress) {
-        emit statusUpdated(message, progress);
+    inline void pushStatus(QString message) {
+        emit statusUpdated(message);
+    }
+    inline void pushProgress(f64 progress) {
+        emit progressUpdated(progress);
     }
 
 signals:
@@ -102,7 +105,8 @@ signals:
     void stopped();
     void complete();
     void failed();
-    void statusUpdated(QString message, double progress);
+    void statusUpdated(QString message);
+    void progressUpdated(double progress);
 
 private:
 

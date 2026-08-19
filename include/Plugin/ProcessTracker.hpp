@@ -4,8 +4,6 @@
 #include <Platform/Process.hpp>
 #include <Plugin/PluginContext.hpp>
 
-#include <functional>
-
 namespace nbl {
 
 
@@ -32,7 +30,9 @@ public:
         _mState = State::COMPLETE;
     }
 
+    void pushStatus(StringView status);
     void pushStatus(StringView status, f64 progress);
+    void pushProgress(f64 progress);
 
     Result run(PluginContext* context, StringView command, StringView workingDir);
 
@@ -42,14 +42,14 @@ public:
 
     inline const ProcessHandle* handle() const { return &_mHandle; }
 
-    static Result create(i64 installationId, void(*statusConsumer)(i64, StringView, f64), ProcessTracker* outTracker);
+    static Result create(i64 installationId, void(*statusConsumer)(i64, Optional<StringView>, Optional<f64>), ProcessTracker* outTracker);
 
 private:
 
     i64 _mInstallationId;
     State _mState;
     ProcessHandle _mHandle;
-    void(*_fStatusConsumer)(i64, StringView, f64);
+    void(*_fStatusConsumer)(i64, Optional<StringView>, Optional<f64>);
 
 };
 

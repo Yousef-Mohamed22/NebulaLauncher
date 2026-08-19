@@ -144,13 +144,18 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
     return nbl::Result::SUCCESS;
 }
 
-void _pushStatus(i64 id, nbl::StringView status, f64 progress) {
+void _pushStatus(i64 id, nbl::Optional<nbl::StringView> status, nbl::Optional<f64> progress) {
     ApplicationContext* ctx = ApplicationContext::instance();
     NblProcessHandle* hnd = ctx->getRunningInstallation(id);
     if(hnd == nullptr) return;
 
-    QString statusStr = QString::fromUtf8(status.data, status.length);
-    hnd->pushStatus(statusStr, progress);
+    if(status.hasValue()) {
+        QString statusStr = QString::fromUtf8(status->data, status->length);
+        hnd->pushStatus(statusStr);
+    }
+    if(progress.hasValue()) {
+        hnd->pushProgress(*progress);
+    }
 }
 
 
