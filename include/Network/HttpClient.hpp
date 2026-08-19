@@ -20,7 +20,6 @@
 #include <Core/Result.hpp>
 
 #include <functional>
-#include "Core/Either.hpp"
 
 
 namespace nbl {
@@ -111,8 +110,28 @@ public:
     ~HttpClient();
 
     Result downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
+    inline Result downloadFile(StringView url, StringView file, Span<HttpHeader> headers = {}) {
+        return downloadFile(url, file, {}, headers);
+    }
+    inline Result downloadFile(StringView url, StringView file, std::function_ref<void(Result, i32, StringView)> doneCallback, Span<HttpHeader> headers = {}) { 
+        return downloadFile(url, file, doneCallback, headers);
+    }
+
     Result makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
+    inline Result makeRequest(StringView url, Writer writer, Span<HttpHeader> headers = {}) {
+        return makeRequest(url, writer, {}, headers);
+    }
+    inline Result makeRequest(StringView url, Writer writer, std::function_ref<void(Result, i32, StringView)> doneCallback, Span<HttpHeader> headers = {}) {
+        return makeRequest(url, writer, doneCallback, headers);
+    }
+
     Result makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
+    inline Result makePostRequest(StringView url, StringView body, Writer output, Span<HttpHeader> headers = {}) {
+        return makePostRequest(url, body, output, {}, headers);
+    }
+    inline Result makePostRequest(StringView url, StringView body, Writer output, std::function_ref<void(Result, i32, StringView)> doneCallback, Span<HttpHeader> headers = {}) {
+        return makePostRequest(url, body, output, doneCallback, headers);
+    }
 
     void awaitAll(u32* numFailures);
 
