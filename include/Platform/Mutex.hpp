@@ -127,12 +127,20 @@ public:
     }
 
     T& wait() {
-        _mCondition.wait();
+        _mMutex.lock();
+        _mCondition.wait(_mMutex);
+        _mMutex.unlock();
         return *reinterpret_cast<T*>(_mValue);
+    }
+
+    static Result create(Future* out) {
+        NBL_CHECK(Condition::create(&out->_mCondition));
+        NBL_CHECK(Mutex::create(&out->_mMutex));
     }
 
 private:
     Condition _mCondition;
+    Mutex _mMutex;
     u8 _mValue[sizeof(T)];
 };
 

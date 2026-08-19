@@ -32,8 +32,6 @@ enum class HttpClientFlag : u32 {
 };
 typedef u32 HttpClientFlags;
 
-
-
 inline HttpClientFlags operator&(HttpClientFlag flag, HttpClientFlag other) {
     return static_cast<u8>(flag) & static_cast<u8>(other);
 }
@@ -105,25 +103,22 @@ struct HttpHeader {
     }
 };
 
+struct HttpRequestOptions {
+    void(*doneCallback)(void*, Result, i32);
+    void* userData;
+    Span<HttpHeader> headers;
+    bool markExecutable;
+};
+
+
 class HttpClient {
 public:
 
     ~HttpClient();
 
-    Result downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result, i32)>> doneCallback = {}, Span<HttpHeader> headers = {}, bool executable = false);
-    inline Result downloadFile(StringView url, StringView file, std::function_ref<void(Result, i32)> doneCallback, Span<HttpHeader> headers = {}, bool executable = false) { 
-        return downloadFile(url, file, Optional(doneCallback), headers);
-    }
-
-    Result makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result, i32)>> doneCallback = {}, Span<HttpHeader> headers = {});
-    inline Result makeRequest(StringView url, Writer writer, std::function_ref<void(Result, i32)> doneCallback, Span<HttpHeader> headers = {}) {
-        return makeRequest(url, writer, Optional(doneCallback), headers);
-    }
-
-    Result makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result, i32)>> doneCallback = {}, Span<HttpHeader> headers = {});
-    inline Result makePostRequest(StringView url, StringView body, Writer output, std::function_ref<void(Result, i32)> doneCallback, Span<HttpHeader> headers = {}) {
-        return makePostRequest(url, body, output, Optional(doneCallback), headers);
-    }
+    Result downloadFile(StringView url, StringView file, HttpRequestOptions options = {});
+    Result makeRequest(StringView url, Writer writer, HttpRequestOptions options = {});
+    Result makePostRequest(StringView url, StringView body, Writer output, HttpRequestOptions options = {});
 
     void awaitAll(u32* numFailures);
 
@@ -141,7 +136,9 @@ private:
         void* handle;
         void* headers;
 
-        Optional<std::function_ref<void(Result, i32)>> callback;
+        void(*doneCallback)(void*, Result, i32);
+        void* userData;
+
         u32 retryCount;
         bool download;
         bool queued;
@@ -153,8 +150,8 @@ private:
         }
 
         inline void finished(Result res, i32 statusCode) {
-            if(callback.hasValue()) {
-                (*callback)(res, statusCode);
+            if(doneCallback) {
+                doneCallback(userData, res, statusCode);
             }
         }
     };

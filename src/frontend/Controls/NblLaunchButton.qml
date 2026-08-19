@@ -149,7 +149,7 @@ Item {
                 visible: background.textVisible
                 text: root.message
                 font.family: Theme.font
-                font.pixelSize: 20
+                font.pixelSize: 16
                 font.weight: 500
                 color: Theme.colors.textDim
             }
@@ -217,7 +217,7 @@ Item {
                 visible: background.textVisible
                 text: "Stopping..."
                 font.family: Theme.font
-                font.pixelSize: 20
+                font.pixelSize: 16
                 font.weight: 500
                 color: Theme.colors.textDim
             }

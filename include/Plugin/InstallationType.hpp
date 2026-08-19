@@ -39,10 +39,12 @@ struct InstallationType {
     GetFolderFunction getFolderFunc;
 
     inline Result launch(PluginContext* ctx, nbl::Span<FieldValue> fields, i64 installationId, ProcessTracker* handle) const {
+        if(launchFunc.pfnLaunchInstallation == nullptr) return nbl::Result::PLUGIN_ERROR;
         return launchFunc.pfnLaunchInstallation(this, ctx, fields, installationId, handle, launchFunc.userData);
     }
 
     inline Result getFolder(PluginContext* ctx, nbl::Span<FieldValue> fields, i64 installationId, StringView* outFolder) const {
+        if(getFolderFunc.pfnGetFolder == nullptr) return nbl::Result::PLUGIN_ERROR;
         return getFolderFunc.pfnGetFolder(this, ctx, fields, installationId, outFolder, getFolderFunc.userData);
     }
 

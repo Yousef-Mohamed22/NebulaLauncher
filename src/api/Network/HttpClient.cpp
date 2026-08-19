@@ -53,7 +53,7 @@ nbl::HttpClient::~HttpClient() {
 }
 
 
-nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optional<std::function_ref<void(Result, i32)>> doneCallback, Span<HttpHeader> headers, bool markExecutable) {
+nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, HttpRequestOptions options) {
 
     nbl::log(nbl::LogLevel::DEBUG, "GET ", url, " > ", file);
     auto frameLock = _mRequestMutex.frameLock();
@@ -92,14 +92,15 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, Optio
     }
 
     req->download = true;
-    req->callback = doneCallback;
+    req->doneCallback = options.doneCallback;
+    req->userData = options.userData;
     req->retryCount = 0;
-    req->markExecutable = markExecutable;
+    req->markExecutable = options.markExecutable;
 
-    return _setupConnection(url, req, {}, headers);
+    return _setupConnection(url, req, {}, options.headers);
 }
 
-nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result, i32)>> doneCallback, Span<HttpHeader> headers) {
+nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, HttpRequestOptions options) {
 
     nbl::log(nbl::LogLevel::DEBUG, "GET ", url);
     auto frameLock = _mRequestMutex.frameLock();
@@ -108,13 +109,14 @@ nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, Optional
     NBL_CHECK(_mRequests.push(&req));
 
     req->writer = writer;
-    req->callback = doneCallback;
+    req->doneCallback = options.doneCallback;
+    req->userData = options.userData;
     req->retryCount = 0;
 
-    return _setupConnection(url, req, {}, headers);
+    return _setupConnection(url, req, {}, options.headers);
 }
 
-nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result, i32)>> doneCallback, Span<HttpHeader> headers) {
+nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Writer output, HttpRequestOptions options) {
 
 
     nbl::log(nbl::LogLevel::DEBUG, "POST ", url, ":\n", body);
@@ -124,10 +126,11 @@ nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Wr
     NBL_CHECK(_mRequests.push(&req));
 
     req->writer = output;
-    req->callback = doneCallback;
+    req->doneCallback = options.doneCallback;
+    req->userData = options.userData;
     req->retryCount = 0;
 
-    return _setupConnection(url, req, body, headers);
+    return _setupConnection(url, req, body, options.headers);
 }
 
 
