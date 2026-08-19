@@ -141,6 +141,7 @@ public:
      */
     bool isRunning() const;
 
+    void terminate();
     void kill();
 
     /**

@@ -47,7 +47,7 @@ public:
         _bIsStopping = true;
         emit isStoppingUpdated();
 
-        _mTracker.kill();
+        _mTracker.terminate();
     }
 
     Q_INVOKABLE void check() {

@@ -39,6 +39,11 @@ void nbl::ProcessTracker::check() {
     }
 }
 
+void nbl::ProcessTracker::terminate() {
+    if(_mState != State::RUNNING) return;
+    _mHandle.terminate();
+}
+
 void nbl::ProcessTracker::kill() {
     if(_mState != State::RUNNING) return;
     _mHandle.kill();

@@ -130,6 +130,13 @@ bool nbl::ProcessHandle::isRunning() const {
     return waitpid(pid, nullptr, WNOHANG) == 0;
 }
 
+void nbl::ProcessHandle::terminate() {
+    if(_pHandle == nullptr) return;
+
+    int pid = _getHandle(_pHandle);
+    ::kill(pid, SIGTERM);
+}
+
 void nbl::ProcessHandle::kill() {
     if(_pHandle == nullptr) return;
 

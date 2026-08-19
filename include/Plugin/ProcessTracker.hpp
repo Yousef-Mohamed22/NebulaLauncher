@@ -38,6 +38,7 @@ public:
 
     void check();
 
+    void terminate();
     void kill();
 
     inline const ProcessHandle* handle() const { return &_mHandle; }
