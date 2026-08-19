@@ -1,31 +1,31 @@
-#include <Models/NblInstallationWithTagModel.hpp>
+#include <Models/NblGameWithTagModel.hpp>
 #include <ApplicationContext.hpp>
 
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
 
-QVariant NblInstallationWithTagModel::data(const QModelIndex& index, int role) const {
+QVariant NblGameWithTagModel::data(const QModelIndex& index, int role) const {
 
     if(!index.isValid() || index.row() >= _mData.size()) return QVariant();
 
-    NblInstallationRef ref = _mData.at(index.row());
+    const _Row& ref = _mData.at(index.row());
 
     switch(role) {
         case IdRole:
-            return static_cast<qint64>(ref.installationId());
+            return static_cast<qint64>(ref.gId);
         case TitleRole:
-            return ref.title();
+            return ref.title;
         case PosterRole:
-            return ref.poster();
+            return ref.poster;
         case IconRole:
-            return ref.icon();
+            return ref.icon;
         default:
             return QVariant();
     }
 }
 
-QHash<int, QByteArray> NblInstallationWithTagModel::roleNames() const {
+QHash<int, QByteArray> NblGameWithTagModel::roleNames() const {
     QHash<int, QByteArray> roles = {};
     roles[IdRole] = "id";
     roles[TitleRole] = "title";
@@ -35,7 +35,7 @@ QHash<int, QByteArray> NblInstallationWithTagModel::roleNames() const {
 }
 
 
-void NblInstallationWithTagModel::loadNextPage() {
+void NblGameWithTagModel::loadNextPage() {
 
     if(!_mAllLoaded && !_mIsLoading) {
         _mCurrentPage++;
@@ -44,7 +44,7 @@ void NblInstallationWithTagModel::loadNextPage() {
     }
 }
 
-void NblInstallationWithTagModel::refresh() {
+void NblGameWithTagModel::refresh() {
 
     beginResetModel();
 
@@ -62,7 +62,7 @@ void NblInstallationWithTagModel::refresh() {
 
 }
 
-void NblInstallationWithTagModel::_fetchPageData() {
+void NblGameWithTagModel::_fetchPageData() {
 
     if(_mAllLoaded || _mIsLoading) return;
     _mIsLoading = true;
@@ -74,20 +74,19 @@ void NblInstallationWithTagModel::_fetchPageData() {
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
     
-    QList<NblInstallationRef> found = {};
+    QList<_Row> found = {};
     found.reserve(_mPageSize);
 
     _mCriteria.offset = offset;
     _mCriteria.limit = limit;
 
-    if(nbl::lookupInstallations(db, _mCriteria, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
-        NblInstallationRef ref(res.installationId,
+    if(nbl::lookupGames(db, _mCriteria, [&](const nbl::GameLookupResult& res) -> nbl::Result {
+        _Row ref{
+            res.id,
             fromNbl(res.title),
-            fromNbl(res.gameTitle),
             fromNbl(res.poster),
-            fromNbl(res.icon),
-            res.lastPlayed
-        );
+            fromNbl(res.icon)
+        };
         found.append(ref);
         return nbl::Result::SUCCESS;
     }).error()) {

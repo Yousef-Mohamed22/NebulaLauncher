@@ -82,7 +82,7 @@ signals:
 private:
 
     struct _Row {
-        quint64 gId;
+        qint64 gId;
         QByteArray title;
         QByteArray poster;
         QByteArray icon;

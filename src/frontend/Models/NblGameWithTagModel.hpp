@@ -13,7 +13,7 @@
 
 #include "NblInstallationRef.hpp"
 
-class NblInstallationWithTagModel : public QAbstractListModel {
+class NblGameWithTagModel : public QAbstractListModel {
 
     Q_OBJECT
     QML_ELEMENT
@@ -26,7 +26,7 @@ class NblInstallationWithTagModel : public QAbstractListModel {
 
 public:
 
-    explicit NblInstallationWithTagModel(QObject* parent = nullptr) :
+    explicit NblGameWithTagModel(QObject* parent = nullptr) :
         QAbstractListModel(parent),
         _mTag{},
         _mCurrentPage(0),
@@ -35,7 +35,7 @@ public:
         _mAllLoaded(false)
     { }
 
-    NblInstallationWithTagModel(qint64 tag, QObject* parent = nullptr) :
+    NblGameWithTagModel(qint64 tag, QObject* parent = nullptr) :
         QAbstractListModel(parent),
         _mTag(tag),
         _mCurrentPage(1),
@@ -87,6 +87,12 @@ signals:
     void allLoadedChanged();
 
 private:
+    struct _Row {
+        qint64 gId;
+        QByteArray title;
+        QByteArray poster;
+        QByteArray icon;
+    };
 
     void _fetchPageData();
 
@@ -102,7 +108,7 @@ private:
     } _mCriteriaData = {};
     nbl::SearchCriteria _mCriteria = {};
 
-    QList<NblInstallationRef> _mData;
+    QList<_Row> _mData;
 
 };
 

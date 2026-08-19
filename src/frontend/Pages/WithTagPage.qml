@@ -76,7 +76,7 @@ Item {
                     id: list
                     width: parent.width
 
-                    model: NblInstallationWithTagModel {
+                    model: NblGameWithTagModel {
                         pageSize: 10
                         tag: root.tag
                     }
