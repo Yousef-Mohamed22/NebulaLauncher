@@ -114,7 +114,7 @@ public:
         return downloadFile(url, file, {}, headers);
     }
     inline Result downloadFile(StringView url, StringView file, std::function_ref<void(Result, i32, StringView)> doneCallback, Span<HttpHeader> headers = {}) { 
-        return downloadFile(url, file, doneCallback, headers);
+        return downloadFile(url, file, Optional(doneCallback), headers);
     }
 
     Result makeRequest(StringView url, Writer writer, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
@@ -122,7 +122,7 @@ public:
         return makeRequest(url, writer, {}, headers);
     }
     inline Result makeRequest(StringView url, Writer writer, std::function_ref<void(Result, i32, StringView)> doneCallback, Span<HttpHeader> headers = {}) {
-        return makeRequest(url, writer, doneCallback, headers);
+        return makeRequest(url, writer, Optional(doneCallback), headers);
     }
 
     Result makePostRequest(StringView url, StringView body, Writer output, Optional<std::function_ref<void(Result, i32, StringView)>> doneCallback, Span<HttpHeader> headers = {});
@@ -130,7 +130,7 @@ public:
         return makePostRequest(url, body, output, {}, headers);
     }
     inline Result makePostRequest(StringView url, StringView body, Writer output, std::function_ref<void(Result, i32, StringView)> doneCallback, Span<HttpHeader> headers = {}) {
-        return makePostRequest(url, body, output, doneCallback, headers);
+        return makePostRequest(url, body, output, Optional(doneCallback), headers);
     }
 
     void awaitAll(u32* numFailures);
