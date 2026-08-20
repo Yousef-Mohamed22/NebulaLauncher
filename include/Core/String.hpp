@@ -270,7 +270,7 @@ Result writeUint(u64 value, Writer writer);
 Result writeFloat(f64 value, Writer writer, u8 precision = 15);
 
 
-Result writeHex(u64 value, Writer writer, u8 minDigits = 0);
+Result writeHex(u64 value, Writer writer, u8 minDigits = 0, bool lower = false);
 
 
 /**

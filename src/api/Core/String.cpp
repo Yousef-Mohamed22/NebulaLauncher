@@ -100,15 +100,19 @@ nbl::Result nbl::writeFloat(f64 value, Writer writer, u8 precision) {
     }
 }
 
-nbl::Result nbl::writeHex(u64 value, Writer writer, u8 minDigits) {
+nbl::Result nbl::writeHex(u64 value, Writer writer, u8 minDigits, bool lower) {
  
+    if(minDigits > 16) return nbl::Result::INVALID_ARGUMENT;
+
     u8 buffer[16]{};
     u8 index = 16;
+
+    char letterOffset = lower ? 'a' : 'A';
 
     while(value > 0) {
         u8 lastDigit = value & 0xF;
         if(lastDigit > 9) {
-            buffer[--index] = 'A' + (lastDigit - 10);
+            buffer[--index] = letterOffset + (lastDigit - 10);
         } else {
             buffer[--index] = '0' + lastDigit;
         }
