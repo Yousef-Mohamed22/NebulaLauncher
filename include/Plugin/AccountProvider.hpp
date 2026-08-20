@@ -25,13 +25,13 @@ public:
         _pfnFinished(success, message, _pUserData);
         _bIdle = true;
     }
-    void postStatus(StringView message) {
+    inline void postStatus(StringView message) {
         auto lock = _mMutex.frameLock();
         if(_bIdle) return;
         _pfnStatus(message, _pUserData);
     }
 
-    bool isTracking() { 
+    inline bool isTracking() { 
         auto lock = _mMutex.frameLock();
         return !_bIdle; 
     }
@@ -93,7 +93,7 @@ struct AccountProvider {
             }
         } basicData;
         struct {
-            Result(*pfnFinishLogin)(StringView response, LoginTracker* tracker, void* userData);
+            Result(*pfnFinishLogin)(StringView response, StringView codeVerifier, LoginTracker* tracker, void* userData);
             Result(*pfnLogout)(u32 accountId, void* userData);
             void* userData;
             OAuthResponseType responseType;
@@ -102,8 +102,8 @@ struct AccountProvider {
             Span<StringView> scopes;
             u16 port;
 
-            Result finishOAuthLogin(StringView response, LoginTracker* tracker) const {
-                return pfnFinishLogin(response, tracker, userData);
+            Result finishOAuthLogin(StringView response, StringView codeVerifier, LoginTracker* tracker) const {
+                return pfnFinishLogin(response, codeVerifier, tracker, userData);
             }
 
         } oAuthData;

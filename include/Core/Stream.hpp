@@ -137,6 +137,13 @@ public:
         _mReaderIndex(0),
         _mWriterIndex(0)
     { }
+ 
+    template<typename T>
+    BufferStream(Span<T> data) :
+        _mBuffer{ reinterpret_cast<u8*>(data.data), data.length / sizeof(T) },
+        _mReaderIndex(0),
+        _mWriterIndex(0)
+    { }
 
     operator Writer() {
         return Writer{ this, _write };

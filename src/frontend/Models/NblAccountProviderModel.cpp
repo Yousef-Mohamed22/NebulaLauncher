@@ -1,15 +1,20 @@
 #include "NblAccountProviderModel.hpp"
 
 #include <Core/Random.hpp>
+#include <Core/Array.hpp>
+#include <Core/Stream.hpp>
 #include <Platform/Process.hpp>
 #include <Platform/Time.hpp>
+#include <Platform/Random.hpp>
 #include <Plugin/AccountProvider.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Network/HttpServer.hpp>
+#include <Utility/Hash.hpp>
 
 #include <QDesktopServices>
 
 #include "ApplicationContext.hpp"
+#include "Codec/Base64.hpp"
 
 namespace {
 
@@ -27,6 +32,7 @@ struct {
     } basicData;
     struct {
         nbl::OAuthHttpServer server;
+        nbl::Array<char, 128> challenge;
     } oAuthData;
     struct {
         QByteArray token;
@@ -88,9 +94,11 @@ nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
     const nbl::AccountProvider& prov = ctx->accountProviders().data[_sTracker.current];
     
+    nbl::StringView codeVerifier(_sTracker.oAuthData.challenge.data, 128);
+
     if(prov.oAuthData.responseType == nbl::AccountProvider::OAuthResponseType::NONE) {
         _sTracker.tracker.postStatus("Logging in");
-        return prov.oAuthData.finishOAuthLogin("", &_sTracker.tracker);
+        return prov.oAuthData.finishOAuthLogin("", codeVerifier, &_sTracker.tracker);
     }
 
     QString qpath = QString::fromUtf8(path.data, path.length);
@@ -116,14 +124,14 @@ nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
                 QByteArray arr = paramParts[1].toUtf8();
                 nbl::StringView code(arr.data(), arr.length());
                 _sTracker.tracker.postStatus("Logging in");
-                return prov.oAuthData.finishOAuthLogin(code, &_sTracker.tracker);
+                return prov.oAuthData.finishOAuthLogin(code, codeVerifier, &_sTracker.tracker);
             }
             case nbl::AccountProvider::OAuthResponseType::TOKEN: {
                 if(paramParts[0] != "token") continue;
                 QByteArray arr = paramParts[1].toUtf8();
                 nbl::StringView token(arr.data(), arr.length());
                 _sTracker.tracker.postStatus("Logging in");
-                return prov.oAuthData.finishOAuthLogin(token, &_sTracker.tracker);
+                return prov.oAuthData.finishOAuthLogin(token, codeVerifier, &_sTracker.tracker);
             }
         }
 
@@ -225,16 +233,39 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
         port = 40000 + (random.next() % 10000);
     } 
 
-    res = nbl::OAuthHttpServer::create(port, _sServerHandler, &_sTracker.oAuthData.server, &_sTracker.oAuthData.server);
+    nbl::Array<u8,128> challengeBytes;
+    res = nbl::secureRandom(challengeBytes); 
     if(res.error()) {
-        _sTracker.tracker.finishTracking(false, "Failed to start an OAuth callback server");
+        _sTracker.tracker.finishTracking(false, "Failed to generate a PKCE challenge");
         return;
     }
 
-    _sTracker.tracker.postStatus("Awaiting OAuth response");
+    res = nbl::encodeBase64(challengeBytes, _sTracker.oAuthData.challenge, nbl::Base64CharacterSet::URL_SAFE);
+    if(res.error()) {
+        _sTracker.tracker.finishTracking(false, "Failed to generate a PKCE challenge");
+        return;
+    }
+
+    nbl::Array<u8,32> hash{};
+    res = nbl::sha256(nbl::BufferStream(_sTracker.oAuthData.challenge.span()), hash);
+    if(res.error()) {
+        _sTracker.tracker.finishTracking(false, "Failed to generate a PKCE challenge");
+        return;
+    }
+
+    nbl::Array<char, 43> hashB64{};
+    res = nbl::encodeBase64(hash, hashB64, nbl::Base64CharacterSet::URL_SAFE);
+    if(res.error()) {
+        _sTracker.tracker.finishTracking(false, "Failed to generate a PKCE challenge");
+        return;
+    }
+
+    QString challenge = QString::fromUtf8(hashB64.data, hashB64.size());
 
     QString url = QString::fromUtf8(type.oAuthData.loginUrl.data, type.oAuthData.loginUrl.length);
     url += "?client_id=" + QString::fromUtf8(type.oAuthData.clientId.data, type.oAuthData.clientId.length);
+    url += "&code_challenge=" + challenge;
+    url += "&code_challenge_method=S256";
     url += "&response_type=";
     switch(type.oAuthData.responseType) {
         default:
@@ -260,6 +291,14 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
             url += QString::fromUtf8(type.oAuthData.scopes[i].data, type.oAuthData.scopes[i].length);
         }
     }
+
+    res = nbl::OAuthHttpServer::create(port, _sServerHandler, &_sTracker.oAuthData.server, &_sTracker.oAuthData.server);
+    if(res.error()) {
+        _sTracker.tracker.finishTracking(false, "Failed to start an OAuth callback server");
+        return;
+    }
+
+    _sTracker.tracker.postStatus("Awaiting OAuth response");
     QDesktopServices::openUrl(QUrl(url));
 
 }
