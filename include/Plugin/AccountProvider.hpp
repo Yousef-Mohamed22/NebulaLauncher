@@ -89,6 +89,7 @@ struct AccountProvider {
             void* userData;
 
             Result login(StringView username, StringView password, LoginTracker* tracker) const {
+                if(!pfnLogin) return nbl::Result::PLUGIN_ERROR;
                 return pfnLogin(username, password, tracker, userData);
             }
         } basicData;
@@ -103,6 +104,7 @@ struct AccountProvider {
             u16 port;
 
             Result finishOAuthLogin(StringView response, StringView codeVerifier, LoginTracker* tracker) const {
+                if(!pfnFinishLogin) return nbl::Result::PLUGIN_ERROR;
                 return pfnFinishLogin(response, codeVerifier, tracker, userData);
             }
 
@@ -113,6 +115,7 @@ struct AccountProvider {
             void* userData;
 
             Result login(StringView token, LoginTracker* tracker) const {
+                if(!pfnLogin) return nbl::Result::PLUGIN_ERROR;
                 return pfnLogin(token, tracker, userData);
             }
         } tokenData;
@@ -126,16 +129,26 @@ struct AccountProvider {
 
     Result logout(u32 accountId) const {
         NBL_ASSERT(type <= Type::TOKEN);
-        if(type == Type::BASIC) return basicData.pfnLogout(accountId, basicData.userData);
-        if(type == Type::OAUTH) return oAuthData.pfnLogout(accountId, basicData.userData);
+        if(type == Type::BASIC) {
+            if(!basicData.pfnLogout) return nbl::Result::PLUGIN_ERROR;
+            return basicData.pfnLogout(accountId, basicData.userData);
+        }
+        if(type == Type::OAUTH) {
+            if(!oAuthData.pfnLogout) return nbl::Result::PLUGIN_ERROR;
+            oAuthData.pfnLogout(accountId, basicData.userData);
+        }
+
+        if(!tokenData.pfnLogout) return nbl::Result::PLUGIN_ERROR;
         return tokenData.pfnLogout(accountId, oAuthData.userData);
     }
 
     Result getAccountInfo(u32 accountId, AccountInfo* info) const {
+        if(!accountInfo.pfnGet) return nbl::Result::PLUGIN_ERROR;
         return accountInfo.pfnGet(accountId, info, accountInfo.userData);
     }
 
     Result enumerateAccountInfo(AccountCallback callback) const {
+        if(!accountInfo.pfnEnumerate) return nbl::Result::PLUGIN_ERROR;
         return accountInfo.pfnEnumerate(callback, accountInfo.userData);
     }
 };

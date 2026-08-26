@@ -29,6 +29,12 @@ NblDialog {
         }
     ]
 
+    onProcessChanged: {
+        if(process != null) {
+            outputContent.text = process.logs
+        }
+    }
+
     Rectangle {
         id: background
         anchors.fill: parent

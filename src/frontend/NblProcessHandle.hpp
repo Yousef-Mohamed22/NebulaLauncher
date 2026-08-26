@@ -85,7 +85,7 @@ public:
 
     inline void appendLine(QString logLine) {
         _mLogs += logLine + '\n';
-        logsUpdated();
+        emit logsUpdated();
     }
 
     nbl::Result initLogging();
