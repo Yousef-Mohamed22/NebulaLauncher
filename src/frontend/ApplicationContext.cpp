@@ -211,15 +211,10 @@ void ApplicationContext::_initialize() {
     NBL_ASSERT(nbl::DatabaseConnection::open(path, &_mConnection).success());
     NBL_ASSERT(nbl::initDatabase(&_mConnection).success());
 
-    QVariantMap map = loadSettings();
-    _mDeviceId = map["device_id"].toLongLong();
-    if(_mDeviceId == 0) {
-        nbl::StringView hostname = nbl::getHostName();
-        NBL_ASSERT(nbl::addDevice(&_mConnection, { .name = hostname }, &_mDeviceId).success()); 
-    }
+    nbl::StringView hostname = nbl::getHostName();
 
+    NBL_ASSERT(nbl::getOrAddDevice(&_mConnection, hostname, &_mDeviceId).success()); 
     nbl::log(nbl::LogLevel::DEBUG, "Device ID: ", _mDeviceId);
-
 }
 
 

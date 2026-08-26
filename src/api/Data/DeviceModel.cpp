@@ -60,3 +60,21 @@ UPDATE device SET name = ?1 WHERE deviceId = ?2;
     _updateDeviceStmt.bindInt(2, meta.id);
     return connection->execute(&_updateDeviceStmt);
 }
+
+
+nbl::Result nbl::getOrAddDevice(DatabaseConnection* connection, StringView hostname, i64* outId) {
+
+    static nbl::PreparedStatement _addOrUpdateDeviceStmt;
+    if(!_addOrUpdateDeviceStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+INSERT INTO device (name) VALUES (?1) ON CONFLICT(name) DO UPDATE SET name = excluded.name RETURNING deviceId;
+        )", &_addOrUpdateDeviceStmt));
+    }
+    _addOrUpdateDeviceStmt.bindString(1, hostname);
+    return connection->execute(&_addOrUpdateDeviceStmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+        if(columnCount != 1) return nbl::Result::IO_ERROR;
+        *outId = values[0].intValue;
+        return nbl::Result::SUCCESS;
+    });
+
+}

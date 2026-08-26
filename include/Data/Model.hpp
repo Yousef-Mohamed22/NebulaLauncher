@@ -256,6 +256,7 @@ Result addDevice(DatabaseConnection* connection, DeviceMeta meta, i64* outId);
 Result getDevice(DatabaseConnection* connection, i64 id, DeviceCallback callback);
 Result removeDevice(DatabaseConnection* connection, i64 id);
 Result updateDevice(DatabaseConnection* connection, DeviceMeta meta); 
+Result getOrAddDevice(DatabaseConnection* connection, StringView hostname, i64* outId);
 
 //
 // Installations
