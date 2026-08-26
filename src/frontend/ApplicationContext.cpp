@@ -391,21 +391,24 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(qint64 instal
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 
         const nbl::InstallationType* type = _mContext.getInstallationType(details.installation.type);
-        nbl::Span<nbl::Field> fields = type->fields;
+        QVariant qtFields{};
+        if(type != nullptr) {
+            nbl::Span<nbl::Field> fields = type->fields;
 
-        NblFieldList* list = new NblFieldList(fields);
-        nbl::Span<nbl::FieldValue> values;
+            NblFieldList* list = new NblFieldList(fields);
+            nbl::Span<nbl::FieldValue> values;
 
-        nbl::JsonElement value = {};
-        NBL_CHECK(nbl::parseJson(nbl::StringReader(details.installation.command), &frame, &value));
-        NBL_CHECK(nbl::decodeFieldValues(type->fields, value.object, &values, &frame));
+            nbl::JsonElement value = {};
+            NBL_CHECK(nbl::parseJson(nbl::StringReader(details.installation.command), &frame, &value));
+            NBL_CHECK(nbl::decodeFieldValues(type->fields, value.object, &values, &frame));
 
-        nbl::Field dummy {
-            .type = nbl::FieldType::STRUCT,
-            .structData = { .fields = type->fields }
-        };
+            nbl::Field dummy {
+                .type = nbl::FieldType::STRUCT,
+                .structData = { .fields = type->fields }
+            };
 
-        QVariant qtFields = NblFieldRef(&dummy).fromNbl({ .compositeValue = values });
+            qtFields = NblFieldRef(&dummy).fromNbl({ .compositeValue = values });
+        }
 
         out = new NblInstallationDetails(
             details.installation.id,
