@@ -195,8 +195,6 @@ void ApplicationContext::_initialize() {
         .userData = this
     }, &_mContext).success());
 
-    _mContext.registerInstallationType(nbl::InstallationType::COMMAND);
-
     nbl::StringView applicationPath = nbl::getBinaryPath();
     usize lastSlash = 0;
     NBL_ASSERT(applicationPath.findLast('/', &lastSlash).success());

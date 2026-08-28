@@ -8,54 +8,36 @@
 #include <Platform/Arena.hpp>
 #include <Platform/StringBuilder.hpp>
 
+
 const nbl::InstallationType* nbl::PluginContext::getInstallationType(StringView id) const {
     for(const auto& type : types()) {
-        if(type.id == id) {
-            return &type;
+        if(type->id == id) {
+            return type;
         }
     }
     return nullptr;
 }
 
-nbl::Result nbl::PluginContext::registerInstallationType(const InstallationType& type) {
-
-    InstallationType* registered = nullptr;
-    NBL_CHECK(_mArena.allocate(&registered));
-
-    _mNumTypes++;
-
-    *registered = type;
-    return nbl::Result::SUCCESS;
-}
-
-nbl::ConstSpan<nbl::InstallationType> nbl::PluginContext::types() const {
+nbl::ConstSpan<const nbl::InstallationType*> nbl::PluginContext::types() const {
     return nbl::ConstSpan(
-        _pTypes,
-        _mNumTypes
+        static_cast<const InstallationType**>(_pStarts[PluginRegistries::INSTALLATION_TYPE]),
+        _mCounts[PluginRegistries::INSTALLATION_TYPE]
     );
 }
 
 const nbl::AccountProvider* nbl::PluginContext::getAccountProvider(StringView id) const {
     for(const auto& prov : accountProviders()) {
-        if(prov.id == id) {
-            return &prov;
+        if(prov->id == id) {
+            return prov;
         }
     }
     return nullptr;
 }
 
-nbl::Result nbl::PluginContext::registerAccountProvider(const AccountProvider& type) {
-
-    AccountProvider* registered = nullptr;
-    NBL_CHECK(_mAccountProviderArena.allocate(&registered));
-    *registered = type;
-    return nbl::Result::SUCCESS;
-}
-
-nbl::ConstSpan<nbl::AccountProvider> nbl::PluginContext::accountProviders() const {
+nbl::ConstSpan<const nbl::AccountProvider*> nbl::PluginContext::accountProviders() const {
     return nbl::ConstSpan(
-        static_cast<AccountProvider*>(_mAccountProviderArena.begin()),
-        _mAccountProviderArena.index() / sizeof(AccountProvider)
+        static_cast<const AccountProvider**>(_pStarts[PluginRegistries::ACCOUNT_PROVIDER]),
+        _mCounts[PluginRegistries::ACCOUNT_PROVIDER]
     );
 }
 
@@ -63,7 +45,6 @@ nbl::ConstSpan<nbl::AccountProvider> nbl::PluginContext::accountProviders() cons
 nbl::Result nbl::PluginContext::create(StringView databasePath, StringView pluginDataPath, NotificationConsumer consumer, PluginContext* ctx) {
 
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 16, &ctx->_mArena));
-    NBL_CHECK(nbl::Arena::create(1024 * 1024 * 4, &ctx->_mAccountProviderArena));
 
     {
         nbl::ArenaFrame frame(&ctx->_mArena);
@@ -94,7 +75,6 @@ nbl::Result nbl::PluginContext::create(StringView databasePath, StringView plugi
     NBL_CHECK(ctx->_mArena.push(padding, &alloc));
     memset(alloc, 0, padding);
 
-    ctx->_pTypes = reinterpret_cast<InstallationType*>(static_cast<u8*>(ctx->_mArena.begin()) + offset + padding - 1);
     ctx->_mNotificationConsumer = consumer;
     return nbl::Result::SUCCESS;
 }

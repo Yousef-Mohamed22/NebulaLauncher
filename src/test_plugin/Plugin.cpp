@@ -308,12 +308,12 @@ nbl::InstallationType _type = {
 }
 
 
-extern "C" i32 initPlugin(nbl::PluginContext *context) {
+extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
 
     nbl::log(nbl::LogLevel::INFO, "Hello from plugin");
 
-    context->registerInstallationType(_type);
-    context->registerAccountProvider(_provider);
+    context->registerInstallationType(&_type);
+    context->registerAccountProvider(&_provider);
 
     return 0;
 }

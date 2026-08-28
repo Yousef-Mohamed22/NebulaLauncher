@@ -37,13 +37,13 @@ public:
         if(index.row() >= rowCount()) return QVariant();
         
         nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-        const nbl::InstallationType& type = ctx->types().data[index.row()];
+        const nbl::InstallationType* type = ctx->types().data[index.row()];
 
         switch(role) {
             case IdRole:
-                return QByteArray(type.id.data, type.id.length);
+                return QByteArray(type->id.data, type->id.length);
             case NameRole:
-                return QByteArray(type.name.data, type.name.length);
+                return QByteArray(type->name.data, type->name.length);
             default:
                 return QVariant();
         }

@@ -8,6 +8,19 @@
 
 namespace nbl {
 
+class PluginRegistries {
+public:
+
+    enum Registry : usize {
+        INSTALLATION_TYPE,
+        ACCOUNT_PROVIDER,
+        _END
+    };
+
+    constexpr static usize count() { return _END; }
+
+};
+
 enum NotificationType {
     INFO,
     ERROR
@@ -30,12 +43,10 @@ class PluginContext {
 public:
 
     const InstallationType* getInstallationType(StringView id) const;
-    Result registerInstallationType(const InstallationType& type);
-    ConstSpan<InstallationType> types() const;
+    ConstSpan<const InstallationType*> types() const;
 
     const AccountProvider* getAccountProvider(StringView id) const;
-    Result registerAccountProvider(const AccountProvider& type);
-    ConstSpan<AccountProvider> accountProviders() const;
+    ConstSpan<const AccountProvider*> accountProviders() const;
 
     Result runCommand(i64 installationId, StringView commandLine, StringView workingDir, ProcessHandle* handle);
 
@@ -54,14 +65,17 @@ public:
 
 private:
     Arena _mArena;
-    Arena _mAccountProviderArena;
 
-    usize _mNumTypes;
-    InstallationType* _pTypes;
+    void* _pStarts[PluginRegistries::count()];
+    usize _mCounts[PluginRegistries::count()];
+
     StringView _mDatabasePath;
     StringView _mPluginDataPath;
     StringView _mWrapperPath;
+
     NotificationConsumer _mNotificationConsumer;
+
+    friend class PluginLoader;
 };
 
 

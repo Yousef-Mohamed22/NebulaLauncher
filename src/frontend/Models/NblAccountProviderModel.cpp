@@ -72,9 +72,9 @@ void _stopServer() {
 i32 _sThreadProc(void* userData) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider& prov = ctx->accountProviders().data[_sTracker.current];
+    const nbl::AccountProvider* prov = ctx->accountProviders().data[_sTracker.current];
 
-    nbl::Result result = prov.basicData.login(
+    nbl::Result result = prov->basicData.login(
         nbl::StringView(_sTracker.basicData.username.data(), _sTracker.basicData.username.length()),
         nbl::StringView(_sTracker.basicData.password.data(), _sTracker.basicData.password.length()),
         &_sTracker.tracker
@@ -92,13 +92,13 @@ i32 _sThreadProc(void* userData) {
 nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider& prov = ctx->accountProviders().data[_sTracker.current];
+    const nbl::AccountProvider* prov = ctx->accountProviders().data[_sTracker.current];
     
     nbl::StringView codeVerifier(_sTracker.oAuthData.challenge.data, 128);
 
-    if(prov.oAuthData.responseType == nbl::AccountProvider::OAuthResponseType::NONE) {
+    if(prov->oAuthData.responseType == nbl::AccountProvider::OAuthResponseType::NONE) {
         _sTracker.tracker.postStatus("Logging in");
-        return prov.oAuthData.finishOAuthLogin("", codeVerifier, &_sTracker.tracker);
+        return prov->oAuthData.finishOAuthLogin("", codeVerifier, &_sTracker.tracker);
     }
 
     QString qpath = QString::fromUtf8(path.data, path.length);
@@ -117,21 +117,21 @@ nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
             return nbl::Result::FORMAT_ERROR;
         }
 
-        switch(prov.oAuthData.responseType) {
+        switch(prov->oAuthData.responseType) {
             default:
             case nbl::AccountProvider::OAuthResponseType::CODE: {
                 if(paramParts[0] != "code") continue;
                 QByteArray arr = paramParts[1].toUtf8();
                 nbl::StringView code(arr.data(), arr.length());
                 _sTracker.tracker.postStatus("Logging in");
-                return prov.oAuthData.finishOAuthLogin(code, codeVerifier, &_sTracker.tracker);
+                return prov->oAuthData.finishOAuthLogin(code, codeVerifier, &_sTracker.tracker);
             }
             case nbl::AccountProvider::OAuthResponseType::TOKEN: {
                 if(paramParts[0] != "token") continue;
                 QByteArray arr = paramParts[1].toUtf8();
                 nbl::StringView token(arr.data(), arr.length());
                 _sTracker.tracker.postStatus("Logging in");
-                return prov.oAuthData.finishOAuthLogin(token, codeVerifier, &_sTracker.tracker);
+                return prov->oAuthData.finishOAuthLogin(token, codeVerifier, &_sTracker.tracker);
             }
         }
 
@@ -144,9 +144,9 @@ nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
 i32 _sTokenThreadProc(void* userData) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider& prov = ctx->accountProviders().data[_sTracker.current];
+    const nbl::AccountProvider* prov = ctx->accountProviders().data[_sTracker.current];
 
-    nbl::Result result = prov.tokenData.login(
+    nbl::Result result = prov->tokenData.login(
         nbl::StringView(_sTracker.tokenData.token.data(), _sTracker.tokenData.token.length()),
         &_sTracker.tracker
     );
@@ -174,17 +174,17 @@ QVariant NblAccountProviderModel::data(const QModelIndex& index, int role) const
     if(index.row() >= rowCount()) return QVariant();
     
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider& type = ctx->accountProviders().data[index.row()];
+    const nbl::AccountProvider* type = ctx->accountProviders().data[index.row()];
 
     switch(role) {
         case IdRole:
-            return QByteArray(type.id.data, type.id.length);
+            return QByteArray(type->id.data, type->id.length);
         case NameRole:
-            return QByteArray(type.name.data, type.name.length);
+            return QByteArray(type->name.data, type->name.length);
         case MaxAccountsRole:
-            return type.maxAccounts;
+            return type->maxAccounts;
         case AccountTypeRole:
-            return static_cast<u32>(type.type);
+            return static_cast<u32>(type->type);
         case LoggingInRole:
             return _sTracker.tracker.isTracking() && _sTracker.current == static_cast<u32>(index.row());
         default:
@@ -200,7 +200,6 @@ void NblAccountProviderModel::loginBasic(quint32 index, QString username, QStrin
         ctx->pushNotification(nbl::NotificationType::ERROR, "Cannot log in", "Already trying to login to another account");
         return;
     }
-    const nbl::AccountProvider& type = ctx->accountProviders().data[index];
     _sTracker.current = index;
     _sTracker.basicData.username = username.toUtf8();
     _sTracker.basicData.password = password.toUtf8();
@@ -223,10 +222,10 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
         ctx->pushNotification(nbl::NotificationType::ERROR, "Cannot log in", "Already trying to login to another account");
         return;
     }
-    const nbl::AccountProvider& type = ctx->accountProviders().data[index];
+    const nbl::AccountProvider* type = ctx->accountProviders().data[index];
     _sTracker.current = index;
  
-    u16 port = type.oAuthData.port;
+    u16 port = type->oAuthData.port;
     if(port == 0) {
         nbl::Random random{};
         random.seed(nbl::getCurrentTime());
@@ -262,12 +261,12 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
 
     QString challenge = QString::fromUtf8(hashB64.data, hashB64.size());
 
-    QString url = QString::fromUtf8(type.oAuthData.loginUrl.data, type.oAuthData.loginUrl.length);
-    url += "?client_id=" + QString::fromUtf8(type.oAuthData.clientId.data, type.oAuthData.clientId.length);
+    QString url = QString::fromUtf8(type->oAuthData.loginUrl.data, type->oAuthData.loginUrl.length);
+    url += "?client_id=" + QString::fromUtf8(type->oAuthData.clientId.data, type->oAuthData.clientId.length);
     url += "&code_challenge=" + challenge;
     url += "&code_challenge_method=S256";
     url += "&response_type=";
-    switch(type.oAuthData.responseType) {
+    switch(type->oAuthData.responseType) {
         default:
         case nbl::AccountProvider::OAuthResponseType::NONE:
             url += "none";
@@ -282,13 +281,13 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
 
     url += "&redirect_uri=http://localhost:" + QString::number(static_cast<quint16>(port));
     
-    if(type.oAuthData.scopes.length > 0) {
+    if(type->oAuthData.scopes.length > 0) {
         url += "&scope=";
-        for(usize i = 0 ; i < type.oAuthData.scopes.length ; i++) {
+        for(usize i = 0 ; i < type->oAuthData.scopes.length ; i++) {
             if(i > 0) {
                 url += "%20";
             }
-            url += QString::fromUtf8(type.oAuthData.scopes[i].data, type.oAuthData.scopes[i].length);
+            url += QString::fromUtf8(type->oAuthData.scopes[i].data, type->oAuthData.scopes[i].length);
         }
     }
 
@@ -310,7 +309,6 @@ void NblAccountProviderModel::loginToken(quint32 index, QString token) {
         ctx->pushNotification(nbl::NotificationType::ERROR, "Cannot log in", "Already trying to login to another account");
         return;
     }
-    const nbl::AccountProvider& type = ctx->accountProviders().data[index];
     _sTracker.current = index;
     _sTracker.tokenData.token = token.toUtf8();
 
@@ -326,17 +324,17 @@ void NblAccountProviderModel::loginToken(quint32 index, QString token) {
 void NblAccountProviderModel::logout(quint32 index, quint32 accountId) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider& prov = ctx->accountProviders().data[index];
+    const nbl::AccountProvider* prov = ctx->accountProviders().data[index];
 
-    prov.logout(accountId);
+    prov->logout(accountId);
 }
 
 NblAccountsModel* NblAccountProviderModel::accounts(quint32 index) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider& type = ctx->accountProviders().data[index];
+    const nbl::AccountProvider* type = ctx->accountProviders().data[index];
 
-    return new NblAccountsModel(&type, this);
+    return new NblAccountsModel(type, this);
 }
 
 QHash<int, QByteArray> NblAccountProviderModel::roleNames() const {

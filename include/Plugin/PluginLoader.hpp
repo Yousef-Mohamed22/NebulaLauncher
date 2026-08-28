@@ -4,16 +4,16 @@
 #include <Core/String.hpp>
 
 #include <Platform/DynamicLibrary.hpp>
+#include <Plugin/PluginInitContext.hpp>
+#include "Platform/Allocator.hpp"
 
 namespace nbl {
 
 struct LoadedPlugin {
-    StringView id;
-    StringView name;
-    StringView version;
-    StringView description;
+    PluginMeta meta;
     DynamicLibrary lib;
 };
+
 
 class PluginLoader {
 public:
@@ -24,7 +24,7 @@ public:
 
 private:
 
-    Result _load(StringView folder);
+    Result _load(StringView folder, LinearAllocator* registrations);
 
     Arena _mMetaArena;
     Arena _mDataArena;
