@@ -16,6 +16,14 @@ SettingsTab {
         Theme.colors.lightMode = !darkTheme
         Theme.colors.activeColor = selectedColor
         Theme.colors.tintUi = tintBox.checked
+
+        ApplicationContext.saveSettings({
+            theme: {
+                active_color: Theme.colors.activeColor,
+                light_theme: Theme.colors.lightMode,
+                tint_ui: Theme.colors.tintUi
+            }
+        })
     }
 
     Column {

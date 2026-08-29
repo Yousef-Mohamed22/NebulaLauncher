@@ -673,8 +673,6 @@ int ApplicationContext::deleteInstallation(qint64 installationId) {
 void ApplicationContext::saveSettings(const QVariantMap& settings) {
 
     QJsonObject obj = QJsonObject::fromVariantMap(settings);
-    obj["device_id"] = static_cast<qint64>(_mDeviceId);
-
     QJsonDocument doc(obj);
 
     QString filePath = dataFolder() + "/settings.json";
