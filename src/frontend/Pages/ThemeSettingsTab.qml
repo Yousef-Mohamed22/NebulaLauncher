@@ -29,7 +29,6 @@ SettingsTab {
     Column {
 
         anchors.fill: parent
-
         spacing: 16
 
         NblCheckBox {

@@ -117,7 +117,7 @@ SettingsTab {
                                     inactiveColor: Theme.colors.layer1
                                     textColor: enabled ? Theme.colors.text : Theme.colors.textDim
                                     centered: true
-                                    fontWeight: 500
+                                    font.weight: 500
                                     enabled: providerRepeater.loggingInIndex == -1
                                     onClicked: {
                                         providerModel.logout(providerItem.index, accountItem.modelData.id)
@@ -208,7 +208,7 @@ SettingsTab {
                                 inactiveColor: Theme.colors.layer1
                                 textColor: enabled ? Theme.colors.text : Theme.colors.textDim
                                 centered: true
-                                fontWeight: 500
+                                font.weight: 500
                                 onClicked: {
                                     providerItem.adding = true
                                 }

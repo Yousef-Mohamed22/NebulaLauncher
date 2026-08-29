@@ -12,7 +12,6 @@ Control {
     property color activeColor: Theme.colors.border
     property color inactiveColor: "transparent"
     property color textColor: Theme.colors.text
-    property int fontWeight: 400 
     
     property int radius: 8
     property bool centered: false
@@ -43,9 +42,8 @@ Control {
 
     RowLayout {
 
-        x: root.leftPadding
-        y: root.topPadding
-        width: root.centered ? textLabel.implicitWidth + (root.icon.length > 0 ? 8 + 24 : 0) : (parent.width - root.leftPadding - root.rightPadding)
+        x: root.centered ? (root.width - width) / 2 : root.leftPadding 
+        y: root.centered ? (root.height - height) / 2 : root.topPadding
 
         spacing: 8
 
@@ -64,7 +62,6 @@ Control {
             text: root.text
             font.family: Theme.font
             font.pixelSize: 16
-            font.weight: root.fontWeight
             color: root.textColor
         }
     }

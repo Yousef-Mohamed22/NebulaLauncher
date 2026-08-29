@@ -57,7 +57,7 @@ Item {
             activeColor: Theme.colors.accent
             textColor: Theme.colors.textOnAccent
             centered: true
-            fontWeight: 500
+            font.weight: 500
             onClicked: {
                 root.loginPressed({
                     username: usernameBox.text,
@@ -75,7 +75,7 @@ Item {
             inactiveColor: Theme.colors.layer1
             textColor: root.cancelEnabled ? Theme.colors.text : Theme.colors.textDim
             centered: true
-            fontWeight: 500
+            font.weight: 500
             onClicked: {
                 root.canceled()
             }
@@ -95,7 +95,7 @@ Item {
             inactiveColor: Theme.colors.accent
             activeColor: Theme.colors.accent
             textColor: Theme.colors.textOnAccent
-            fontWeight: 500
+            font.weight: 500
             centered: true
             onClicked: {
                 root.loginPressed({})
@@ -109,7 +109,7 @@ Item {
             inactiveColor: Theme.colors.layer1
             textColor: root.cancelEnabled ? Theme.colors.text : Theme.colors.textDim
             centered: true
-            fontWeight: 500
+            font.weight: 500
             onClicked: {
                 root.canceled()
             }
@@ -139,7 +139,7 @@ Item {
             activeColor: Theme.colors.accent
             textColor: Theme.colors.textOnAccent
             centered: true
-            fontWeight: 500
+            font.weight: 500
             onClicked: {
                 root.loginPressed({
                     token: tokenBox.text
@@ -156,7 +156,7 @@ Item {
             inactiveColor: Theme.colors.layer1
             textColor: root.cancelEnabled ? Theme.colors.text : Theme.colors.textDim
             centered: true
-            fontWeight: 500
+            font.weight: 500
             onClicked: {
                 root.canceled()
             }
