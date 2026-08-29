@@ -10,15 +10,18 @@ Item {
 
     id: root
 
-    required property MainWindow mainWindow
     property bool collapsed: true
     property int selectedTab: 0
+
+    signal tabClicked(int tabId)
+    signal tabEdited(int tabId)
+    signal gameAdded()
 
     implicitWidth: collapsed ? 64 : 240
 
     Component.onCompleted: {
         if(tabRepeater.count > 0) {
-            mainWindow.openTab((tabRepeater.itemAt(0) as NblTabButton).tabId)
+            root.tabClicked((tabRepeater.itemAt(0) as NblTabButton).tabId)
         }
     }
 
@@ -98,21 +101,27 @@ Item {
 
                         onClicked: {
                             root.selectedTab = tabId
-                            root.mainWindow.openTab(tabId)
+                            root.tabClicked(tabId)
                         }
                         onEditRequested: {
-                            root.mainWindow.beginEditTab(tabId)
+                            let dialogComponent = Qt.createComponent("AddTabDialog.qml")
+                            let dialog = dialogComponent.createObject(this, { tabId: tabId }) as AddTabDialog
+                            dialog.apply.connect(function() {
+                                root.reloadTabs()
+                                root.tabEdited(tabId)
+                            })
+                            dialog.open()
                         }
                         onDeleteRequested: {
-                            root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
-                                "text": "Are you sure you want to delete this tab?"
-                            }, function() {
-                                ApplicationContext.deleteTab(tabId)
+                            let dialogComponent = Qt.createComponent("ConfirmDeleteDialog.qml")
+                            let dialog = dialogComponent.createObject(this, { 
+                                "text": "Are you sure you want to delete this tab?" 
+                            }) as ConfirmDeleteDialog
+                            dialog.apply.connect(function() {
                                 root.reloadTabs()
-                                if(tabRepeater.count > 0) {
-                                    root.mainWindow.openTab((tabRepeater.itemAt(0) as NblTabButton).tabId)
-                                }
+                                root.tabEdited(tabId)
                             })
+                            dialog.open()
                         }
                     }
                 }
@@ -137,7 +146,9 @@ Item {
                     name: ""
 
                     onClicked: { 
-                        root.mainWindow.openSettings()
+                        let dialogComponent = Qt.createComponent("AppSettingsDialog.qml")
+                        let dialog = dialogComponent.createObject(this, { }) as AppSettingsDialog
+                        dialog.open()
                     }
                 }
 
@@ -166,7 +177,12 @@ Item {
                                 text: "Add Installation"
                                 onClicked: {
                                     addMenu.close()
-                                    root.mainWindow.beginAddGame()
+                                    let dialogComponent = Qt.createComponent("AddGameDialog.qml")
+                                    let dialog = dialogComponent.createObject(this, {}) as AddTabDialog
+                                    dialog.apply.connect(function() {
+                                        root.gameAdded()
+                                    })
+                                    dialog.open()
                                 }
                                 radius: 2
                             }
@@ -177,7 +193,12 @@ Item {
                                 text: "Add Tab"
                                 onClicked: {
                                     addMenu.close()
-                                    root.mainWindow.beginAddTab()
+                                    let dialogComponent = Qt.createComponent("AddTabDialog.qml")
+                                    let dialog = dialogComponent.createObject(this, {}) as AddTabDialog
+                                    dialog.apply.connect(function() {
+                                        root.reloadTabs()
+                                    })
+                                    dialog.open()
                                 }
                                 radius: 2
                             }

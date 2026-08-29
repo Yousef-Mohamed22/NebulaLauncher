@@ -170,7 +170,6 @@ NblDialog {
                 id: accountSettingsTab
                 anchors.fill: parent
                 visible: false
-                mainWindow: root.mainWindow
             }
         }
 

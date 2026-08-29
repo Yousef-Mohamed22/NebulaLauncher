@@ -11,6 +11,8 @@ Window {
 
     id: root
 
+    property alias currentPage: pageLoader.currentItem
+
     Rectangle {
         anchors.fill: parent
         color: Theme.colors.layer0
@@ -51,16 +53,25 @@ Window {
             }
             Sidebar {
                 id: sidebar
-                mainWindow: root
                 Layout.fillHeight: true
+
+                onTabClicked: (tabId) => {
+                    root.openTab(tabId)
+                }
+                onTabEdited: (tabId) => {
+                    let tabPage = pageLoader.currentItem as NblTabPage
+                    if(tabPage && tabPage.tabId == tabId) {
+                        tabPage.refresh()
+                    } 
+                }
+                onGameAdded: {
+                    let tabPage = pageLoader.currentItem as NblTabPage
+                    if(tabPage) {
+                        tabPage.refresh()
+                    } 
+                }
             }
         }
-    }
-
-    Loader {
-        id: modalLoader
-        anchors.fill: parent
-        active: false
     }
 
     NblNotificationColumn {
@@ -79,18 +90,30 @@ Window {
     }
 
     Connections {
+        target: pageLoader.currentItem
+        ignoreUnknownSignals: true
+        function onCloseRequested() {
+            while (pageLoader.depth > 1) {
+                pageLoader.pop()
+            }
 
-        id: modalConnections
-        target: modalLoader.item
-
-        property var applyAction
-
-        function onClose() {
-            modalLoader.active = false
+            let tabPage = pageLoader.currentItem as NblTabPage
+            if(tabPage) {
+                tabPage.refresh()
+            }
         }
-
-        function onApply() {
-            applyAction()
+        function onInstallationClicked(installationId) {
+            root.openInstallationDetails(installationId)
+        }
+        function onGameClicked(gameId) {
+            root.openGameDetails(gameId)
+        }
+        function onTagClicked(tagId, tagName, tagColor) {
+            root.openPage("Pages/WithTagPage.qml", {
+                tag: tagId,
+                name: tagName,
+                color: tagColor,
+            })
         }
     }
 
@@ -110,87 +133,87 @@ Window {
         }
     }
     
-    function beginAddGame() {
-        openDialog("Pages/AddGameDialog.qml", {}, function() {
-            let tabPage = pageLoader.currentItem as NblTabPage
-            if(tabPage) {
-                tabPage.refresh()
-            }
-            let gamePage = pageLoader.currentItem as NblGamePage
-            if(gamePage) {
-                gamePage.refresh()
-            }
-        })
-    }
-    function beginAddInstallation(gameId) {
-        openDialog("Pages/AddGameDialog.qml", {
-            gameId: gameId
-        }, function() {
-            let tabPage = pageLoader.currentItem as NblTabPage
-            if(tabPage) {
-                tabPage.refresh()
-            }
-            let gamePage = pageLoader.currentItem as NblGamePage
-            if(gamePage) {
-                gamePage.refresh()
-            }
-        })
-    }
+    // function beginAddGame() {
+    //     openDialog("Pages/AddGameDialog.qml", {}, function() {
+    //         let tabPage = pageLoader.currentItem as NblTabPage
+    //         if(tabPage) {
+    //             tabPage.refresh()
+    //         }
+    //         let gamePage = pageLoader.currentItem as NblGamePage
+    //         if(gamePage) {
+    //             gamePage.refresh()
+    //         }
+    //     })
+    // }
+    // function beginAddInstallation(gameId) {
+    //     openDialog("Pages/AddGameDialog.qml", {
+    //         gameId: gameId
+    //     }, function() {
+    //         let tabPage = pageLoader.currentItem as NblTabPage
+    //         if(tabPage) {
+    //             tabPage.refresh()
+    //         }
+    //         let gamePage = pageLoader.currentItem as NblGamePage
+    //         if(gamePage) {
+    //             gamePage.refresh()
+    //         }
+    //     })
+    // }
 
-    function beginAddTab() {
-        openDialog("Pages/AddTabDialog.qml", {}, function() {
-            sidebar.reloadTabs()
-        })
-    }
-
-    function beginEditTab(id) {
-        openDialog("Pages/AddTabDialog.qml", {
-            tabId: id
-        }, function() {
-            sidebar.reloadTabs()
-            let tabPage = pageLoader.currentItem as NblTabPage
-            if(tabPage) {
-                tabPage.refresh()
-            }
-        })
-    }
-
-    function openSettings() {
-        openDialog("Pages/AppSettingsDialog.qml", {}, function() { 
-            ApplicationContext.saveSettings({
-                theme: {
-                    active_color: Theme.colors.activeColor, 
-                    light_theme: Theme.colors.lightMode,
-                    tint_ui: Theme.colors.tintUi
-                }
-            })
-        })
-    }
-
-    function beginEditInstallation(id) {
-
-        openDialog("Pages/EditInstallationDialog.qml", {
-            "installationId": id,
-            "startOnInstallation": true
-        }, function() {
-            let gamePage = pageLoader.currentItem as NblGamePage
-            if(gamePage) {
-                gamePage.refresh()
-            }
-        })
-    }
-
-    function beginEditGame(id) {
-
-        openDialog("Pages/EditInstallationDialog.qml", {
-            "installationId": id
-        }, function() {
-            let gamePage = pageLoader.currentItem as NblGamePage
-            if(gamePage) {
-                gamePage.refresh()
-            }
-        })
-    }
+    // function beginAddTab() {
+    //     openDialog("Pages/AddTabDialog.qml", {}, function() {
+    //         sidebar.reloadTabs()
+    //     })
+    // }
+    //
+    // function beginEditTab(id) {
+    //     openDialog("Pages/AddTabDialog.qml", {
+    //         tabId: id
+    //     }, function() {
+    //         sidebar.reloadTabs()
+    //         let tabPage = pageLoader.currentItem as NblTabPage
+    //         if(tabPage) {
+    //             tabPage.refresh()
+    //         }
+    //     })
+    // }
+    //
+    // function openSettings() {
+    //     openDialog("Pages/AppSettingsDialog.qml", {}, function() { 
+    //         ApplicationContext.saveSettings({
+    //             theme: {
+    //                 active_color: Theme.colors.activeColor, 
+    //                 light_theme: Theme.colors.lightMode,
+    //                 tint_ui: Theme.colors.tintUi
+    //             }
+    //         })
+    //     })
+    // }
+    //
+    // function beginEditInstallation(id) {
+    //
+    //     openDialog("Pages/EditInstallationDialog.qml", {
+    //         "installationId": id,
+    //         "startOnInstallation": true
+    //     }, function() {
+    //         let gamePage = pageLoader.currentItem as NblGamePage
+    //         if(gamePage) {
+    //             gamePage.refresh()
+    //         }
+    //     })
+    // }
+    //
+    // function beginEditGame(id) {
+    //
+    //     openDialog("Pages/EditInstallationDialog.qml", {
+    //         "installationId": id
+    //     }, function() {
+    //         let gamePage = pageLoader.currentItem as NblGamePage
+    //         if(gamePage) {
+    //             gamePage.refresh()
+    //         }
+    //     })
+    // }
 
     function openTab(id) {
 
@@ -199,17 +222,16 @@ Window {
             pageLoader.pop()
         }
 
-        if(pageLoader.depth == 1 && pageLoader.currentItem.tabId == id) {
-            if(initDepth > 1) {
-                pageLoader.currentItem.refresh()
+        if(initDepth > 1) {
+            let page = pageLoader.currentItem as NblTabPage
+            if(page && page.tabId == id) {
+                page.refresh()
+                return
             }
-
-            return
         }
 
         pageLoader.replace("Pages/NblTabPage.qml", {
-            tabId: id,
-            mainWindow: root
+            tabId: id
         })
     }
 
@@ -231,7 +253,6 @@ Window {
         pageLoader.push("Pages/NblGamePage.qml", {
             details: gDetails,
             installationDetails: iDetails,
-            mainWindow: root,
         })
     }
  
@@ -244,7 +265,6 @@ Window {
 
         pageLoader.push("Pages/NblGamePage.qml", {
             details: details,
-            mainWindow: root,
         })
     }
 
@@ -258,17 +278,4 @@ Window {
             tabPage.refresh()
         }
     }
-
-    function openDialog(file, options, applyAction) {
-
-        let realOptions = Object.assign({}, options)
-        realOptions.mainWindow = this
-
-        modalLoader.setSource(file, realOptions)
-        modalConnections.applyAction = applyAction
-
-        modalLoader.active = true
-
-    }
-
 }

@@ -8,7 +8,6 @@ Item {
 
     required property int gameId
     required property int installationId
-    required property MainWindow mainWindow
     property NblProcessHandle handle
 
     property string message: "Starting..."
@@ -17,6 +16,8 @@ Item {
     onInstallationIdChanged: {
         handle = ApplicationContext.getRunningInstallation(installationId)
     }
+
+    signal installationAdded
 
     implicitHeight: 72
     implicitWidth: 212
@@ -260,7 +261,14 @@ Item {
         hoverEnabled: true
         onClicked: {
             if(root.processState === NblLaunchButton.State.NOT_INSTALLED) {
-                root.mainWindow.beginAddInstallation(root.gameId)
+                let dialogComponent = Qt.createComponent("../Pages/AddGameDialog.qml")
+                let dialog = dialogComponent.createObject(this, { 
+                    gameId: root.gameId
+                }) as NblDialog
+                dialog.apply.connect(function() {
+                    root.installationAdded()
+                })
+                dialog.open()
             }
             else if(root.processState === NblLaunchButton.State.STOPPING || root.processState === NblLaunchButton.State.STARTING) return
             else if(root.processState === NblLaunchButton.State.RUNNING) {

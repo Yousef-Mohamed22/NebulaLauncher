@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Item {
+Control {
 
     id: root
 
@@ -19,7 +19,10 @@ Item {
 
     signal clicked
 
-    implicitHeight: 48
+    padding: 8
+
+    implicitHeight: 32 + topPadding + bottomPadding
+    implicitWidth: textLabel.implicitWidth + (root.icon.length > 0 ? 8 + 24 : 0) + leftPadding + rightPadding
 
     Rectangle {
         id: background
@@ -40,9 +43,9 @@ Item {
 
     RowLayout {
 
-        anchors.centerIn: parent
-
-        width: root.centered ? textLabel.implicitWidth + (root.icon.length > 0 ? 8 + 24 : 0) : (parent.width - 16)
+        x: root.leftPadding
+        y: root.topPadding
+        width: root.centered ? textLabel.implicitWidth + (root.icon.length > 0 ? 8 + 24 : 0) : (parent.width - root.leftPadding - root.rightPadding)
 
         spacing: 8
 

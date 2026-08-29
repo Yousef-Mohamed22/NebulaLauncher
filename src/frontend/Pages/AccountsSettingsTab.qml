@@ -19,8 +19,6 @@ SettingsTab {
     onApplied: {
     }
 
-    property MainWindow mainWindow
-
     NblScrollView {
 
         width: parent.width

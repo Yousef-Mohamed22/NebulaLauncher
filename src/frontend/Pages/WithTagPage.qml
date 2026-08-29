@@ -12,10 +12,11 @@ Item {
     required property int tag
     required property string name
     required property color color
-    required property MainWindow mainWindow
 
     property bool useIcons: false
     property bool showTitles: false
+
+    signal gameClicked(int gameId)
 
     ScrollView {
 
@@ -90,7 +91,7 @@ Item {
                     showTitles: root.showTitles
 
                     onItemClicked: id => {
-                        root.mainWindow.openGameDetails(id)
+                        root.gameClicked(id)
                     }
                 }
             }

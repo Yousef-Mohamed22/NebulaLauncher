@@ -10,7 +10,6 @@ import Nebula.Controls
 Item {
 
     id: root
-    required property MainWindow mainWindow
     required property NblGameDetails details
     
     property int selectedInstallation: installationPicker.selectedInstallationId
@@ -25,6 +24,9 @@ Item {
     property string banner: installationDetails == null ? details.bannerUrl() : installationDetails.resolvedBannerUrl
 
     property bool isFavorite: false
+
+    signal closeRequested
+    signal tagClicked(int id, string name, color color)
 
     function refresh() {
         isFavorite = false
@@ -162,8 +164,10 @@ Item {
                     id: launchBtn
                     anchors.fill: parent
                     installationId: root.selectedInstallation
-                    mainWindow: root.mainWindow
                     gameId: root.details.gameId
+                    onInstallationAdded: {
+                        root.refresh()
+                    }
                 }                
             }
 
@@ -171,7 +175,6 @@ Item {
             NblInstallationPicker {
                 id: installationPicker
                 gameId: root.details.gameId
-                mainWindow: root.mainWindow
                 Layout.maximumWidth: 250
                 Layout.minimumWidth: 48
                 Layout.fillWidth: true
@@ -244,9 +247,11 @@ Item {
                     Layout.fillWidth: true
                     icon: "󰆍"
                     onClicked: {
-                        root.mainWindow.openDialog("Pages/StdoutDialog.qml", {
+                        let dialogComponent = Qt.createComponent("StdoutDialog.qml")
+                        let dialog = dialogComponent.createObject(this, { 
                             process: launchBtn.handle
-                        })
+                        }) as NblDialog
+                        dialog.open()
                     }
                 }
 
@@ -254,7 +259,14 @@ Item {
                     Layout.fillWidth: true
                     icon: ""
                     onClicked: {
-                        root.mainWindow.beginEditGame(root.selectedInstallation)
+                        let dialogComponent = Qt.createComponent("EditInstallationDialog.qml")
+                        let dialog = dialogComponent.createObject(this, { 
+                            installationId: root.selectedInstallation
+                        }) as NblDialog
+                        dialog.apply.connect(function() {
+                            root.refresh()
+                        })
+                        dialog.open()
                     }
                 }
 
@@ -262,12 +274,15 @@ Item {
                     Layout.fillWidth: true
                     icon: ""
                     onClicked: {
-                        root.mainWindow.openDialog("Pages/ConfirmDeleteDialog.qml", {
-                            "text": "Are you sure you want to delete this game and all of its installations?"
-                        }, function() {
+                        let dialogComponent = Qt.createComponent("ConfirmDeleteDialog.qml")
+                        let dialog = dialogComponent.createObject(this, { 
+                            text: "Are you sure you want to delete this game and all of its installations?"
+                        }) as NblDialog
+                        dialog.apply.connect(function() {
                             ApplicationContext.deleteGame(root.details.gameId)
-                            root.mainWindow.closeInstallationDetails()
+                            root.closeRequested()
                         })
+                        dialog.open()
                     }
                 }
             }
@@ -429,12 +444,7 @@ Item {
                             }
 
                             onClicked: {
-                                root.mainWindow.openPage("Pages/WithTagPage.qml", {
-                                    tag: model.id,
-                                    name: model.name,
-                                    color: model.color,
-                                    mainWindow: root.mainWindow
-                                })
+                                root.tagClicked(model.id, model.name, model.color)
                             }
                         }
                     }

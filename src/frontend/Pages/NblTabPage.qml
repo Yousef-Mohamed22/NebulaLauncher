@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls
 
 import Nebula.Controls
 
@@ -9,8 +8,10 @@ Item {
 
     id: root
 
+    signal installationClicked(int installationId)
+    signal gameClicked(int gameId)
+
     required property int tabId
-    required property MainWindow mainWindow
 
     NblScrollView {
 
@@ -52,10 +53,10 @@ Item {
                     showInstallations: modelData.showInstallations
 
                     onInstallationClicked: id => {
-                        root.mainWindow.openInstallationDetails(id)
+                        root.installationClicked(id)
                     }
                     onGameClicked: id => {
-                        root.mainWindow.openGameDetails(id)
+                        root.gameClicked(id)
                     }
 
                     Connections {

@@ -6,7 +6,6 @@ Item {
 
     id: root
 
-    required property MainWindow mainWindow
     default property alias content: contentContainer.children
 
     property list<QtObject> above: []
@@ -32,185 +31,203 @@ Item {
 
     readonly property int navigationHeight: navigationContainer.height + navigationPadding * 2
 
-    width: Window.width
-    height: Window.height
-
     signal apply
     signal cancel
     signal close
 
-    Rectangle {
-        anchors.fill: parent
-        color: "#AA000000"
+    width: Window.width
+    height: Window.height
+
+    function open() { 
+        popup.parent = Window.contentItem
+        popup.open()
     }
 
-    WheelHandler {
-        blocking: true 
-    }
+    Popup {
+        id: popup
 
-    MouseArea {
-        anchors.fill: parent
-        propagateComposedEvents: false
-        hoverEnabled: true
-        onWheel: wheel => { wheel.accepted = true; }
-        onPressed: mouse => { mouse.accepted = true; }
-        onReleased: mouse => { mouse.accepted = true; }
-    }
-
-    Item {
-        width: Math.min(parent.width - 16, root.targetWidth)
-        height: Math.min(parent.height - 16, root.targetHeight)
-
-        anchors.centerIn: parent
-
-        Rectangle {
-            anchors.fill: parent
-            color: Theme.colors.layer0
-            radius: 16
+        onClosed: {
+            root.close()
         }
 
-        ColumnLayout {
+        width: root.width
+        height: root.height
+        modal: true
 
+        topPadding: (height - Math.min(height - 16, root.targetHeight)) / 2
+        bottomPadding: topPadding
+
+        leftPadding: (width - Math.min(width - 16, root.targetWidth)) / 2
+        rightPadding: leftPadding
+
+        background: Rectangle {
             anchors.fill: parent
-            anchors.margins: root.padding
-            spacing: root.navigationGap
+            color: "#AA000000"
+        }
 
-            Item {
-                id: contentContainer
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.margins: root.contentPadding
+        // WheelHandler {
+        //     blocking: true 
+        // }
+        //
+        // MouseArea {
+        //     anchors.fill: parent
+        //     propagateComposedEvents: false
+        //     hoverEnabled: true
+        //     onWheel: wheel => { wheel.accepted = true; }
+        //     onPressed: mouse => { mouse.accepted = true; }
+        //     onReleased: mouse => { mouse.accepted = true; }
+        // }
+
+        contentItem: Item {
+
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.colors.layer0
+                radius: 16
             }
 
-            Item {
+            ColumnLayout {
 
-                id: navigationContainer
+                anchors.fill: parent
+                anchors.margins: root.padding
+                spacing: root.navigationGap
 
-                Layout.fillWidth: true
-                Layout.preferredHeight: 40
-                Layout.margins: root.navigationPadding
+                Item {
+                    id: contentContainer
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.margins: root.contentPadding
+                }
 
-                RowLayout {
+                Item {
 
-                    anchors.fill: parent
+                    id: navigationContainer
 
-                    layoutDirection: Qt.RightToLeft
-                    spacing: 8
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 40
+                    Layout.margins: root.navigationPadding
 
-                    Item {
+                    RowLayout {
 
-                        id: okBtn
-                        visible: root.showOkButton
+                        anchors.fill: parent
 
-                        Layout.preferredWidth: 128
-                        Layout.fillHeight: true
+                        layoutDirection: Qt.RightToLeft
+                        spacing: 8
 
-                        Rectangle {
-                            anchors.fill: parent
-                            color: root.okButtonColor
-                            radius: 8
-                        }
+                        Item {
 
-                        Label {
-                            anchors.centerIn: parent
-                            font.pixelSize: 16
-                            font.weight: 500
-                            color: Theme.colors.blackOrWhite(root.okButtonColor)
-                            text: root.okText
-                        }
+                            id: okBtn
+                            visible: root.showOkButton
 
-                        MouseArea {
-                            id: addMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.apply()
-                                root.close()
+                            Layout.preferredWidth: 128
+                            Layout.fillHeight: true
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: root.okButtonColor
+                                radius: 8
+                            }
+
+                            Label {
+                                anchors.centerIn: parent
+                                font.pixelSize: 16
+                                font.weight: 500
+                                color: Theme.colors.blackOrWhite(root.okButtonColor)
+                                text: root.okText
+                            }
+
+                            MouseArea {
+                                id: addMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.apply()
+                                    popup.close()
+                                }
                             }
                         }
-                    }
 
-                    Item {
+                        Item {
 
-                        id: applyBtn
-                        visible: root.showApplyButton
+                            id: applyBtn
+                            visible: root.showApplyButton
 
-                        Layout.preferredWidth: 128
-                        Layout.fillHeight: true
+                            Layout.preferredWidth: 128
+                            Layout.fillHeight: true
 
-                        Rectangle {
-                            anchors.fill: parent
-                            color: okMouseArea.containsMouse ? Theme.colors.border : Theme.colors.layer1
-                            radius: 8
-                        }
+                            Rectangle {
+                                anchors.fill: parent
+                                color: okMouseArea.containsMouse ? Theme.colors.border : Theme.colors.layer1
+                                radius: 8
+                            }
 
-                        Label {
-                            anchors.centerIn: parent
-                            font.pixelSize: 16
-                            font.weight: 500
-                            color: Theme.colors.text
-                            text: root.applyText
-                        }
+                            Label {
+                                anchors.centerIn: parent
+                                font.pixelSize: 16
+                                font.weight: 500
+                                color: Theme.colors.text
+                                text: root.applyText
+                            }
 
-                        MouseArea {
-                            id: okMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.apply()
+                            MouseArea {
+                                id: okMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.apply()
+                                }
                             }
                         }
-                    }
 
-                    Item {
+                        Item {
 
-                        id: cancelBtn
-                        visible: root.showCancelButton
+                            id: cancelBtn
+                            visible: root.showCancelButton
 
-                        Layout.preferredWidth: 128
-                        Layout.fillHeight: true
+                            Layout.preferredWidth: 128
+                            Layout.fillHeight: true
 
-                        Rectangle {
-                            anchors.fill: parent
-                            color: cancelMouseArea.containsMouse ? Theme.colors.border : Theme.colors.layer1
-                            radius: 8
-                        }
+                            Rectangle {
+                                anchors.fill: parent
+                                color: cancelMouseArea.containsMouse ? Theme.colors.border : Theme.colors.layer1
+                                radius: 8
+                            }
 
-                        Label {
-                            anchors.centerIn: parent
-                            font.pixelSize: 16
-                            font.weight: 500
-                            color: Theme.colors.text
-                            text: root.cancelText
-                        }
+                            Label {
+                                anchors.centerIn: parent
+                                font.pixelSize: 16
+                                font.weight: 500
+                                color: Theme.colors.text
+                                text: root.cancelText
+                            }
 
-                        MouseArea {
-                            id: cancelMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.cancel()
-                                root.close()
+                            MouseArea {
+                                id: cancelMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.cancel()
+                                    popup.close()
+                                }
                             }
                         }
-                    }
 
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        children: root.navigation
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            children: root.navigation
+                        }
                     }
                 }
             }
         }
-    }
 
-    Item {
-        anchors.fill: parent
-        children: root.above
+        Item {
+            anchors.fill: parent
+            children: root.above
+        }
     }
-
 }

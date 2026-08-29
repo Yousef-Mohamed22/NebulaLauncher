@@ -1,7 +1,6 @@
 #include <Plugin/Field.hpp>
-#include "Codec/Json.hpp"
-#include "Platform/Allocator.hpp"
-#include "Platform/Logging.hpp"
+#include <Codec/Json.hpp>
+#include <Platform/Allocator.hpp>
 
 
 namespace {
