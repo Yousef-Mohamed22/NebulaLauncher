@@ -291,7 +291,7 @@ Item {
                                         ctxMenu.close()
                                         dropdown.close()
                                         let dialogComponent = Qt.createComponent("../Pages/EditInstallationDialog.qml")
-                                        let dialog = dialogComponent.createObject(this, { 
+                                        let dialog = dialogComponent.createObject(root, { 
                                             installationId: installationItem.installationId
                                         }) as NblDialog
                                         dialog.open()
@@ -307,7 +307,7 @@ Item {
                                         ctxMenu.close()
                                         dropdown.close()
                                         let dialogComponent = Qt.createComponent("../Pages/ConfirmDeleteDialog.qml")
-                                        let dialog = dialogComponent.createObject(this, { 
+                                        let dialog = dialogComponent.createObject(root, { 
                                             "text": "Are you sure you want to delete this installation?"
                                         }) as NblDialog
                                         dialog.apply.connect(function() {
@@ -353,7 +353,11 @@ Item {
                         onClicked: {
                             dropdown.close()
                             let dialogComponent = Qt.createComponent("../Pages/AddGameDialog.qml")
-                            let dialog = dialogComponent.createObject(this, { 
+                            if(dialogComponent.status != Component.Ready) {
+                                console.log("Component load failed: ", dialogComponent.errorString())
+                                return
+                            }
+                            let dialog = dialogComponent.createObject(root, { 
                                 gameId: root.gameId
                             }) as NblDialog
                             dialog.apply.connect(function() {
@@ -400,7 +404,7 @@ Item {
                     selectedCtxMenu.close()
                     dropdown.close()
                     let dialogComponent = Qt.createComponent("../Pages/EditInstallationDialog.qml")
-                    let dialog = dialogComponent.createObject(this, { 
+                    let dialog = dialogComponent.createObject(root, { 
                         installationId: root.selectedInstallationId
                     }) as NblDialog
                     dialog.open()
@@ -416,7 +420,7 @@ Item {
                     selectedCtxMenu.close()
                     dropdown.close()
                     let dialogComponent = Qt.createComponent("../Pages/ConfirmDeleteDialog.qml")
-                    let dialog = dialogComponent.createObject(this, { 
+                    let dialog = dialogComponent.createObject(root, { 
                         "text": "Are you sure you want to delete this installation?"
                     }) as NblDialog
                     dialog.apply.connect(function() {

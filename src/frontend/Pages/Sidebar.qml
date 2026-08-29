@@ -105,7 +105,7 @@ Item {
                         }
                         onEditRequested: {
                             let dialogComponent = Qt.createComponent("AddTabDialog.qml")
-                            let dialog = dialogComponent.createObject(this, { tabId: tabId }) as AddTabDialog
+                            let dialog = dialogComponent.createObject(root, { tabId: tabId }) as AddTabDialog
                             dialog.apply.connect(function() {
                                 root.reloadTabs()
                                 root.tabEdited(tabId)
@@ -147,7 +147,7 @@ Item {
 
                     onClicked: { 
                         let dialogComponent = Qt.createComponent("AppSettingsDialog.qml")
-                        let dialog = dialogComponent.createObject(this, { }) as AppSettingsDialog
+                        let dialog = dialogComponent.createObject(root, { }) as AppSettingsDialog
                         dialog.open()
                     }
                 }
@@ -178,7 +178,7 @@ Item {
                                 onClicked: {
                                     addMenu.close()
                                     let dialogComponent = Qt.createComponent("AddGameDialog.qml")
-                                    let dialog = dialogComponent.createObject(this, {}) as AddTabDialog
+                                    let dialog = dialogComponent.createObject(root, {}) as NblDialog
                                     dialog.apply.connect(function() {
                                         root.gameAdded()
                                     })
@@ -194,7 +194,7 @@ Item {
                                 onClicked: {
                                     addMenu.close()
                                     let dialogComponent = Qt.createComponent("AddTabDialog.qml")
-                                    let dialog = dialogComponent.createObject(this, {}) as AddTabDialog
+                                    let dialog = dialogComponent.createObject(root, {}) as NblDialog
                                     dialog.apply.connect(function() {
                                         root.reloadTabs()
                                     })

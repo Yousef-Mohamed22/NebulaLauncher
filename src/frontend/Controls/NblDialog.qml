@@ -40,6 +40,7 @@ Item {
 
     function open() { 
         popup.parent = Window.contentItem
+        popup.z = 10
         popup.open()
     }
 
@@ -64,19 +65,6 @@ Item {
             anchors.fill: parent
             color: "#AA000000"
         }
-
-        // WheelHandler {
-        //     blocking: true 
-        // }
-        //
-        // MouseArea {
-        //     anchors.fill: parent
-        //     propagateComposedEvents: false
-        //     hoverEnabled: true
-        //     onWheel: wheel => { wheel.accepted = true; }
-        //     onPressed: mouse => { mouse.accepted = true; }
-        //     onReleased: mouse => { mouse.accepted = true; }
-        // }
 
         contentItem: Item {
 

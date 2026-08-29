@@ -182,20 +182,22 @@ public:
 
 };
 
-Result makeDirectories(StringView path);
 
 bool fileExists(StringView path);
 
-bool isExecutable(StringView path);
-
-Result setExecutable(StringView path);
-
+Result makeDirectories(StringView path);
 Result createLink(StringView target, StringView path);
 
+bool isExecutable(StringView path);
+Result setExecutable(StringView path);
+
 u64 modifyTime(StringView path);
+Result setModifyTime(StringView path, u64 modifyTime);
+
+Result getOpenFileLimit(u64* currentLimit, u64* maxLimit);
+Result setOpenFileLimit(u64 limit);
 
 StringView getWorkingDirectory();
-
 StringView getDataDirectory();
 
 }

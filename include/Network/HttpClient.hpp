@@ -20,8 +20,6 @@
 #include <Platform/File.hpp>
 #include <Platform/PlatformDefines.hpp>
 
-#include <functional>
-
 
 namespace nbl {
 
@@ -123,9 +121,9 @@ public:
 
     void awaitAll(u32* numFailures);
 
-    static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out, HttpClientFlags flags = 0);
-    inline static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out, HttpClientFlag flag) {
-        return create(maxRequests, maxConnections, maxRetries, out, static_cast<HttpClientFlags>(flag));
+    static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, u32 maxOpenFiles, HttpClient* out, HttpClientFlags flags = 0);
+    inline static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, u32 maxOpenFiles, HttpClient* out, HttpClientFlag flag) {
+        return create(maxRequests, maxConnections, maxRetries, maxOpenFiles, out, static_cast<HttpClientFlags>(flag));
     }
 
 private:
@@ -169,6 +167,8 @@ private:
     HttpClientFlags _mFlags;
     u32 _mMaxRetries;
     u32 _mFailures;
+    u32 _mMaxOpenFiles;
+    std::atomic<u32> _mOpenFiles;
     std::atomic<u32> _mQueuedRequests;
     bool _bQueuePaused;
 

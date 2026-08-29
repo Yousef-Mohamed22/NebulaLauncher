@@ -9,6 +9,7 @@
 
 #include <Platform/PlatformDefines.hpp>
 #include <cerrno>
+#include "Core/Math.hpp"
 #ifdef NBL_PLATFORM_LINUX
 
 #include <Core/Result.hpp>
@@ -29,6 +30,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <sys/resource.h>
 
 namespace {
 
@@ -344,18 +346,68 @@ u64 nbl::modifyTime(StringView path) {
 
     if(path.nullTerminated) {
 
-        if(stat(path.data, &fileStat) != 0) return nbl::Result::OS_ERROR;
+        if(stat(path.data, &fileStat) != 0) return 0;
         return fileStat.st_mtime;
 
     } else {
         char temp[PATH_MAX] = {};
         memcpy(temp, path.data, path.length);
 
-        if(stat(temp, &fileStat) != 0) return nbl::Result::OS_ERROR;
+        if(stat(temp, &fileStat) != 0) return 0;
         return fileStat.st_mtime;
     }
 }
 
+nbl::Result nbl::setModifyTime(StringView path, u64 modifyTime) {
+
+    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+
+    struct timespec times[2];
+    times[0].tv_nsec = UTIME_OMIT;
+
+    times[1].tv_sec = modifyTime / 1000;
+    times[1].tv_nsec = (modifyTime * 1000000) % 1000000;
+
+    if(path.nullTerminated) {
+
+        if(utimensat(AT_FDCWD, path.data, times, 0) == -1) return nbl::Result::OS_ERROR;
+
+    } else {
+        char temp[PATH_MAX] = {};
+        memcpy(temp, path.data, path.length);
+
+        if(utimensat(AT_FDCWD, temp, times, 0) == -1) return nbl::Result::OS_ERROR;
+    }
+
+    return nbl::Result::SUCCESS;
+}
+
+nbl::Result nbl::getOpenFileLimit(u64* currentLimit, u64* maxLimit) {
+    struct rlimit limit;
+    if(getrlimit(RLIMIT_NOFILE, &limit) == 0) {
+        if(currentLimit) *currentLimit = limit.rlim_cur;
+        if(maxLimit) *maxLimit = limit.rlim_max;
+        return nbl::Result::SUCCESS;
+    } else {
+        return nbl::Result::OS_ERROR;
+    }
+}
+
+nbl::Result nbl::setOpenFileLimit(u64 limit) {
+
+    struct rlimit rlimit;
+    if(getrlimit(RLIMIT_NOFILE, &rlimit) == -1) {
+        return nbl::Result::OS_ERROR;
+    }
+
+    rlimit.rlim_cur = nbl::min(limit, rlimit.rlim_max);
+
+    if(setrlimit(RLIMIT_NOFILE, &rlimit) == -1) {
+        nbl::log(nbl::LogLevel::ERROR, "Could not setrlimit! ", errno);
+        return nbl::Result::OS_ERROR;
+    }
+    return nbl::Result::SUCCESS;
+}
 
 void nbl::FolderIterator::_close() {
     ::closedir(static_cast<DIR*>(_mHandle));

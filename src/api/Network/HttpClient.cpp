@@ -55,6 +55,8 @@ nbl::HttpClient::~HttpClient() {
 
 nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, HttpRequestOptions options) {
 
+    if(_mMaxOpenFiles == 0) return nbl::Result::INVALID_STATE;
+
     nbl::log(nbl::LogLevel::DEBUG, "GET ", url, " > ", file);
     auto frameLock = _mRequestMutex.frameLock();
 
@@ -65,9 +67,10 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, HttpR
     FileOpenFlags flags = FileOpenFlag::WRITE | FileOpenFlag::CREATE;
     if(_mFlags & HttpClientFlag::CREATE_FILE_PARENTS) flags = flags | FileOpenFlag::CREATE_PARENTS;
 
+
     nbl::FileChannel channel{};
-    Result res = nbl::FileChannel::open(file, &channel, flags);
-    if(res == Result::TOO_MANY_OPEN_FILES) {
+    nbl::Result res = nbl::Result::TOO_MANY_OPEN_FILES;
+    if(_mOpenFiles == _mMaxOpenFiles || (res = nbl::FileChannel::open(file, &channel, flags)) == Result::TOO_MANY_OPEN_FILES) {
         if(!(_mFlags & HttpClientFlag::REFERENCE_FILE_PATHS)) {
             if(_mPaths.begin() == nullptr) {
                 NBL_CHECK(nbl::Arena::create(_mRequests.capacity() * 4096U, &_mPaths));
@@ -77,14 +80,16 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, HttpR
             memcpy(data, file.data, file.length);
             file.data = static_cast<char*>(data);
         }
-
+        
+        _mOpenFiles++;
         req->createParents = _mFlags & HttpClientFlag::CREATE_FILE_PARENTS;
         req->file = file;
+        req->markExecutable = options.markExecutable;
 
     } else if(res.error()) {
         return res;
     } else {
-        if(req->markExecutable) {
+        if(options.markExecutable) {
             nbl::setExecutable(file);
         }
         req->file = std::move(channel);
@@ -92,7 +97,6 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, HttpR
     }
 
     req->download = true;
-    req->markExecutable = options.markExecutable;
 
     return _setupConnection(url, req, {}, options);
 }
@@ -327,6 +331,9 @@ nbl::Result nbl::HttpClient::_startThread() {
                     if(req->headers) {
                         curl_slist_free_all(static_cast<curl_slist*>(req->headers));
                     }
+                    if(req->download) {
+                        client->_mOpenFiles--;
+                    }
 
                     curl_multi_remove_handle(handle, easy);
                     curl_easy_cleanup(easy);
@@ -344,7 +351,7 @@ nbl::Result nbl::HttpClient::_startThread() {
 
 }
 
-nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 maxRetries, HttpClient* out, HttpClientFlags flags) {
+nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 maxRetries, u32 maxOpenFiles, HttpClient* out, HttpClientFlags flags) {
 
     NBL_CHECK(nbl::Pool<_ActiveRequest>::create(maxRequests, &out->_mRequests));
     NBL_CHECK(nbl::Latch::create(0, &out->_mAllDone));
@@ -365,6 +372,7 @@ nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 max
     out->_mMaxRetries = maxRetries;
     out->_pHandle = multiHandle;
     out->_mFlags = flags;
+    out->_mMaxOpenFiles = maxOpenFiles;
     return nbl::Result::SUCCESS;
 }
 
