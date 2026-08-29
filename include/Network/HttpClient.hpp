@@ -107,6 +107,7 @@ struct HttpRequestOptions {
     void(*doneCallback)(void*, Result, i32);
     void* userData;
     Span<HttpHeader> headers;
+    u64 ifModifiedSince;
     bool markExecutable;
 };
 
@@ -156,7 +157,7 @@ private:
         }
     };
 
-    nbl::Result _setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, Span<HttpHeader> headers);
+    nbl::Result _setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, const HttpRequestOptions& options);
     nbl::Result _startThread();
 
     nbl::Pool<_ActiveRequest> _mRequests;

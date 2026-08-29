@@ -92,12 +92,9 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, HttpR
     }
 
     req->download = true;
-    req->doneCallback = options.doneCallback;
-    req->userData = options.userData;
-    req->retryCount = 0;
     req->markExecutable = options.markExecutable;
 
-    return _setupConnection(url, req, {}, options.headers);
+    return _setupConnection(url, req, {}, options);
 }
 
 nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, HttpRequestOptions options) {
@@ -109,11 +106,8 @@ nbl::Result nbl::HttpClient::makeRequest(StringView url, Writer writer, HttpRequ
     NBL_CHECK(_mRequests.push(&req));
 
     req->writer = writer;
-    req->doneCallback = options.doneCallback;
-    req->userData = options.userData;
-    req->retryCount = 0;
 
-    return _setupConnection(url, req, {}, options.headers);
+    return _setupConnection(url, req, {}, options);
 }
 
 nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Writer output, HttpRequestOptions options) {
@@ -126,15 +120,12 @@ nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Wr
     NBL_CHECK(_mRequests.push(&req));
 
     req->writer = output;
-    req->doneCallback = options.doneCallback;
-    req->userData = options.userData;
-    req->retryCount = 0;
 
-    return _setupConnection(url, req, body, options.headers);
+    return _setupConnection(url, req, body, options);
 }
 
 
-nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, Span<HttpHeader> headers) {
+nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, const HttpRequestOptions& options) {
     
     CURLM* multiHandle = static_cast<CURLM*>(_pHandle);
     CURL* easyHandle = curl_easy_init();
@@ -158,6 +149,11 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
     curl_easy_setopt(easyHandle, CURLOPT_UPKEEP_INTERVAL_MS, 5000L);
     curl_easy_setopt(easyHandle, CURLOPT_NOSIGNAL, 1L);
 
+    if(options.ifModifiedSince > 0) {
+        curl_easy_setopt(easyHandle, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);
+        curl_easy_setopt(easyHandle, CURLOPT_TIMEVALUE, options.ifModifiedSince);
+    }
+
     if(postData.hasValue()) {
 
         StringView postStr = *postData;
@@ -167,10 +163,10 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
         curl_easy_setopt(easyHandle, CURLOPT_POSTFIELDS, postStr.data);
     }
 
-    if(headers.length > 0) {
+    if(options.headers.length > 0) {
         curl_slist* list = nullptr;
     
-        for(const HttpHeader& header : headers) { 
+        for(const HttpHeader& header : options.headers) { 
             if(!header.validateName())
                 return nbl::Result::INVALID_ARGUMENT;
 
@@ -189,8 +185,11 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
     }
     curl_easy_setopt(easyHandle, CURLOPT_URL, url.data);
 
+    req->doneCallback = options.doneCallback;
+    req->userData = options.userData;
     req->handle = easyHandle;
     req->queued = true;
+    req->retryCount = 0;
     _mQueuedRequests++;
 
     _mAllDone.increment();
@@ -310,10 +309,8 @@ nbl::Result nbl::HttpClient::_startThread() {
                             }
                             req->finished(nbl::Result::IO_ERROR, responseCode);
                             client->_mFailures++;
-                        } else if(responseCode >= 200 && responseCode < 300){
-
+                        } else if((responseCode >= 200 && responseCode < 300) || responseCode == 304) {
                             req->finished(nbl::Result::SUCCESS, responseCode);
-
                         } else {
                             nbl::log(nbl::LogLevel::DEBUG, "Response Code: ", responseCode);
                             req->finished(nbl::Result::IO_ERROR, responseCode);
