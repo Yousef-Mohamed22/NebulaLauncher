@@ -14,6 +14,7 @@ public:
     enum Registry : usize {
         INSTALLATION_TYPE,
         ACCOUNT_PROVIDER,
+        METADATA_PROVIDER,
         _END
     };
 
@@ -23,6 +24,7 @@ public:
 
 enum NotificationType {
     INFO,
+    WARNING,
     ERROR
 };
 
@@ -38,6 +40,7 @@ struct NotificationConsumer {
 
 struct AccountProvider;
 struct InstallationType;
+struct MetadataProvider;
 
 class PluginContext {
 public:
@@ -47,6 +50,9 @@ public:
 
     const AccountProvider* getAccountProvider(StringView id) const;
     ConstSpan<const AccountProvider*> accountProviders() const;
+
+    const MetadataProvider* getMetadataProvider(StringView id) const;
+    ConstSpan<const MetadataProvider*> metadataProviders() const;
 
     Result runCommand(i64 installationId, StringView commandLine, StringView workingDir, ProcessHandle* handle);
 

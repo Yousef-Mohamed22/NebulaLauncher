@@ -21,10 +21,12 @@
 #include <QColor>
 #include <qcontainerfwd.h>
 #include <qjsonparseerror.h>
+#include <qjsvalue.h>
 #include <qlogging.h>
 #include <qprocess.h>
 
 #include <openssl/evp.h>
+#include <qstringview.h>
 #include <qvariant.h>
 
 #include "Models/NblInstallationDetails.hpp"
@@ -33,6 +35,7 @@
 #include "NblProcessHandle.hpp"
 #include "Plugin/AccountProvider.hpp"
 #include "Plugin/Field.hpp"
+#include "Plugin/MetadataProvider.hpp"
 
 
 using namespace Qt::StringLiterals;

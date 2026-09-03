@@ -16,6 +16,8 @@ Item {
     property list<var> initialItems
     property ListModel items: ListModel {}
 
+    property int controlsOffset: 0
+
     readonly property int count: items.count
     readonly property int controlsWidth: allowReorder ? 64 : 48
 
@@ -98,136 +100,142 @@ Item {
                 }
             }
 
-            Column {
+            Item {
                 width: root.controlsWidth
                 x: parent.width - width
-                spacing: 8
-                Repeater {
-                    model: root.count
+                y: root.controlsOffset
+                Column {
+                    width: parent.width
+                    spacing: 8
+                    Repeater {
+                        model: root.count
 
-                    Item {
+                        Item {
 
-                        id: itemControls
-                        required property int modelData
-                        readonly property int index: modelData
-
-                        width: parent.width
-                        height: itemRepeater.getItemHeight(index, 96)
-
-                        RowLayout {
-
-                            spacing: 0
+                            id: itemControls
+                            required property int modelData
+                            readonly property int index: modelData
 
                             width: parent.width
-                            height: Math.min(48, parent.height)
+                            height: itemRepeater.getItemHeight(index, 96)
 
-                            ColumnLayout {
+                            RowLayout {
 
-                                visible: root.allowReorder
                                 spacing: 0
 
-                                Layout.fillHeight: true
-                                Layout.fillWidth: true
+                                width: parent.width
+                                height: Math.min(48, parent.height)
 
                                 Item {
+
                                     Layout.fillHeight: true
                                     Layout.fillWidth: true
-                                    Rectangle { 
-                                        id: upBg
-                                        anchors.fill: parent;
-                                        color: upArea.containsMouse ? Theme.colors.layer1 : Theme.colors.layer0
-                                        radius: 8
-                                    }
-                                    Label {
-                                        anchors.centerIn: upBg
-                                        text: ""
-                                        font.family: Theme.font
-                                        font.pixelSize: 20
-                                        font.weight: 600
-                                        color: itemControls.index == 0 ? Theme.colors.textDim : Theme.colors.text
-                                    }
+                                    visible: root.allowReorder
 
-                                    MouseArea {
-                                        id: upArea
-                                        visible: itemControls.index > 0
-                                        anchors.fill: upBg
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            let index = itemControls.index
-                                            if(index == 0) return
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        spacing: 0
 
-                                            root.items.move(index, index - 1, 1)
-                                            root.itemMoved(index, index - 1)
+                                        Item {
+                                            Layout.fillHeight: true
+                                            Layout.fillWidth: true
+                                            Rectangle { 
+                                                id: upBg
+                                                anchors.fill: parent;
+                                                color: upArea.containsMouse ? Theme.colors.layer1 : Theme.colors.layer0
+                                                radius: 8
+                                            }
+                                            Label {
+                                                anchors.centerIn: upBg
+                                                text: ""
+                                                font.family: Theme.font
+                                                font.pixelSize: 20
+                                                font.weight: 600
+                                                color: itemControls.index == 0 ? Theme.colors.textDim : Theme.colors.text
+                                            }
+
+                                            MouseArea {
+                                                id: upArea
+                                                visible: itemControls.index > 0
+                                                anchors.fill: upBg
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    let index = itemControls.index
+                                                    if(index == 0) return
+
+                                                    root.items.move(index, index - 1, 1)
+                                                    root.itemMoved(index, index - 1)
+                                                }
+                                            }
+                                        }
+                                        Item {
+                                            Layout.fillHeight: true
+                                            Layout.fillWidth: true
+                                            Rectangle {
+                                                id: downBg
+                                                anchors.fill: parent
+                                                color: downArea.containsMouse ? Theme.colors.layer1 : Theme.colors.layer0
+                                                radius: 8
+                                            }
+
+                                            Label {
+                                                anchors.centerIn: downBg
+                                                text: ""
+                                                font.family: Theme.font
+                                                font.pixelSize: 20
+                                                font.weight: 600
+                                                color: (itemControls.index + 1) == root.count ? Theme.colors.textDim : Theme.colors.text
+                                            }
+
+                                            MouseArea {
+                                                id: downArea
+                                                visible: (itemControls.index + 1) < root.count
+                                                anchors.fill: downBg
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    let index = itemControls.index
+                                                    if((index + 1) == root.count) return
+
+                                                    root.items.move(index, index + 1, 1)
+                                                    root.itemMoved(index, index + 1)
+                                                }
+                                            }
                                         }
                                     }
                                 }
                                 Item {
+
+                                    enabled: root.count > root.minItems
+
                                     Layout.fillHeight: true
                                     Layout.fillWidth: true
                                     Rectangle {
-                                        id: downBg
+                                        id: removeBg
                                         anchors.fill: parent
-                                        color: downArea.containsMouse ? Theme.colors.layer1 : Theme.colors.layer0
+                                        color: removeArea.containsMouse ? Theme.colors.layer1 : Theme.colors.layer0
                                         radius: 8
                                     }
 
                                     Label {
-                                        anchors.centerIn: downBg
-                                        text: ""
+                                        anchors.centerIn: removeBg
+                                        text: ""
                                         font.family: Theme.font
-                                        font.pixelSize: 20
+                                        font.pixelSize: 24
                                         font.weight: 600
-                                        color: (itemControls.index + 1) == root.count ? Theme.colors.textDim : Theme.colors.text
+                                        color: parent.enabled ? Theme.colors.text : Theme.colors.textDim
                                     }
 
                                     MouseArea {
-                                        id: downArea
-                                        visible: (itemControls.index + 1) < root.count
-                                        anchors.fill: downBg
+                                        id: removeArea
+                                        anchors.fill: removeBg
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            let index = itemControls.index
-                                            if((index + 1) == root.count) return
-
-                                            root.items.move(index, index + 1, 1)
-                                            root.itemMoved(index, index + 1)
+                                            root.itemPopped(itemControls.index)
+                                            root.items.remove(itemControls.index, 1)
                                         }
-                                    }
-                                }
-                            }
-
-                            Item {
-
-                                enabled: root.count > root.minItems
-
-                                Layout.fillHeight: true
-                                Layout.fillWidth: true
-                                Rectangle {
-                                    id: removeBg
-                                    anchors.fill: parent
-                                    color: removeArea.containsMouse ? Theme.colors.layer1 : Theme.colors.layer0
-                                    radius: 8
-                                }
-
-                                Label {
-                                    anchors.centerIn: removeBg
-                                    text: ""
-                                    font.family: Theme.font
-                                    font.pixelSize: 24
-                                    font.weight: 600
-                                    color: parent.enabled ? Theme.colors.text : Theme.colors.textDim
-                                }
-
-                                MouseArea {
-                                    id: removeArea
-                                    anchors.fill: removeBg
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        root.itemPopped(itemControls.index)
-                                        root.items.remove(itemControls.index, 1)
                                     }
                                 }
                             }

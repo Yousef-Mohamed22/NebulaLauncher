@@ -15,12 +15,13 @@ Item {
     required property real aspectRatio
     required property bool showTitle
     property string fallbackSource
+    property bool doScaling: true
     property var titleAlignment: Qt.AlignLeft
 
     signal clicked
 
-    property real scaleFactor: Math.min(width / aspectRatio, height - (showTitle ? 48 : 0))
-    property bool highlighted: false
+    readonly property real scaleFactor: Math.min(width / aspectRatio, height - (showTitle ? 48 : 0))
+    property bool highlighted
 
     Item {
 
@@ -122,7 +123,7 @@ Item {
             maskThresholdMin: 0.5
             maskSpreadAtMin: 1.0
 
-            scale: mouseArea.containsMouse ? 1.05 : 1.0
+            scale: root.doScaling && mouseArea.containsMouse ? 1.05 : 1.0
             Behavior on scale {
                 NumberAnimation {
                     duration: 200

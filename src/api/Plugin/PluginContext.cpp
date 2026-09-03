@@ -1,6 +1,7 @@
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/InstallationType.hpp>
 #include <Plugin/AccountProvider.hpp>
+#include <Plugin/MetadataProvider.hpp>
 #include <Core/Result.hpp>
 #include <Core/Array.hpp>
 #include <Core/Math.hpp>
@@ -38,6 +39,21 @@ nbl::ConstSpan<const nbl::AccountProvider*> nbl::PluginContext::accountProviders
     return nbl::ConstSpan(
         static_cast<const AccountProvider**>(_pStarts[PluginRegistries::ACCOUNT_PROVIDER]),
         _mCounts[PluginRegistries::ACCOUNT_PROVIDER]
+    );
+}
+
+const nbl::MetadataProvider* nbl::PluginContext::getMetadataProvider(StringView id) const {
+    for(const auto& prov : metadataProviders()) {
+        if(prov->id == id) {
+            return prov;
+        }
+    }
+    return nullptr;
+}
+nbl::ConstSpan<const nbl::MetadataProvider*> nbl::PluginContext::metadataProviders() const {
+    return nbl::ConstSpan(
+        static_cast<const MetadataProvider**>(_pStarts[PluginRegistries::METADATA_PROVIDER]),
+        _mCounts[PluginRegistries::METADATA_PROVIDER]
     );
 }
 

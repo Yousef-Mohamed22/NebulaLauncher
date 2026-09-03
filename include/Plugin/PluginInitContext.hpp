@@ -16,8 +16,15 @@ struct PluginMeta {
 class PluginInitContext {
 public:
 
-    Result registerInstallationType(const InstallationType* type);
-    Result registerAccountProvider(const AccountProvider* type);
+    inline Result registerInstallationType(const InstallationType* type) {
+        return _register(PluginRegistries::Registry::INSTALLATION_TYPE, type);
+    }
+    Result registerAccountProvider(const AccountProvider* provider) {
+        return _register(PluginRegistries::Registry::ACCOUNT_PROVIDER, provider);
+    }
+    Result registerMetadataProvider(const MetadataProvider* provider) {
+        return _register(PluginRegistries::Registry::METADATA_PROVIDER, provider);
+    }
 
     inline const PluginMeta* getMeta() const { return _pMeta; }
 
@@ -27,6 +34,8 @@ public:
     static Result create(LinearAllocator* allocator, PluginMeta* meta, StringView databasePath, StringView pluginDataPath, PluginInitContext* outCtx);
 
 private:
+
+    Result _register(PluginRegistries::Registry reg, const void* value);
 
     LinearAllocator* _pAllocator;
     PluginMeta* _pMeta;

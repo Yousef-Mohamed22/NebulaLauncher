@@ -11,7 +11,7 @@ Column {
 
     Repeater {
         id: repeater
-        model: root.fields.count
+        model: root.fields ? root.fields.count : 0
         delegate: NblFieldInput {
             required property var index
             field: root.fields.itemAt(index)

@@ -318,6 +318,7 @@ inline Result toString(nbl::Result value, Writer writer) {
     return toString(static_cast<i32>(value), writer);
 }
 
+
 /**
  * \brief A simple struct that holds a floating-point value and a precision for formatting the value as a string. This can be used to specify the precision when converting a floating-point value to a string representation.
  */

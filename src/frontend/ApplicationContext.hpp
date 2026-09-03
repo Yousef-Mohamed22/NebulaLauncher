@@ -1,6 +1,7 @@
 #pragma once
 
 #include <qcontainerfwd.h>
+#include <qjsvalue.h>
 #include <qqmlintegration.h>
 #include <qstringview.h>
 #include <qtenvironmentvariables.h>

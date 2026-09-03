@@ -168,7 +168,7 @@ NblDialog {
 
                 }
 
-                ScrollView {
+                NblScrollView {
 
                     width: parent.width
                     height: parent.height - 16
@@ -177,20 +177,15 @@ NblDialog {
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     contentWidth: width - 48
                     contentHeight: gameSettings.height
+                    clip: true
 
-                    Flickable {
+                    NblGameSettings {
+                        id: gameSettings
+                        width: parent.width
+                        x: 24
 
-                        anchors.fill: parent
-                        clip: true
-
-                        NblGameSettings {
-                            id: gameSettings
-                            width: parent.width
-                            x: 24
-
-                            onModifiedChanged: {
-                                gameSettingsTab.modified = modified
-                            }
+                        onModifiedChanged: {
+                            gameSettingsTab.modified = modified
                         }
                     }
                 }

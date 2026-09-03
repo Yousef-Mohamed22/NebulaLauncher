@@ -66,9 +66,11 @@ nbl::Result nbl::Condition::create(Condition* out) {
 
 
 nbl::Latch::~Latch() {
-    ::pthread_cond_broadcast(&_mCondition);
-    ::pthread_cond_destroy(&_mCondition);
-    ::pthread_mutex_destroy(&_mMutex);
+    if(_bInitialized) {
+        ::pthread_cond_broadcast(&_mCondition);
+        ::pthread_cond_destroy(&_mCondition);
+        ::pthread_mutex_destroy(&_mMutex);
+    }   
 }
 
 void nbl::Latch::increment() {
@@ -88,6 +90,7 @@ void nbl::Latch::wait() {
 
 nbl::Result nbl::Latch::create(usize count, Latch* out) {
 
+    out->_bInitialized = true;
     out->_mCount = count;
 
     int rc = ::pthread_cond_init(&out->_mCondition, nullptr);

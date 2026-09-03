@@ -98,7 +98,7 @@ private:
     pthread_mutex_t _mMutex;
     pthread_cond_t _mCondition;
     std::atomic_int _mCount;
-    //usize _mCount;
+    bool _bInitialized;
 #else
     void* _mHandle;
 #endif

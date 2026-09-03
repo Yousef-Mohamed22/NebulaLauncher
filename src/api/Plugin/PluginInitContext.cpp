@@ -2,27 +2,17 @@
 #include <Plugin/InstallationType.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/AccountProvider.hpp>
+#include <Plugin/MetadataProvider.hpp>
 
-nbl::Result nbl::PluginInitContext::registerInstallationType(const InstallationType* type) {
+
+nbl::Result nbl::PluginInitContext::_register(nbl::PluginRegistries::Registry registry, const void* value) {
     PluginRegistries::Registry* reg;
     NBL_CHECK(_pAllocator->allocate(&reg));
-    *reg = PluginRegistries::INSTALLATION_TYPE;
+    *reg = registry;
 
-    const InstallationType** it;
-    NBL_CHECK(_pAllocator->allocate(&it));
-    *it = type;
-
-    return nbl::Result::SUCCESS;
-}
-
-nbl::Result nbl::PluginInitContext::registerAccountProvider(const AccountProvider* type) {
-    PluginRegistries::Registry* reg;
-    NBL_CHECK(_pAllocator->allocate(&reg));
-    *reg = PluginRegistries::ACCOUNT_PROVIDER;
-
-    const AccountProvider** ap;
-    NBL_CHECK(_pAllocator->allocate(&ap));
-    *ap = type;
+    const void** val;
+    NBL_CHECK(_pAllocator->allocate(&val));
+    *val = value;
     return nbl::Result::SUCCESS;
 }
 

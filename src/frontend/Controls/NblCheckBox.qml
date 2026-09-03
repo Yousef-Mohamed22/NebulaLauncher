@@ -11,6 +11,8 @@ CheckBox {
     implicitHeight: indicator.height
     leftPadding: 0
 
+    property alias elide: contentText.elide
+
     indicator: Rectangle {
         implicitWidth: 32
         implicitHeight: 32        
@@ -32,6 +34,7 @@ CheckBox {
     }
 
     contentItem: Text {
+        id: contentText
         text: root.text
         font: root.font
         color: root.checked ? Theme.colors.text : Theme.colors.textDim

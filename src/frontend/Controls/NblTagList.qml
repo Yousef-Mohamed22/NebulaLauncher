@@ -70,6 +70,33 @@ Item {
         }
     }
 
+    function addTag(id, name, color) {
+
+        root.modified()
+
+        tagInput.text = ""
+
+        for(let i = 0 ; i < root.tags.length ; i++) {
+            if(root.tags[i].name == name) {
+                if(root.tags[i].state != NblTagList.TagState.INITIAL) {
+                    root.tags[i].state = NblTagList.TagState.ADDED
+                }
+                return
+            }
+        }
+        
+        let index = root.tags.length
+
+        root.tags.push({
+            id: id,
+            index: index,
+            name: name,
+            color: color,
+            state: NblTagList.TagState.ADDED
+        })
+    }
+
+
     signal modified
 
     Column {
@@ -249,38 +276,12 @@ Item {
             tagSearchModel.paused = false
         }
 
-        function addTag(id, name, color) {
-
-            root.modified()
-
-            tagInput.text = ""
-
-            for(let i = 0 ; i < root.tags.length ; i++) {
-                if(root.tags[i].name == name) {
-                    if(root.tags[i].state != NblTagList.TagState.INITIAL) {
-                        root.tags[i].state = NblTagList.TagState.ADDED
-                    }
-                    return
-                }
-            }
-            
-            let index = root.tags.length
-
-            root.tags.push({
-                id: id,
-                index: index,
-                name: name,
-                color: color,
-                state: NblTagList.TagState.ADDED
-            })
-        }
-
         function addTop() {
             let id = tagSearchModel.id(0);
             let name = tagSearchModel.name(0);
             let color = tagSearchModel.color(0);
 
-            addTag(id, name, color)
+            root.addTag(id, name, color)
         }
 
         function addNew() {

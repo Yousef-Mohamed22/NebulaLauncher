@@ -60,6 +60,59 @@ Column {
         }
     }
 
+    NblButton {
+        leftPadding: 24
+        rightPadding: 24
+        icon: ""
+        text: "Lookup Metadata"
+        activeColor: Theme.colors.accent
+        inactiveColor: Theme.colors.accent
+        onClicked: {
+            let dialogComponent = Qt.createComponent("../Pages/MetadataSearchDialog.qml")
+            if(dialogComponent.status != Component.Ready) {
+                console.log("An error occurred:", dialogComponent.errorString())
+            }
+            let dialog = dialogComponent.createObject(this, {
+                targetWidth: 700,
+                targetHeight: 700
+            }) as MetadataSearchDialog
+            dialog.apply.connect(function() {
+
+                let meta = dialog.collect()
+                if("poster" in meta) { posterPicker.imageSource = meta.poster }
+                if("icon" in meta) { iconPicker.imageSource = meta.icon }
+                if("banner" in meta) { bannerPicker.imageSource = meta.banner }
+                if("logo" in meta) { logoPicker.imageSource = meta.logo }
+
+                if("tags" in meta) {
+                    for(let i = 0 ; i < meta.tags.length ; i++) {
+
+                        let tag = meta.tags[i]
+                        if(tag.tagId == 0) {
+                            tag.tagId = ApplicationContext.addTag(tag.name, tag.color)
+                            if(tag.tagId == 0) {
+                                ApplicationContext.pushNotification({
+                                    type: "error",
+                                    title: "Failed to add tag",
+                                    message: "An error occurred while adding a tag!"
+                                })
+                                return
+                            }
+                        }
+                        gameTags.addTag(tag.tagId, tag.name, tag.color)
+                    }
+                }
+
+                if("title" in meta) { gameTitleField.text = meta.title }
+                if("description" in meta) { gameDescriptionField.text = meta.description }
+                if("releaseDate" in meta) { releaseDateField.setTime(meta.releaseDate) }
+                if("rating" in meta) { ratingField.value = meta.rating }
+
+            })
+            dialog.open()
+        }
+    }
+
     NblTextBox {
         id: gameTitleField
         label: "Title"

@@ -49,6 +49,7 @@ Item {
 
         onClosed: {
             root.close()
+            root.parent = null
         }
 
         width: root.width
