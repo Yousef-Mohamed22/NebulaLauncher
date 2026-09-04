@@ -26,7 +26,10 @@ public:
         NameRole,
         MaxAccountsRole,
         AccountTypeRole,
-        LoggingInRole
+        LoggingInRole,
+        UsernameTextRole,
+        PasswordTextRole,
+        TokenTextRole
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;

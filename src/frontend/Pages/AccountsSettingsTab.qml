@@ -179,6 +179,9 @@ SettingsTab {
                                 visible: providerItem.adding
                                 anchors.fill: parent
                                 type: providerItem.modelData.accountType
+                                usernameText: providerItem.modelData.usernameText
+                                passwordText: providerItem.modelData.passwordText
+                                tokenText: providerItem.modelData.tokenText
 
                                 onCanceled: {
                                     clear()

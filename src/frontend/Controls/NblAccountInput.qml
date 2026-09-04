@@ -16,6 +16,10 @@ Item {
     property int type: NblAccountInput.Type.BASIC
     property bool cancelEnabled: true
 
+    property string usernameText: "Username"
+    property string passwordText: "Password"
+    property string tokenText: "Token"
+
     signal canceled
     signal loginPressed(var params)
 
@@ -37,14 +41,14 @@ Item {
             Layout.fillWidth: true
             Layout.preferredWidth: 180
             id: usernameBox
-            label: "Username"
+            label: root.usernameText
         }
         NblTextBox {
             Layout.fillHeight: true
             Layout.fillWidth: true
             Layout.preferredWidth: 180
             id: passwordBox
-            label: "Password"
+            label: root.passwordText
             echoMode: TextInput.Password
         }
         NblButton {
@@ -127,7 +131,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredWidth: 360
             id: tokenBox
-            label: "Token / API Key"
+            label: root.tokenText
         }
         NblButton {
             Layout.fillWidth: true

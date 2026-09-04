@@ -3,6 +3,7 @@
 #include <Core/String.hpp>
 #include <Platform/Mutex.hpp>
 #include <functional>
+#include "Plugin/PluginContext.hpp"
 
 namespace nbl {
 
@@ -84,18 +85,20 @@ struct AccountProvider {
     u32 maxAccounts;
     union {
         struct {
-            Result(*pfnLogin)(StringView username, StringView password, LoginTracker* tracker, void* userData);
-            Result(*pfnLogout)(u32 accountId, void* userData);
+            Result(*pfnLogin)(PluginContext* context, StringView username, StringView password, LoginTracker* tracker, void* userData);
+            Result(*pfnLogout)(PluginContext* context, u32 accountId, void* userData);
             void* userData;
+            StringView usernameText = "Username";
+            StringView passwordText = "Password";
 
-            Result login(StringView username, StringView password, LoginTracker* tracker) const {
+            Result login(PluginContext* context, StringView username, StringView password, LoginTracker* tracker) const {
                 if(!pfnLogin) return nbl::Result::PLUGIN_ERROR;
-                return pfnLogin(username, password, tracker, userData);
+                return pfnLogin(context, username, password, tracker, userData);
             }
         } basicData;
         struct {
-            Result(*pfnFinishLogin)(StringView response, StringView codeVerifier, LoginTracker* tracker, void* userData);
-            Result(*pfnLogout)(u32 accountId, void* userData);
+            Result(*pfnFinishLogin)(PluginContext* context, StringView response, StringView codeVerifier, LoginTracker* tracker, void* userData);
+            Result(*pfnLogout)(PluginContext* context, u32 accountId, void* userData);
             void* userData;
             OAuthResponseType responseType;
             StringView clientId;
@@ -103,53 +106,54 @@ struct AccountProvider {
             Span<StringView> scopes;
             u16 port;
 
-            Result finishOAuthLogin(StringView response, StringView codeVerifier, LoginTracker* tracker) const {
+            Result finishOAuthLogin(PluginContext* context, StringView response, StringView codeVerifier, LoginTracker* tracker) const {
                 if(!pfnFinishLogin) return nbl::Result::PLUGIN_ERROR;
-                return pfnFinishLogin(response, codeVerifier, tracker, userData);
+                return pfnFinishLogin(context, response, codeVerifier, tracker, userData);
             }
 
         } oAuthData;
         struct {
-            Result(*pfnLogin)(StringView token, LoginTracker* tracker, void* userData);
-            Result(*pfnLogout)(u32 accountId, void* userData);
+            Result(*pfnLogin)(PluginContext* context, StringView token, LoginTracker* tracker, void* userData);
+            Result(*pfnLogout)(PluginContext* context, u32 accountId, void* userData);
             void* userData;
+            StringView tokenText = "Token";
 
-            Result login(StringView token, LoginTracker* tracker) const {
+            Result login(PluginContext* context, StringView token, LoginTracker* tracker) const {
                 if(!pfnLogin) return nbl::Result::PLUGIN_ERROR;
-                return pfnLogin(token, tracker, userData);
+                return pfnLogin(context, token, tracker, userData);
             }
         } tokenData;
     };
 
     struct {
-        Result(*pfnGet)(u32 accountId, AccountInfo* info, void* userData);
-        Result(*pfnEnumerate)(AccountCallback callback, void* userData);
+        Result(*pfnGet)(PluginContext* context, u32 accountId, AccountInfo* info, void* userData);
+        Result(*pfnEnumerate)(PluginContext* context, AccountCallback callback, void* userData);
         void* userData;
     } accountInfo;
 
-    Result logout(u32 accountId) const {
+    Result logout(PluginContext* context, u32 accountId) const {
         NBL_ASSERT(type <= Type::TOKEN);
         if(type == Type::BASIC) {
             if(!basicData.pfnLogout) return nbl::Result::PLUGIN_ERROR;
-            return basicData.pfnLogout(accountId, basicData.userData);
+            return basicData.pfnLogout(context, accountId, basicData.userData);
         }
         if(type == Type::OAUTH) {
             if(!oAuthData.pfnLogout) return nbl::Result::PLUGIN_ERROR;
-            oAuthData.pfnLogout(accountId, basicData.userData);
+            oAuthData.pfnLogout(context, accountId, basicData.userData);
         }
 
         if(!tokenData.pfnLogout) return nbl::Result::PLUGIN_ERROR;
-        return tokenData.pfnLogout(accountId, oAuthData.userData);
+        return tokenData.pfnLogout(context, accountId, oAuthData.userData);
     }
 
-    Result getAccountInfo(u32 accountId, AccountInfo* info) const {
+    Result getAccountInfo(PluginContext* context, u32 accountId, AccountInfo* info) const {
         if(!accountInfo.pfnGet) return nbl::Result::PLUGIN_ERROR;
-        return accountInfo.pfnGet(accountId, info, accountInfo.userData);
+        return accountInfo.pfnGet(context, accountId, info, accountInfo.userData);
     }
 
-    Result enumerateAccountInfo(AccountCallback callback) const {
+    Result enumerateAccountInfo(PluginContext* context, AccountCallback callback) const {
         if(!accountInfo.pfnEnumerate) return nbl::Result::PLUGIN_ERROR;
-        return accountInfo.pfnEnumerate(callback, accountInfo.userData);
+        return accountInfo.pfnEnumerate(context, callback, accountInfo.userData);
     }
 };
 

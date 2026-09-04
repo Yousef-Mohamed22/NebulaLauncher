@@ -201,7 +201,7 @@ nbl::AccountProvider _provider {
     .type = nbl::AccountProvider::Type::BASIC,
     .maxAccounts = 3,
     .basicData = {
-        .pfnLogin = [](nbl::StringView username, nbl::StringView password, nbl::LoginTracker* tracker, void* userData) -> nbl::Result {
+        .pfnLogin = [](nbl::PluginContext* context, nbl::StringView username, nbl::StringView password, nbl::LoginTracker* tracker, void* userData) -> nbl::Result {
 
             if(username.length == 0) return nbl::Result::INVALID_ARGUMENT;
             if(_firstFree == 3) return nbl::Result::INVALID_STATE;
@@ -221,7 +221,7 @@ nbl::AccountProvider _provider {
             tracker->finishTracking(true, {});
             return nbl::Result::SUCCESS;
         },
-        .pfnLogout = [](u32 accountId, void* userData) -> nbl::Result {
+        .pfnLogout = [](nbl::PluginContext* context, u32 accountId, void* userData) -> nbl::Result {
             if(accountId > 2) return nbl::Result::INVALID_STATE;
 
             _infos[accountId].isLoggedIn = false;
@@ -234,14 +234,14 @@ nbl::AccountProvider _provider {
         }
     },
     .accountInfo = {
-        .pfnGet = [](u32 accountId, nbl::AccountInfo* info, void* userData) -> nbl::Result {
+        .pfnGet = [](nbl::PluginContext* context, u32 accountId, nbl::AccountInfo* info, void* userData) -> nbl::Result {
             nbl::log(nbl::LogLevel::INFO, "Get: ", accountId);
             if(accountId == 0 || accountId > 3) return nbl::Result::NOT_FOUND;
             if(!_infos[accountId].isLoggedIn) return nbl::Result::NOT_FOUND;
             *info = _infos[accountId - 1].info;
             return nbl::Result::SUCCESS;
         },
-        .pfnEnumerate = [](nbl::AccountCallback callback, void* userData) -> nbl::Result {
+        .pfnEnumerate = [](nbl::PluginContext* context, nbl::AccountCallback callback, void* userData) -> nbl::Result {
             for(_TestAccount& acc : _infos) {
                 if(acc.isLoggedIn) {
                     callback(acc.info);
@@ -252,7 +252,7 @@ nbl::AccountProvider _provider {
     }
 };
 
-nbl::Result _lookupMetadata(const nbl::MetadataLookupInfo& info, nbl::MetadataCallback callback, void* userData) { 
+nbl::Result _lookupMetadata(nbl::PluginContext* context, const nbl::MetadataLookupInfo& info, nbl::MetadataCallback callback, void* userData) { 
     callback(nbl::MetadataField::TITLE, { "Hello" });
     nbl::sleep(1000);
     callback(nbl::MetadataField::TITLE, { "Hello2" });
@@ -284,7 +284,7 @@ nbl::Result _lookupMetadata(const nbl::MetadataLookupInfo& info, nbl::MetadataCa
 nbl::MetadataProvider _metaProvider = {
     .id = "test",
     .name = "Test",
-    .pfnCanProvide = [](auto, void*) { return true; },
+    .pfnCanProvide = [](auto, auto, void*) { return true; },
     .pfnProvide = _lookupMetadata,
     .userData = nullptr
 };

@@ -6,7 +6,7 @@
 
 void MetadataSearchWorker::run() {
 
-    nbl::Result res = _pProvider->provide(*_pLookup, [&](nbl::MetadataField field, nbl::MetadataValue value) -> nbl::Result {
+    nbl::Result res = _pProvider->provide(ApplicationContext::instance()->pluginContext(), *_pLookup, [&](nbl::MetadataField field, nbl::MetadataValue value) -> nbl::Result {
 
         if(_pParent->_bCanceled) return nbl::Result::CANCELED;
 
@@ -123,7 +123,7 @@ int MetadataSearchHelper::lookup(QByteArray title, quint64 releaseDate, QVariant
 
     nbl::PluginContext* context = ApplicationContext::instance()->pluginContext();
     for(const nbl::MetadataProvider* provider : context->metadataProviders()) {
-        if(provider->canProvide(info)) {
+        if(provider->canProvide(context, info)) {
 
             MetadataSearchWorker* worker = new MetadataSearchWorker(this, &info, provider);
 

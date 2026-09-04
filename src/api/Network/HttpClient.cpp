@@ -376,4 +376,18 @@ nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 max
     return nbl::Result::SUCCESS;
 }
 
-
+nbl::Result nbl::toString(const UrlEncode& encode, Writer writer) {
+    for(char c : encode.string) {
+        if(
+        (c >= 'A' && c <= 'Z') ||
+        (c >= 'a' && c <= 'z') ||
+        (c >= '0' && c <= '9') ||
+        (c == '-' || c == '_' || c == '.' || c == '~')) {
+            NBL_CHECK(writer.writeChar(c));
+        } else {
+            NBL_CHECK(writer.writeChar('%'));
+            NBL_CHECK(toString(static_cast<i32>(c), writer));
+        }
+    }
+    return nbl::Result::SUCCESS;
+}

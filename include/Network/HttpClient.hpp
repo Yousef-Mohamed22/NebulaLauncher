@@ -19,6 +19,7 @@
 #include <Platform/Mutex.hpp>
 #include <Platform/File.hpp>
 #include <Platform/PlatformDefines.hpp>
+#include <Platform/StringBuilder.hpp>
 
 
 namespace nbl {
@@ -109,6 +110,11 @@ struct HttpRequestOptions {
     bool markExecutable;
 };
 
+struct UrlEncode {
+    StringView string;
+};
+
+Result toString(const UrlEncode& encode, Writer writer);
 
 class HttpClient {
 public:

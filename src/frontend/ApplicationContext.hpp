@@ -20,12 +20,13 @@
 #include "Models/NblInstallationDetails.hpp"
 #include "Models/NblGameDetails.hpp"
 #include "Models/NblFieldList.hpp"
-#include "NblAccountsModel.hpp"
+#include "Models/NblAccountsModel.hpp"
 #include "NblProcessHandle.hpp"
 
 inline QByteArray fromNbl(nbl::StringView sv) {
     return QByteArray(sv.data, sv.length);
 }
+
 
 class ApplicationContext : public QObject {
 

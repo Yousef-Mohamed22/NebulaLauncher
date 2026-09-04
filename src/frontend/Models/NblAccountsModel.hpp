@@ -99,25 +99,7 @@ public:
         return roles;
     }
 
-    Q_INVOKABLE void refresh() {
-
-        beginResetModel();
-        _mData.clear();
-
-        if(_pProvider) {
-            _pProvider->enumerateAccountInfo([&](const nbl::AccountInfo& info) -> nbl::Result {
-                _mData.append({
-                    QString::fromUtf8(info.userName.data, info.userName.length), 
-                    QString::fromUtf8(info.icon.data, info.icon.length), 
-                    info.id, 
-                    info.iconNearestScaling
-                });
-                return nbl::Result::SUCCESS;
-            });
-        }
-
-        endResetModel();
-    } 
+    Q_INVOKABLE void refresh();
  
 private:
 

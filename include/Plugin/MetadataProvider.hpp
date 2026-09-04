@@ -4,6 +4,7 @@
 #include <Core/Optional.hpp>
 
 #include <functional>
+#include "Plugin/PluginContext.hpp"
 
 namespace nbl {
 
@@ -45,18 +46,18 @@ struct MetadataProvider {
 
     StringView id;
     StringView name;
-    bool(*pfnCanProvide)(const MetadataLookupInfo& info, void* userData);
-    Result(*pfnProvide)(const MetadataLookupInfo& info, MetadataCallback callback, void* userData);
+    bool(*pfnCanProvide)(PluginContext* context, const MetadataLookupInfo& info, void* userData);
+    Result(*pfnProvide)(PluginContext* context, const MetadataLookupInfo& info, MetadataCallback callback, void* userData);
     void* userData;
 
-    bool canProvide(const MetadataLookupInfo& info) const {
+    bool canProvide(PluginContext* context, const MetadataLookupInfo& info) const {
         if(pfnCanProvide == nullptr) return false;
-        return pfnCanProvide(info, userData);
+        return pfnCanProvide(context, info, userData);
     }
 
-    Result provide(const MetadataLookupInfo& info, MetadataCallback callback) const {
+    Result provide(PluginContext* context, const MetadataLookupInfo& info, MetadataCallback callback) const {
         if(pfnProvide == nullptr) return nbl::Result::PLUGIN_ERROR;
-        return pfnProvide(info, callback, userData);
+        return pfnProvide(context, info, callback, userData);
     }
 
 };
