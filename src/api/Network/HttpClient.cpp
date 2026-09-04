@@ -386,7 +386,7 @@ nbl::Result nbl::toString(const UrlEncode& encode, Writer writer) {
             NBL_CHECK(writer.writeChar(c));
         } else {
             NBL_CHECK(writer.writeChar('%'));
-            NBL_CHECK(toString(static_cast<i32>(c), writer));
+            NBL_CHECK(toString(static_cast<u8>(c), writer));
         }
     }
     return nbl::Result::SUCCESS;

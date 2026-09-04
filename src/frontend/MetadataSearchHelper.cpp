@@ -84,11 +84,13 @@ int MetadataSearchHelper::lookup(QByteArray title, quint64 releaseDate, QVariant
         return nbl::Result::SUCCESS;
     } 
 
-
-    nbl::MetadataLookupInfo info = {};
+    nbl::MetadataLookupInfo& info = _mCurrentSearch;
 
     if(title.length() > 0) {
-        info.title = nbl::StringView(title.data(), title.length());
+        void* data;
+        _mArena.push(title.length(), &data);
+        memcpy(data, title.data(), title.length());
+        info.title = nbl::StringView(static_cast<char*>(data), title.length());
     }
     if(releaseDate > 0) {
         info.releaseDate = releaseDate;

@@ -30,7 +30,12 @@ public:
 
     MetadataSearchHelper(QObject* parent = nullptr) :
         QObject(parent),
-        _mStatus(IDLE)
+        _mArena{},
+        _bCanceled(false),
+        _mStatus(IDLE),
+        _mThreadPool{},
+        _mRemaining(0),
+        _mCurrentSearch{}
     { 
         NBL_ASSERT(nbl::Arena::create(1024 * 1024 * 4, &_mArena).success());
     }
@@ -65,6 +70,7 @@ private:
     Status _mStatus;
     QThreadPool _mThreadPool;
     quint32 _mRemaining;
+    nbl::MetadataLookupInfo _mCurrentSearch;
 
     friend class MetadataSearchWorker;
 };

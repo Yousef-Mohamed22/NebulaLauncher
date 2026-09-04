@@ -6,6 +6,7 @@
 
 
 nbl::Result nbl::PluginInitContext::_register(nbl::PluginRegistries::Registry registry, const void* value) {
+
     PluginRegistries::Registry* reg;
     NBL_CHECK(_pAllocator->allocate(&reg));
     *reg = registry;
@@ -13,6 +14,7 @@ nbl::Result nbl::PluginInitContext::_register(nbl::PluginRegistries::Registry re
     const void** val;
     NBL_CHECK(_pAllocator->allocate(&val));
     *val = value;
+
     return nbl::Result::SUCCESS;
 }
 

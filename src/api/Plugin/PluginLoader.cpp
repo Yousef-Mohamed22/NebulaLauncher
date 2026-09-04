@@ -58,13 +58,14 @@ nbl::Result nbl::PluginLoader::loadAll() {
                 current += sizeof(PluginRegistries::Registry);
 
                 registryCounts[reg]++;
-                totalSize += sizeof(void*);
                 current += sizeof(void*);
+                totalSize += sizeof(void*);
             }
         }
 
         u8* allocation;
         NBL_CHECK(_pContext->_mArena.push(totalSize, reinterpret_cast<void**>(&allocation)));
+
 
         for(usize i = 0 ; i < PluginRegistries::count() ; i++) {
 
@@ -83,6 +84,8 @@ nbl::Result nbl::PluginLoader::loadAll() {
 
                 usize realOffset = offsets[reg] + (--registryCounts[reg]) * sizeof(void*);
                 memcpy(allocation + realOffset, current, sizeof(void*));
+
+
                 current += sizeof(void*);
             }
         }

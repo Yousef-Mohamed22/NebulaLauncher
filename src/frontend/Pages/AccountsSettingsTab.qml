@@ -175,6 +175,8 @@ SettingsTab {
                             width: parent.width
                             height: 48
 
+                            visible: providerItem.adding || accountRepeater.count < providerItem.modelData.maxAccounts
+
                             NblAccountInput {
                                 visible: providerItem.adding
                                 anchors.fill: parent

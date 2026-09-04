@@ -254,30 +254,30 @@ nbl::AccountProvider _provider {
 
 nbl::Result _lookupMetadata(nbl::PluginContext* context, const nbl::MetadataLookupInfo& info, nbl::MetadataCallback callback, void* userData) { 
     callback(nbl::MetadataField::TITLE, { "Hello" });
-    nbl::sleep(1000);
-    callback(nbl::MetadataField::TITLE, { "Hello2" });
-    callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
-    callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
-    callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
-    nbl::sleep(1000);
-    callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
-    callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
-    callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
-    callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
-    callback(nbl::MetadataField::BANNER, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
-    callback(nbl::MetadataField::BANNER, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
-    callback(nbl::MetadataField::ICON, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
-    callback(nbl::MetadataField::ICON, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
-    callback(nbl::MetadataField::LOGO, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
-    callback(nbl::MetadataField::LOGO, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
-    callback(nbl::MetadataField::DESCRIPTION, { "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." });
-    callback(nbl::MetadataField::RELEASE_DATE, { .releaseDate = 1788405195318U });
-    // Error 2
-    callback(nbl::MetadataField::RATING, { .rating = 99.0 });
-    callback(nbl::MetadataField::TAG, { "hello" });
-    callback(nbl::MetadataField::TAG, { "world" });
-    callback(nbl::MetadataField::TAG, { "platformer" });
-    nbl::sleep(1000);
+    // nbl::sleep(1000);
+    // callback(nbl::MetadataField::TITLE, { "Hello2" });
+    // callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
+    // callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
+    // callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
+    // nbl::sleep(1000);
+    // callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
+    // callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
+    // callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
+    // callback(nbl::MetadataField::POSTER, { "qrc:/qt/qml/Nebula/images/UnknownPoster.png" });
+    // callback(nbl::MetadataField::BANNER, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
+    // callback(nbl::MetadataField::BANNER, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
+    // callback(nbl::MetadataField::ICON, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
+    // callback(nbl::MetadataField::ICON, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
+    // callback(nbl::MetadataField::LOGO, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
+    // callback(nbl::MetadataField::LOGO, { "qrc:/qt/qml/Nebula/images/UnknownIcon.png" });
+    // callback(nbl::MetadataField::DESCRIPTION, { "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." });
+    // callback(nbl::MetadataField::RELEASE_DATE, { .releaseDate = 1788405195318U });
+    // // Error 2
+    // callback(nbl::MetadataField::RATING, { .rating = 99.0 });
+    // callback(nbl::MetadataField::TAG, { "hello" });
+    // callback(nbl::MetadataField::TAG, { "world" });
+    // callback(nbl::MetadataField::TAG, { "platformer" });
+    // nbl::sleep(1000);
     return nbl::Result::SUCCESS;
 }
 
