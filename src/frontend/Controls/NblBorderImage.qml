@@ -12,6 +12,8 @@ Item {
     required property string imageSource
     property bool highlighted
 
+    default property alias fillMode: image.fillMode
+
     signal clicked
 
 
@@ -78,9 +80,9 @@ Item {
             id: image
             anchors.fill: parent
             source: root.imageSource
-            fillMode: Image.PreserveAspectCrop
             visible: false
             layer.enabled: true
+            fillMode: Image.PreserveAspectCrop
 
             property bool loadFailed: false
         }

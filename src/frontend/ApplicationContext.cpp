@@ -35,7 +35,6 @@
 #include "NblProcessHandle.hpp"
 #include "Plugin/AccountProvider.hpp"
 #include "Plugin/Field.hpp"
-#include "Plugin/MetadataProvider.hpp"
 
 
 using namespace Qt::StringLiterals;
@@ -51,28 +50,6 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
         return nbl::Result::SUCCESS;
     }
 
-    // Determine file url
-    if(!url.startsWith("file://")) {
-        QByteArray arr = url.toUtf8();
-        nbl::log(nbl::LogLevel::ERROR, "Invalid URL: ", nbl::StringView(arr.data()), arr.length());
-        return nbl::Result::INVALID_ARGUMENT;
-    }
-    
-    url = url.mid(7);
-    QFile file(url);
-
-    QByteArray fileNameArr = url.toUtf8();
-    nbl::StringView fileNameView = nbl::StringView(fileNameArr.data(), fileNameArr.length());
-
-    if(!file.exists()) {
-        nbl::log(nbl::LogLevel::ERROR, "File not found: ", fileNameView);
-        return nbl::Result::INVALID_ARGUMENT;
-    }
-    if(!file.open(QIODevice::ReadOnly)) { 
-        nbl::log(nbl::LogLevel::ERROR, "Could not open file: ", fileNameView);
-        return nbl::Result::IO_ERROR;
-    }
-
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
     if(ctx == nullptr) {
         nbl::log(nbl::LogLevel::ERROR, "Unable to initialize EVP_MD_CTX");
@@ -85,25 +62,27 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
         return nbl::Result::IO_ERROR;
     }
 
+
+    QUrl realUrl(url);
+
+    QNetworkAccessManager manager{};
+    QNetworkRequest request(realUrl);
+    QNetworkReply* reply = manager.get(request);
+
     u8 hash[16] = {};
 
-    char dataBuffer[4096] = {};
-    while(!file.atEnd()) {
-        qint64 bytesRead;
-        if((bytesRead = file.read(dataBuffer, 4096)) == -1) {
-            EVP_MD_CTX_free(ctx);
-            nbl::log(nbl::LogLevel::ERROR, "Unable to read from file!");
-            return nbl::Result::IO_ERROR;
-        }
-        if(bytesRead == 0) {
-            break;
-        }
+    QEventLoop loop{};
 
-        if(EVP_DigestUpdate(ctx, dataBuffer, bytesRead) != 1) {
-            EVP_MD_CTX_free(ctx);
-            nbl::log(nbl::LogLevel::ERROR, "Unable to update MD5 digest!");
-            return nbl::Result::IO_ERROR;
-        }
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+
+    QByteArray response = reply->readAll();
+    reply->deleteLater();
+
+    if(EVP_DigestUpdate(ctx, response.data(), response.length()) != 1) {
+        EVP_MD_CTX_free(ctx);
+        nbl::log(nbl::LogLevel::ERROR, "Unable to update MD5 digest!");
+        return nbl::Result::IO_ERROR;
     }
 
     u32 outputLen = 16;
@@ -139,10 +118,11 @@ nbl::Result pushImage(QString url, QString repo, QString* outPath) {
         dir.mkpath(dir.absolutePath());
     }
 
-    if(!file.copy(output.filesystemFileName())) {
-        nbl::log(nbl::LogLevel::ERROR, "Unable to copy file!");
+    if(!output.open(QIODevice::WriteOnly)) {
         return nbl::Result::IO_ERROR;
     }
+    output.write(response);
+    output.close();
 
     return nbl::Result::SUCCESS;
 }

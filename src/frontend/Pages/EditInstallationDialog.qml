@@ -69,10 +69,12 @@ NblDialog {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
 
+                        enabled: modelData.tab.enabled
+
                         required property var modelData
 
                         readonly property bool isActive: navigation.currentTab == modelData.tab
-                        readonly property bool isHighlighted: isActive || tabArea.containsMouse
+                        readonly property bool isHighlighted: enabled && (isActive || tabArea.containsMouse)
  
                         RowLayout {
                             anchors.centerIn: parent
@@ -116,6 +118,7 @@ NblDialog {
                             cursorShape: Qt.PointingHandCursor
                             anchors.fill: parent
                             onClicked: {
+
                                 if(parent.modelData.tab == navigation.currentTab) return
                                 if(navigation.currentTab.modified) {
                                     ApplicationContext.pushNotification({
@@ -146,6 +149,7 @@ NblDialog {
             SettingsTab {
 
                 id: gameSettingsTab
+                enabled: root.gameId != 0
                 visible: !root.startOnInstallation
                 anchors.fill: parent
 
@@ -194,6 +198,7 @@ NblDialog {
             SettingsTab {
 
                 id: installationSettingsTab
+                enabled: root.installationId != 0
 
                 anchors.fill: parent
                 visible: root.startOnInstallation

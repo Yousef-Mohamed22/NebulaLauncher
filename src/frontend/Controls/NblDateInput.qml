@@ -5,6 +5,11 @@ NblTextBox {
     property var date: new Date()
     property string format: Theme.dateFormat
     property bool utc: true
+    property var time: date.getTime()
+
+    onTimeChanged: {
+        date.setTime(time)
+    }
 
     function getTime() {
         return date.getTime()
@@ -32,6 +37,7 @@ NblTextBox {
 
     onDateChanged: {
         text = getDateString()
+        time = date.getTime()
     }
 
     onTextEdited: {

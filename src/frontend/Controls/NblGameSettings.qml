@@ -74,7 +74,9 @@ Column {
             }
             let dialog = dialogComponent.createObject(this, {
                 targetWidth: 700,
-                targetHeight: 700
+                targetHeight: 700,
+                title: gameTitleField.text,
+                releaseDate: releaseDateField.getTime()
             }) as MetadataSearchDialog
             dialog.apply.connect(function() {
 

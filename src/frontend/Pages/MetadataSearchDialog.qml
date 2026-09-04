@@ -13,6 +13,15 @@ NblDialog {
 
     property int totalResults
 
+    property string title
+    property var releaseDate
+
+    onReleaseDateChanged: {
+        releaseDateBox.setTime(releaseDate)
+    }
+
+    property var platformIds
+
     function collect() {
         let output = {}
         if(posterModel.selectedIndex != -1) {
@@ -90,11 +99,13 @@ NblDialog {
                 id: titleBox
                 label: "Title"
                 width: parent.width
+                text: root.title
             }
             NblDateInput {
                 id: releaseDateBox
                 label: "Release Date"
                 width: parent.width
+                time: root.releaseDate
             }
             NblListInput {
                 id: platformList
@@ -240,34 +251,41 @@ color: Theme.colors.textDim
             NblLabeledBorder { 
                 label: "Icons"
                 visible: iconModel.count > 0
-                padding: 16
+                padding: 8
                 width: parent.width
-                height: iconFlow.height + 32 + backgroundOffset
-                Row {
-                    id: iconFlow
+                height: iconRow.height + 16 + backgroundOffset
+                Flickable {
+                    height: iconRow.height
                     width: parent.width
-                    spacing: 16
-                    Repeater {
-                        id: iconRepeater
-                        model: ListModel {
-                            id: iconModel
-                            property int selectedIndex: -1
-                        }
-                        delegate: NblBorderImage {
-                            required property string value
-                            required property int index
+                    clip: true
+                    contentHeight: height
+                    contentWidth: iconRow.width
+                    Row {
+                        id: iconRow
+                        padding: 8
+                        spacing: 16
+                        Repeater {
+                            id: iconRepeater
+                            model: ListModel {
+                                id: iconModel
+                                property int selectedIndex: -1
+                            }
+                            delegate: NblBorderImage {
+                                required property string value
+                                required property int index
 
-                            imageSource: value
-                            width: 150
-                            height: 150
+                                imageSource: value
+                                width: 150
+                                height: 150
 
-                            onClicked: {
-                                if(iconModel.selectedIndex != -1 && iconModel.selectedIndex != index) {
-                                    iconRepeater.itemAt(iconModel.selectedIndex).highlighted = false
-                                }
-                                highlighted = !highlighted
-                                if(highlighted) {
-                                    iconModel.selectedIndex = index
+                                onClicked: {
+                                    if(iconModel.selectedIndex != -1 && iconModel.selectedIndex != index) {
+                                        iconRepeater.itemAt(iconModel.selectedIndex).highlighted = false
+                                    }
+                                    highlighted = !highlighted
+                                    if(highlighted) {
+                                        iconModel.selectedIndex = index
+                                    }
                                 }
                             }
                         }
@@ -278,34 +296,41 @@ color: Theme.colors.textDim
             NblLabeledBorder { 
                 label: "Banners"
                 visible: bannerModel.count > 0
-                padding: 16
+                padding: 8
                 width: parent.width
-                height: bannerFlow.height + 32 + backgroundOffset
-                Row {
-                    id: bannerFlow
+                height: bannerRow.height + 16 + backgroundOffset
+                Flickable {
+                    height: bannerRow.height
                     width: parent.width
-                    spacing: 16
-                    Repeater {
-                        id: bannerRepeater
-                        model: ListModel {
-                            id: bannerModel
-                            property int selectedIndex: -1
-                        }
-                        delegate: NblBorderImage {
-                            required property string value
-                            required property int index
+                    clip: true
+                    contentHeight: height
+                    contentWidth: bannerRow.width
+                    Row {
+                        id: bannerRow
+                        padding: 8
+                        spacing: 16
+                        Repeater {
+                            id: bannerRepeater
+                            model: ListModel {
+                                id: bannerModel
+                                property int selectedIndex: -1
+                            }
+                            delegate: NblBorderImage {
+                                required property string value
+                                required property int index
 
-                            imageSource: value
-                            width: 96 * 3.25
-                            height: 31 * 3.25
+                                imageSource: value
+                                width: 96 * 3.25
+                                height: 31 * 3.25
 
-                            onClicked: {
-                                if(bannerModel.selectedIndex != -1 && bannerModel.selectedIndex != index) {
-                                    bannerRepeater.itemAt(bannerModel.selectedIndex).highlighted = false
-                                }
-                                highlighted = !highlighted
-                                if(highlighted) {
-                                    bannerModel.selectedIndex = index
+                                onClicked: {
+                                    if(bannerModel.selectedIndex != -1 && bannerModel.selectedIndex != index) {
+                                        bannerRepeater.itemAt(bannerModel.selectedIndex).highlighted = false
+                                    }
+                                    highlighted = !highlighted
+                                    if(highlighted) {
+                                        bannerModel.selectedIndex = index
+                                    }
                                 }
                             }
                         }
@@ -316,34 +341,42 @@ color: Theme.colors.textDim
             NblLabeledBorder { 
                 label: "Logos"
                 visible: logoModel.count > 0
-                padding: 16
+                padding: 8
                 width: parent.width
-                height: logoFlow.height + 32 + backgroundOffset
-                Row {
-                    id: logoFlow
+                height: logoRow.height + 16 + backgroundOffset
+                Flickable {
+                    height: logoRow.height
                     width: parent.width
-                    spacing: 16
-                    Repeater {
-                        id: logoRepeater
-                        model: ListModel {
-                            id: logoModel
-                            property int selectedIndex: -1
-                        }
-                        delegate: NblBorderImage {
-                            required property string value
-                            required property int index
+                    clip: true
+                    contentHeight: height
+                    contentWidth: logoRow.width
+                    Row {
+                        id: logoRow
+                        padding: 8
+                        spacing: 16
+                        Repeater {
+                            id: logoRepeater
+                            model: ListModel {
+                                id: logoModel
+                                property int selectedIndex: -1
+                            }
+                            delegate: NblBorderImage {
+                                required property string value
+                                required property int index
 
-                            imageSource: value
-                            width: 150
-                            height: 150
+                                imageSource: value
+                                width: 150
+                                height: 150
+                                fillMode: Image.PreserveAspectFit
 
-                            onClicked: {
-                                if(logoModel.selectedIndex != -1 && logoModel.selectedIndex != index) {
-                                    logoRepeater.itemAt(logoModel.selectedIndex).highlighted = false
-                                }
-                                highlighted = !highlighted
-                                if(highlighted) {
-                                    logoModel.selectedIndex = index
+                                onClicked: {
+                                    if(logoModel.selectedIndex != -1 && logoModel.selectedIndex != index) {
+                                        logoRepeater.itemAt(logoModel.selectedIndex).highlighted = false
+                                    }
+                                    highlighted = !highlighted
+                                    if(highlighted) {
+                                        logoModel.selectedIndex = index
+                                    }
                                 }
                             }
                         }

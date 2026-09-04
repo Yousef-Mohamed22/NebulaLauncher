@@ -261,6 +261,7 @@ Item {
                     onClicked: {
                         let dialogComponent = Qt.createComponent("EditInstallationDialog.qml")
                         let dialog = dialogComponent.createObject(this, { 
+                            gameId: root.details.gameId,
                             installationId: root.selectedInstallation
                         }) as NblDialog
                         dialog.apply.connect(function() {
