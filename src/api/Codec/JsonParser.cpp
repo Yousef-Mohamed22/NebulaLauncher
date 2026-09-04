@@ -103,8 +103,10 @@ nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator
 
                     i32 codePoint = 0;
                     for(auto i = 0 ; i < 4 ; i++) {
-                        i32 val = _hexDigit(i);
-                        if(val == -1) return nbl::Result::PARSE_ERROR;
+                        i32 val = _hexDigit(codePointHex[i]);
+                        if(val == -1) {
+                            return nbl::Result::PARSE_ERROR;
+                        }
                         codePoint |= (val & 0xF) << (i * 4);
                     }
 

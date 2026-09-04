@@ -48,6 +48,7 @@ nbl::Result nbl::PluginLoader::loadAll() {
     if(registrationsTempArena.index() > 0) {
 
         usize registryCounts[PluginRegistries::count()];
+        usize registryMoved[PluginRegistries::count()];
         usize offsets[PluginRegistries::count()];
         usize totalSize = 0;
 
@@ -82,9 +83,8 @@ nbl::Result nbl::PluginLoader::loadAll() {
                 PluginRegistries::Registry reg = *reinterpret_cast<PluginRegistries::Registry*>(current);
                 current += sizeof(PluginRegistries::Registry);
 
-                usize realOffset = offsets[reg] + (--registryCounts[reg]) * sizeof(void*);
+                usize realOffset = offsets[reg] + (registryMoved[reg]++) * sizeof(void*);
                 memcpy(allocation + realOffset, current, sizeof(void*));
-
 
                 current += sizeof(void*);
             }

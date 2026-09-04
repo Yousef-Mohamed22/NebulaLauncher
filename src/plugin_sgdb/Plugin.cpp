@@ -278,7 +278,7 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         NBL_CHECK(nbl::StringBuilder(&frame)
                 .append("https://www.steamgriddb.com/api/v2/icons/game/")
                 .append(nbl::UrlEncode(sgdbId))
-                .append(nbl::UrlEncode("?mimes=images/png,image/webp,image/jpeg&limit=20"))
+                .append("?limit=20")
                 .append(_filters)
                 .buildNullTerminated(&gridUrl)
         );
