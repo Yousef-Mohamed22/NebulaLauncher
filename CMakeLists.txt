@@ -11,7 +11,7 @@ set(NBL_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 option(NBL_BUILD_FRONTEND "Build Frontend" ON)
 option(NBL_BUILD_TESTS "Build Tests" ON)
 option(NBL_BUILD_TEST_PLUGIN "Build Test Plugin" ON)
-
+option(NBL_BUILD_SGDB_PLUGIN "Build SteamGridDB Plugin" ON)
 
 #
 # Dependencies
@@ -95,6 +95,27 @@ if(${NBL_BUILD_TEST_PLUGIN})
         TARGET Nebula_TestPlugin
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/test_plugin/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/test_plugin"
+        VERBATIM
+    )
+
+endif()
+
+if(${NBL_BUILD_SGDB_PLUGIN}) 
+
+    file(GLOB_RECURSE NBL_SGDB_PLUGIN_SOURCES ${NBL_SRC_DIR}/plugin_sgdb/**.cpp)
+    add_library(Nebula_SgdbPlugin SHARED ${NBL_SGDB_PLUGIN_SOURCES})
+    target_link_libraries(Nebula_SgdbPlugin PRIVATE Nebula_Api)
+    set_target_properties(Nebula_SgdbPlugin PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/sgdb"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/sgdb"
+        PREFIX ""
+        OUTPUT_NAME "plugin"
+    )
+
+    add_custom_command(
+        TARGET Nebula_SgdbPlugin
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/plugin_sgdb/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/sgdb"
         VERBATIM
     )
 

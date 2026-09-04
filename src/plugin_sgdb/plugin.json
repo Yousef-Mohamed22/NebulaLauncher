@@ -1,0 +1,6 @@
+{
+    "id": "sgdb",
+    "version": "0.1.0",
+    "name": "SteamGridDB",
+    "description": "Adds a MetadataProvider which fetches content from SteamGridDB"
+}
