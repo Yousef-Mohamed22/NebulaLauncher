@@ -366,6 +366,7 @@ nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 max
 
     curl_multi_setopt(multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, maxConnections);
     curl_multi_setopt(multiHandle, CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
+    curl_multi_setopt(multiHandle, CURLMOPT_MAX_CONCURRENT_STREAMS, nbl::max(100U, maxRequests / maxConnections));
 
     NBL_CHECK(nbl::Mutex::create(&out->_mRequestMutex));
 
