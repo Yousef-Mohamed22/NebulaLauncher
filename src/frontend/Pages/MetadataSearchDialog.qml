@@ -232,6 +232,8 @@ color: Theme.colors.textDim
                                 imageSource: value
                                 width: 150
                                 height: 225
+                                sourceSize.width: 150
+                                sourceSize.height: 225
 
                                 onClicked: {
                                     if(posterModel.selectedIndex != -1 && posterModel.selectedIndex != index) {
@@ -277,6 +279,8 @@ color: Theme.colors.textDim
                                 imageSource: value
                                 width: 150
                                 height: 150
+                                sourceSize.width: 150
+                                sourceSize.height: 150
 
                                 onClicked: {
                                     if(iconModel.selectedIndex != -1 && iconModel.selectedIndex != index) {
@@ -322,6 +326,8 @@ color: Theme.colors.textDim
                                 imageSource: value
                                 width: 96 * 3.25
                                 height: 31 * 3.25
+                                sourceSize.width: width
+                                sourceSize.height: height
 
                                 onClicked: {
                                     if(bannerModel.selectedIndex != -1 && bannerModel.selectedIndex != index) {
@@ -367,6 +373,8 @@ color: Theme.colors.textDim
                                 imageSource: value
                                 width: 150
                                 height: 150
+                                sourceSize.width: width
+                                sourceSize.height: height
                                 fillMode: Image.PreserveAspectFit
 
                                 onClicked: {

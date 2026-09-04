@@ -12,7 +12,8 @@ Item {
     required property string imageSource
     property bool highlighted
 
-    default property alias fillMode: image.fillMode
+    property alias sourceSize: image.sourceSize
+    property alias fillMode: image.fillMode
 
     signal clicked
 
