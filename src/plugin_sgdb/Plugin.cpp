@@ -14,6 +14,19 @@
 
 namespace {
 
+enum TriState : u32 {
+    DENY = 0,
+    ALLOW = 1,
+    ALLOW_EXCLUSIVELY = 2
+};
+
+struct _Filters {
+    u32 allowNsfw = DENY;
+    u32 allowHumor = DENY;
+    u32 allowFlash = DENY;
+};
+
+_Filters _filters;
 char _tokenBuffer[64]{};
 usize _tokenLength = 0;
 nbl::HttpClient _httpClient{};
@@ -149,7 +162,8 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         NBL_CHECK(nbl::StringBuilder(&frame)
                 .append("https://www.steamgriddb.com/api/v2/grids/game/")
                 .append(nbl::UrlEncode(sgdbId))
-                .append("?dimensions=600x900,512x512,1024x1024&limit=20&nsfw=false") // TODO: Once plugin-level fields get introduced, nsfw crap should probably be a user choice. Until then just get rid of it.
+                .append("?dimensions=600x900,512x512,1024x1024&limit=20")
+                .append(_filters)
                 .buildNullTerminated(&gridUrl)
         );
 
@@ -188,7 +202,8 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         NBL_CHECK(nbl::StringBuilder(&frame)
                 .append("https://www.steamgriddb.com/api/v2/heroes/game/")
                 .append(nbl::UrlEncode(sgdbId))
-                .append("?dimensions=1920x620,3840x1240&limit=20&nsfw=false")
+                .append("?dimensions=1920x620,3840x1240&limit=20")
+                .append(_filters)
                 .buildNullTerminated(&gridUrl)
         );
 
@@ -224,7 +239,8 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         NBL_CHECK(nbl::StringBuilder(&frame)
                 .append("https://www.steamgriddb.com/api/v2/logos/game/")
                 .append(nbl::UrlEncode(sgdbId))
-                .append("?limit=20&nsfw=false")
+                .append("?limit=20")
+                .append(_filters)
                 .buildNullTerminated(&gridUrl)
         );
 
@@ -262,7 +278,8 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         NBL_CHECK(nbl::StringBuilder(&frame)
                 .append("https://www.steamgriddb.com/api/v2/icons/game/")
                 .append(nbl::UrlEncode(sgdbId))
-                .append(nbl::UrlEncode("?mimes=images/png,image/webp,image/jpeg&limit=20&nsfw=false"))
+                .append(nbl::UrlEncode("?mimes=images/png,image/webp,image/jpeg&limit=20"))
+                .append(_filters)
                 .buildNullTerminated(&gridUrl)
         );
 
@@ -344,6 +361,59 @@ nbl::MetadataProvider _metaProvider {
     .userData = nullptr
 };
 
+u32 _tristateIndex(nbl::StringView name, void* userData) {
+    if(name == "Allow Exclusively") return ALLOW_EXCLUSIVELY;
+    if(name == "Allow") return ALLOW;
+    return DENY;
+}
+
+u32 _tristateCount(void* userData) { return 3; }
+
+nbl::StringView _tristateName(u32 index, void* userData) {
+    switch(index) {
+        default:
+        case DENY: return "Deny";
+        case ALLOW: return "Allow";
+        case ALLOW_EXCLUSIVELY: return "Allow Exclusively";
+    }
+}
+
+nbl::Array _pluginFields {
+    nbl::Field {
+        .type = nbl::FieldType::ENUM,
+        .key = "nsfw",
+        .name = "NSFW Filter",
+        .enumData = {
+            .pfnIndex = _tristateIndex,
+            .pfnName = _tristateName,
+            .pfnCount = _tristateCount
+        },
+        .defaultValue = { .enumValue = DENY }
+    },
+        nbl::Field {
+        .type = nbl::FieldType::ENUM,
+        .key = "humor",
+        .name = "Humor Filter",
+        .enumData = {
+            .pfnIndex = _tristateIndex,
+            .pfnName = _tristateName,
+            .pfnCount = _tristateCount
+        },
+        .defaultValue = { .enumValue = DENY }
+    },
+        nbl::Field {
+        .type = nbl::FieldType::ENUM,
+        .key = "epilepsy",
+        .name = "Epilepsy Filter",
+        .enumData = {
+            .pfnIndex = _tristateIndex,
+            .pfnName = _tristateName,
+            .pfnCount = _tristateCount
+        },
+        .defaultValue = { .enumValue = DENY }
+    }
+};
+
 }
 
 extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
@@ -351,6 +421,21 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
     nbl::log(nbl::LogLevel::INFO, "Initializing SteamGridDB plugin...");
     context->registerAccountProvider(&_provider);
     context->registerMetadataProvider(&_metaProvider);
+    
+    context->setFields(_pluginFields, [](nbl::Span<nbl::Field> fields, nbl::Span<nbl::FieldValue> fieldValues, void* userData) {
+        _filters.allowNsfw = fieldValues[0].enumValue;
+        _filters.allowHumor = fieldValues[1].enumValue;
+        _filters.allowFlash = fieldValues[2].enumValue;
+    }, nullptr);
+
+    {
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::Span<nbl::FieldValue> values{};
+        NBL_CHECK(context->getStoredFieldValues(_pluginFields, &values, &frame));
+        _filters.allowNsfw = values[0].enumValue;
+        _filters.allowHumor = values[1].enumValue;
+        _filters.allowFlash = values[2].enumValue;
+    }
 
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
     nbl::StringView pluginFolder;
@@ -381,4 +466,24 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
 
 
     return 0;
+}
+
+namespace nbl {
+Result toString(const _Filters& filters, Writer writer);
+}
+
+nbl::Result nbl::toString(const _Filters& filters, Writer writer) {
+    if(filters.allowNsfw != DENY) {
+        NBL_CHECK(writer.writeString("&nsfw="));
+        NBL_CHECK(writer.writeString(filters.allowNsfw == ALLOW ? "any" : "true"));
+    }
+    if(filters.allowHumor != DENY) {
+        NBL_CHECK(writer.writeString("&humor="));
+        NBL_CHECK(writer.writeString(filters.allowHumor == ALLOW ? "any" : "true"));
+    }
+    if(filters.allowFlash != DENY) {
+        NBL_CHECK(writer.writeString("&epilepsy="));
+        NBL_CHECK(writer.writeString(filters.allowFlash == ALLOW ? "any" : "true"));
+    }
+    return nbl::Result::SUCCESS;
 }

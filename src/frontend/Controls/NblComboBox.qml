@@ -49,6 +49,7 @@ ComboBox {
     popup: Popup {
         clip: true
         y: root.height - 1
+        z: 1000
         width: root.width
         height: Math.min(contentItem.implicitHeight + 2, root.Window.height - topMargin - bottomMargin)
         padding: 1

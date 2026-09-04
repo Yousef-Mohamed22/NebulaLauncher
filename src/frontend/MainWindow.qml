@@ -24,7 +24,6 @@ Window {
         anchors.margins: 8
         spacing: 8
 
-        /* Header */
         Header {
             sidebar: sidebar
             Layout.fillWidth: true
