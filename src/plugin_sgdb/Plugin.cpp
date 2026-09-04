@@ -362,14 +362,21 @@ nbl::MetadataProvider _metaProvider {
 };
 
 u32 _tristateIndex(nbl::StringView name, void* userData) {
-    if(name == "Allow Exclusively") return ALLOW_EXCLUSIVELY;
-    if(name == "Allow") return ALLOW;
+    if(name == "true") return ALLOW_EXCLUSIVELY;
+    if(name == "any") return ALLOW;
     return DENY;
 }
 
 u32 _tristateCount(void* userData) { return 3; }
 
 nbl::StringView _tristateName(u32 index, void* userData) {
+    switch(index) {
+        default:
+        case DENY: return "false";
+        case ALLOW: return "any";
+        case ALLOW_EXCLUSIVELY: return "true";
+    }
+}nbl::StringView _tristateDisplayName(u32 index, void* userData) {
     switch(index) {
         default:
         case DENY: return "Deny";
@@ -386,6 +393,7 @@ nbl::Array _pluginFields {
         .enumData = {
             .pfnIndex = _tristateIndex,
             .pfnName = _tristateName,
+            .pfnDisplayName = _tristateDisplayName,
             .pfnCount = _tristateCount
         },
         .defaultValue = { .enumValue = DENY }
@@ -397,6 +405,7 @@ nbl::Array _pluginFields {
         .enumData = {
             .pfnIndex = _tristateIndex,
             .pfnName = _tristateName,
+            .pfnDisplayName = _tristateDisplayName,
             .pfnCount = _tristateCount
         },
         .defaultValue = { .enumValue = DENY }
@@ -408,7 +417,8 @@ nbl::Array _pluginFields {
         .enumData = {
             .pfnIndex = _tristateIndex,
             .pfnName = _tristateName,
-            .pfnCount = _tristateCount
+            .pfnDisplayName = _tristateDisplayName,
+            .pfnCount = _tristateCount,
         },
         .defaultValue = { .enumValue = DENY }
     }
@@ -475,15 +485,15 @@ Result toString(const _Filters& filters, Writer writer);
 nbl::Result nbl::toString(const _Filters& filters, Writer writer) {
     if(filters.allowNsfw != DENY) {
         NBL_CHECK(writer.writeString("&nsfw="));
-        NBL_CHECK(writer.writeString(filters.allowNsfw == ALLOW ? "any" : "true"));
+        NBL_CHECK(writer.writeString(_tristateName(filters.allowNsfw, nullptr)));
     }
     if(filters.allowHumor != DENY) {
         NBL_CHECK(writer.writeString("&humor="));
-        NBL_CHECK(writer.writeString(filters.allowHumor == ALLOW ? "any" : "true"));
+        NBL_CHECK(writer.writeString(_tristateName(filters.allowHumor, nullptr)));
     }
     if(filters.allowFlash != DENY) {
         NBL_CHECK(writer.writeString("&epilepsy="));
-        NBL_CHECK(writer.writeString(filters.allowFlash == ALLOW ? "any" : "true"));
+        NBL_CHECK(writer.writeString(_tristateName(filters.allowFlash, nullptr)));
     }
     return nbl::Result::SUCCESS;
 }

@@ -17,6 +17,10 @@ QVariant NblEnumFieldModel::data(const QModelIndex& index, int role) const {
             nbl::StringView name = field.enumData.name(static_cast<u32>(index.row()));
             return QByteArray(name.data, name.length);
         }
+        case DisplayNameRole: {
+            nbl::StringView name = field.enumData.displayName(static_cast<u32>(index.row()));
+            return QByteArray(name.data, name.length);
+        }
         default:
             return QVariant();
     }
@@ -25,6 +29,7 @@ QVariant NblEnumFieldModel::data(const QModelIndex& index, int role) const {
 QHash<int, QByteArray> NblEnumFieldModel::roleNames() const {
     QHash<int, QByteArray> roles = {};
     roles[NameRole] = "name";
+    roles[DisplayNameRole] = "displayName";
     return roles;
 }
 

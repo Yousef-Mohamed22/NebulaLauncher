@@ -16,7 +16,7 @@ FieldInputDelegate {
         width: parent.width
         label: root.field.name
         model: root.field.enumModel
-        textRole: "name"
+        textRole: "displayName"
         valueRole: "name"
 
         onActivated: {

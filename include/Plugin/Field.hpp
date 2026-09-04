@@ -63,6 +63,7 @@ struct Field {
         struct {
             u32 (*pfnIndex)(StringView name, void* userData);
             StringView (*pfnName)(u32 index, void* userData);
+            StringView (*pfnDisplayName)(u32 index, void* userData);
             u32 (*pfnCount)(void* userData);
             void* userData;
 
@@ -79,10 +80,16 @@ struct Field {
                 return 0;
             }
             StringView name(u32 index) const { 
-                if(pfnIndex) {
+                if(pfnName) {
                     return pfnName(index, userData);
                 }
                 return "";
+            }
+            StringView displayName(u32 index) const { 
+                if(pfnDisplayName) {
+                    return pfnDisplayName(index, userData);
+                }
+                return name(index);
             }
         } enumData;
         struct {
