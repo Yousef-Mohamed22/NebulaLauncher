@@ -460,5 +460,23 @@ Result getTabMeta(DatabaseConnection* connection, i64 tabId, TabCallback callbac
 
 Result getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback);
 
+
+// Plugin Fields
+struct PluginFields {
+    StringView pluginId;
+    StringView fieldsJson;
+    StringView version;
+};
+
+typedef std::function_ref<Result(const PluginFields&)> PluginFieldsCallback;
+
+Result getPluginFields(DatabaseConnection* connection, StringView pluginId, PluginFieldsCallback callback);
+
+Result getPluginFieldsVersion(DatabaseConnection* connection, StringView pluginId, PluginFieldsCallback callback);
+
+Result setPluginFields(DatabaseConnection* connection, StringView pluginid, StringView fieldsJson, StringView version);
+
+Result prunePluginFields(DatabaseConnection* connection, JsonArray keepIds);
+
 }
 

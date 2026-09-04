@@ -68,7 +68,7 @@ void NblFilterModel::_fetchPageData() {
     u64 offset = (_mCurrentPage - 1) * _mPageSize;
     u64 limit = _mPageSize;
 
-    nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
+    nbl::DatabaseConnection* db = ApplicationContext::instance()->databaseConnection();
     
     QList<_Item> found = {};
     found.reserve(_mPageSize);

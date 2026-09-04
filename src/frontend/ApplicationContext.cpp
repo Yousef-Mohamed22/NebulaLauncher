@@ -157,6 +157,7 @@ void ApplicationContext::_initialize() {
     nbl::StringView path;
     NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/nebula.db").build(&path).success());
 
+
     nbl::StringView pluginDataPath;
     NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/plugindata").build(&pluginDataPath).success());
 
@@ -189,12 +190,10 @@ void ApplicationContext::_initialize() {
     NBL_ASSERT(nbl::PluginLoader::create(&_mContext, pluginFolder, &_mLoader).success());
     NBL_ASSERT(_mLoader.loadAll().success());
 
-    NBL_ASSERT(nbl::DatabaseConnection::open(path, &_mConnection).success());
-    NBL_ASSERT(nbl::initDatabase(&_mConnection).success());
 
     nbl::StringView hostname = nbl::getHostName();
 
-    NBL_ASSERT(nbl::getOrAddDevice(&_mConnection, hostname, &_mDeviceId).success()); 
+    NBL_ASSERT(nbl::getOrAddDevice(databaseConnection(), hostname, &_mDeviceId).success()); 
     nbl::log(nbl::LogLevel::DEBUG, "Device ID: ", _mDeviceId);
 }
 
@@ -215,7 +214,7 @@ QString ApplicationContext::dataFolder() const {
 
 NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) {
 
-    if(!_mConnection.isValid()) {
+    if(!databaseConnection()->isValid()) {
         nbl::log(nbl::LogLevel::ERROR, "Cannot launch installation, database connection is not valid");
         return nullptr;
     }
@@ -255,7 +254,7 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
         NblProcessHandle* handle = ctx->_mRunningProcesses[installationId];
         if(handle == nullptr) return -1;
 
-        nbl::Result res = nbl::getInstallationMeta(&ctx->_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
+        nbl::Result res = nbl::getInstallationMeta(ctx->databaseConnection(), installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
             if(meta.deviceId != ctx->_mDeviceId) {
                 nbl::log(nbl::LogLevel::ERROR, "Attempt to launch an installation from another device! (", meta.deviceId, " != ", ctx->_mDeviceId, ")");
@@ -309,14 +308,14 @@ NblProcessHandle* ApplicationContext::getRunningInstallation(qint64 installation
 
 int ApplicationContext::openInstallationFolder(qint64 installationId) {
  
-    if(!_mConnection.isValid()) {
+    if(!databaseConnection()->isValid()) {
         nbl::log(nbl::LogLevel::ERROR, "Cannot open installation folder, database connection is not valid");
         return -1;
     }
 
     NblProcessHandle* handle = new NblProcessHandle();
 
-    nbl::Result res = nbl::getInstallationMeta(&_mConnection, installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
+    nbl::Result res = nbl::getInstallationMeta(databaseConnection(), installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
         if(meta.deviceId != _mDeviceId) {
             nbl::log(nbl::LogLevel::ERROR, "Attempt to open an installation folder for another device!");
@@ -360,14 +359,14 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
 
 NblInstallationDetails* ApplicationContext::getInstallationDetails(qint64 installationId) {
 
-    if(!_mConnection.isValid()) {
+    if(!databaseConnection()->isValid()) {
         nbl::log(nbl::LogLevel::ERROR, "Cannot get installation details, database connection is not valid");
         return nullptr;
     }
 
     NblInstallationDetails* out;
 
-    if(nbl::getInstallationDetails(&_mConnection, installationId, [&](const nbl::InstallationDetails& details) -> nbl::Result {
+    if(nbl::getInstallationDetails(databaseConnection(), installationId, [&](const nbl::InstallationDetails& details) -> nbl::Result {
 
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 
@@ -431,13 +430,13 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(qint64 instal
 
 NblGameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
 
-    if(!_mConnection.isValid()) {
+    if(!databaseConnection()->isValid()) {
         nbl::log(nbl::LogLevel::ERROR, "Cannot get game details, database connection is not valid");
         return nullptr;
     }
 
     NblGameDetails* out = nullptr;
-    if(nbl::getGameDetails(&_mConnection, gameId, [&](const nbl::GameDetails& details) {
+    if(nbl::getGameDetails(databaseConnection(), gameId, [&](const nbl::GameDetails& details) {
 
         out = new NblGameDetails(
             details.game.id,
@@ -473,7 +472,7 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
     i64 gId = params.find("game")->toLongLong(&ok);
     if(!ok) return -1;
 
-    NBL_CHECK(_mConnection.beginTransaction());
+    NBL_CHECK(databaseConnection()->beginTransaction());
 
     QString bannerUrl = params.find("banner")->toString();
     QString posterUrl = params.find("poster")->toString();
@@ -512,7 +511,7 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
             .rating = rating
         };
 
-        NBL_CHECK(nbl::addGame(&_mConnection, meta, &realGId));
+        NBL_CHECK(nbl::addGame(databaseConnection(), meta, &realGId));
     }
 
     // Add a new installation
@@ -560,7 +559,7 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
         meta.logoPosition = position;
     }
 
-    NBL_CHECK(nbl::addInstallation(&_mConnection, meta, &meta.id));
+    NBL_CHECK(nbl::addInstallation(databaseConnection(), meta, &meta.id));
 
     for(QVariant tag : params.find("addedInstallationTags")->toList()) {
         tagInstallation(meta.id, tag.toLongLong());
@@ -575,7 +574,7 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
         untagGame(realGId, tag.toLongLong());
     }
 
-    NBL_CHECK(_mConnection.commitTransaction());
+    NBL_CHECK(databaseConnection()->commitTransaction());
     return 0;
 }
 
@@ -637,7 +636,7 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
         .command = cmd
     };
 
-    nbl::updateInstallation(&_mConnection, meta);
+    nbl::updateInstallation(databaseConnection(), meta);
 
     for(QVariant qs : params.find("addedInstallationTags")->toList()) {
         tagInstallation(meta.id, qs.toLongLong());
@@ -650,7 +649,7 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
 }
 
 int ApplicationContext::deleteInstallation(qint64 installationId) {
-    return nbl::removeInstallation(&_mConnection, installationId);
+    return nbl::removeInstallation(databaseConnection(), installationId);
 }
 
 void ApplicationContext::saveSettings(const QVariantMap& settings) {
@@ -810,7 +809,7 @@ int ApplicationContext::addTab(const QVariantMap& params) {
     bool colorizeIcon = params["colorizeIcon"].toBool();
     bool hidden = params["hidden"].toBool();
 
-    nbl::DatabaseConnection* c = &_mConnection;
+    nbl::DatabaseConnection* c = databaseConnection();
     if(icon.endsWith(".png") || icon.endsWith(".svg")) {
         NBL_CHECK_OR_ROLLBACK(c, pushImage(icon, "inline_icon", &icon));
     }
@@ -824,10 +823,10 @@ int ApplicationContext::addTab(const QVariantMap& params) {
         .hidden = hidden
     };
 
-    NBL_CHECK(_mConnection.beginTransaction());
+    NBL_CHECK(c->beginTransaction());
 
-    NBL_CHECK_OR_ROLLBACK(c, nbl::addTab(&_mConnection, meta, &meta.tabId));
-    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(&_mConnection, meta.tabId, params["filters"].toList()));
+    NBL_CHECK_OR_ROLLBACK(c, nbl::addTab(c, meta, &meta.tabId));
+    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(c, meta.tabId, params["filters"].toList()));
 
     NBL_CHECK(c->commitTransaction());
 
@@ -840,7 +839,7 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
     bool colorizeIcon = params["colorizeIcon"].toBool();
     bool hidden = params["hidden"].toBool();
 
-    nbl::DatabaseConnection* c = &_mConnection;
+    nbl::DatabaseConnection* c = databaseConnection();
     if(icon.endsWith(".png") || icon.endsWith(".svg")) {
         NBL_CHECK_OR_ROLLBACK(c, pushImage(icon, "inline_icon", &icon));
     }
@@ -855,10 +854,10 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
         .hidden = hidden
     };
 
-    NBL_CHECK_OR_ROLLBACK(c, _mConnection.beginTransaction());
-    NBL_CHECK_OR_ROLLBACK(c, nbl::updateTab(&_mConnection, meta));
+    NBL_CHECK_OR_ROLLBACK(c, c->beginTransaction());
+    NBL_CHECK_OR_ROLLBACK(c, nbl::updateTab(c, meta));
 
-    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(&_mConnection, meta.tabId, params["filters"].toList()));
+    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(c, meta.tabId, params["filters"].toList()));
 
     for(const QVariant& removed : params["removedFilters"].toList()) {
         NBL_CHECK_OR_ROLLBACK(c, nbl::removeFilter(c, removed.toLongLong()));
@@ -869,7 +868,7 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
 }
 int ApplicationContext::deleteTab(qint64 id) { 
 
-    return nbl::removeTab(&_mConnection, id);
+    return nbl::removeTab(databaseConnection(), id);
 }
 
 QVariantMap ApplicationContext::getTabMeta(qint64 id) {
@@ -877,7 +876,7 @@ QVariantMap ApplicationContext::getTabMeta(qint64 id) {
     QVariantMap out = {};
     out["id"] = id;
 
-    if(nbl::getTabMeta(&_mConnection, static_cast<i64>(id), [&](const nbl::TabMeta& meta) -> nbl::Result {
+    if(nbl::getTabMeta(databaseConnection(), static_cast<i64>(id), [&](const nbl::TabMeta& meta) -> nbl::Result {
 
         out["name"] = fromNbl(meta.name);
         out["icon"] = fromNbl(meta.icon);
@@ -892,7 +891,7 @@ QVariantMap ApplicationContext::getTabMeta(qint64 id) {
 
     QVariantList filters = {};
 
-    if(nbl::getFiltersForTab(&_mConnection, id, 0, INT32_MAX, [&](const nbl::FilterMeta& meta) -> nbl::Result {
+    if(nbl::getFiltersForTab(databaseConnection(), id, 0, INT32_MAX, [&](const nbl::FilterMeta& meta) -> nbl::Result {
 
         QVariantMap filter = {};
 
@@ -907,7 +906,7 @@ QVariantMap ApplicationContext::getTabMeta(qint64 id) {
         filter["showInstallations"] = meta.showInstallations;
         
 
-        nbl::getFilterCriteria(&_mConnection, meta.filterId, [&](const nbl::SearchCriteria& criteria) -> nbl::Result {
+        nbl::getFilterCriteria(databaseConnection(), meta.filterId, [&](const nbl::SearchCriteria& criteria) -> nbl::Result {
 
             filter["sortBy"] = static_cast<i32>(criteria.sortBy);
             filter["sortOrder"] = static_cast<i32>(criteria.sortOrder);
@@ -957,7 +956,7 @@ qint64 ApplicationContext::addTag(QString name, QColor color) {
     QByteArray arr = name.toUtf8();
     nbl::StringView nblName = nbl::StringView(arr.data(), arr.length());
     i64 id = 0;
-    if(nbl::addTag(&_mConnection, nblName, color.rgba(), &id).error()) {
+    if(nbl::addTag(databaseConnection(), nblName, color.rgba(), &id).error()) {
         return 0;
     }
     return static_cast<qint64>(id);
@@ -968,7 +967,7 @@ qint64 ApplicationContext::findTagId(QString name) {
     qint64 out;
     
     QByteArray utf = name.toUtf8();
-    nbl::Result rc = nbl::findTag(&_mConnection, nbl::StringView(utf.data(), utf.length()), [&](const nbl::TagMeta& meta) {
+    nbl::Result rc = nbl::findTag(databaseConnection(), nbl::StringView(utf.data(), utf.length()), [&](const nbl::TagMeta& meta) {
         out = meta.id;
         return nbl::Result::SUCCESS;
     });
@@ -978,37 +977,37 @@ qint64 ApplicationContext::findTagId(QString name) {
 }
 
 int ApplicationContext::removeTag(qint64 tag) {
-    return nbl::removeTag(&_mConnection, tag);
+    return nbl::removeTag(databaseConnection(), tag);
 }
 
 int ApplicationContext::renameTag(qint64 tag, QStringView newName) {
     QByteArray newArr = newName.toUtf8();
     nbl::StringView nblNewName = nbl::StringView(newArr.data(), newArr.length());
-    return nbl::renameTag(&_mConnection, tag, nblNewName);
+    return nbl::renameTag(databaseConnection(), tag, nblNewName);
 }
 
 int ApplicationContext::recolorTag(qint64 tag, QColor color) {
-    return nbl::setTagColor(&_mConnection, tag, color.rgba());
+    return nbl::setTagColor(databaseConnection(), tag, color.rgba());
 }
 
 int ApplicationContext::addTagParent(qint64 tag, qint64 parent) {
-    return nbl::addParentTag(&_mConnection, parent, tag);
+    return nbl::addParentTag(databaseConnection(), parent, tag);
 }
 
 int ApplicationContext::tagGame(qint64 gameId, qint64 tag) {
-    return nbl::addGameTag(&_mConnection, gameId, tag);
+    return nbl::addGameTag(databaseConnection(), gameId, tag);
 }
 
 int ApplicationContext::untagGame(qint64 gameId, qint64 tag) {
-    return nbl::removeGameTag(&_mConnection, gameId, tag);
+    return nbl::removeGameTag(databaseConnection(), gameId, tag);
 }
 
 int ApplicationContext::tagInstallation(qint64 installationId, qint64 tag) {
-    return nbl::addInstallationTag(&_mConnection, installationId, tag);
+    return nbl::addInstallationTag(databaseConnection(), installationId, tag);
 }
 
 int ApplicationContext::untagInstallation(qint64 installationId, qint64 tag) {
-    return nbl::removeInstallationTag(&_mConnection, installationId, tag);
+    return nbl::removeInstallationTag(databaseConnection(), installationId, tag);
 }
 
 int ApplicationContext::updateTags(QVariantList modifiedTags) {
@@ -1024,7 +1023,7 @@ int ApplicationContext::updateTags(QVariantList modifiedTags) {
         QVariantList newParents = map["addedParents"].toList();
         QVariantList removedParents = map["removedParents"].toList();
 
-        NBL_CHECK(_mConnection.beginTransaction());
+        NBL_CHECK(databaseConnection()->beginTransaction());
 
         if(originalName != name) {
             renameTag(id, name);
@@ -1033,13 +1032,13 @@ int ApplicationContext::updateTags(QVariantList modifiedTags) {
         recolorTag(id, color);
 
         for(QVariant parent : newParents) {
-            nbl::addParentTag(&_mConnection, parent.toLongLong(), id);
+            nbl::addParentTag(databaseConnection(), parent.toLongLong(), id);
         }
         for(QVariant parent : removedParents) {
-            nbl::removeParentTag(&_mConnection, parent.toLongLong(), id);
+            nbl::removeParentTag(databaseConnection(), parent.toLongLong(), id);
         }
 
-        NBL_CHECK(_mConnection.commitTransaction());
+        NBL_CHECK(databaseConnection()->commitTransaction());
     }
 
     return 0;
@@ -1051,7 +1050,7 @@ QVariantList ApplicationContext::getTagsFromIds(QVariantList ids) {
 
     QByteArray namesJson = QJsonDocument(QJsonArray::fromVariantList(ids)).toJson(QJsonDocument::JsonFormat::Compact);
 
-    nbl::getTagsFromIds(&_mConnection, nbl::StringView(namesJson.data(), namesJson.length()), [&](const nbl::TagMeta& meta) {
+    nbl::getTagsFromIds(databaseConnection(), nbl::StringView(namesJson.data(), namesJson.length()), [&](const nbl::TagMeta& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
         tag["name"] = fromNbl(meta.name);
@@ -1065,7 +1064,7 @@ QVariantList ApplicationContext::getTagsFromIds(QVariantList ids) {
 
 QList<QVariant> ApplicationContext::getGameTags(qint64 gameId) {
     QList<QVariant> out = {};
-    nbl::getGameTags(&_mConnection, gameId, [&](const nbl::TagMeta& meta) {
+    nbl::getGameTags(databaseConnection(), gameId, [&](const nbl::TagMeta& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
         tag["name"] = fromNbl(meta.name);
@@ -1079,7 +1078,7 @@ QList<QVariant> ApplicationContext::getGameTags(qint64 gameId) {
 
 QList<QVariant> ApplicationContext::getInstallationTags(qint64 installationId) {
     QList<QVariant> out = {};
-    nbl::getDirectInstallationTags(&_mConnection, installationId, [&](const nbl::TagMeta& meta) {
+    nbl::getDirectInstallationTags(databaseConnection(), installationId, [&](const nbl::TagMeta& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
         tag["name"] = fromNbl(meta.name);
@@ -1095,7 +1094,7 @@ QList<QVariant> ApplicationContext::getInstallationTags(qint64 installationId) {
 QList<QVariant> ApplicationContext::getTagParents(qint64 tag) {
     QList<QVariant> out = {};
 
-    nbl::parents(&_mConnection, tag, [&](const nbl::TagMeta& meta) {
+    nbl::parents(databaseConnection(), tag, [&](const nbl::TagMeta& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
         tag["name"] = fromNbl(meta.name);
@@ -1146,7 +1145,7 @@ int ApplicationContext::addGame(QVariantMap params) {
     };
 
     i64 gId = 0;
-    NBL_CHECK(nbl::addGame(&_mConnection, gameMeta, &gId));
+    NBL_CHECK(nbl::addGame(databaseConnection(), gameMeta, &gId));
 
     for(QVariant qs : params.find("tags")->toList()) {
         tagGame(gId, qs.toLongLong());
@@ -1196,7 +1195,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
         .rating = rating
     };
 
-    NBL_CHECK(nbl::updateGame(&_mConnection, gameMeta));
+    NBL_CHECK(nbl::updateGame(databaseConnection(), gameMeta));
 
     for(QVariant qs : params.find("tags")->toList()) {
         tagGame(gId, qs.toLongLong());
@@ -1208,7 +1207,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
 }
 
 int ApplicationContext::deleteGame(qint64 gameId) {
-    return nbl::removeGame(&_mConnection, gameId);
+    return nbl::removeGame(databaseConnection(), gameId);
 }
 
 

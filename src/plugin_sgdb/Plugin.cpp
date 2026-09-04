@@ -323,7 +323,7 @@ nbl::AccountProvider _provider {
     .id = "sgdb",
     .name = "SteamGridDB",
     .type = nbl::AccountProvider::Type::TOKEN,
-    .maxAccounts = 3,
+    .maxAccounts = 1,
     .tokenData = {
         .pfnLogin = _login,
         .pfnLogout = _logout,

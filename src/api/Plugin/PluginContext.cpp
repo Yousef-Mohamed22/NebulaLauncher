@@ -8,6 +8,8 @@
 #include <Platform/Process.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/StringBuilder.hpp>
+#include "Data/Database.hpp"
+#include "Data/Model.hpp"
 
 
 const nbl::InstallationType* nbl::PluginContext::getInstallationType(StringView id) const {
@@ -90,6 +92,12 @@ nbl::Result nbl::PluginContext::create(StringView databasePath, StringView plugi
     void* alloc;
     NBL_CHECK(ctx->_mArena.push(padding, &alloc));
     memset(alloc, 0, padding);
+
+
+    NBL_CHECK(nbl::DatabaseConnection::open(ctx->_mDatabasePath, &ctx->_mConnection));
+    NBL_CHECK(nbl::initDatabase(&ctx->_mConnection));
+
+
 
     ctx->_mNotificationConsumer = consumer;
     return nbl::Result::SUCCESS;

@@ -69,6 +69,7 @@ NblDialog {
                             { icon: "", name: "Tags", tab: tagSettingsTab },
                             { icon: "󰊗", name: "Games", tab: gameSettingsTab },
                             { icon: "", name: "Online Accounts", tab: accountSettingsTab },
+                            { icon: "", name: "Plugins", tab: pluginsTab }
                         ]
 
                         delegate: Item {
@@ -168,6 +169,12 @@ NblDialog {
 
             AccountsSettingsTab {
                 id: accountSettingsTab
+                anchors.fill: parent
+                visible: false
+            }
+
+           PluginSettingsTab {
+                id: pluginsTab
                 anchors.fill: parent
                 visible: false
             }

@@ -1,11 +1,5 @@
 #pragma once
 
-#include <qcontainerfwd.h>
-#include <qjsvalue.h>
-#include <qqmlintegration.h>
-#include <qstringview.h>
-#include <qtenvironmentvariables.h>
-#include <qtmetamacros.h>
 #include <QObject>
 #include <QColor>
 #include <QtQml>
@@ -104,12 +98,16 @@ public:
 
     Q_INVOKABLE QUrl mediaUrl(QByteArray relativePath, QByteArray repo);
 
-    nbl::DatabaseConnection* connection() {
-        return &_mConnection;
+    nbl::DatabaseConnection* databaseConnection() {
+        return _mContext.databaseConnection();
     }
 
     nbl::PluginContext* pluginContext() {
         return &_mContext;
+    }
+
+    nbl::PluginLoader* pluginLoader() {
+        return &_mLoader;
     }
 
     void init() {
@@ -129,7 +127,6 @@ private:
     ApplicationContext() = default;
 
     bool _bInitialized = false;
-    nbl::DatabaseConnection _mConnection;
     nbl::PluginContext _mContext;
     nbl::PluginLoader _mLoader;
     QHash<i64, NblProcessHandle*> _mRunningProcesses;

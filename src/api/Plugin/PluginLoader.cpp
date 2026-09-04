@@ -21,8 +21,8 @@ nbl::Result nbl::PluginLoader::loadAll() {
 
     {
         PluginInitContext builtin{};
-        PluginMeta builtinMeta{};
-        NBL_CHECK(PluginInitContext::create(&registrationsTempArena, &builtinMeta, _pContext->databasePath(), _pContext->pluginDataPath(), &builtin));
+        LoadedPlugin builtinPlugin{};
+        NBL_CHECK(PluginInitContext::create(&registrationsTempArena, &builtinPlugin, _pContext->databaseConnection(), _pContext->databasePath(), _pContext->pluginDataPath(), &builtin));
 
         builtin.registerInstallationType(&InstallationType::COMMAND);
     }
@@ -131,7 +131,7 @@ nbl::Result nbl::PluginLoader::_load(StringView folder, LinearAllocator* registr
     NBL_CHECK(lp.lib.findSymbol("initPlugin", &initFunc));
 
     PluginInitContext ctx;
-    NBL_CHECK(PluginInitContext::create(registrations, &lp.meta, _pContext->databasePath(), _pContext->pluginDataPath(), &ctx));
+    NBL_CHECK(PluginInitContext::create(registrations, &lp, _pContext->databaseConnection(), _pContext->databasePath(), _pContext->pluginDataPath(), &ctx));
 
     i32 rc = initFunc(&ctx);
     if(rc != 0) {

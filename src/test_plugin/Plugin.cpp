@@ -343,12 +343,38 @@ nbl::InstallationType _type = {
     }
 };
 
+
+nbl::Array _pluginFields {
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "string",
+        .name = "String",
+        .stringData = {
+            .pfnSuggest = _suggest,
+            .userData = nullptr
+        }
+    }
+};
+
+
 }
 
 
 extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
 
     nbl::log(nbl::LogLevel::INFO, "Hello from plugin");
+
+    context->setFields(_pluginFields, [](nbl::Span<nbl::Field> fields, nbl::Span<nbl::FieldValue> fieldValues, void* userData) {
+        nbl::log(nbl::LogLevel::INFO, "Fields updated: string=", fieldValues[0].stringValue);
+    }, nullptr);
+
+    {
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::Span<nbl::FieldValue> values{};
+        NBL_CHECK(context->getStoredFieldValues(_pluginFields, &values, &frame));
+
+        nbl::log(nbl::LogLevel::INFO, "string=", values[0].stringValue);
+    }
 
     context->registerInstallationType(&_type);
     context->registerAccountProvider(&_provider);

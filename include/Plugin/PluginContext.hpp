@@ -5,6 +5,7 @@
 #include <Platform/Pool.hpp>
 #include <Core/String.hpp>
 #include <Core/Optional.hpp>
+#include "Data/Database.hpp"
 
 namespace nbl {
 
@@ -64,6 +65,7 @@ public:
         _mNotificationConsumer.notify(type, title, message, icon, duration);
     }
 
+    inline DatabaseConnection* databaseConnection() { return &_mConnection; }
     inline StringView databasePath() const { return _mDatabasePath; }
     inline StringView pluginDataPath() const { return _mPluginDataPath; }
 
@@ -80,6 +82,7 @@ private:
     StringView _mWrapperPath;
 
     NotificationConsumer _mNotificationConsumer;
+    DatabaseConnection _mConnection;
 
     friend class PluginLoader;
 };

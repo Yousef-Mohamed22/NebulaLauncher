@@ -186,6 +186,11 @@ CREATE TABLE IF NOT EXISTS filter (
     priority INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY(tabId) REFERENCES tab(tabId) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS plugin_fields (
+    pluginId TEXT UNIQUE PRIMARY KEY,
+    fields TEXT NOT NULL,
+    version TEXT NOT NULL
+);
 
 -- Default Rows
 INSERT INTO tag

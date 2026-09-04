@@ -74,7 +74,7 @@ void NblGameSearchModel::_fetchPageData() {
     u64 offset = _mData.size();
     u64 limit = _mPageSize;
 
-    nbl::DatabaseConnection* db = ApplicationContext::instance()->connection();
+    nbl::DatabaseConnection* db = ApplicationContext::instance()->databaseConnection();
     
     nbl::StringView query = nbl::StringView(_mSearchQuery.data(), _mSearchQuery.length());
 
