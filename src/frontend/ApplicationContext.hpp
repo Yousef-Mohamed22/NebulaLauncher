@@ -96,7 +96,7 @@ public:
     Q_INVOKABLE void saveSettings(const QVariantMap& settings);
     Q_INVOKABLE QVariantMap loadSettings();
 
-    Q_INVOKABLE QUrl mediaUrl(QByteArray relativePath, QByteArray repo);
+    Q_INVOKABLE QUrl mediaUrl(QString relativePath, QByteArray repo);
 
     nbl::DatabaseConnection* databaseConnection() {
         return _mContext.databaseConnection();

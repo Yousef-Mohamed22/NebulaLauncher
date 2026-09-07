@@ -85,7 +85,7 @@ Item {
         NblImage {
             id: image
             anchors.fill: parent
-            source: root.imageSource
+            source: root.imageSource.length == 0 ? root.fallbackSource : root.imageSource
             visible: false
             layer.enabled: true
 

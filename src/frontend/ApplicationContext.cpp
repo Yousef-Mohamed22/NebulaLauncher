@@ -693,7 +693,7 @@ QVariantMap ApplicationContext::loadSettings() {
 }
 
 
-QUrl ApplicationContext::mediaUrl(QByteArray relativePath, QByteArray repo) {
+QUrl ApplicationContext::mediaUrl(QString relativePath, QByteArray repo) {
     if(relativePath.length() == 0) return {};
     return QUrl::fromEncoded(("file://" + dataFolder() + "/media/" + repo + "/" + relativePath).toUtf8());
 }

@@ -13,12 +13,12 @@ class NblGameDetails : public QObject {
     QML_ELEMENT
 
     Q_PROPERTY(qint64 gameId READ gameId CONSTANT)
-    Q_PROPERTY(QByteArray title READ title CONSTANT)
-    Q_PROPERTY(QByteArray description READ description CONSTANT)
-    Q_PROPERTY(QByteArray poster READ poster CONSTANT)
-    Q_PROPERTY(QByteArray banner READ banner CONSTANT)
-    Q_PROPERTY(QByteArray icon READ icon CONSTANT)
-    Q_PROPERTY(QByteArray logo READ logo CONSTANT)
+    Q_PROPERTY(QString title READ title CONSTANT)
+    Q_PROPERTY(QString description READ description CONSTANT)
+    Q_PROPERTY(QString poster READ poster CONSTANT)
+    Q_PROPERTY(QString banner READ banner CONSTANT)
+    Q_PROPERTY(QString icon READ icon CONSTANT)
+    Q_PROPERTY(QString logo READ logo CONSTANT)
     Q_PROPERTY(quint64 logoPosition READ logoPosition CONSTANT)
     Q_PROPERTY(quint64 playTime READ playTime CONSTANT)
     Q_PROPERTY(quint64 playCount READ playCount CONSTANT)
@@ -51,12 +51,12 @@ public:
 
     NblGameDetails(
         qint64 gameId,
-        QByteArray title,
-        QByteArray description,
-        QByteArray poster,
-        QByteArray banner,
-        QByteArray icon,
-        QByteArray logo,
+        QString title,
+        QString description,
+        QString poster,
+        QString banner,
+        QString icon,
+        QString logo,
         quint64 logoPosition,
         quint64 playTime,
         quint64 playCount,
@@ -127,12 +127,12 @@ public:
     }
 
     qint64 gameId() const { return _mGameId; }
-    QByteArray title() const { return _mTitle; }
-    QByteArray description() const { return _mDescription; }
-    QByteArray poster() const { return _mPoster; }
-    QByteArray banner() const { return _mBanner; }
-    QByteArray icon() const { return _mIcon; }
-    QByteArray logo() const { return _mLogo; }
+    QString title() const { return _mTitle; }
+    QString description() const { return _mDescription; }
+    QString poster() const { return _mPoster; }
+    QString banner() const { return _mBanner; }
+    QString icon() const { return _mIcon; }
+    QString logo() const { return _mLogo; }
     quint64 logoPosition() const { return _mLogoPosition; }
     quint64 playTime() const { return _mPlayTime; }
     quint64 playCount() const { return _mPlayCount; }
@@ -150,12 +150,12 @@ public:
 private:
 
     qint64 _mGameId;
-    QByteArray _mTitle;
-    QByteArray _mDescription;
-    QByteArray _mPoster;
-    QByteArray _mBanner;
-    QByteArray _mIcon;
-    QByteArray _mLogo;
+    QString _mTitle;
+    QString _mDescription;
+    QString _mPoster;
+    QString _mBanner;
+    QString _mIcon;
+    QString _mLogo;
     quint64 _mLogoPosition;
     quint64 _mPlayTime;
     quint64 _mPlayCount;

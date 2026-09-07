@@ -263,6 +263,7 @@ Item {
         height: 128
 
         y: tagInput.y + tagInput.height
+        z: 1000
         modal: false
         clip: true
 
@@ -436,7 +437,7 @@ Item {
                                     cursorShape: Qt.PointingHandCursor
                                     hoverEnabled: true
                                     onClicked: {
-                                        popup.addTag(parent.tagId, parent.tagName, parent.tagColor)
+                                        root.addTag(parent.tagId, parent.tagName, parent.tagColor)
                                     }
                                 }
                             }
