@@ -61,6 +61,7 @@ NblDialog {
 
                 Column {
 
+                    id: tabRepeater
                     width: parent.width
 
                     Repeater {
@@ -79,7 +80,7 @@ NblDialog {
                             readonly property bool isActive: sidebar.currentTab == modelData.tab
                             readonly property bool isHighlighted: isActive || tabArea.containsMouse
 
-                            width: parent.width
+                            width: tabRepeater.width
                             height: 48
 
                             Rectangle {

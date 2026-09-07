@@ -290,8 +290,7 @@ Item {
                                     onClicked: {
                                         ctxMenu.close()
                                         dropdown.close()
-                                        let dialogComponent = Qt.createComponent("../Pages/EditInstallationDialog.qml")
-                                        let dialog = dialogComponent.createObject(root, { 
+                                        let dialog = DialogManager.create("Pages/EditInstallationDialog.qml", { 
                                             installationId: installationItem.installationId
                                         }) as NblDialog
                                         dialog.open()
@@ -306,16 +305,11 @@ Item {
                                     onClicked: {
                                         ctxMenu.close()
                                         dropdown.close()
-                                        let dialogComponent = Qt.createComponent("../Pages/ConfirmDeleteDialog.qml")
-                                        let dialog = dialogComponent.createObject(root, { 
-                                            "text": "Are you sure you want to delete this installation?"
-                                        }) as NblDialog
-                                        dialog.apply.connect(function() {
+                                        DialogManager.openDeleteConfirmation("Are you sure you want to delete this installation?", function() {
                                             ApplicationContext.deleteInstallation(installationItem.installationId)
                                             root.selectedInstallation = null
                                             root.refresh()
                                         })
-                                        dialog.open()
                                     }
                                     radius: 2
                                 }
@@ -352,14 +346,7 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             dropdown.close()
-                            let dialogComponent = Qt.createComponent("../Pages/AddGameDialog.qml")
-                            if(dialogComponent.status != Component.Ready) {
-                                console.log("Component load failed: ", dialogComponent.errorString())
-                                return
-                            }
-                            let dialog = dialogComponent.createObject(root, { 
-                                gameId: root.gameId
-                            }) as NblDialog
+                            let dialog = DialogManager.create("Pages/AddGameDialog.qml", { gameId: root.gameId }) as NblDialog
                             dialog.apply.connect(function() {
                                 root.refresh()
                             })
@@ -403,8 +390,7 @@ Item {
                 onClicked: {
                     selectedCtxMenu.close()
                     dropdown.close()
-                    let dialogComponent = Qt.createComponent("../Pages/EditInstallationDialog.qml")
-                    let dialog = dialogComponent.createObject(root, { 
+                    let dialog = DialogManager.create("Pages/EditInstallationDialog.qml", { 
                         installationId: root.selectedInstallationId
                     }) as NblDialog
                     dialog.open()
@@ -419,16 +405,11 @@ Item {
                 onClicked: {
                     selectedCtxMenu.close()
                     dropdown.close()
-                    let dialogComponent = Qt.createComponent("../Pages/ConfirmDeleteDialog.qml")
-                    let dialog = dialogComponent.createObject(root, { 
-                        "text": "Are you sure you want to delete this installation?"
-                    }) as NblDialog
-                    dialog.apply.connect(function() {
+                    DialogManager.openDeleteConfirmation("Are you sure you want to delete this installation?", function() {
                         ApplicationContext.deleteInstallation(root.selectedInstallationId)
                         root.selectedInstallation = null
                         root.refresh()
                     })
-                    dialog.open()
                 }
                 radius: 2
             }

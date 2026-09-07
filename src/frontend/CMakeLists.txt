@@ -15,6 +15,7 @@ file(GLOB_RECURSE NBL_APP_SOURCES RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_
 list(REMOVE_ITEM NBL_APP_SOURCES "Main.cpp")
 
 set_source_files_properties(Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(DialogManager.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_executable(Nebula_App Main.cpp)
 qt_add_qml_module(Nebula_App

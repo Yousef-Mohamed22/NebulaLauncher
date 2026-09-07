@@ -116,7 +116,7 @@ Item {
                             required property int modelData
                             readonly property int index: modelData
 
-                            width: parent.width
+                            width: root.controlsWidth
                             height: itemRepeater.getItemHeight(index, 96)
 
                             RowLayout {

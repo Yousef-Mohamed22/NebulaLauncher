@@ -247,8 +247,7 @@ Item {
                     Layout.fillWidth: true
                     icon: "󰆍"
                     onClicked: {
-                        let dialogComponent = Qt.createComponent("StdoutDialog.qml")
-                        let dialog = dialogComponent.createObject(this, { 
+                        let dialog = DialogManager.create("Pages/StdoutDialog.qml", { 
                             process: launchBtn.handle
                         }) as NblDialog
                         dialog.open()
@@ -259,8 +258,7 @@ Item {
                     Layout.fillWidth: true
                     icon: ""
                     onClicked: {
-                        let dialogComponent = Qt.createComponent("EditInstallationDialog.qml")
-                        let dialog = dialogComponent.createObject(this, { 
+                        let dialog = DialogManager.create("Pages/EditInstallationDialog.qml", { 
                             gameId: root.details.gameId,
                             installationId: root.selectedInstallation
                         }) as NblDialog
@@ -275,15 +273,10 @@ Item {
                     Layout.fillWidth: true
                     icon: ""
                     onClicked: {
-                        let dialogComponent = Qt.createComponent("ConfirmDeleteDialog.qml")
-                        let dialog = dialogComponent.createObject(this, { 
-                            text: "Are you sure you want to delete this game and all of its installations?"
-                        }) as NblDialog
-                        dialog.apply.connect(function() {
+                        DialogManager.openDeleteConfirmation( "Are you sure you want to delete this game and all of its installations?", function() {
                             ApplicationContext.deleteGame(root.details.gameId)
                             root.closeRequested()
                         })
-                        dialog.open()
                     }
                 }
             }

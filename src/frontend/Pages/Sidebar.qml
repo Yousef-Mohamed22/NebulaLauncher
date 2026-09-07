@@ -104,8 +104,7 @@ Item {
                             root.tabClicked(tabId)
                         }
                         onEditRequested: {
-                            let dialogComponent = Qt.createComponent("AddTabDialog.qml")
-                            let dialog = dialogComponent.createObject(root, { tabId: tabId }) as AddTabDialog
+                            let dialog = DialogManager.create("Pages/AddTabDialog.qml", { tabId: tabId }) as AddTabDialog
                             dialog.apply.connect(function() {
                                 root.reloadTabs()
                                 root.tabEdited(tabId)
@@ -113,15 +112,10 @@ Item {
                             dialog.open()
                         }
                         onDeleteRequested: {
-                            let dialogComponent = Qt.createComponent("ConfirmDeleteDialog.qml")
-                            let dialog = dialogComponent.createObject(this, { 
-                                "text": "Are you sure you want to delete this tab?" 
-                            }) as ConfirmDeleteDialog
-                            dialog.apply.connect(function() {
+                            DialogManager.openDeleteConfirmation("Are you sure you want to delete this tab?", function() {
                                 root.reloadTabs()
                                 root.tabEdited(tabId)
                             })
-                            dialog.open()
                         }
                     }
                 }
@@ -146,8 +140,7 @@ Item {
                     name: ""
 
                     onClicked: { 
-                        let dialogComponent = Qt.createComponent("AppSettingsDialog.qml")
-                        let dialog = dialogComponent.createObject(root, { }) as AppSettingsDialog
+                        let dialog = DialogManager.create("Pages/AppSettingsDialog.qml", { }) as NblDialog
                         dialog.open()
                     }
                 }
@@ -177,8 +170,7 @@ Item {
                                 text: "Add Installation"
                                 onClicked: {
                                     addMenu.close()
-                                    let dialogComponent = Qt.createComponent("AddGameDialog.qml")
-                                    let dialog = dialogComponent.createObject(root, {}) as NblDialog
+                                    let dialog = DialogManager.create("Pages/AddGameDialog.qml", {}) as NblDialog
                                     dialog.apply.connect(function() {
                                         root.gameAdded()
                                     })
@@ -193,8 +185,7 @@ Item {
                                 text: "Add Tab"
                                 onClicked: {
                                     addMenu.close()
-                                    let dialogComponent = Qt.createComponent("AddTabDialog.qml")
-                                    let dialog = dialogComponent.createObject(root, {}) as NblDialog
+                                    let dialog = DialogManager.create("Pages/AddTabDialog.qml", {}) as NblDialog
                                     dialog.apply.connect(function() {
                                         root.reloadTabs()
                                     })

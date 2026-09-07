@@ -116,7 +116,13 @@ Window {
         }
     }
 
+    Item {
+        id: dialogParent
+    }
+
     Component.onCompleted: {
+
+        DialogManager.dialogParent = dialogParent
 
         var settings = ApplicationContext.loadSettings()
         if(settings.theme) {

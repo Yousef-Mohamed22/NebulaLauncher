@@ -261,8 +261,7 @@ Item {
         hoverEnabled: true
         onClicked: {
             if(root.processState === NblLaunchButton.State.NOT_INSTALLED) {
-                let dialogComponent = Qt.createComponent("../Pages/AddGameDialog.qml")
-                let dialog = dialogComponent.createObject(this, { 
+                let dialog = DialogManager.create("Pages/AddGameDialog.qml", { 
                     gameId: root.gameId
                 }) as NblDialog
                 dialog.apply.connect(function() {

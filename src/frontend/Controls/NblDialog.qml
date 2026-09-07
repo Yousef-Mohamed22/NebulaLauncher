@@ -39,8 +39,8 @@ Item {
     height: Window.height
 
     function open() { 
-        popup.parent = Window.contentItem
-        popup.z = 10
+        //popup.parent = Window.contentItem
+        //popup.z = 10
         popup.open()
     }
 

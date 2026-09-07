@@ -105,8 +105,7 @@ SettingsTab {
                                 hoverEnabled: parent.enabled
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    let dialogComponent = Qt.createComponent("PluginSettingsDialog.qml")
-                                    let dialog = dialogComponent.createObject(root, {
+                                    let dialog = DialogManager.create("Pages/PluginSettingsDialog.qml", {
                                         targetWidth: 700, 
                                         targetHeight: 700, 
                                         pluginName: pluginItem.modelData.name,

@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 
 import Nebula.Controls
 
@@ -74,7 +73,7 @@ NblDialog {
 
             NblTextBox {
                 id: nameInput
-                width: parent.width
+                width: controls.width
                 label: "Name"
             }
 
@@ -84,7 +83,7 @@ NblDialog {
 
             NblCheckBox {
                 id: hiddenBox
-                width: parent.width
+                width: controls.width
                 text: "Hidden"
             }
 
@@ -93,7 +92,7 @@ NblDialog {
 
                 id: filterList
                 label: "Filters"
-                width: parent.width
+                width: controls.width
 
                 allowReorder: true
 
@@ -134,7 +133,7 @@ NblDialog {
                 delegate: NblDropdown {
 
                     id: dropdown
-                    width: parent.width
+                    width: controls.width
                     icon: filterIconPicker.icon
                     iconSize: 20
 
@@ -170,7 +169,7 @@ NblDialog {
 
                     Column {
 
-                        width: parent.width
+                        width: controls.width
 
                         id: filterContent
                         spacing: 8
@@ -178,7 +177,7 @@ NblDialog {
 
                         NblTextBox {
                             id: filterNameBox
-                            width: parent.width
+                            width: controls.width
                             label: "Name"
                             text: dropdown.modelData.name
                         }
@@ -191,14 +190,14 @@ NblDialog {
 
                         NblComboBox {
                             id: searchBox
-                            width: parent.width
+                            width: controls.width
                             label: "Search for"
                             model: [ "Games", "Installations" ]
                             currentIndex: dropdown.modelData.showInstallations ? 1 : 0
                         }
 
                         RowLayout {
-                            width: parent.width
+                            width: controls.width
 
                             NblCheckBox {
                                 id: multiLineBox
@@ -229,7 +228,7 @@ NblDialog {
 
                         NblComboBox {
                             id: sortByBox
-                            width: parent.width
+                            width: controls.width
                             label: "Sort By"
                             model: [ "Title", "Last Played", "Added", "Play Count", "Play Time", "Release Date", "Rating" ]
                             currentIndex: dropdown.modelData.sortBy
@@ -237,7 +236,7 @@ NblDialog {
 
                         NblComboBox {
                             id: sortOrderBox
-                            width: parent.width
+                            width: controls.width
                             label: "Sort Order"
                             model: [ "Ascending", "Descending" ]
                             currentIndex: dropdown.modelData.sortOrder
@@ -246,7 +245,7 @@ NblDialog {
                         NblListInput {
                             id: tagSetsList
                             label: "Tag Sets"
-                            width: parent.width
+                            width: controls.width
 
                             initialItems: getInitialItems()
 
@@ -270,7 +269,7 @@ NblDialog {
                             }
                             delegate: NblTagList {
                                 required property var modelData
-                                width: parent.width
+                                width: controls.width
                                 labelIndent: 24
                                 label: "Tag Set " + modelData.index
                                 initialTags: ApplicationContext.getTagsFromIds(modelData.initialTagIds)

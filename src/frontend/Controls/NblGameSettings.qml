@@ -68,11 +68,7 @@ Column {
         activeColor: Theme.colors.accent
         inactiveColor: Theme.colors.accent
         onClicked: {
-            let dialogComponent = Qt.createComponent("../Pages/MetadataSearchDialog.qml")
-            if(dialogComponent.status != Component.Ready) {
-                console.log("An error occurred:", dialogComponent.errorString())
-            }
-            let dialog = dialogComponent.createObject(this, {
+            let dialog = DialogManager.create("Pages/MetadataSearchDialog.qml", {
                 targetWidth: 700,
                 targetHeight: 700,
                 title: gameTitleField.text,
