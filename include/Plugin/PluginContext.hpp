@@ -5,7 +5,7 @@
 #include <Platform/Pool.hpp>
 #include <Core/String.hpp>
 #include <Core/Optional.hpp>
-#include "Data/Database.hpp"
+#include <Data/Database.hpp>
 
 namespace nbl {
 
@@ -16,6 +16,7 @@ public:
         INSTALLATION_TYPE,
         ACCOUNT_PROVIDER,
         METADATA_PROVIDER,
+        GAME_PROVIDER,
         _END
     };
 
@@ -42,6 +43,7 @@ struct NotificationConsumer {
 struct AccountProvider;
 struct InstallationType;
 struct MetadataProvider;
+struct GameProvider;
 
 class PluginContext {
 public:
@@ -54,6 +56,9 @@ public:
 
     const MetadataProvider* getMetadataProvider(StringView id) const;
     ConstSpan<const MetadataProvider*> metadataProviders() const;
+
+    const GameProvider* getGameProvider(StringView id) const;
+    ConstSpan<const GameProvider*> gameProviders() const;
 
     Result runCommand(i64 installationId, StringView commandLine, StringView workingDir, ProcessHandle* handle);
 

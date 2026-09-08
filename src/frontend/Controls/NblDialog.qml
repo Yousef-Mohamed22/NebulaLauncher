@@ -33,7 +33,7 @@ Item {
 
     signal apply
     signal cancel
-    signal close
+    signal closed
 
     width: Window.width
     height: Window.height
@@ -44,11 +44,15 @@ Item {
         popup.open()
     }
 
+    function close() {
+        popup.close()
+    }
+
     Popup {
         id: popup
 
         onClosed: {
-            root.close()
+            root.closed()
             root.parent = null
         }
 

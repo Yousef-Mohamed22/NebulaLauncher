@@ -322,7 +322,6 @@ nbl::Result _getAccount(nbl::PluginContext* context, u32 accountId, nbl::Account
     info->userName = "API Key";
 
     return nbl::Result::SUCCESS;
-    return nbl::Result::NOT_FOUND;
 }
 
 nbl::Result _enumerateAccounts(nbl::PluginContext* context, nbl::AccountCallback callback, void* userData) {

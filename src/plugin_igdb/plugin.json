@@ -1,0 +1,6 @@
+{
+    "id": "igdb",
+    "version": "0.1.0",
+    "name": "IGDB",
+    "description": "Adds a GameProvider which fetches content from IGDB.com"
+}

@@ -2,14 +2,15 @@
 #include <Plugin/InstallationType.hpp>
 #include <Plugin/AccountProvider.hpp>
 #include <Plugin/MetadataProvider.hpp>
+#include <Plugin/GameProvider.hpp>
 #include <Core/Result.hpp>
 #include <Core/Array.hpp>
 #include <Core/Math.hpp>
 #include <Platform/Process.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/StringBuilder.hpp>
-#include "Data/Database.hpp"
-#include "Data/Model.hpp"
+#include <Data/Database.hpp>
+#include <Data/Model.hpp>
 
 
 const nbl::InstallationType* nbl::PluginContext::getInstallationType(StringView id) const {
@@ -56,6 +57,21 @@ nbl::ConstSpan<const nbl::MetadataProvider*> nbl::PluginContext::metadataProvide
     return nbl::ConstSpan(
         static_cast<const MetadataProvider**>(_pStarts[PluginRegistries::METADATA_PROVIDER]),
         _mCounts[PluginRegistries::METADATA_PROVIDER]
+    );
+}
+
+const nbl::GameProvider* nbl::PluginContext::getGameProvider(StringView id) const {
+    for(const auto& prov : gameProviders()) {
+        if(prov->id == id) {
+            return prov;
+        }
+    }
+    return nullptr;
+}
+nbl::ConstSpan<const nbl::GameProvider*> nbl::PluginContext::gameProviders() const {
+    return nbl::ConstSpan(
+        static_cast<const GameProvider**>(_pStarts[PluginRegistries::GAME_PROVIDER]),
+        _mCounts[PluginRegistries::GAME_PROVIDER]
     );
 }
 

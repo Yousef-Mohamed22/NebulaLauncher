@@ -12,6 +12,7 @@ option(NBL_BUILD_FRONTEND "Build Frontend" ON)
 option(NBL_BUILD_TESTS "Build Tests" ON)
 option(NBL_BUILD_TEST_PLUGIN "Build Test Plugin" ON)
 option(NBL_BUILD_SGDB_PLUGIN "Build SteamGridDB Plugin" ON)
+option(NBL_BUILD_IGDB_PLUGIN "Build IGDB.com Plugin" ON)
 
 #
 # Dependencies
@@ -116,6 +117,27 @@ if(${NBL_BUILD_SGDB_PLUGIN})
         TARGET Nebula_SgdbPlugin
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/plugin_sgdb/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/sgdb"
+        VERBATIM
+    )
+
+endif()
+
+if(${NBL_BUILD_IGDB_PLUGIN}) 
+
+    file(GLOB_RECURSE NBL_IGDB_PLUGIN_SOURCES ${NBL_SRC_DIR}/plugin_igdb/**.cpp)
+    add_library(Nebula_IgdbPlugin SHARED ${NBL_IGDB_PLUGIN_SOURCES})
+    target_link_libraries(Nebula_IgdbPlugin PRIVATE Nebula_Api)
+    set_target_properties(Nebula_IgdbPlugin PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/igdb"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/igdb"
+        PREFIX ""
+        OUTPUT_NAME "plugin"
+    )
+
+    add_custom_command(
+        TARGET Nebula_IgdbPlugin
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/plugin_igdb/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/igdb"
         VERBATIM
     )
 

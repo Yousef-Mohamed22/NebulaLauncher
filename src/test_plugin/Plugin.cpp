@@ -1,11 +1,14 @@
 #include <Plugin/PluginInitializer.hpp>
 #include <Plugin/InstallationType.hpp>
+#include <Plugin/AccountProvider.hpp>
+#include <Plugin/MetadataProvider.hpp>
+#include <Plugin/GameProvider.hpp>
+#include <Plugin/PluginContext.hpp>
 #include <Platform/Logging.hpp>
 #include <Core/Array.hpp>
-#include "Core/String.hpp"
-#include "Plugin/AccountProvider.hpp"
-#include "Plugin/MetadataProvider.hpp"
-#include "Plugin/PluginContext.hpp"
+#include <Core/String.hpp>
+#include "Data/Model.hpp"
+
 
 namespace {
 
@@ -289,6 +292,36 @@ nbl::MetadataProvider _metaProvider = {
     .userData = nullptr
 };
 
+nbl::Result _lookupGames(nbl::PluginContext* context, const nbl::OnlineGameLookupInfo& info, nbl::OnlineGameCallback callback, void* userData) {
+    static nbl::Array<nbl::StringView, 3> _tags = {
+        "hello",
+        "world",
+        "platformer"
+    };
+
+    callback({
+        .title = "Test",
+        .description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+        .posterUrl = "qrc:/qt/qml/Nebula/images/UnknownPoster.png",
+        .iconUrl = "qrc:/qt/qml/Nebula/images/UnknownIcon.png",
+        .bannerUrl = "qrc:/qt/qml/Nebula/images/UnknownIcon.png",
+        .logoUrl = "qrc:/qt/qml/Nebula/images/UnknownIcon.png",
+        .logoPosition = nbl::LogoPosition::CENTER,
+        .releaseDate = 1788405195318U,
+        .rating = 99.0,
+        .tags = _tags
+    });
+
+    return nbl::Result::SUCCESS;
+}
+
+nbl::GameProvider _gameProvider = {
+    .id = "test",
+    .name = "Test",
+    .pfnCanProvide = [](auto, auto, void*) { return true; },
+    .pfnProvide = _lookupGames,
+    .userData = nullptr
+};
 
 nbl::Result _launch(
         const nbl::InstallationType* type, 
@@ -379,6 +412,7 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
     context->registerInstallationType(&_type);
     context->registerAccountProvider(&_provider);
     context->registerMetadataProvider(&_metaProvider);
+    context->registerGameProvider(&_gameProvider);
 
     return 0;
 }

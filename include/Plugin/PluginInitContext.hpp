@@ -22,6 +22,9 @@ public:
     Result registerMetadataProvider(const MetadataProvider* provider) {
         return _register(PluginRegistries::Registry::METADATA_PROVIDER, provider);
     }
+    Result registerGameProvider(const GameProvider* provider) {
+        return _register(PluginRegistries::Registry::GAME_PROVIDER, provider);
+    }
 
     inline const PluginMeta* getMeta() const { return &_pPlugin->meta; }
 
@@ -38,6 +41,7 @@ public:
 
 private:
 
+    bool _verifyId(StringView id);
     Result _register(PluginRegistries::Registry reg, const void* value);
 
     LinearAllocator* _pAllocator;

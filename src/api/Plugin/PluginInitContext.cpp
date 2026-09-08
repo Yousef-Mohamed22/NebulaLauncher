@@ -6,8 +6,17 @@
 #include <Platform/Allocator.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
-#include "Codec/Json.hpp"
-#include "Plugin/Field.hpp"
+#include <Codec/Json.hpp>
+#include <Plugin/Field.hpp>
+
+bool nbl::PluginInitContext::_verifyId(nbl::StringView id) {
+    for(char c : id) {
+        if((c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '_') {
+            return false;
+        }
+    }
+    return true;
+}
 
 
 nbl::Result nbl::PluginInitContext::_register(nbl::PluginRegistries::Registry registry, const void* value) {

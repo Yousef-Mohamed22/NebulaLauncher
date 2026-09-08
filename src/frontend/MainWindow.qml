@@ -63,14 +63,15 @@ Window {
                         tabPage.refresh()
                     } 
                 }
-                onGameAdded: {
-                    let tabPage = pageLoader.currentItem as NblTabPage
-                    if(tabPage) {
-                        tabPage.refresh()
-                    } 
+                onGameAdded: function(id) {
+                    root.openGameDetails(id)
                 }
             }
         }
+    }
+
+    Item {
+        id: dialogParent
     }
 
     NblNotificationColumn {
@@ -114,10 +115,6 @@ Window {
                 color: tagColor,
             })
         }
-    }
-
-    Item {
-        id: dialogParent
     }
 
     Component.onCompleted: {

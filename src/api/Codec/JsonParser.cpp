@@ -102,7 +102,7 @@ nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator
                     NBL_CHECK(reader.readAll(codePointHex, 4));
 
                     i32 codePoint = 0;
-                    for(auto i = 0 ; i < 4 ; i++) {
+                    for(auto i = 3 ; i >= 0 ; i--) {
                         i32 val = _hexDigit(codePointHex[i]);
                         if(val == -1) {
                             return nbl::Result::PARSE_ERROR;

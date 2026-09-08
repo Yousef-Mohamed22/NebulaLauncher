@@ -17,7 +17,7 @@ QtObject {
 
         let nblDialog = dialog as NblDialog
         if(nblDialog) {
-            nblDialog.close.connect(function() {
+            nblDialog.closed.connect(function() {
                 nblDialog.destroy()
             })
         }

@@ -23,7 +23,7 @@ SettingsTab {
         for(let i = 0 ; i < modified.length ; i++) {
             let title = modified[i].title
             let res = ApplicationContext.updateGame(modified[i])
-            if(res != 0) {
+            if(res < 0) {
                 ApplicationContext.pushNotification({
                     type: "error",
                     title: "Failed to Update a Game",
@@ -36,7 +36,7 @@ SettingsTab {
         let removed = getRemovedGameIds()
         for(let i = 0 ; i < removed.length ; i++) {
             let res = ApplicationContext.deleteGame(removed[i])
-            if(res != 0) {
+            if(res < 0) {
                 ApplicationContext.pushNotification({
                     type: "error",
                     title: "Failed to Delete a Game",

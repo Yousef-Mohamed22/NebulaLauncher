@@ -22,6 +22,38 @@ inline QByteArray fromNbl(nbl::StringView sv) {
 }
 
 
+struct InstallationAddResult {
+    Q_GADGET
+    Q_PROPERTY(bool success MEMBER success)
+    Q_PROPERTY(bool addedGame MEMBER addedGame)
+    Q_PROPERTY(qint64 gameId MEMBER gameId)
+    Q_PROPERTY(qint64 installationId MEMBER installationId)
+
+public:
+
+    InstallationAddResult() = default;
+
+    InstallationAddResult(nbl::Result errorCode) :
+        success(false),
+        addedGame(false),
+        gameId(0),
+        installationId(0)
+    { }
+
+    InstallationAddResult(bool success, bool addedGame, qint64 gameId, qint64 installationId) :
+        success(success),
+        addedGame(addedGame),
+        gameId(gameId),
+        installationId(installationId)
+    { }
+
+    bool success;
+    bool addedGame;
+    qint64 gameId;
+    qint64 installationId;
+};
+
+
 class ApplicationContext : public QObject {
 
     Q_OBJECT
@@ -56,7 +88,7 @@ public:
     Q_INVOKABLE NblInstallationDetails* getInstallationDetails(qint64 installationId);
     Q_INVOKABLE NblGameDetails* getGameDetails(qint64 gameId);
 
-    Q_INVOKABLE int addInstallation(const QVariantMap& params);
+    Q_INVOKABLE InstallationAddResult addInstallation(const QVariantMap& params);
     Q_INVOKABLE int updateInstallation(qint64 id, const QVariantMap& params);
     Q_INVOKABLE int deleteInstallation(qint64 id);
 
@@ -82,7 +114,7 @@ public:
     Q_INVOKABLE QList<QVariant> getInstallationTags(qint64 iId);
     Q_INVOKABLE QList<QVariant> getTagParents(qint64 tag);
 
-    Q_INVOKABLE int addGame(QVariantMap details);
+    Q_INVOKABLE qint64 addGame(QVariantMap details);
     Q_INVOKABLE int updateGame(QVariantMap details);
     Q_INVOKABLE int deleteGame(qint64 gameId);
 

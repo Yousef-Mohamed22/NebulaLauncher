@@ -16,6 +16,8 @@ NblDialog {
     property string gameName: "+ New Game"
     property bool newGame: gameId == 0
 
+    signal complete(bool success, bool gameAdded, var gameId, var installationId)
+
     onGameIdChanged: {
         if(gameBox.accepting) return
         gameName = ApplicationContext.getGameDetails(gameId).title
@@ -192,6 +194,24 @@ NblDialog {
         }
     }
 
+    function load(meta) {
+
+        gameTitleField.text = meta.title
+        gameDescriptionField.text = meta.description
+        
+        if(meta.posterUrl.length > 0) posterPicker.imageSource = meta.posterUrl
+        if(meta.iconUrl.length > 0) iconPicker.imageSource = meta.iconUrl
+        if(meta.bannerUrl.length > 0) bannerPicker.imageSource = meta.bannerUrl
+        if(meta.logoUrl.length > 0) logoPicker.imageSource = meta.logoUrl
+
+        logoPositionBox.currentIndex = meta.logoPosition
+        ratingField.value = meta.rating
+        releaseDateField.setTime(meta.releaseDate)
+
+        gameTags.initialTags = meta.tags
+    }
+
+
     onApply: {
 
         let rating = 0.0
@@ -226,6 +246,7 @@ NblDialog {
             removedGameTags: gameTags.getRemovedTags()
         }
 
-        ApplicationContext.addInstallation(params)
+        let res = ApplicationContext.addInstallation(params)
+        root.complete(res.success, res.addedGame, res.gameId, res.installationId)
     }
 }

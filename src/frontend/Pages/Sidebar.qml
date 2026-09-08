@@ -15,7 +15,7 @@ Item {
 
     signal tabClicked(int tabId)
     signal tabEdited(int tabId)
-    signal gameAdded()
+    signal gameAdded(int gameId)
 
     implicitWidth: collapsed ? 64 : 240
 
@@ -167,12 +167,12 @@ Item {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 icon: "󰊗"
-                                text: "Add Installation"
+                                text: "Add Game"
                                 onClicked: {
                                     addMenu.close()
-                                    let dialog = DialogManager.create("Pages/AddGameDialog.qml", {}) as NblDialog
-                                    dialog.apply.connect(function() {
-                                        root.gameAdded()
+                                    let dialog = DialogManager.create("Pages/GameLookupDialog.qml", {}) as GameLookupDialog
+                                    dialog.gameAdded.connect(function(id) {
+                                        root.gameAdded(id)
                                     })
                                     dialog.open()
                                 }

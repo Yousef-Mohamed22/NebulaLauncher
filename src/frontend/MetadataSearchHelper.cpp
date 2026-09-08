@@ -52,6 +52,7 @@ MetadataSearchHelper::~MetadataSearchHelper() {
 void MetadataSearchHelper::cancelLookup() {
 
     if(_mStatus == SEARCHING) {
+        _bCanceled = true;
         _mThreadPool.clear();
         _mThreadPool.waitForDone();
         _mArena.popTo(0);

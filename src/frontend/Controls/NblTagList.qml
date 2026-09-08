@@ -167,8 +167,7 @@ Item {
 
             Repeater {
                 model: root.tags
-
-                Item {
+                delegate: Item {
 
                     id: existingTag
 

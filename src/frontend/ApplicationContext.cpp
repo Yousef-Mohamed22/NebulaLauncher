@@ -466,11 +466,11 @@ NblGameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
 }
 
 
-int ApplicationContext::addInstallation(const QVariantMap& params) {
+InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& params) {
 
     bool ok;
     i64 gId = params.find("game")->toLongLong(&ok);
-    if(!ok) return -1;
+    if(!ok) return nbl::Result(nbl::Result::INVALID_ARGUMENT);
 
     NBL_CHECK(databaseConnection()->beginTransaction());
 
@@ -575,7 +575,12 @@ int ApplicationContext::addInstallation(const QVariantMap& params) {
     }
 
     NBL_CHECK(databaseConnection()->commitTransaction());
-    return 0;
+    return InstallationAddResult(
+        true,
+        gId == 0,
+        realGId,
+        meta.id
+    );
 }
 
 int ApplicationContext::updateInstallation(qint64 installationId, const QVariantMap& params) {
@@ -1108,7 +1113,7 @@ QList<QVariant> ApplicationContext::getTagParents(qint64 tag) {
 }
 
 
-int ApplicationContext::addGame(QVariantMap params) {
+qint64 ApplicationContext::addGame(QVariantMap params) {
 
     QString bannerUrl = params.find("banner")->toString();
     QString posterUrl = params.find("poster")->toString();
@@ -1151,7 +1156,7 @@ int ApplicationContext::addGame(QVariantMap params) {
         tagGame(gId, qs.toLongLong());
     }
 
-    return 0;
+    return gId;
 }
 int ApplicationContext::updateGame(QVariantMap params) {
 

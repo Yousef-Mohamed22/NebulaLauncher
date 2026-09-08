@@ -114,7 +114,7 @@ SettingsTab {
                                     }) as NblDialog
 
                                     hoverEnabled = false
-                                    dialog.close.connect(function() {
+                                    dialog.closed.connect(function() {
                                         hoverEnabled = true
                                     })
                                     dialog.apply.connect(function() { 
