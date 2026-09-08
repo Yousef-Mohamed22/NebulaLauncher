@@ -346,7 +346,7 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             dropdown.close()
-                            let dialog = DialogManager.create("Pages/AddGameDialog.qml", { gameId: root.gameId }) as NblDialog
+                            let dialog = DialogManager.create("Pages/AddInstallationDialog.qml", { gameId: root.gameId }) as NblDialog
                             dialog.apply.connect(function() {
                                 root.refresh()
                             })

@@ -72,149 +72,162 @@ NblDialog {
             }
         }
 
-        NblScrollView {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            contentWidth: width
-            contentHeight: resultsColumn.height
-            clip: true
+            NblScrollView {
 
-            Column {
+                width: parent.width + 12
+                height: parent.height
 
-                width: parent.width
+                contentWidth: width - 12
+                contentHeight: resultsColumn.height
+                clip: true
 
-                OnlineGameSearchHelper {
-                    id: searchHelper
-                    onReceivedResult: (data) => {
-                        resultsModel.append({meta: data})
-                    }
-                }
+                Column {
 
-                id: resultsColumn
-                spacing: 8
+                    width: parent.width
 
-                Repeater {
-                    model: ListModel {
-                        id: resultsModel
-                    }
-                    delegate: Item {
-
-                        id: resultItem
-
-                        required property int index
-                        required property var meta
-
-                        width: resultsColumn.width
-                        height: 128
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: resultArea.containsMouse ? Theme.colors.layer1 : "transparent"
-                            radius: 8
+                    OnlineGameSearchHelper {
+                        id: searchHelper
+                        onReceivedResult: (data) => {
+                            resultsModel.append({meta: data})
                         }
+                    }
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 8
-                            spacing: 16
-                            Item {
-                                Layout.fillHeight: true
-                                Layout.preferredWidth: height * 2/3
+                    id: resultsColumn
+                    spacing: 8
 
-                                NblImage {
-                                    id: posterImage
-                                    anchors.fill: parent
-                                    source: resultItem.meta.posterUrl
-                                    layer.enabled: true
-                                    visible: false
-                                }
-                                Rectangle {
-                                    id: maskShape
-                                    radius: 8
-                                    anchors.fill: parent
-                                    layer.enabled: true
-                                    visible: false
-                                }
-                                MultiEffect {
-                                    anchors.fill: parent
-                                    source: posterImage
-                                    maskEnabled: true
-                                    maskSource: maskShape
-                                }
+                    Repeater {
+                        model: ListModel {
+                            id: resultsModel
+                        }
+                        delegate: Item {
 
+                            id: resultItem
+
+                            required property int index
+                            required property var meta
+
+                            width: resultsColumn.width
+                            height: 128
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: resultArea.containsMouse ? Theme.colors.layer1 : "transparent"
+                                radius: 8
                             }
-                            Item {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
 
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    spacing: 4
-                                    Item {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 24
-                                        Row {
-                                            anchors.fill: parent
-                                            spacing: 4
-                                            Label {
-                                                text: resultItem.meta.title
-                                                color: Theme.colors.text
-                                                font.family: Theme.font
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 16
+                                Item {
+                                    Layout.fillHeight: true
+                                    Layout.preferredWidth: height * 2/3
+
+                                    NblImage {
+                                        id: posterImage
+                                        anchors.fill: parent
+                                        source: resultItem.meta.posterUrl
+                                        layer.enabled: true
+                                        visible: false
+                                    }
+                                    Rectangle {
+                                        id: maskShape
+                                        radius: 8
+                                        anchors.fill: parent
+                                        layer.enabled: true
+                                        visible: false
+                                    }
+                                    MultiEffect {
+                                        anchors.fill: parent
+                                        source: posterImage
+                                        maskEnabled: true
+                                        maskSource: maskShape
+                                    }
+
+                                }
+                                Item {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        spacing: 4
+                                        Item {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 24
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                spacing: 4
+                                                Label {
+                                                    Layout.preferredWidth: implicitWidth
+                                                    Layout.maximumWidth: parent.width - dateLabel.implicitWidth - parent.spacing
+                                                    text: resultItem.meta.title
+                                                    color: Theme.colors.text
+                                                    font.family: Theme.font
+                                                    elide: Text.ElideRight
+                                                }
+                                                Label {
+                                                    id: dateLabel
+                                                    text: "(" + new Date(resultItem.meta.releaseDate).getFullYear() + ")"
+                                                    color: Theme.colors.textDim
+                                                    font.family: Theme.font
+                                                }
+                                                Item {
+                                                    Layout.fillWidth: true
+                                                }
                                             }
-                                            Label {
-                                                text: "(" + new Date(resultItem.meta.releaseDate).getFullYear() + ")"
+                                        }
+                                        Item {
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+                                            Label { 
+                                                anchors.fill: parent
+                                                text: resultItem.meta.description
+                                                elide: Text.ElideRight
+                                                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                                                font.family: Theme.font
                                                 color: Theme.colors.textDim
-                                                font.family: Theme.font
                                             }
                                         }
-                                    }
-                                    Item {
-                                        Layout.fillWidth: true
-                                        Layout.fillHeight: true
-                                        Label { 
-                                            anchors.fill: parent
-                                            text: resultItem.meta.description
-                                            elide: Text.ElideRight
-                                            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                                            font.family: Theme.font
-                                            color: Theme.colors.textDim
-                                        }
-                                    }
-                                    Item {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 24
-                                        Row {
-                                            id: tagRow
+                                        Item {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 24
+                                            Row {
+                                                id: tagRow
 
-                                            anchors.fill: parent
-                                            spacing: 4
-                                            Repeater {
+                                                anchors.fill: parent
+                                                spacing: 4
+                                                Repeater {
 
-                                                id: tagRepeater
+                                                    id: tagRepeater
 
-                                                model: resultItem.meta.tags
-                                                delegate: NblTag {
-                                                    required property string modelData
-                                                    required property int index
+                                                    model: resultItem.meta.tags
+                                                    delegate: NblTag {
+                                                        required property string modelData
+                                                        required property int index
 
-                                                    property bool added: false
-                                                    property int tagId: 0
+                                                        property bool added: false
+                                                        property int tagId: 0
 
-                                                    height: tagRow.height
+                                                        height: tagRow.height
 
-                                                    text: modelData
-                                                    color: "white"
-                                                    enabled: false
+                                                        text: modelData
+                                                        color: "white"
+                                                        enabled: false
 
-                                                    Component.onCompleted: {
-                                                        tagId = ApplicationContext.findTagId(text)
-                                                        if(tagId == 0) {
-                                                            added = true
-                                                            color = Qt.hsva(Math.random(), 0.6 + Math.random() * 0.3, 0.4 + Math.random() * 0.5)
-                                                        } else {
-                                                            let tagMeta = ApplicationContext.getTagsFromIds([tagId])
-                                                            color = tagMeta[0].color
+                                                        Component.onCompleted: {
+                                                            tagId = ApplicationContext.findTagId(text)
+                                                            if(tagId == 0) {
+                                                                added = true
+                                                                color = Qt.hsva(Math.random(), 0.6 + Math.random() * 0.3, 0.4 + Math.random() * 0.5)
+                                                            } else {
+                                                                let tagMeta = ApplicationContext.getTagsFromIds([tagId])
+                                                                color = tagMeta[0].color
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -223,59 +236,59 @@ NblDialog {
                                     }
                                 }
                             }
-                        }
 
-                        MouseArea {
-                            id: resultArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
+                            MouseArea {
+                                id: resultArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
 
-                            onClicked: {
-                                let params = {}
-                                params["banner"] = resultItem.meta["bannerUrl"]
-                                params["poster"] = resultItem.meta["posterUrl"]
-                                params["icon"] = resultItem.meta["iconUrl"]
-                                params["logo"] = resultItem.meta["logoUrl"]
-                                params["logoPosition"] = resultItem.meta["logoPosition"]
-                                params["title"] = resultItem.meta["title"]
-                                params["description"] = resultItem.meta["description"]
-                                params["releaseDate"] = resultItem.meta["releaseDate"]
-                                params["rating"] = resultItem.meta["rating"]
+                                onClicked: {
+                                    let params = {}
+                                    params["banner"] = resultItem.meta["bannerUrl"]
+                                    params["poster"] = resultItem.meta["posterUrl"]
+                                    params["icon"] = resultItem.meta["iconUrl"]
+                                    params["logo"] = resultItem.meta["logoUrl"]
+                                    params["logoPosition"] = resultItem.meta["logoPosition"]
+                                    params["title"] = resultItem.meta["title"]
+                                    params["description"] = resultItem.meta["description"]
+                                    params["releaseDate"] = resultItem.meta["releaseDate"]
+                                    params["rating"] = resultItem.meta["rating"]
 
-                                let tags = []
+                                    let tags = []
 
-                                for(let i = 0 ; i < tagRepeater.count ; i++) {
-                                    let tagItem = tagRepeater.itemAt(i) as NblTag
-                                    
-                                    let id = tagItem.tagId
-                                    if(tagItem.added) {
-                                        id = ApplicationContext.addTag(tagItem.text, tagItem.color)
-                                        if(id == 0) {
-                                            ApplicationContext.pushNotification({
-                                                type: "error",
-                                                title: "Failed to add tag",
-                                                message: "An error occurred while adding a tag!"
-                                            })
-                                            continue
+                                    for(let i = 0 ; i < tagRepeater.count ; i++) {
+                                        let tagItem = tagRepeater.itemAt(i) as NblTag
+
+                                        let id = tagItem.tagId
+                                        if(tagItem.added) {
+                                            id = ApplicationContext.addTag(tagItem.text, tagItem.color)
+                                            if(id == 0) {
+                                                ApplicationContext.pushNotification({
+                                                    type: "error",
+                                                    title: "Failed to add tag",
+                                                    message: "An error occurred while adding a tag!"
+                                                })
+                                                continue
+                                            }
                                         }
+
+                                        tags.push(id)
                                     }
+                                    params["tags"] = tags
 
-                                    tags.push(id)
+                                    let id = ApplicationContext.addGame(params)
+                                    if(id < 0) {
+                                        ApplicationContext.pushNotification({
+                                            type: "error",
+                                            title: "Failed to add a Game",
+                                            message: "An error occurred while updating a game"
+                                        })
+                                    } else {
+                                        root.gameAdded(id)
+                                    }
+                                    root.close()
                                 }
-                                params["tags"] = tags
-
-                                let id = ApplicationContext.addGame(params)
-                                if(id < 0) {
-                                    ApplicationContext.pushNotification({
-                                        type: "error",
-                                        title: "Failed to add a Game",
-                                        message: "An error occurred while updating a game"
-                                    })
-                                } else {
-                                    root.gameAdded(id)
-                                }
-                                root.close()
                             }
                         }
                     }
@@ -299,14 +312,8 @@ NblDialog {
                 onClicked: {
                     let dialog = DialogManager.create("Pages/AddGameDialog.qml", {})
 
-                    dialog.closed.connect(function() {
-                        root.close()
-                    })
-                    dialog.complete.connect(function(success, addedGame, gameId, installationId) {
-                        if(success) {
-                            root.gameAdded(gameId)
-                        }
-                    })
+                    dialog.closed.connect(root.close)
+                    dialog.gameAdded.connect(root.gameAdded)
 
                     root.visible = false
                     dialog.open()
