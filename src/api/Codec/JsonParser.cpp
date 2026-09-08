@@ -55,7 +55,8 @@ nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator
 
     while(true) {
         NBL_CHECK(reader.readAll(lastRead, 1));
-        if(*lastRead < 0x20) {
+        if(*lastRead >= 0 && *lastRead < 0x20) {
+            nbl::log(nbl::LogLevel::DEBUG, "Found control character: ", static_cast<i32>(*lastRead));
             return nbl::Result::PARSE_ERROR;
         }
 
@@ -98,16 +99,17 @@ nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator
                     break;
                 }
                 case 'u': {
-                    char codePointHex[4];
+                    char codePointHex[4]{};
                     NBL_CHECK(reader.readAll(codePointHex, 4));
 
                     i32 codePoint = 0;
-                    for(auto i = 3 ; i >= 0 ; i--) {
+                    for(i32 i = 0 ; i < 4 ; i++) {
                         i32 val = _hexDigit(codePointHex[i]);
                         if(val == -1) {
+                            nbl::log(nbl::LogLevel::DEBUG, "Invalid hex digit: ", static_cast<i32>(codePointHex[i]));
                             return nbl::Result::PARSE_ERROR;
                         }
-                        codePoint |= (val & 0xF) << (i * 4);
+                        codePoint |= (val & 0xF) << ((3 - i) * 4);
                     }
 
                     nbl::BufferStream buf(codePointHex, 4);
