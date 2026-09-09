@@ -456,7 +456,7 @@ color: Theme.colors.textDim
                                     tagId = ApplicationContext.findTagId(value)
                                     if(tagId == 0) {
                                         added = true
-                                        color = Qt.hsva(Math.random(), 0.6 + Math.random() * 0.3, 0.4 + Math.random() * 0.5)
+                                        color = Theme.colors.tagColor(value)
                                     } else {
                                         let tagMeta = ApplicationContext.getTagsFromIds([tagId])
                                         color = tagMeta[0].color

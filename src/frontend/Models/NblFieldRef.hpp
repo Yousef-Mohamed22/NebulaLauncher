@@ -29,6 +29,7 @@ class NblFieldRef : public QObject {
     Q_PROPERTY(bool showDefaultOption READ showDefaultOption CONSTANT)
     Q_PROPERTY(NblFieldRef* listTemplate READ listTemplate CONSTANT)
     Q_PROPERTY(NblFieldList* structFields READ structFields CONSTANT)
+    Q_PROPERTY(bool horizontal READ horizontal CONSTANT)
 
 public:
 
@@ -90,6 +91,7 @@ public:
     bool showDefaultOption();
     NblFieldRef* listTemplate();
     NblFieldList* structFields();
+    bool horizontal();
 
     // QVariant value();
     // void setValue(QVariant value);

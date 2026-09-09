@@ -178,6 +178,11 @@ NblFieldList* NblFieldRef::structFields() {
 
 }
 
+bool NblFieldRef::horizontal() {
+    if(_pField->type != nbl::FieldType::STRUCT) return false;
+    return _pField->structData.horizontal; 
+}
+
 
 NblEnumFieldModel* NblFieldRef::enumModel() {
     return new NblEnumFieldModel(_pField);

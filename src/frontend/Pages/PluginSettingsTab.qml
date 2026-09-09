@@ -105,12 +105,15 @@ SettingsTab {
                                 hoverEnabled: parent.enabled
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
+
+                                    let values = pluginItem.modelData.fieldValues
+
                                     let dialog = DialogManager.create("Pages/PluginSettingsDialog.qml", {
                                         targetWidth: 700, 
                                         targetHeight: 700, 
                                         pluginName: pluginItem.modelData.name,
                                         fields: pluginModel.fields(pluginItem.index),
-                                        values: pluginItem.modelData.fieldValues
+                                        values: values
                                     }) as NblDialog
 
                                     hoverEnabled = false

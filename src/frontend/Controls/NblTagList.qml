@@ -300,7 +300,7 @@ Item {
                 }
             }
 
-            let color = Qt.hsva(Math.random(), 0.6 + Math.random() * 0.3, 0.4 + Math.random() * 0.5)
+            let color = Theme.colors.tagColor(name)
             let index = root.tags.length
             let id = ApplicationContext.addTag(name, color)
             if(id == 0) {

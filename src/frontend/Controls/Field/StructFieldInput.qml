@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 import Nebula
 
@@ -19,6 +20,9 @@ FieldInputDelegate {
         width: parent.width
 
         Item {
+
+            visible: root.field.name.length > 0
+
             width: parent.width
             height: 30
 
@@ -47,15 +51,23 @@ FieldInputDelegate {
                 color: Theme.colors.textDim
             }
         }
+        GridLayout {
 
-        NblFieldInputList {
-            id: fieldInput
+            id: layout
             width: parent.width
-            fields: root.field.structFields
+            columns: root.field.horizontal ? fieldInput.count : 1
+            rowSpacing: 8
+            columnSpacing: 8
 
-            onModifiedChanged: {
-                if(modified) {
-                    root.value = save()
+            NblFieldInputRepeater {
+                id: fieldInput
+                fields: root.field.structFields
+                itemWidth: root.field.horizontal ? ((layout.width + layout.columnSpacing) / count) - layout.columnSpacing : layout.width
+
+                onModifiedChanged: {
+                    if(modified) {
+                        root.value = save()
+                    }
                 }
             }
         }

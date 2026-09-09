@@ -78,7 +78,7 @@ NblDialog {
                 valueRole: "id"
             }
 
-            NblFieldInputList { 
+            NblFieldInputRepeater { 
                 id: fieldList
                 width: parent.width
                 fields: ApplicationContext.getInstallationTypeFields(commandTypeBox.currentValue)

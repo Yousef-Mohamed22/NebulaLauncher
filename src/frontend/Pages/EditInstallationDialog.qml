@@ -297,7 +297,7 @@ NblDialog {
                                 tooltip: "The type of installation. This determines how the installation is launched."
                             }
 
-                            NblFieldInputList { 
+                            NblFieldInputRepeater { 
                                 id: fieldList
                                 width: parent.width
                                 fields: ApplicationContext.getInstallationTypeFields(commandTypeBox.currentValue)

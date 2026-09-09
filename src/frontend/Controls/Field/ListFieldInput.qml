@@ -7,6 +7,7 @@ FieldInputDelegate {
 
     id: root
     implicitHeight: listInput.height
+    value: []
 
     onValueChanged: {
         listInput.initialItems = value
@@ -18,11 +19,15 @@ FieldInputDelegate {
         width: parent.width
         label: root.field.name
 
+        controlsOffset: root.field.listTemplate.type == 3 ? 0 : 16 * 0.9
+
         minItems: root.field.min
         maxItems: root.field.max
 
-        createNew: { 
-            return root.field.listTemplate.defaultValue
+        createNew: function() { 
+            let value = root.field.listTemplate.defaultValue
+            root.value.push(value)
+            return value
         }
 
         delegate: NblFieldInput {

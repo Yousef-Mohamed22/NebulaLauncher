@@ -44,6 +44,21 @@ QtObject {
             return calculateBrightness(color) > 200 ? "#000000" : "#ffffff"
         }
 
+        function tagColor(tagName) {
+            let hash = 0;
+            for (let i = 0; i < tagName.length; i++) {
+                hash = (hash << 5) - hash + tagName.charCodeAt(i)
+                hash |= 0
+            }
+
+            let hue = ((hash & 0xFF) / 255.0)
+            let sat = (((hash >> 8) & 0xFF) / 255.0)
+            let val = (((hash >> 16) & 0xFF) / 255.0)
+
+            return Qt.hsva(hue, 0.6 + sat * 0.3, 0.4 + val * 0.5)
+
+        }
+
         property bool lightMode: false
         property bool tintUi: true
         property color activeColor: "#d658fc"

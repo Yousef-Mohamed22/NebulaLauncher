@@ -42,7 +42,7 @@ NblDialog {
                 font.pixelSize: 16
             }
 
-            NblFieldInputList {
+            NblFieldInputRepeater {
                 width: parent.width
                 id: fields
                 fields: root.fields

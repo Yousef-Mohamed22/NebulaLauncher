@@ -9,10 +9,8 @@ nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValu
         return nbl::Result::SUCCESS;
     }
 
-    void* ptr = _pAllocator->begin();
-    char* stringData = static_cast<char*>(ptr);
-
-    usize stringLength = _pAllocator->index();
+    char* stringData = static_cast<char*>(_pAllocator->begin()) + _mBegin;
+    usize stringLength = _mLength;
 
     usize occurrances;
     for(usize i = startIndex ; i < stringLength; i++) {

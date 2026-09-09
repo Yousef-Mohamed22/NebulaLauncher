@@ -33,7 +33,7 @@ QVariant NblPluginModel::data(const QModelIndex& index, int role) const {
             return static_cast<qsizetype>(plugin.fields.length);
         case FieldValuesRole: {
         
-            QVariant qtFields{};
+            QVariant qtFields = QVariantMap();
 
             nbl::Field dummy {
                 .type = nbl::FieldType::STRUCT,
@@ -56,6 +56,7 @@ QVariant NblPluginModel::data(const QModelIndex& index, int role) const {
                 return nbl::Result::SUCCESS;
 
             }).error()) {
+                nbl::log(nbl::LogLevel::DEBUG, "An error occurred while loading plugin fields");
                 return QVariantMap();
             }
 

@@ -87,7 +87,9 @@ NblDialog {
 
                 Column {
 
+                    id: resultsColumn
                     width: parent.width
+                    spacing: 8
 
                     OnlineGameSearchHelper {
                         id: searchHelper
@@ -95,9 +97,6 @@ NblDialog {
                             resultsModel.append({meta: data})
                         }
                     }
-
-                    id: resultsColumn
-                    spacing: 8
 
                     Repeater {
                         model: ListModel {
@@ -223,7 +222,7 @@ NblDialog {
                                                             tagId = ApplicationContext.findTagId(text)
                                                             if(tagId == 0) {
                                                                 added = true
-                                                                color = Qt.hsva(Math.random(), 0.6 + Math.random() * 0.3, 0.4 + Math.random() * 0.5)
+                                                                color = Theme.colors.tagColor(text)
                                                             } else {
                                                                 let tagMeta = ApplicationContext.getTagsFromIds([tagId])
                                                                 color = tagMeta[0].color

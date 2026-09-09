@@ -103,6 +103,7 @@ struct Field {
         } listData;
         struct {
             Span<Field> fields;
+            bool horizontal;
         } structData;
     };
     FieldValue defaultValue;
