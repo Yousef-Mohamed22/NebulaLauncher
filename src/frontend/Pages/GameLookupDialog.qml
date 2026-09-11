@@ -209,7 +209,6 @@ NblDialog {
                                                         required property string modelData
                                                         required property int index
 
-                                                        property bool added: false
                                                         property int tagId: 0
 
                                                         height: tagRow.height
@@ -221,7 +220,6 @@ NblDialog {
                                                         Component.onCompleted: {
                                                             tagId = ApplicationContext.findTagId(text)
                                                             if(tagId == 0) {
-                                                                added = true
                                                                 color = Theme.colors.tagColor(text)
                                                             } else {
                                                                 let tagMeta = ApplicationContext.getTagsFromIds([tagId])
@@ -259,10 +257,10 @@ NblDialog {
                                     for(let i = 0 ; i < tagRepeater.count ; i++) {
                                         let tagItem = tagRepeater.itemAt(i) as NblTag
 
-                                        let id = tagItem.tagId
-                                        if(tagItem.added) {
-                                            id = ApplicationContext.addTag(tagItem.text, tagItem.color)
-                                            if(id == 0) {
+                                        let tagId = tagItem.tagId
+                                        if(tagId == 0) {
+                                            tagId = ApplicationContext.addTag(tagItem.text, tagItem.color)
+                                            if(tagId == 0) {
                                                 ApplicationContext.pushNotification({
                                                     type: "error",
                                                     title: "Failed to add tag",
@@ -272,7 +270,7 @@ NblDialog {
                                             }
                                         }
 
-                                        tags.push(id)
+                                        tags.push(tagId)
                                     }
                                     params["tags"] = tags
 

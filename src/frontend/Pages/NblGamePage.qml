@@ -385,7 +385,7 @@ Item {
                     font.pixelSize: 14
                     font.weight: 600
                     color: Theme.colors.textDim
-                    text: "Rating: " + root.details.rating + "%"
+                    text: "Rating: " + root.details.rating.toFixed(1) + "%"
                 }
 
                 Label {
