@@ -261,7 +261,7 @@ Item {
         hoverEnabled: true
         onClicked: {
             if(root.processState === NblLaunchButton.State.NOT_INSTALLED) {
-                let dialog = DialogManager.create("Pages/AddGameDialog.qml", { 
+                let dialog = DialogManager.create("Pages/AddInstallationDialog.qml", { 
                     gameId: root.gameId
                 }) as NblDialog
                 dialog.apply.connect(function() {
