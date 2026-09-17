@@ -15,6 +15,11 @@
 #include <Codec/Json.hpp>
 #include <Core/Span.hpp>
 #include <Data/Database.hpp>
+#include <Models/NblInstallationDetails.hpp>
+#include <Plugin/AccountProvider.hpp>
+#include <Plugin/Field.hpp>
+#include <Utility/Placeholder.hpp>
+#include <Core/Math.hpp>
 
 #include <QString>
 #include <QDesktopServices>
@@ -29,12 +34,9 @@
 #include <qstringview.h>
 #include <qvariant.h>
 
-#include "Models/NblInstallationDetails.hpp"
 #include "NblAccountsModel.hpp"
 #include "NblFieldList.hpp"
 #include "NblProcessHandle.hpp"
-#include "Plugin/AccountProvider.hpp"
-#include "Plugin/Field.hpp"
 
 
 using namespace Qt::StringLiterals;
@@ -140,6 +142,95 @@ void _pushStatus(i64 id, nbl::Optional<nbl::StringView> status, nbl::Optional<f6
         hnd->pushProgress(*progress);
     }
 }
+
+
+nbl::Result _applyInstallationCommand(nbl::DatabaseConnection* connection, nbl::InstallationMeta meta, const nbl::InstallationType* type, QVariantMap fields, QVariantList externalIds) {
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+
+    nbl::Field dummy {
+        .type = nbl::FieldType::STRUCT,
+        .structData = { .fields = type->fields }
+    };
+
+    nbl::FieldValue value = NblFieldRef(&dummy).toNbl(fields, &frame);
+
+    bool applyGamePlaceholders = false;
+    usize maxCustom = 0; 
+    for(usize i = 0 ; i < type->fields.length ; i++) {
+        const nbl::Field& field = type->fields[i];
+        if(field.type == nbl::FieldType::STRING) {
+            maxCustom = nbl::max(maxCustom, field.stringData.customPlaceholders.length);
+            applyGamePlaceholders = applyGamePlaceholders || field.stringData.applyGamePlaceholders;
+        }
+    }
+
+    if(applyGamePlaceholders || maxCustom > 0) {
+
+        usize globalPlaceholders = 2 + externalIds.length();
+        usize maxPlaceholders = maxCustom + globalPlaceholders;
+        nbl::Span<nbl::Placeholder> placeholders{};
+
+        NBL_CHECK(frame.allocate(&placeholders.data, maxPlaceholders));
+
+        nbl::StringView gIdStr;
+        nbl::StringView iIdStr;
+        NBL_CHECK(nbl::StringBuilder(&frame).append(meta.gameId).buildNullTerminated(&gIdStr));
+        NBL_CHECK(nbl::StringBuilder(&frame).append(meta.id).buildNullTerminated(&gIdStr));
+
+        placeholders[placeholders.length++] = {
+            .key = "gameId",
+            .value = gIdStr
+        };
+        placeholders[placeholders.length++] = {
+            .key = "installationId",
+            .value = gIdStr
+        };
+
+        for(QVariant v : externalIds) {
+            QByteArray name = v.toMap().find("platform")->toString().toUtf8();
+            QByteArray id = v.toMap().find("id")->toString().toUtf8();
+
+            nbl::StringView nblName(name.data(), name.length());
+            nbl::StringView nblId(id.data(), id.length());
+
+            NBL_CHECK(nbl::StringBuilder(&frame).append("external_id_").append(nblName).buildNullTerminated(&nblName));
+            NBL_CHECK(nbl::StringBuilder(&frame).append(nblId).buildNullTerminated(&nblId));
+
+            placeholders[placeholders.length++] = {
+                .key = nblName,
+                .value = nblId
+            };
+        }
+
+        for(usize i = 0 ; i < type->fields.length ; i++) {
+            const nbl::Field& field = type->fields[i];
+            if(field.type == nbl::FieldType::STRING) {
+
+                usize numPlaceholders = globalPlaceholders + field.stringData.customPlaceholders.length;
+
+                memcpy(placeholders.data + placeholders.length, field.stringData.customPlaceholders.data, field.stringData.customPlaceholders.length * sizeof(nbl::Placeholder));
+                placeholders.length += field.stringData.customPlaceholders.length;
+
+                nbl::StringBuilder applied(&frame);
+
+                placeholders.length = numPlaceholders;
+                NBL_CHECK(nbl::formatPlaceholders(value.compositeValue[i].stringValue.raw, &applied, placeholders, field.stringData.strictPlaceholders))
+                NBL_CHECK(applied.buildNullTerminated(&value.compositeValue[i].stringValue.resolved));
+            }
+        }
+    }
+
+    nbl::StringBuilder builder(&frame);
+    NBL_CHECK(nbl::encodeFieldValues(type->fields, value.compositeValue, builder));
+
+    nbl::StringView cmd;
+    NBL_CHECK(builder.buildNullTerminated(&cmd));
+
+    meta.command = cmd;
+    return nbl::updateInstallation(connection, meta);
+}
+
 
 
 }
@@ -275,7 +366,7 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
                 NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
                 NBL_CHECK(nbl::decodeFieldValues(installType->fields, value.object, &values, &frame));
             }
-            NBL_CHECK(installType->launch(&ctx->_mContext, values, installationId, handle->tracker()));
+            NBL_CHECK(installType->launch(&ctx->_mContext, values, meta, handle->tracker()));
             NBL_CHECK(handle->initLogging());
             handle->check();
 
@@ -339,7 +430,7 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
         NBL_CHECK(nbl::decodeFieldValues(installType->fields, value.object, &values, &frame));
 
         nbl::StringView folder = {};
-        NBL_CHECK(installType->getFolder(&_mContext, values, installationId, &folder));
+        NBL_CHECK(installType->getFolder(&_mContext, values, meta, &folder));
 
         if(folder.empty()) {
             _mContext.pushNotification(nbl::NotificationType::ERROR, "Could not open folder", "The installation did not specify a valid installation path");
@@ -516,32 +607,12 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
 
     // Add a new installation
     QByteArray type = params.find("type")->toString().toUtf8();
-    QVariantMap fields = params.find("fields")->toMap();
-
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    const nbl::InstallationType* it = _mContext.getInstallationType(nbl::StringView(type.data(), type.length()));
-
-    nbl::Field dummy {
-        .type = nbl::FieldType::STRUCT,
-        .structData = { .fields = it->fields }
-    };
-
-    nbl::FieldValue value = NblFieldRef(&dummy).toNbl(fields, &frame);
-
-
-    nbl::StringBuilder builder(&frame);
-    NBL_CHECK(nbl::encodeFieldValues(it->fields, value.compositeValue, builder));
-
-    nbl::StringView cmd;
-    NBL_CHECK(builder.buildNullTerminated(&cmd));
-
-
     nbl::InstallationMeta meta = {
         .id = 0,
         .gameId = realGId,
         .deviceId = _mDeviceId,
         .type = nbl::StringView(type.data(), type.length()),
-        .command = cmd,
+        .command = "",
     };
 
     QByteArray installationTitle = params.find("title")->toString().toUtf8();
@@ -574,13 +645,20 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
         untagGame(realGId, tag.toLongLong());
     }
 
-    for(QVariant qs : params.find("externalIds")->toList()) {
+    QVariantList externalIds = params.find("externalIds")->toList();
+    for(QVariant qs : externalIds) {
         QByteArray name = qs.toMap().find("platform")->toString().toUtf8();
         QByteArray id = qs.toMap().find("id")->toString().toUtf8();
         nbl::StringView nblName(name.data(), name.length());
         nbl::StringView nblId(id.data(), id.length());
         NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::setGameExternalId(databaseConnection(), realGId, nblName, nblId));
     }
+
+
+    QVariantMap fields = params.find("fields")->toMap();
+    const nbl::InstallationType* it = _mContext.getInstallationType(nbl::StringView(type.data(), type.length()));
+
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), _applyInstallationCommand(databaseConnection(), meta, it, fields, externalIds));
 
     NBL_CHECK_OR_ROLLBACK(databaseConnection(), databaseConnection()->commitTransaction());
     return InstallationAddResult(
@@ -617,23 +695,6 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     QByteArray installationTitle = params.find("title")->toString().toUtf8();
     QByteArray installationDesc = params.find("description")->toString().toUtf8();
 
-    QVariantMap fields = params.find("fields")->toMap();
-    const nbl::InstallationType* it = _mContext.getInstallationType(nbl::StringView(type.data(), type.length()));
-
-    nbl::Field dummy {
-        .type = nbl::FieldType::STRUCT,
-        .structData = { .fields = it->fields }
-    };
-
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    nbl::FieldValue value = NblFieldRef(&dummy).toNbl(fields, &frame);
-
-    nbl::StringBuilder builder(&frame);
-    NBL_CHECK(nbl::encodeFieldValues(it->fields, value.compositeValue, builder));
-
-    nbl::StringView cmd;
-    NBL_CHECK(builder.buildNullTerminated(&cmd));
-
     nbl::InstallationMeta meta = {
         .id = installationId,
         .gameId = gId,
@@ -646,10 +707,23 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
         .logo = nbl::StringView(logo.data(), logo.length()),
         .logoPosition = position,
         .type = nbl::StringView(type.data(), type.length()),
-        .command = cmd
+        .command = ""
     };
 
-    nbl::updateInstallation(databaseConnection(), meta);
+    QVariantList externalIds{};
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::enumerateGameExternalIds(databaseConnection(), meta.gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
+        QVariantMap out{};
+        out["platform"] = QString(fromNbl(platformName));
+        out["id"] = QString(fromNbl(platformId));
+        externalIds.append(out);
+        return nbl::Result::SUCCESS;
+    }));
+
+    QVariantMap fields = params.find("fields")->toMap();
+    const nbl::InstallationType* it = _mContext.getInstallationType(nbl::StringView(type.data(), type.length()));
+
+    //NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::updateInstallation(databaseConnection(), meta));
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), _applyInstallationCommand(databaseConnection(), meta, it, fields, externalIds));
 
     for(QVariant qs : params.find("addedInstallationTags")->toList()) {
         tagInstallation(meta.id, qs.toLongLong());

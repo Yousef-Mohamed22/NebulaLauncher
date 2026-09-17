@@ -50,7 +50,7 @@ nbl::Field _listTemplate = {
     .type = nbl::FieldType::STRING,
     .key = "",
     .name = "",
-    .defaultValue = { .stringValue = "Test" }
+    .defaultValue = { .stringValue = { .resolved = "Test", .raw = "Test" } }
 };
 
 nbl::Array _structFields = {
@@ -327,11 +327,11 @@ nbl::Result _launch(
         const nbl::InstallationType* type, 
         nbl::PluginContext* ctx, 
         nbl::Span<nbl::FieldValue> fields, 
-        i64 installationId, 
+        const nbl::InstallationMeta& meta, 
         nbl::ProcessTracker* handle, 
         void* userData) {
 
-    nbl::log(nbl::LogLevel::INFO, "String: ", fields.data[0].stringValue);
+    nbl::log(nbl::LogLevel::INFO, "String: ", fields.data[0].stringValue.resolved);
     nbl::log(nbl::LogLevel::INFO, "Integer: ", fields.data[1].integerValue);
     nbl::log(nbl::LogLevel::INFO, "Float: ", fields.data[2].floatValue);
     nbl::log(nbl::LogLevel::INFO, "Boolean: ", fields.data[3].booleanValue);
@@ -343,9 +343,9 @@ nbl::Result _launch(
 
     nbl::log(nbl::LogLevel::INFO, "List.length: ", fields.data[8].compositeValue.length);
     for(usize i = 0 ; i < fields.data[8].compositeValue.length ; i++) {
-        nbl::log(nbl::LogLevel::INFO, "List[", i, "]: ", fields.data[8].compositeValue[i].stringValue);
+        nbl::log(nbl::LogLevel::INFO, "List[", i, "]: ", fields.data[8].compositeValue[i].stringValue.resolved);
     }
-    nbl::log(nbl::LogLevel::INFO, "Struct.String: ", fields.data[9].compositeValue[0].stringValue);
+    nbl::log(nbl::LogLevel::INFO, "Struct.String: ", fields.data[9].compositeValue[0].stringValue.resolved);
     nbl::log(nbl::LogLevel::INFO, "Struct.Int: ", fields.data[9].compositeValue[1].integerValue);
 
     ctx->pushNotification(nbl::NotificationType::INFO, "Hello", "Hello from test plugin");
@@ -398,7 +398,7 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
     nbl::log(nbl::LogLevel::INFO, "Hello from plugin");
 
     context->setFields(_pluginFields, [](nbl::Span<nbl::Field> fields, nbl::Span<nbl::FieldValue> fieldValues, void* userData) {
-        nbl::log(nbl::LogLevel::INFO, "Fields updated: string=", fieldValues[0].stringValue);
+        nbl::log(nbl::LogLevel::INFO, "Fields updated: string=", fieldValues[0].stringValue.resolved);
     }, nullptr);
 
     {
@@ -406,7 +406,7 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
         nbl::Span<nbl::FieldValue> values{};
         NBL_CHECK(context->getStoredFieldValues(_pluginFields, &values, &frame));
 
-        nbl::log(nbl::LogLevel::INFO, "string=", values[0].stringValue);
+        nbl::log(nbl::LogLevel::INFO, "string=", values[0].stringValue.resolved);
     }
 
     context->registerInstallationType(&_type);

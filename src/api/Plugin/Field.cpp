@@ -10,8 +10,22 @@ nbl::Result _decodeFieldValue(const nbl::Field& field, nbl::JsonElement element,
 
     switch(field.type) {
         case nbl::FieldType::STRING: 
-            if(element.type != nbl::JsonType::STRING) return nbl::Result::INVALID_ARGUMENT;
-            *outValue = nbl::FieldValue { .stringValue = element.string };
+            if(element.type == nbl::JsonType::STRING) {
+                *outValue = nbl::FieldValue { 
+                    .stringValue = {
+                        .resolved = element.string,
+                    }
+                };
+            } else if(element.type == nbl::JsonType::OBJECT) {
+                *outValue = nbl::FieldValue {
+                    .stringValue = {
+                        .resolved = element.object.getString("resolved"),
+                        .raw = element.object.getString("raw")
+                    }
+                };
+            } else {
+                return nbl::Result::INVALID_ARGUMENT;
+            }
             break;
         case nbl::FieldType::FLOAT:
             if(element.type != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
@@ -67,7 +81,14 @@ nbl::Result _decodeFieldValue(const nbl::Field& field, nbl::JsonElement element,
 nbl::Result _encodeFieldValue(const nbl::Field& field, nbl::FieldValue value, nbl::Writer writer) {
     switch(field.type) {
         case nbl::FieldType::STRING:
-            return nbl::writeJson(writer, value.stringValue);
+            if(value.stringValue.raw.empty()) {
+                return nbl::writeJson(writer, value.stringValue.resolved);
+            } else {
+                return nbl::JsonWriter(writer).writeObject([&](auto obj) {
+                    obj.add("resolved", value.stringValue.resolved);
+                    obj.add("raw", value.stringValue.raw);
+                });
+            }
         case nbl::FieldType::FLOAT:
             return nbl::writeJson(writer, value.floatValue);
         case nbl::FieldType::INTEGER:

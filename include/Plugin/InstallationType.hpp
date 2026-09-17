@@ -3,6 +3,7 @@
 #include <Core/String.hpp>
 #include <Core/Span.hpp>
 #include <Codec/Json.hpp>
+#include <Data/Model.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/ProcessTracker.hpp>
 #include <Plugin/Field.hpp>
@@ -15,7 +16,7 @@ struct LaunchInstallationFunction {
             const InstallationType* type,
             PluginContext* ctx, 
             nbl::Span<FieldValue> fields, 
-            i64 installationId,
+            const nbl::InstallationMeta& meta,
             ProcessTracker* tracker, 
             void* userData);
     void* userData;
@@ -25,7 +26,7 @@ struct GetFolderFunction {
             const InstallationType* type,
             PluginContext* ctx, 
             nbl::Span<FieldValue> fields, 
-            i64 installationId,
+            const nbl::InstallationMeta& meta,
             StringView* outFolder,
             void* userData);
     void* userData;
@@ -38,14 +39,14 @@ struct InstallationType {
     LaunchInstallationFunction launchFunc;
     GetFolderFunction getFolderFunc;
 
-    inline Result launch(PluginContext* ctx, nbl::Span<FieldValue> fields, i64 installationId, ProcessTracker* handle) const {
+    inline Result launch(PluginContext* ctx, nbl::Span<FieldValue> fields, const nbl::InstallationMeta& meta, ProcessTracker* handle) const {
         if(launchFunc.pfnLaunchInstallation == nullptr) return nbl::Result::PLUGIN_ERROR;
-        return launchFunc.pfnLaunchInstallation(this, ctx, fields, installationId, handle, launchFunc.userData);
+        return launchFunc.pfnLaunchInstallation(this, ctx, fields, meta, handle, launchFunc.userData);
     }
 
-    inline Result getFolder(PluginContext* ctx, nbl::Span<FieldValue> fields, i64 installationId, StringView* outFolder) const {
+    inline Result getFolder(PluginContext* ctx, nbl::Span<FieldValue> fields, const nbl::InstallationMeta& meta, StringView* outFolder) const {
         if(getFolderFunc.pfnGetFolder == nullptr) return nbl::Result::PLUGIN_ERROR;
-        return getFolderFunc.pfnGetFolder(this, ctx, fields, installationId, outFolder, getFolderFunc.userData);
+        return getFolderFunc.pfnGetFolder(this, ctx, fields, meta, outFolder, getFolderFunc.userData);
     }
 
     static InstallationType COMMAND;

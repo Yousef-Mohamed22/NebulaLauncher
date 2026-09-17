@@ -8,7 +8,7 @@ FieldInputDelegate {
     implicitHeight: textBox.height
 
     onValueChanged: {
-        textBox.text = value
+        textBox.text = value.raw
         textBox.clearSuggestions()
         field.suggest(value, function(suggestion) {
             textBox.pushSuggestion(suggestion)
@@ -21,7 +21,14 @@ FieldInputDelegate {
         label: root.field.name
 
         onTextEdited: {
-            root.value = text
+            if(root.value == null) {
+                root.value = { 
+                    raw: text,
+                    resolved: ""
+                }
+            } else {
+                root.value.raw = text
+            }
         }
     }
 }

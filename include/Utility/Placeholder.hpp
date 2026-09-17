@@ -14,6 +14,6 @@ struct Placeholder {
 
 bool nextPlaceholder(StringView str, usize* placeholderStart, usize* placeholderEnd, StringView* placeholder);
 
-Result formatPlaceholders(StringView format, StringBuilder* builder, Span<Placeholder> placeholders);
+Result formatPlaceholders(StringView format, StringBuilder* builder, Span<Placeholder> placeholders, bool strict=true);
 
 }

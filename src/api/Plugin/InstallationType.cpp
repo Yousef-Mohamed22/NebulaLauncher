@@ -9,12 +9,20 @@ nbl::Array _fields = {
     nbl::Field {
         .type = nbl::FieldType::STRING,
         .key = "command",
-        .name = "Command"
+        .name = "Command",
+        .stringData = {
+            .applyGamePlaceholders = true,
+            .strictPlaceholders = false
+        }
     },
     nbl::Field {
         .type = nbl::FieldType::STRING,
         .key = "working_dir",
-        .name = "Working Directory"
+        .name = "Working Directory",
+        .stringData = {
+            .applyGamePlaceholders = true,
+            .strictPlaceholders = true
+        }
     }
 };
 
@@ -22,23 +30,22 @@ nbl::Result _launch(
         const nbl::InstallationType* type, 
         nbl::PluginContext* ctx, 
         nbl::Span<nbl::FieldValue> fields, 
-        i64 installationId, 
+        const nbl::InstallationMeta& meta, 
         nbl::ProcessTracker* tracker, 
         void* userData) {
 
-    return tracker->run(ctx, fields[0].stringValue, fields[1].stringValue);
+    return tracker->run(ctx, fields[0].stringValue.resolved, fields[1].stringValue.resolved);
 }
 
 nbl::Result _getFolder(
         const nbl::InstallationType* type, 
         nbl::PluginContext* ctx, 
         nbl::Span<nbl::FieldValue> fields, 
-        i64 installationId, 
+        const nbl::InstallationMeta& meta, 
         nbl::StringView* outFolder,
         void* userData) {
 
-    *outFolder = fields[1].stringValue;
-
+    *outFolder = fields[1].stringValue.resolved;
     return nbl::Result::SUCCESS;
 }
 

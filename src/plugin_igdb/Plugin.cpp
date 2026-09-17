@@ -651,12 +651,12 @@ nbl::Result _loadConfig(nbl::Span<nbl::FieldValue> values) {
 
             void* igdb = _configArena.end();
             usize igdbIndex = _configArena.index();
-            NBL_CHECK(_configArena.writer().writeString(mapping.compositeValue[0].stringValue));
+            NBL_CHECK(_configArena.writer().writeString(mapping.compositeValue[0].stringValue.resolved));
             usize length = _configArena.index() - igdbIndex;
 
             void* mapped = _configArena.end();
             usize mappedIndex = _configArena.index();
-            NBL_CHECK(_configArena.writer().writeString(mapping.compositeValue[1].stringValue));
+            NBL_CHECK(_configArena.writer().writeString(mapping.compositeValue[1].stringValue.resolved));
             usize mappedLength = _configArena.index() - mappedIndex;
 
             mappings[index++] = _TagMapping {

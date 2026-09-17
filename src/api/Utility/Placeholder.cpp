@@ -33,7 +33,7 @@ bool nbl::nextPlaceholder(StringView str, usize* placeholderStart, usize* placeh
     return false;
 }
 
-nbl::Result nbl::formatPlaceholders(StringView format, StringBuilder *builder, Span<Placeholder> placeholders) {
+nbl::Result nbl::formatPlaceholders(StringView format, StringBuilder *builder, Span<Placeholder> placeholders, bool strict) {
 
     usize placeholderStart = 0;
     usize placeholderEnd = 0;
@@ -50,6 +50,7 @@ nbl::Result nbl::formatPlaceholders(StringView format, StringBuilder *builder, S
         for(usize i = 0 ; i < placeholders.length ; i++) {
             usize realI = (i + prevPlaceholder) % placeholders.length;
             Placeholder& p = placeholders[realI];
+
             if(p.key == placeholderName) {
                 placeholderValue = p.value;
                 found = true;
@@ -58,10 +59,11 @@ nbl::Result nbl::formatPlaceholders(StringView format, StringBuilder *builder, S
             }
         }
 
-        if(!found) {
+        if(strict && !found) {
             nbl::log(nbl::LogLevel::DEBUG, "Placeholder ", placeholderName, " not found");
             return nbl::Result::NOT_FOUND;
         }
+
 
         placeholderStart += index;
         placeholderEnd += index;
@@ -70,8 +72,14 @@ nbl::Result nbl::formatPlaceholders(StringView format, StringBuilder *builder, S
             NBL_CHECK(builder->appendChecked(format.slice(index, placeholderStart - index)));
         }
 
-        NBL_CHECK(builder->appendChecked(placeholderValue));
         index = placeholderEnd + 1;
+
+        if(!found) {
+            nbl::log(nbl::LogLevel::DEBUG, "Placeholder ", placeholderName, " not found");
+            NBL_CHECK(builder->append("${").append(placeholderName).appendChecked('}'));
+        } else {
+            NBL_CHECK(builder->appendChecked(placeholderValue));
+        }
     }
 
     if(index < format.length) {

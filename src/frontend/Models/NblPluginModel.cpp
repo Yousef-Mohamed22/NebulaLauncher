@@ -97,6 +97,23 @@ void NblPluginModel::saveFields(QVariantMap fields, int row) {
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
     nbl::FieldValue value = NblFieldRef(&dummy).toNbl(fields, &frame);
 
+    nbl::Span<nbl::Placeholder> placeholders = {};
+    for(usize i = 0 ; i < plugin.fields.length ; i++) {
+        const nbl::Field& field = plugin.fields[i];
+        if(field.type == nbl::FieldType::STRING) {
+
+            usize numPlaceholders = field.stringData.customPlaceholders.length;
+            if(numPlaceholders > 0) {
+                NBL_ASSERT(frame.allocate(&placeholders.data, numPlaceholders).success());
+                memcpy(placeholders.data, field.stringData.customPlaceholders.data, field.stringData.customPlaceholders.length * sizeof(nbl::Placeholder));
+                placeholders.length = field.stringData.customPlaceholders.length;
+                nbl::StringBuilder applied(&frame);
+                nbl::formatPlaceholders(value.compositeValue[i].stringValue.raw, &applied, placeholders, field.stringData.strictPlaceholders);
+                NBL_ASSERT(applied.buildNullTerminated(&value.compositeValue[i].stringValue.resolved).success());
+            }
+        }
+    }
+
     if(plugin.pfnUpdateCallback) {
         plugin.pfnUpdateCallback(plugin.fields, value.compositeValue, plugin.userData);
     }

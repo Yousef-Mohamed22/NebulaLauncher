@@ -12,8 +12,16 @@ namespace {
 
 QVariant _fieldToQt(const nbl::Field* field, nbl::FieldValue value) {
     switch(field->type) {
-        case nbl::FieldType::STRING: 
-            return QString::fromUtf8(value.stringValue.data, value.stringValue.length);
+        case nbl::FieldType::STRING: {
+            QVariantMap out = {};
+            out["resolved"] = QString::fromUtf8(value.stringValue.resolved.data, value.stringValue.resolved.length);
+            if(!value.stringValue.raw.empty()) {
+                out["raw"] = QString::fromUtf8(value.stringValue.raw.data, value.stringValue.raw.length);
+            } else {
+                out["raw"] = QString::fromUtf8(value.stringValue.resolved.data, value.stringValue.resolved.length);
+            }
+            return out;
+        }
         case nbl::FieldType::INTEGER:
             return static_cast<qint64>(value.integerValue);
         case nbl::FieldType::FLOAT: 
@@ -54,10 +62,24 @@ nbl::FieldValue _qtToField(const nbl::Field* field, QVariant value, nbl::LinearA
 
     switch(field->type) {
         case nbl::FieldType::STRING: {
-            QByteArray utf = value.toString().toUtf8();
-            nbl::StringView str;
-            NBL_ASSERT(nbl::StringBuilder(allocator).append(nbl::StringView(utf.data(), utf.length())).buildNullTerminated(&str).success());
-            return { .stringValue = str };
+
+            nbl::StringView strRaw{};
+            nbl::StringView strResolved{};
+            if(value.userType() == QMetaType::QString) {
+
+                QByteArray utf = value.toString().toUtf8();
+                NBL_ASSERT(nbl::StringBuilder(allocator).append(nbl::StringView(utf.data(), utf.length())).buildNullTerminated(&strResolved).success());
+            } else {
+                QVariantMap values = value.toMap();
+
+                QByteArray utfRaw = values["raw"].toString().toUtf8();
+                QByteArray utfResolved = values["resolved"].toString().toUtf8();
+                if(utfRaw.length() > 0) {
+                    NBL_ASSERT(nbl::StringBuilder(allocator).append(nbl::StringView(utfRaw.data(), utfRaw.length())).buildNullTerminated(&strRaw).success());
+                }
+                NBL_ASSERT(nbl::StringBuilder(allocator).append(nbl::StringView(utfResolved.data(), utfResolved.length())).buildNullTerminated(&strResolved).success());
+            }
+            return { .stringValue = { .resolved = strResolved, .raw = strRaw } };
         }
         case nbl::FieldType::INTEGER: return { .integerValue = value.toLongLong() };
         case nbl::FieldType::FLOAT: return { .floatValue = value.toDouble() };
@@ -189,16 +211,6 @@ NblEnumFieldModel* NblFieldRef::enumModel() {
 }
 
 
-// QVariant NblFieldRef::value() {
-//     return _mValue;
-// }
-//
-// void NblFieldRef::setValue(QVariant value) {
-//     _mValue = value;
-//     emit valueChanged();
-// }
-
-
 void NblFieldRef::suggest(QString current, QJSValue value) {
     if(_pField->type != nbl::FieldType::STRING || !value.isCallable()) return;
 
@@ -221,12 +233,3 @@ QVariant NblFieldRef::fromNbl(nbl::FieldValue value) {
 const nbl::Field* NblFieldRef::field() {
     return _pField;
 }
-
-// nbl::FieldValue NblFieldRef::fieldValue(nbl::LinearAllocator* allocator) {
-//     return _qtToField(_pField, _mValue, allocator);
-// }
-//
-// void NblFieldRef::loadValue(nbl::FieldValue value) {
-//     _mValue = _fieldToQt(_pField, value);
-//     emit valueChanged();
-// }

@@ -22,7 +22,8 @@ NblDialog {
     }
 
     onApply: {
-        navigation.currentTab.apply()
+        gameSettingsTab.apply()
+        installationSettingsTab.apply()
     }
 
 

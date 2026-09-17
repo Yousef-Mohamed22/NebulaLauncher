@@ -4,6 +4,7 @@
 #include <Core/String.hpp>
 #include <Codec/Json.hpp>
 #include <Platform/Allocator.hpp>
+#include <Utility/Placeholder.hpp>
 
 #include <functional>
 
@@ -23,7 +24,10 @@ enum FieldType {
 
 struct FieldValue {
     union {
-        StringView stringValue; // for STRING
+        struct {
+            StringView resolved; 
+            StringView raw; // No placeholders applied
+        } stringValue; // for STRING
         i64 integerValue; // for INTEGER
         u64 uintegerValue; // for DATE
         f64 floatValue; // for FLOAT
@@ -53,6 +57,9 @@ struct Field {
         struct {
             void (*pfnSuggest)(StringView current, std::function_ref<void(StringView)> suggestionConsumer, void* userData);
             void* userData;
+            nbl::Span<nbl::Placeholder> customPlaceholders;
+            bool applyGamePlaceholders; // If true, and this field is for an installaion type, then game-related placeholders will be applied before saving.
+            bool strictPlaceholders;
 
             void suggest(StringView current, std::function_ref<void(StringView)> suggestionConsumer) const {
                 if(pfnSuggest) {
