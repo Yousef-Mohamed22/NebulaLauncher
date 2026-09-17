@@ -10,7 +10,10 @@ SettingsTab {
 
     id: root
 
-    property bool paused: true
+    Component.onCompleted: {
+        searchModel.paused = false
+        searchModel.refresh()
+    }
 
     onRefreshed: {
         searchModel.refresh()
@@ -242,7 +245,6 @@ SettingsTab {
                     id: searchModel
                     searchQuery: filterBox.text
                     pageSize: 10
-                    paused: root.paused
                 }
 
                 delegate: Item { 

@@ -76,8 +76,8 @@ void OnlineGameSearchWorker::run() {
         return nbl::Result::SUCCESS;
     });
     if(res.error()) {
-        ApplicationContext::instance()->pluginContext()->pushNotification(nbl::NotificationType::WARNING, "Lookup Failed", "A metadata provider encountered an error while searching for metadata");
-        nbl::log(nbl::LogLevel::ERROR, "OnlineGameProvider \"", _pProvider->name, "\" encountered an error while searching for metadata: ", res);
+        ApplicationContext::instance()->pluginContext()->pushNotification(nbl::NotificationType::WARNING, "Lookup Failed", "A game provider encountered an error while searching for metadata");
+        nbl::log(nbl::LogLevel::ERROR, "GameProvider \"", _pProvider->name, "\" encountered an error while searching for metadata: ", res);
     }
 
     emit done();

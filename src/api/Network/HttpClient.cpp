@@ -129,6 +129,35 @@ nbl::Result nbl::HttpClient::makePostRequest(StringView url, StringView body, Wr
 }
 
 
+nbl::Result nbl::HttpClient::awaitRequest(StringView url, Writer writer, HttpRequestOptions options) {
+
+    nbl::Latch latch{};
+    NBL_CHECK(nbl::Latch::create(1, &latch));
+
+    struct _RequestData {
+        HttpRequestOptions* ogOptions;
+        Latch* latch;
+        Result outResult;
+    } _requestData = { &options, &latch, Result::SUCCESS };
+
+    HttpRequestOptions opts = options;
+    opts.doneCallback = [](void* userData, Result res, i32 code) {
+            _RequestData* rd = static_cast<_RequestData*>(userData);
+            if(rd->ogOptions->doneCallback) {
+                rd->ogOptions->doneCallback(rd->ogOptions->userData, res, code);
+            }
+            rd->outResult = res;
+            rd->latch->decrement();
+        };
+    opts.userData = &_requestData;
+
+    NBL_CHECK(makeRequest(url, writer, opts));
+
+    latch.wait();
+    return _requestData.outResult;
+}
+
+
 nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* req, Optional<StringView> postData, const HttpRequestOptions& options) {
     
     CURLM* multiHandle = static_cast<CURLM*>(_pHandle);

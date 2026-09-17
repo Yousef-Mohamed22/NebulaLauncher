@@ -33,7 +33,11 @@ bool nbl::nextPlaceholder(StringView str, usize* placeholderStart, usize* placeh
     return false;
 }
 
-nbl::Result nbl::formatPlaceholders(StringView format, StringBuilder *builder, Span<Placeholder> placeholders, bool strict) {
+nbl::Result nbl::formatPlaceholders(StringView format, Writer writer, Span<Span<Placeholder>> placeholders, bool strict) {
+
+    if(!strict && placeholders.length == 0) {
+        return writer.writeString(format);
+    }
 
     usize placeholderStart = 0;
     usize placeholderEnd = 0;
@@ -47,15 +51,15 @@ nbl::Result nbl::formatPlaceholders(StringView format, StringBuilder *builder, S
         StringView placeholderValue{};
         bool found = false;
 
-        for(usize i = 0 ; i < placeholders.length ; i++) {
-            usize realI = (i + prevPlaceholder) % placeholders.length;
-            Placeholder& p = placeholders[realI];
-
-            if(p.key == placeholderName) {
-                placeholderValue = p.value;
-                found = true;
-                prevPlaceholder = i + 1;
-                break;
+        for(usize set = 0 ; set < placeholders.length ; set++) {
+            for(usize i = 0 ; i < placeholders[set].length ; i++) {
+                Placeholder& p = placeholders[set][i];
+                if(p.key == placeholderName) {
+                    placeholderValue = p.value;
+                    found = true;
+                    prevPlaceholder = set + 1;
+                    break;
+                }
             }
         }
 
@@ -69,21 +73,23 @@ nbl::Result nbl::formatPlaceholders(StringView format, StringBuilder *builder, S
         placeholderEnd += index;
 
         if(placeholderStart - index > 0) {
-            NBL_CHECK(builder->appendChecked(format.slice(index, placeholderStart - index)));
+            NBL_CHECK(writer.writeString(format.slice(index, placeholderStart - index)));
         }
 
         index = placeholderEnd + 1;
 
         if(!found) {
             nbl::log(nbl::LogLevel::DEBUG, "Placeholder ", placeholderName, " not found");
-            NBL_CHECK(builder->append("${").append(placeholderName).appendChecked('}'));
+            NBL_CHECK(writer.writeString("${"));
+            NBL_CHECK(writer.writeString(placeholderName));
+            NBL_CHECK(writer.writeChar('}'));
         } else {
-            NBL_CHECK(builder->appendChecked(placeholderValue));
+            NBL_CHECK(writer.writeString(placeholderValue));
         }
     }
 
     if(index < format.length) {
-        NBL_CHECK(builder->appendChecked(format.tail(index)));
+        NBL_CHECK(writer.writeString(format.tail(index)));
     }
     
     return nbl::Result::SUCCESS;

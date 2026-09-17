@@ -39,6 +39,8 @@ public:
 
     static Arena* threadLocal() noexcept;
 
+    static  bool isThreadLocalWriter(Writer writer) noexcept;
+
 private:
 
     void* _pHead;
@@ -100,6 +102,8 @@ private:
     Arena* _pArena;
     usize _mIndex;
     usize _mStart;
+
+    friend class Arena;
 
 };
 

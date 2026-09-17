@@ -12,10 +12,10 @@
 #include <Core/Ring.hpp>
 #include <Core/Stream.hpp>
 #include <Platform/Time.hpp>
-#include <utility>
 #include <Plugin/Field.hpp>
-#include "Data/Model.hpp"
+#include <Data/Model.hpp>
 
+#include <utility>
 
 
 namespace {
@@ -84,15 +84,15 @@ enum _TagMode : u32 {
     TAG_MODE_MAPPED = 2
 };
 
-u32 _tagModeIndex(nbl::StringView name, void* userData) {
+u32 _tagModeIndex(nbl::PluginContext* context, nbl::StringView name, void* userData) {
     if(name == "none") return TAG_MODE_NONE;
     if(name == "mapped") return TAG_MODE_MAPPED;
     return TAG_MODE_ALL;
 }
 
-u32 _tagModeCount(void* userData) { return 3; }
+u32 _tagModeCount(nbl::PluginContext* context, void* userData) { return 3; }
 
-nbl::StringView _tagModeName(u32 index, void* userData) {
+nbl::StringView _tagModeName(nbl::PluginContext* context, u32 index, void* userData) {
     switch(index) {
         default:
         case TAG_MODE_ALL: return "all";
@@ -100,7 +100,7 @@ nbl::StringView _tagModeName(u32 index, void* userData) {
         case TAG_MODE_MAPPED: return "mapped";
     }
 }
-nbl::StringView _tagModeDisplayName(u32 index, void* userData) {
+nbl::StringView _tagModeDisplayName(nbl::PluginContext* context, u32 index, void* userData) {
     switch(index) {
         default:
         case TAG_MODE_ALL: return "All Tags";
@@ -600,10 +600,10 @@ nbl::Field _listField = {
     .key = "",
     .name = "",
     .structData = {
-        .fields = _mappingFields.span(),
-        .horizontal = true
+        .fields = _mappingFields.span()
     },
-    .defaultValue = {}
+    .defaultValue = {},
+    .flags = nbl::FieldFlag::HORIZONTAL | 0
 };
 
 

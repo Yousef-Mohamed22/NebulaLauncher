@@ -278,6 +278,12 @@ excluded_tags AS (
 	FROM tag_closure
 	WHERE NOT ?2 IS NULL
 	  AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
+),
+achievements AS (
+	SELECT game.gId, aId, (dateUnlocked > 0) AS unlocked
+	FROM achievement 
+	JOIN achievement_set ON achievement.asId = achievement_set.asId 
+	JOIN game ON achievement_set.gId = game.gId 
 )
 SELECT DISTINCT
 game.gId, game.title, game.releaseDate, game.rating, game.poster, game.icon
@@ -293,6 +299,10 @@ WHERE game.releaseDate >= ?3
   AND (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
   AND (?2 IS NULL OR NOT EXISTS (SELECT tId FROM excluded_tags INTERSECT SELECT tId FROM all_game_tags WHERE all_game_tags.gId = game.gId))
   AND (?10 = 0 OR installation.deviceId = ?10)
+  AND (?11 = 0 OR ?11 <= (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId))
+  AND (?12 = 0 OR ?12 > (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId))
+  AND (?13 = 0 OR ?13 <= (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId AND achievements.unlocked = 1))
+  AND (?14 = 0 OR ?14 > (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId AND achievements.unlocked = 1))
 GROUP BY game.gId
 )";
 
@@ -332,6 +342,9 @@ OFFSET ?8;
                 break;
             case SortBy::RATING:
                 stmtBuilder.append("ORDER BY game.rating");
+                break;
+            case SortBy::ACHIEVEMENT_PROGRESS:
+                stmtBuilder.append("ORDER BY CAST((SELECT COUNT(aId) FROM achievements WHERE achievements.gId=game.gId AND unlocked = 1) AS REAL) / (SELECT COUNT(aId) FROM achievements WHERE achievements.gId=game.gId)");
                 break;
             default:
                 return nbl::Result::INVALID_ARGUMENT;
@@ -399,14 +412,20 @@ OFFSET ?8;
         }
 
         
-        NBL_CHECK(lookupGamesStmt.bindInt(3, criteria.minReleaseDate));
-        NBL_CHECK(lookupGamesStmt.bindInt(4, criteria.maxReleaseDate));
-        NBL_CHECK(lookupGamesStmt.bindFloat(5, criteria.minRating));
-        NBL_CHECK(lookupGamesStmt.bindFloat(6, criteria.maxRating));
-        NBL_CHECK(lookupGamesStmt.bindStringOrNull(7, criteria.titleFilter));
-        NBL_CHECK(lookupGamesStmt.bindUint(8, criteria.offset));
-        NBL_CHECK(lookupGamesStmt.bindUint(9, criteria.limit == 0 ? 10 : criteria.limit));
-        NBL_CHECK(lookupGamesStmt.bindInt(10, criteria.deviceId));
+        NBL_CHECK(lookupGamesStmt.bindAll(3, 
+            criteria.minReleaseDate, 
+            criteria.maxReleaseDate, 
+            criteria.minRating, 
+            criteria.maxRating, 
+            criteria.titleFilter, 
+            criteria.offset, 
+            criteria.limit == 0 ? 10 : criteria.limit, 
+            criteria.deviceId,
+            criteria.minAchievements,
+            criteria.maxAchievements,
+            criteria.minUnlockedAchievements,
+            criteria.maxUnlockedAchievements
+        ));
     }
 
     return connection->execute(&lookupGamesStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {

@@ -32,7 +32,6 @@ struct InstallationType;
 struct MetadataProvider;
 struct GameProvider;
 
-
 class PluginContext {
 public:
 

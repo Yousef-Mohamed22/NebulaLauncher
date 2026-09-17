@@ -64,10 +64,8 @@ FieldInputDelegate {
                 fields: root.field.structFields
                 itemWidth: root.field.horizontal ? ((layout.width + layout.columnSpacing) / count) - layout.columnSpacing : layout.width
 
-                onModifiedChanged: {
-                    if(modified) {
-                        root.value = save()
-                    }
+                onModified: {
+                    root.value = save()
                 }
             }
         }

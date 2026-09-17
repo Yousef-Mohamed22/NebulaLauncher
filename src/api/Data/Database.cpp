@@ -116,6 +116,23 @@ nbl::Result nbl::PreparedStatement::bindString(i32 index, nbl::StringView value)
     }
     return nbl::Result::SUCCESS;
 }
+nbl::Result nbl::PreparedStatement::bindBlob(i32 index, ConstSpan<u8> value) {
+
+    NBL_ASSERT(value.length <= static_cast<usize>(INT_MAX));
+
+    int rc = sqlite3_bind_blob64(
+        reinterpret_cast<sqlite3_stmt*>(_pHandle), 
+        index, 
+        value.data, 
+        value.length,
+        SQLITE_TRANSIENT);
+
+    if(rc != SQLITE_OK) {
+        nbl::log(nbl::LogLevel::DEBUG, "Failed to bind string parameter at index ", index, ": ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
+        return nbl::Result::IO_ERROR;
+    }
+    return nbl::Result::SUCCESS;
+}
 
 nbl::Result nbl::PreparedStatement::bindNull(i32 index) {
     int rc = sqlite3_bind_null(reinterpret_cast<sqlite3_stmt*>(_pHandle), index);
@@ -216,6 +233,7 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, i64* last
     while((rc = sqlite3_step(stmt)) == SQLITE_ROW) { }
     if(rc != SQLITE_DONE) {
         nbl::log(nbl::LogLevel::ERROR, "Database execution error: (", rc, ") ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
+        NBL_CHECK(query->reset());
         return nbl::Result::IO_ERROR;
     }
 
@@ -282,12 +300,21 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
                             static_cast<usize>(sqlite3_column_bytes(stmt, i))
                         );
                         break;
+                    case SQLITE_BLOB:
+                        columnValues[i].type = DataType::BLOB;
+                        columnValues[i].blobValue = ConstSpan<u8>{
+                            .data = reinterpret_cast<const u8*>(sqlite3_column_blob(stmt, i)),
+                            .length = static_cast<usize>(sqlite3_column_bytes(stmt, i))
+                        };
+                        break;
+
                     case SQLITE_NULL:
                         columnValues[i].type = DataType::NULL_TYPE;
                         columnValues[i].textValue = StringView();
                         break;
                     default:
                         nbl::log(nbl::LogLevel::ERROR, "Unknown column data type: ", type);
+                        NBL_CHECK(query->reset());
                         return nbl::Result::IO_ERROR;
                 }
             }
@@ -300,13 +327,13 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
                 sqlite3_last_insert_rowid(reinterpret_cast<sqlite3*>(_pHandle))
             );
         if(res.error()) {
-
-            query->reset();
+            NBL_CHECK(query->reset());
             return res;
         }
     }
     if(rc != SQLITE_DONE) {
         nbl::log(nbl::LogLevel::ERROR, "Database execution error: (", rc, ") ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
+        NBL_CHECK(query->reset());
         return nbl::Result::IO_ERROR;
     }
 

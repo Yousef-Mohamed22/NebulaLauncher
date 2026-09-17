@@ -8,15 +8,16 @@ Item {
     id: root
 
     property NblFieldRef field
-    property bool modified
+    property bool wasModified
+
+    signal modified
 
     implicitHeight: loader.item == null ? 0 : (loader.item as Item).height
 
     function save() {
         if(loader.item == null) return null
-        modified = false
-        let out = (loader.item as FieldInputDelegate).value
-        return out
+        wasModified = false
+        return (loader.item as FieldInputDelegate).value
     }
 
     function load(value) {
@@ -25,7 +26,7 @@ Item {
             return null
         }
         (loader.item as FieldInputDelegate).value = value
-        modified = false
+        wasModified = false
     }
 
 
@@ -37,7 +38,8 @@ Item {
     Connections {
         target: loader.item
         function onValueChanged() {
-            root.modified = true
+            root.wasModified = true
+            root.modified()
         }
     }
 
@@ -46,22 +48,41 @@ Item {
         if(field == null) return
 
         let source = null
-        if(field.type == 0) {
-            source = "Field/StringFieldInput.qml"
-        } else if(field.type == 1 || field.type == 2) {
-            source = "Field/NumberFieldInput.qml"
-        } else if(field.type == 3) {
-            source = "Field/BoolFieldInput.qml"
-        } else if(field.type == 4) {
-            source = "Field/EnumFieldInput.qml"
-        } else if(field.type == 5) {
-            source = "Field/DateFieldInput.qml"
-        } else if(field.type == 6) {
-            source = "Field/AccountFieldInput.qml"
-        } else if(field.type == 7) {
-            source = "Field/ListFieldInput.qml"
-        } else if(field.type == 8) {
-            source = "Field/StructFieldInput.qml"
+        switch(field.type) {
+            case 0:
+                source = "Field/StringFieldInput.qml"
+                break
+            case 1:
+            case 2:
+                source = "Field/NumberFieldInput.qml"
+                break
+            case 3:
+                source = "Field/BoolFieldInput.qml"
+                break
+            case 4:
+                source = "Field/EnumFieldInput.qml"
+                break
+            case 5:
+                source = "Field/DateFieldInput.qml"
+                break
+            case 6:
+                source = "Field/AccountFieldInput.qml"
+                break
+            case 7:
+                source = "Field/ListFieldInput.qml"
+                break
+            case 8:
+                source = "Field/StructFieldInput.qml"
+                break
+            case 9:
+                source = "Field/Action.qml"
+                break
+            case 10:
+                source = "Field/ActionFieldInput.qml"
+                break
+            case 11:
+                source = "Field/CustomFieldInput.qml"
+                break
         }
 
         if(source == null) {

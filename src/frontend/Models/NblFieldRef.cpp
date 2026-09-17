@@ -1,6 +1,8 @@
 #include "NblFieldRef.hpp"
+#include "ApplicationContext.hpp"
 #include "NblEnumFieldModel.hpp"
 #include "NblFieldList.hpp"
+#include "Plugin/PluginContext.hpp"
 
 #include <Core/String.hpp>
 #include <Core/Math.hpp>
@@ -42,7 +44,8 @@ QVariant _fieldToQt(const nbl::Field* field, nbl::FieldValue value) {
             }
             return out;
         }
-        case nbl::FieldType::STRUCT: {
+        case nbl::FieldType::STRUCT:
+        case nbl::FieldType::CUSTOM: {
             QVariantMap out;
             for(auto i = 0 ; i < nbl::min(field->structData.fields.length, value.compositeValue.length) ; i++) {
                 QString key = QString::fromUtf8(field->structData.fields[i].key.data, field->structData.fields[i].key.length);
@@ -54,6 +57,9 @@ QVariant _fieldToQt(const nbl::Field* field, nbl::FieldValue value) {
             }
             return out;
         }
+        case nbl::FieldType::ACTION:
+        case nbl::FieldType::FIELD_ACTION:
+            return QVariant();
     }
     return QVariant();
 }
@@ -69,6 +75,7 @@ nbl::FieldValue _qtToField(const nbl::Field* field, QVariant value, nbl::LinearA
 
                 QByteArray utf = value.toString().toUtf8();
                 NBL_ASSERT(nbl::StringBuilder(allocator).append(nbl::StringView(utf.data(), utf.length())).buildNullTerminated(&strResolved).success());
+                strRaw = strResolved;
             } else {
                 QVariantMap values = value.toMap();
 
@@ -105,7 +112,8 @@ nbl::FieldValue _qtToField(const nbl::Field* field, QVariant value, nbl::LinearA
             }
             return { .compositeValue = fieldValues };
         };
-        case nbl::FieldType::STRUCT: {
+        case nbl::FieldType::STRUCT:
+        case nbl::FieldType::CUSTOM: {
 
             QVariantMap values = value.toMap();
             nbl::Span<nbl::FieldValue> fieldValues{};
@@ -127,6 +135,9 @@ nbl::FieldValue _qtToField(const nbl::Field* field, QVariant value, nbl::LinearA
             }
             return { .compositeValue = fieldValues };          
         };
+        case nbl::FieldType::ACTION:
+        case nbl::FieldType::FIELD_ACTION:
+            return {};
     }
     return {};
 }
@@ -186,12 +197,13 @@ QString NblFieldRef::accountProvider() {
     return QString::fromUtf8(_pField->accountData.accountProvider.data, _pField->accountData.accountProvider.length);
 }
 bool NblFieldRef::showDefaultOption() {
-    return _pField->type == nbl::FieldType::ACCOUNT && _pField->accountData.showDefaultOption;
+    return _pField->type == nbl::FieldType::ACCOUNT && (_pField->flags & nbl::FieldFlag::SHOW_DEFAULT_OPTION);
 }
 
-NblFieldRef* NblFieldRef::listTemplate() {
-    if(_pField->type != nbl::FieldType::LIST) return nullptr;
-    return new NblFieldRef(_pField->listData.templateField, this);
+NblFieldRef* NblFieldRef::fieldTemplate() {
+    if(_pField->type == nbl::FieldType::LIST) return new NblFieldRef(_pField->listData.templateField, this);
+    if(_pField->type == nbl::FieldType::FIELD_ACTION) return new NblFieldRef(_pField->fieldActionData.templateField, this);
+    return nullptr;
 }
 
 NblFieldList* NblFieldRef::structFields() {
@@ -202,8 +214,14 @@ NblFieldList* NblFieldRef::structFields() {
 
 bool NblFieldRef::horizontal() {
     if(_pField->type != nbl::FieldType::STRUCT) return false;
-    return _pField->structData.horizontal; 
+    return _pField->flags & nbl::FieldFlag::HORIZONTAL; 
 }
+
+QString NblFieldRef::document() {
+    if(_pField->type != nbl::FieldType::CUSTOM) return {};
+    return QString::fromUtf8(_pField->customData.document.data, _pField->customData.document.length);
+}
+
 
 
 NblEnumFieldModel* NblFieldRef::enumModel() {
@@ -214,18 +232,31 @@ NblEnumFieldModel* NblFieldRef::enumModel() {
 void NblFieldRef::suggest(QString current, QJSValue value) {
     if(_pField->type != nbl::FieldType::STRING || !value.isCallable()) return;
 
+    nbl::PluginContext* context = ApplicationContext::instance()->pluginContext();
+
     QByteArray currentUtf = current.toUtf8();
-    _pField->stringData.suggest(nbl::StringView(currentUtf.data(), currentUtf.length()), [&](nbl::StringView suggestion) {
+    _pField->stringData.suggest(context, nbl::StringView(currentUtf.data(), currentUtf.length()), [&](nbl::StringView suggestion) {
         QJSValueList args{};
         args.append(QString::fromUtf8(suggestion.data, suggestion.length));
         value.call(args);
     });
+}
 
+void NblFieldRef::action() {
+    nbl::PluginContext* context = ApplicationContext::instance()->pluginContext();
+    _pField->actionData.activate(context);
+}
+
+void NblFieldRef::fieldAction(QVariant variant) {
+    nbl::PluginContext* context = ApplicationContext::instance()->pluginContext();
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    _pField->fieldActionData.activate(context, toNbl(variant, &frame));
 }
 
 nbl::FieldValue NblFieldRef::toNbl(QVariant variant, nbl::LinearAllocator* allocator) {
     return _qtToField(_pField, variant, allocator);
 }
+
 QVariant NblFieldRef::fromNbl(nbl::FieldValue value) {
     return _fieldToQt(_pField, value);
 }

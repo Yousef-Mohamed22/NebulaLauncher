@@ -193,6 +193,22 @@ struct StringView {
         return StringView(data + start, length, start + length == this->length ? nullTerminated : data[start+length] == '\0');
     }
 
+    constexpr StringView lstrip(char c = ' ', usize minLength = 0) const {
+        StringView out = *this;
+        while(out.length > minLength && *out.data == c) {
+            out.data++;
+            out.length--;
+        }
+        return out;
+    }
+    constexpr StringView rstrip(char c = ' ', usize minLength = 0) const {
+        StringView out = *this;
+        while(out.length > minLength && out.data[out.length - 1] == c) {
+            out.length--;
+        }
+        return out;
+    }
+
     /**
      * \brief Finds the first occurrance of a given character in the string
      */

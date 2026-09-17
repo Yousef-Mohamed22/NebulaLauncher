@@ -27,9 +27,10 @@ class NblFieldRef : public QObject {
     Q_PROPERTY(NblEnumFieldModel* enumModel READ enumModel CONSTANT)
     Q_PROPERTY(QString accountProvider READ accountProvider CONSTANT)
     Q_PROPERTY(bool showDefaultOption READ showDefaultOption CONSTANT)
-    Q_PROPERTY(NblFieldRef* listTemplate READ listTemplate CONSTANT)
+    Q_PROPERTY(NblFieldRef* fieldTemplate READ fieldTemplate CONSTANT)
     Q_PROPERTY(NblFieldList* structFields READ structFields CONSTANT)
     Q_PROPERTY(bool horizontal READ horizontal CONSTANT)
+    Q_PROPERTY(QString document READ document CONSTANT)
 
 public:
     
@@ -47,11 +48,15 @@ public:
     NblEnumFieldModel* enumModel();
     QString accountProvider();
     bool showDefaultOption();
-    NblFieldRef* listTemplate();
+    NblFieldRef* fieldTemplate();
     NblFieldList* structFields();
     bool horizontal();
+    QString document();
 
     Q_INVOKABLE void suggest(QString current, QJSValue callback);
+
+    Q_INVOKABLE void action();
+    Q_INVOKABLE void fieldAction(QVariant variant);
 
     nbl::FieldValue toNbl(QVariant variant, nbl::LinearAllocator* allocator);
     QVariant fromNbl(nbl::FieldValue value);

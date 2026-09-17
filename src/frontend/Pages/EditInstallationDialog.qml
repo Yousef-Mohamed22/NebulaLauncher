@@ -16,9 +16,12 @@ NblDialog {
     padding: 8
     navigationPadding: 8
 
+    onGameIdChanged: {
+        gameSettingsTab.refresh()
+    }
+
     onInstallationIdChanged: {
         installationSettingsTab.refresh()
-        gameSettingsTab.refresh()
     }
 
     onApply: {
@@ -304,8 +307,8 @@ NblDialog {
                                 id: fieldList
                                 width: parent.width
                                 fields: ApplicationContext.getInstallationTypeFields(commandTypeBox.currentValue)
-                                onModifiedChanged: {
-                                    if(modified) installationSettingsTab.modified = true
+                                onModified: {
+                                    installationSettingsTab.modified = true
                                 }
                             }
 

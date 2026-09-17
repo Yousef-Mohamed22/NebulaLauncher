@@ -223,6 +223,8 @@ inline Result toString(JsonElement element, Writer writer) { return writeJson(wr
 inline Result toString(JsonArray element, Writer writer) { return writeJson(writer, element); }
 inline Result toString(JsonObject element, Writer writer) { return writeJson(writer, element); }
 
+Writer jsonStringWriter(Writer* writer);
+
 class JsonWriter {
 public:
 
@@ -254,6 +256,7 @@ public:
     public:
         ObjectWriter& add(StringView key, JsonElement element);
         ObjectWriter& write(StringView key, std::function_ref<Result(Writer writer)> writer);
+        ObjectWriter& writeString(StringView key, std::function_ref<Result(Writer writer)> writer);
         ObjectWriter& writeObject(StringView key, std::function_ref<void(ObjectWriter& writer)> writer);
         ObjectWriter& writeArray(StringView key, std::function_ref<void(ArrayWriter& writer)> writer);
     private:

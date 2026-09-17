@@ -1,6 +1,6 @@
 #include <Platform/StringBuilder.hpp>
 
-nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValue, usize startIndex) {
+nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValue, usize startIndex) noexcept {
         
     if(!_mLastResult.success()) {
         return _mLastResult;

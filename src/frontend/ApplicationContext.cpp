@@ -24,11 +24,8 @@
 #include <QString>
 #include <QDesktopServices>
 #include <QColor>
-#include <qcontainerfwd.h>
-#include <qjsonparseerror.h>
-#include <qjsvalue.h>
-#include <qlogging.h>
-#include <qprocess.h>
+#include <QHash>
+#include <QJSEngine>
 
 #include <openssl/evp.h>
 #include <qstringview.h>
@@ -37,6 +34,7 @@
 #include "NblAccountsModel.hpp"
 #include "NblFieldList.hpp"
 #include "NblProcessHandle.hpp"
+#include "Plugin/AchievementProvider.hpp"
 
 
 using namespace Qt::StringLiterals;
@@ -144,7 +142,7 @@ void _pushStatus(i64 id, nbl::Optional<nbl::StringView> status, nbl::Optional<f6
 }
 
 
-nbl::Result _applyInstallationCommand(nbl::DatabaseConnection* connection, nbl::InstallationMeta meta, const nbl::InstallationType* type, QVariantMap fields, QVariantList externalIds) {
+nbl::Result _applyInstallationCommand(nbl::PluginContext* context, nbl::InstallationMeta meta, const nbl::InstallationType* type, QVariantMap fields, QVariantList externalIds) {
 
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 
@@ -156,22 +154,18 @@ nbl::Result _applyInstallationCommand(nbl::DatabaseConnection* connection, nbl::
     nbl::FieldValue value = NblFieldRef(&dummy).toNbl(fields, &frame);
 
     bool applyGamePlaceholders = false;
-    usize maxCustom = 0; 
     for(usize i = 0 ; i < type->fields.length ; i++) {
         const nbl::Field& field = type->fields[i];
         if(field.type == nbl::FieldType::STRING) {
-            maxCustom = nbl::max(maxCustom, field.stringData.customPlaceholders.length);
-            applyGamePlaceholders = applyGamePlaceholders || field.stringData.applyGamePlaceholders;
+            applyGamePlaceholders = applyGamePlaceholders || (field.flags & nbl::FieldFlag::APPLY_GAME_PLACEHOLDERS);
         }
     }
 
-    if(applyGamePlaceholders || maxCustom > 0) {
+    nbl::Span<nbl::Placeholder> placeholders{};
+    if(applyGamePlaceholders) {
 
         usize globalPlaceholders = 2 + externalIds.length();
-        usize maxPlaceholders = maxCustom + globalPlaceholders;
-        nbl::Span<nbl::Placeholder> placeholders{};
-
-        NBL_CHECK(frame.allocate(&placeholders.data, maxPlaceholders));
+        NBL_CHECK(frame.allocate(&placeholders.data, globalPlaceholders));
 
         nbl::StringView gIdStr;
         nbl::StringView iIdStr;
@@ -202,40 +196,16 @@ nbl::Result _applyInstallationCommand(nbl::DatabaseConnection* connection, nbl::
                 .value = nblId
             };
         }
-
-        for(usize i = 0 ; i < type->fields.length ; i++) {
-            const nbl::Field& field = type->fields[i];
-            if(field.type == nbl::FieldType::STRING) {
-
-                usize numPlaceholders = globalPlaceholders + field.stringData.customPlaceholders.length;
-
-                memcpy(placeholders.data + placeholders.length, field.stringData.customPlaceholders.data, field.stringData.customPlaceholders.length * sizeof(nbl::Placeholder));
-                placeholders.length += field.stringData.customPlaceholders.length;
-
-                nbl::StringBuilder applied(&frame);
-
-                placeholders.length = numPlaceholders;
-                NBL_CHECK(nbl::formatPlaceholders(value.compositeValue[i].stringValue.raw, &applied, placeholders, field.stringData.strictPlaceholders))
-                NBL_CHECK(applied.buildNullTerminated(&value.compositeValue[i].stringValue.resolved));
-            }
-        }
-    } else {
-        for(usize i = 0 ; i < type->fields.length ; i++) {
-            const nbl::Field& field = type->fields[i];
-            if(field.type == nbl::FieldType::STRING) {
-                value.compositeValue[i].stringValue.resolved = value.compositeValue[i].stringValue.raw;
-            }
-        }
     }
 
     nbl::StringBuilder builder(&frame);
-    NBL_CHECK(nbl::encodeFieldValues(type->fields, value.compositeValue, builder));
+    NBL_CHECK(nbl::encodeFieldValues(context, type->fields, value.compositeValue, builder, placeholders));
 
     nbl::StringView cmd;
     NBL_CHECK(builder.buildNullTerminated(&cmd));
 
     meta.command = cmd;
-    return nbl::updateInstallation(connection, meta);
+    return nbl::updateInstallation(context->databaseConnection(), meta);
 }
 
 
@@ -272,7 +242,17 @@ void ApplicationContext::_initialize() {
             ApplicationContext* ctx = static_cast<ApplicationContext*>(userData);
 
             QVariantMap map = {};
-            map["type"] = type == nbl::NotificationType::ERROR ? "error" : "info";
+            switch(type) {
+                case nbl::NotificationType::ERROR:
+                    map["type"] = "error";    
+                    break;
+                case nbl::NotificationType::WARNING:
+                    map["type"] = "warning";    
+                    break;
+                default:
+                    map["type"] = "info";
+            }
+
             map["title"] = QString::fromUtf8(title.data, title.length);
             map["message"] = QString::fromUtf8(message.data, message.length);
             if(icon.hasValue()) map["icon"] = fromNbl(*icon);
@@ -305,6 +285,19 @@ QString ApplicationContext::dataFolder() const {
     }
     return _dataFolder;
 }
+
+QString ApplicationContext::pluginFolder() const {
+    static QString _pluginFolder = {};
+    if(_pluginFolder.isEmpty()) {
+
+        nbl::StringView applicationPath = nbl::getBinaryPath();
+        usize lastSlash = 0;
+        NBL_ASSERT(applicationPath.findLast('/', &lastSlash).success());
+        _pluginFolder = QString::fromUtf8(applicationPath.data, lastSlash) + "/plugins";
+    }
+    return _pluginFolder;
+}
+
 
 
 NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) {
@@ -366,7 +359,7 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
             if(installType->fields.length > 0) {
                 nbl::JsonElement value = {};
                 NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
-                NBL_CHECK(nbl::decodeFieldValues(installType->fields, value.object, &values, &frame));
+                NBL_CHECK(nbl::decodeFieldValues(&ctx->_mContext, installType->fields, value.object, &values, &frame));
             }
             NBL_CHECK(installType->launch(&ctx->_mContext, values, meta, handle->tracker()));
             NBL_CHECK(handle->initLogging());
@@ -429,7 +422,7 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
 
         nbl::JsonElement value = {};
         NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
-        NBL_CHECK(nbl::decodeFieldValues(installType->fields, value.object, &values, &frame));
+        NBL_CHECK(nbl::decodeFieldValues(&_mContext, installType->fields, value.object, &values, &frame));
 
         nbl::StringView folder = {};
         NBL_CHECK(installType->getFolder(&_mContext, values, meta, &folder));
@@ -473,7 +466,7 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(qint64 instal
 
             nbl::JsonElement value = {};
             NBL_CHECK(nbl::parseJson(nbl::StringReader(details.installation.command), &frame, &value));
-            NBL_CHECK(nbl::decodeFieldValues(type->fields, value.object, &values, &frame));
+            NBL_CHECK(nbl::decodeFieldValues(&_mContext, type->fields, value.object, &values, &frame));
 
             nbl::Field dummy {
                 .type = nbl::FieldType::STRUCT,
@@ -671,7 +664,7 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
     QVariantMap fields = params.find("fields")->toMap();
     const nbl::InstallationType* it = _mContext.get<nbl::InstallationType>(nbl::StringView(type.data(), type.length()));
 
-    NBL_CHECK_OR_ROLLBACK(databaseConnection(), _applyInstallationCommand(databaseConnection(), meta, it, fields, externalIds));
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), _applyInstallationCommand(&_mContext, meta, it, fields, externalIds));
 
     NBL_CHECK_OR_ROLLBACK(databaseConnection(), databaseConnection()->commitTransaction());
     return InstallationAddResult(
@@ -724,6 +717,7 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     };
 
     QVariantList externalIds{};
+    NBL_CHECK(databaseConnection()->beginTransaction());
     NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::enumerateGameExternalIds(databaseConnection(), meta.gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
         QVariantMap out{};
         out["platform"] = QString(fromNbl(platformName));
@@ -735,7 +729,9 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     QVariantMap fields = params.find("fields")->toMap();
     const nbl::InstallationType* it = _mContext.get<nbl::InstallationType>(nbl::StringView(type.data(), type.length()));
 
-    NBL_CHECK_OR_ROLLBACK(databaseConnection(), _applyInstallationCommand(databaseConnection(), meta, it, fields, externalIds));
+    if(it) {
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), _applyInstallationCommand(&_mContext, meta, it, fields, externalIds));
+    }
 
     for(QVariant qs : params.find("addedInstallationTags")->toList()) {
         tagInstallation(meta.id, qs.toLongLong());
@@ -743,6 +739,8 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     for(QVariant qs : params.find("removedInstallationTags")->toList()) {
         untagInstallation(meta.id, qs.toLongLong());
     }
+
+    NBL_CHECK(databaseConnection()->commitTransaction());
 
     return nbl::Result::SUCCESS;
 }
@@ -834,6 +832,10 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         f64 maxRating = filter["minRating"].toDouble();
         u64 minPlayTime = filter["minTime"].toULongLong();
         u64 maxPlayTime = filter["minTime"].toULongLong();
+        u64 minAchievements = filter["minAchievements"].toULongLong();
+        u64 maxAchievements = filter["maxAchievements"].toULongLong();
+        u64 minUnlockedAchievements = filter["minUnlockedAchievements"].toULongLong();
+        u64 maxUnlockedAchievements = filter["maxUnlockedAchievements"].toULongLong();
 
 
         QVariantList setsList = filter["tags"].toList();
@@ -885,7 +887,11 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
                 .minPlayTime = minPlayTime,
                 .maxPlayTime = maxPlayTime,
                 .sortBy = sortBy,
-                .sortOrder = sortOrder
+                .sortOrder = sortOrder,
+                .minAchievements = minAchievements,
+                .maxAchievements = maxAchievements,
+                .minUnlockedAchievements = minUnlockedAchievements,
+                .maxUnlockedAchievements = maxUnlockedAchievements
             }
         };
 
@@ -1015,6 +1021,10 @@ QVariantMap ApplicationContext::getTabMeta(qint64 id) {
             filter["maxRating"] = criteria.maxRating;
             filter["minTime"] = static_cast<quint64>(criteria.minPlayTime);
             filter["maxTime"] = static_cast<quint64>(criteria.maxPlayTime);
+            filter["minAchievements"] = static_cast<quint64>(criteria.minAchievements);
+            filter["maxAchievements"] = static_cast<quint64>(criteria.maxAchievements);
+            filter["minUnlockedAchievements"] = static_cast<quint64>(criteria.minUnlockedAchievements);
+            filter["maxUnlockedAchievements"] = static_cast<quint64>(criteria.maxUnlockedAchievements);
 
             QVariantList tags = {};
             for(nbl::ConstSpan<i64> tagSet : criteria.tags) {
@@ -1243,22 +1253,99 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
         .rating = rating
     };
 
-    i64 gId = 0;
-    NBL_CHECK(nbl::addGame(databaseConnection(), gameMeta, &gId));
+    NBL_CHECK(databaseConnection()->beginTransaction());
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::addGame(databaseConnection(), gameMeta, &gameMeta.id));
 
     for(QVariant qs : params.find("tags")->toList()) {
-        tagGame(gId, qs.toLongLong());
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), tagGame(gameMeta.id, qs.toLongLong()));
     }
-    for(QVariant qs : params.find("externalIds")->toList()) {
+
+    QVariantList externalIds = params.find("externalIds")->toList();
+    QHash<QByteArray, QByteArray> idMap{};
+    idMap.reserve(externalIds.length());
+
+    for(QVariant qs : externalIds) {
         QByteArray name = qs.toMap().find("platform")->toString().toUtf8();
         QByteArray id = qs.toMap().find("id")->toString().toUtf8();
         nbl::StringView nblName(name.data(), name.length());
         nbl::StringView nblId(id.data(), id.length());
-        nbl::setGameExternalId(databaseConnection(), gId, nblName, nblId);
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::setGameExternalId(databaseConnection(), gameMeta.id, nblName, nblId));
+
+        idMap[name] = id;
     }
 
-    return gId;
+    QVariantMap achievementProviderFields;
+    if(params.contains("achievementProviders")) achievementProviderFields = params.find("achievementProviders")->toMap();
+    for(const nbl::AchievementProvider* ap : _mContext.registry<nbl::AchievementProvider>()) {
+
+        QString qId = QString::fromUtf8(ap->id.data, ap->id.length);
+
+        nbl::AchievementProviderStatus status = nbl::AchievementProviderStatus::NOT_ADDED;
+        nbl::Span<nbl::FieldValue> fieldValues{};
+
+        auto provIt = achievementProviderFields.find(qId);
+        if(provIt != achievementProviderFields.end()) {
+
+            QVariantMap providerInfo = provIt->toMap();
+
+            status = static_cast<nbl::AchievementProviderStatus>(providerInfo.find("status")->toUInt());
+
+            QVariantMap fields = providerInfo.find("fields")->toMap();
+
+            nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+            nbl::Field dummy {
+                .type = nbl::FieldType::STRUCT,
+                .structData = { .fields = ap->fields }
+            };
+
+            fieldValues = NblFieldRef(&dummy).toNbl(fields, &frame).compositeValue;
+
+            nbl::StringBuilder builder(&frame);
+            NBL_CHECK(nbl::encodeFieldValues(&_mContext, ap->fields, fieldValues, builder, {}));
+
+            nbl::StringView fieldsJson;
+            NBL_CHECK(builder.buildNullTerminated(&fieldsJson));
+
+            if(status == nbl::AchievementProviderStatus::ADDED_BY_USER) {
+                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
+                    .gameId = gameMeta.id,
+                    .provider = ap->id,
+                    .fields = fieldsJson,
+                    .status = status
+                }));
+            }
+        }
+
+        nbl::AchievementHelper helper(databaseConnection(), ap->id, gameMeta.id);
+
+        QByteArray requested = QByteArray(ap->requestedExternalId.data, ap->requestedExternalId.length);
+        QByteArray externalId = idMap.value(requested);
+
+        nbl::Result res = ap->updateAchievementState(
+                &_mContext, 
+                gameMeta,
+                status, 
+                fieldValues,
+                helper, 
+                nbl::StringView(externalId.data(), externalId.length()));
+        if(res.error()) {
+
+            _mContext.pushNotification(
+                    nbl::NotificationType::WARNING, 
+                    "An Error Occurred", 
+                    "An error occurred while an achievement provider was attempting to update a newly-added game!"
+            );
+            nbl::log(nbl::LogLevel::WARN, "An error occurred while an achievement provider was attempting to update a newly-added game! ", res.value);
+            continue;
+        }
+    }
+
+    NBL_CHECK(databaseConnection()->commitTransaction());
+
+    return gameMeta.id;
 }
+
+
 int ApplicationContext::updateGame(QVariantMap params) {
 
     bool ok = true;
@@ -1301,23 +1388,110 @@ int ApplicationContext::updateGame(QVariantMap params) {
         .rating = rating
     };
 
-    NBL_CHECK(nbl::updateGame(databaseConnection(), gameMeta));
+    NBL_CHECK(databaseConnection()->beginTransaction());
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::updateGame(databaseConnection(), gameMeta));
 
     for(QVariant qs : params.find("tags")->toList()) {
-        tagGame(gId, qs.toLongLong());
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), tagGame(gId, qs.toLongLong()));
     }
     for(QVariant qs : params.find("removedTags")->toList()) {
-        untagGame(gId, qs.toLongLong());
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), untagGame(gId, qs.toLongLong()));
     }
 
     nbl::clearGameExternalIds(databaseConnection(), gId);
-    for(QVariant qs : params.find("externalIds")->toList()) {
+    QVariantList externalIds = params.find("externalIds")->toList();
+    QHash<QByteArray, QByteArray> idMap{};
+    idMap.reserve(externalIds.length());
+
+    for(QVariant qs : externalIds) {
         QByteArray name = qs.toMap().find("platform")->toString().toUtf8();
         QByteArray id = qs.toMap().find("id")->toString().toUtf8();
         nbl::StringView nblName(name.data(), name.length());
         nbl::StringView nblId(id.data(), id.length());
-        nbl::setGameExternalId(databaseConnection(), gId, nblName, nblId);
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::setGameExternalId(databaseConnection(), gId, nblName, nblId));
+
+        idMap[name] = id;
     }
+
+    QVariantMap achievementProviderFields = params.find("achievementProviders")->toMap();
+    for(const nbl::AchievementProvider* ap : _mContext.registry<nbl::AchievementProvider>()) {
+
+        QString qId = QString::fromUtf8(ap->id.data, ap->id.length);
+        QVariantMap providerInfo = achievementProviderFields.find(qId)->toMap();
+
+        nbl::AchievementProviderStatus status = static_cast<nbl::AchievementProviderStatus>(providerInfo.find("status")->toUInt());
+        nbl::AchievementProviderStatus originalStatus = static_cast<nbl::AchievementProviderStatus>(providerInfo.find("originalStatus")->toUInt());
+
+        QVariantMap fields = providerInfo.find("fields")->toMap();
+
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::Field dummy {
+            .type = nbl::FieldType::STRUCT,
+            .structData = { .fields = ap->fields }
+        };
+
+        nbl::FieldValue value = NblFieldRef(&dummy).toNbl(fields, &frame);
+
+        nbl::StringBuilder builder(&frame);
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::encodeFieldValues(&_mContext, ap->fields, value.compositeValue, builder, {}));
+
+        nbl::StringView fieldsJson;
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), builder.buildNullTerminated(&fieldsJson));
+
+        if(originalStatus != status) {
+            NBL_ASSERT(status == nbl::AchievementProviderStatus::REMOVED_BY_USER 
+                    || status == nbl::AchievementProviderStatus::ADDED_BY_USER); // Others not available in the UI
+
+            if(status == nbl::AchievementProviderStatus::REMOVED_BY_USER) {
+                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
+                    .gameId = gameMeta.id,
+                    .provider = ap->id,
+                    .fields = {},
+                    .status = status
+                }));
+                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::deleteAchievementSetsForProvider(databaseConnection(), gameMeta.id, ap->id));
+            } else {
+                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
+                    .gameId = gameMeta.id,
+                    .provider = ap->id,
+                    .fields = fieldsJson,
+                    .status = status
+                }));
+            }
+        }
+
+        nbl::AchievementHelper helper(databaseConnection(), ap->id, gameMeta.id);
+
+        QByteArray requested = QByteArray(ap->requestedExternalId.data, ap->requestedExternalId.length);
+        QByteArray externalId = idMap.value(requested);
+
+        nbl::Result res = ap->updateAchievementState(
+                &_mContext, 
+                gameMeta,
+                status, 
+                value.compositeValue,
+                helper, 
+                nbl::StringView(externalId.data(), externalId.length()));
+        if(res.error()) {
+
+            _mContext.pushNotification(
+                    nbl::NotificationType::WARNING, 
+                    "An Error Occurred", 
+                    "An error occurred while an achievement provider was attempting to update an existing game!"
+            );
+            nbl::log(nbl::LogLevel::WARN, "An error occurred while an achievement provider was attempting to update an existing game! ", res.value);
+            continue;
+        }
+    }
+
+    for(QVariant qs : params.find("hiddenSets")->toList()) {
+        i64 id = qs.toMap().find("id")->toLongLong();
+        bool hidden = qs.toMap().find("hidden")->toBool();
+
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::updateAchivementSetHidden(databaseConnection(), id, hidden));
+    }
+
+    NBL_CHECK(databaseConnection()->commitTransaction());
 
     return 0;
 }
@@ -1325,6 +1499,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
 int ApplicationContext::deleteGame(qint64 gameId) {
     return nbl::removeGame(databaseConnection(), gameId);
 }
+
 
 QVariantMap ApplicationContext::gameExternalIds(qint64 gameId) {
     QVariantMap out = {};
@@ -1335,7 +1510,6 @@ QVariantMap ApplicationContext::gameExternalIds(qint64 gameId) {
 
     return out;
 }
-
 
 NblFieldList* ApplicationContext::getInstallationTypeFields(QString installationType) {
 
@@ -1348,7 +1522,6 @@ NblFieldList* ApplicationContext::getInstallationTypeFields(QString installation
     return new NblFieldList(type->fields);
 }
 
-
 NblAccountsModel* ApplicationContext::accountsModel(QString accountProvider) {
 
     QByteArray utf = accountProvider.toUtf8();
@@ -1359,5 +1532,3 @@ NblAccountsModel* ApplicationContext::accountsModel(QString accountProvider) {
 
     return new NblAccountsModel(prov);
 }
-
-

@@ -7,8 +7,10 @@
  */
 
 #include <Platform/Arena.hpp>
+#include <Platform/StringBuilder.hpp>
 
 #include "Memory.hpp"
+#include "Platform/Allocator.hpp"
 
 
 namespace {
@@ -84,4 +86,25 @@ nbl::Arena* nbl::Arena::threadLocal() noexcept {
     return &_sThreadArena;
 }
 
+bool nbl::Arena::isThreadLocalWriter(Writer writer) noexcept {
 
+    const nbl::LinearAllocator* alloc = nullptr;
+    if(nbl::StringBuilder::isStringBuilderWriter(writer)) {
+        alloc = static_cast<nbl::StringBuilder*>(writer.impl)->allocator();
+    }
+    else if(nbl::LinearAllocator::isLinearWriter(writer)) {
+        alloc = static_cast<nbl::LinearAllocator*>(writer.impl);
+    }
+    else {
+        return false;
+    }
+
+    if(const Arena* arena = dynamic_cast<const nbl::Arena*>(alloc)) {
+        return arena == threadLocal();
+    }
+    if(const ArenaFrame* frame = dynamic_cast<const nbl::ArenaFrame*>(alloc)) {
+        return frame->_pArena == threadLocal();
+    }
+
+    return false;
+}

@@ -13,6 +13,7 @@ struct InstallationType;
 struct AccountProvider;
 struct MetadataProvider;
 struct GameProvider;
+struct AchievementProvider;
 
 class PluginRegistry {
 public:
@@ -22,6 +23,7 @@ public:
         ACCOUNT_PROVIDER,
         METADATA_PROVIDER,
         GAME_PROVIDER,
+        ACHIEVEMENT_PROVIDER,
         _END
     };
 
@@ -52,6 +54,7 @@ _CREATE_REGISTRY_TYPE(INSTALLATION_TYPE, InstallationType);
 _CREATE_REGISTRY_TYPE(ACCOUNT_PROVIDER, AccountProvider);
 _CREATE_REGISTRY_TYPE(METADATA_PROVIDER, MetadataProvider);
 _CREATE_REGISTRY_TYPE(GAME_PROVIDER, GameProvider);
+_CREATE_REGISTRY_TYPE(ACHIEVEMENT_PROVIDER, AchievementProvider);
 
 #undef _CREATE_REGISTRY_TYPE
 

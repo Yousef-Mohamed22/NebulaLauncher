@@ -48,6 +48,5 @@ NblDialog {
                 fields: root.fields
             }
         }
-    }
-    
+    } 
 }

@@ -66,7 +66,6 @@ void NblTabModel::refresh() {
     _fetchPageData();
 
     endResetModel();
-
 }
 
 void NblTabModel::_fetchPageData() {

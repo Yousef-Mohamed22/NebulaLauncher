@@ -36,47 +36,16 @@ QHash<int, QByteArray> NblFilterModel::roleNames() const {
 }
 
 
-void NblFilterModel::loadNextPage() {
+nbl::Result NblFilterModel::_fetchPageData(qsizetype limit, qsizetype offset) {
 
-    if(!_mAllLoaded && !_mIsLoading) {
-        _mCurrentPage++;
-        emit currentPageChanged();
-        _fetchPageData();
-    }
-}
-
-void NblFilterModel::refresh() {
-
-    beginResetModel();
-
-    _mData.clear();
-    _mAllLoaded = false;
-    _mCurrentPage = 1;
-    _fetchPageData();
-
-    endResetModel();
-
-}
-
-void NblFilterModel::_fetchPageData() {
-
-    if(_mAllLoaded || _mIsLoading) return;
-    _mIsLoading = true;
-
-    emit isLoadingChanged();
-
-    u64 offset = (_mCurrentPage - 1) * _mPageSize;
-    u64 limit = _mPageSize;
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->databaseConnection();
     
     QList<_Item> found = {};
-    found.reserve(_mPageSize);
+    found.reserve(limit);
     
-    nbl::Result res;
-
     if(_mSearchInstallations) {
-        res = nbl::lookupInstallationsForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
+        NBL_CHECK(nbl::lookupInstallationsForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
             _Item item(res.installationId,
                 fromNbl(res.title),
                 fromNbl(res.poster),
@@ -84,9 +53,9 @@ void NblFilterModel::_fetchPageData() {
             );
             found.append(item);
             return nbl::Result::SUCCESS;
-        });    
+        }));    
     } else {
-        res = nbl::lookupGamesForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::GameLookupResult& res) -> nbl::Result {
+        NBL_CHECK(nbl::lookupGamesForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::GameLookupResult& res) -> nbl::Result {
             _Item item(res.id,
                 fromNbl(res.title),
                 fromNbl(res.poster),
@@ -94,17 +63,8 @@ void NblFilterModel::_fetchPageData() {
             );
             found.append(item);
             return nbl::Result::SUCCESS;
-        });   
+        }));   
     }
-
-    if(res.error()) {
-        _mAllLoaded = true;
-        emit allLoadedChanged();
-        _mIsLoading = false;
-        emit isLoadingChanged();
-        return;
-    }
-
 
     if(found.size() > 0) {
         beginInsertRows(QModelIndex(), _mData.size(), _mData.size() + found.size() - 1);
@@ -114,12 +74,5 @@ void NblFilterModel::_fetchPageData() {
         }
         endInsertRows();
     }
-
-    if(found.size() < limit) {
-        _mAllLoaded = true;
-        emit allLoadedChanged();
-    }
-
-    _mIsLoading = false;
-    emit isLoadingChanged();
+    return nbl::Result::SUCCESS;
 }

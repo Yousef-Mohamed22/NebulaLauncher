@@ -125,6 +125,8 @@ public:
     Result makeRequest(StringView url, Writer writer, HttpRequestOptions options = {});
     Result makePostRequest(StringView url, StringView body, Writer output, HttpRequestOptions options = {});
 
+    Result awaitRequest(StringView url, Writer writer, HttpRequestOptions options = {});
+
     void awaitAll(u32* numFailures);
 
     static Result create(u32 maxRequests, u32 maxConnections, u32 maxRetries, u32 maxOpenFiles, HttpClient* out, HttpClientFlags flags = 0);

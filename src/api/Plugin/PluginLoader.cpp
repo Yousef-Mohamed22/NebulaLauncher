@@ -38,7 +38,7 @@ nbl::Result nbl::PluginLoader::_loadAll() {
     {
         PluginInitContext builtin{};
         LoadedPlugin builtinPlugin{};
-        NBL_CHECK(PluginInitContext::create(&builder, &builtinPlugin, _pContext->databaseConnection(), _pContext->databasePath(), _pContext->pluginDataPath(), &builtin));
+        NBL_CHECK(PluginInitContext::create(&builder, &builtinPlugin, _pContext, &builtin));
 
         builtin.registerObject(&InstallationType::COMMAND);
     }
@@ -102,7 +102,7 @@ nbl::Result nbl::PluginLoader::_load(StringView folder, Registry::Builder* regis
     NBL_CHECK(lp.lib.findSymbol("initPlugin", &initFunc));
 
     PluginInitContext ctx;
-    NBL_CHECK(PluginInitContext::create(registrations, &lp, _pContext->databaseConnection(), _pContext->databasePath(), _pContext->pluginDataPath(), &ctx));
+    NBL_CHECK(PluginInitContext::create(registrations, &lp, _pContext, &ctx));
 
     i32 rc = initFunc(&ctx);
     if(rc != 0) {

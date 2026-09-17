@@ -60,7 +60,9 @@ public:
     quint64 pageSize() const { return _mPageSize; }
     bool isLoading() const { return _mIsLoading; }
 
-    void setPageSize(int size) { _mPageSize = size; }
+    void setPageSize(int size) { 
+        _mPageSize = size; 
+    }
 
     qint64 tabId() const {
         return _mTabId;
@@ -69,7 +71,6 @@ public:
     void setTabId(qint64 fid) {
         _mTabId = fid;
         emit tabIdChanged();
-
         refresh();
     }
 

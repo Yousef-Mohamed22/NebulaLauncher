@@ -13,6 +13,7 @@
 #include <Core/Stream.hpp>
 #include <Platform/Logging.hpp>
 #include <Platform/Arena.hpp>
+#include "Platform/Allocator.hpp"
 
 namespace nbl {
 
@@ -26,7 +27,7 @@ public:
      * \brief Constructor that initializes the string builder with a reference to an arena frame for storage. The string builder will use the arena frame to allocate memory for the string being built, and will keep track of the starting index in the arena to determine the final string view when building is complete.
      * \param arena Pointer to the arena frame that will be used to store the final string.
      */
-    StringBuilder(LinearAllocator* allocator) :
+    StringBuilder(LinearAllocator* allocator) noexcept :
         _mLastResult(Result::SUCCESS),
         _pAllocator(allocator)
     { }
@@ -38,17 +39,17 @@ public:
      * \return A reference to the string builder for chaining. If the append operation fails, the string builder will store the error result and subsequent append operations will be no-ops.
      */
     template<typename T>
-    StringBuilder& append(T&& value) {
+    StringBuilder& append(T&& value) noexcept {
         appendChecked(std::forward<T>(value));
         return *this;
     }
 
-    StringBuilder& replace(char oldValue, StringView newValue, usize startIndex = 0) {
+    StringBuilder& replace(char oldValue, StringView newValue, usize startIndex = 0) noexcept {
         replaceChecked(oldValue, newValue);
         return *this;
     }
 
-    Result replaceChecked(char oldValue, StringView newValue, usize startIndex = 0);
+    Result replaceChecked(char oldValue, StringView newValue, usize startIndex = 0) noexcept;
 
 
     /**
@@ -58,7 +59,7 @@ public:
      * \return A Result indicating success or failure of the append operation. If the append operation fails, the string builder will store the error result and subsequent append operations will be no-ops.
      */
     template<typename T>
-    Result appendChecked(T&& value) {
+    Result appendChecked(T&& value) noexcept {
         if(!_mLastResult.success()) {
             return _mLastResult;
         }
@@ -75,7 +76,7 @@ public:
      * \param outString Pointer to a variable that will receive the StringView representing the constructed string. 
      * \return A Result indicating success or failure of building the final string view. 
      */
-    Result build(StringView* outString) {
+    Result build(StringView* outString) noexcept {
         if(!_mLastResult.success()) {
             return _mLastResult;
         }
@@ -91,7 +92,7 @@ public:
      * \param outString Pointer to a variable that will receive the StringView representing the constructed null-terminated string. 
      * \return A Result indicating success or failure of building the final null-terminated string view. 
      */
-    Result buildNullTerminated(StringView* outString) {
+    Result buildNullTerminated(StringView* outString) noexcept {
 
         if(!_mLastResult.success()) {
             return _mLastResult;
@@ -105,20 +106,23 @@ public:
     }
 
 
-    operator Writer() {
+    operator Writer() noexcept {
         return writer();
     }
 
-    Writer writer() {
+    Writer writer() noexcept {
         return Writer {
             .impl = this,
-            .pfnWrite = [](void* impl, const void* data, usize length, usize* bytesWritten) -> Result {
-                StringBuilder* builder = static_cast<StringBuilder*>(impl);
-                NBL_CHECK(builder->appendChecked(StringView(static_cast<const char*>(data), length)));
-                if(bytesWritten) *bytesWritten = length;
-                return Result::SUCCESS;
-            }
+            .pfnWrite = _write
         };       
+    }
+
+    inline const LinearAllocator* allocator() const noexcept {
+        return _pAllocator;
+    }
+
+    static inline bool isStringBuilderWriter(Writer writer) noexcept {
+        return writer.pfnWrite == _write;
     }
 
     /**
@@ -126,7 +130,7 @@ public:
      * \param string The StringView representing the string to be converted into a null-terminated string view. 
      * \return A Result indicating success or failure of creating the null-terminated string view. If any step of the process fails, it returns the error result. 
      */
-    static Result nullTerminate(StringView string, StringView* outString, ArenaFrame* arena) {
+    static inline Result nullTerminate(StringView string, StringView* outString, ArenaFrame* arena) noexcept {
         return StringBuilder(arena).append(string).append('\0').build(outString);
     }
 
@@ -135,6 +139,13 @@ private:
     usize _mLength;
     usize _mBegin;
     LinearAllocator* _pAllocator;
+
+    inline static Result _write(void* impl, const void* data, usize length, usize* bytesWritten) noexcept {
+        StringBuilder* builder = static_cast<StringBuilder*>(impl);
+        NBL_CHECK(builder->appendChecked(StringView(static_cast<const char*>(data), length)));
+        if(bytesWritten) *bytesWritten = length;
+        return Result::SUCCESS;
+    }
 
 };
 

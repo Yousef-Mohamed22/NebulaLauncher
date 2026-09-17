@@ -13,6 +13,7 @@ option(NBL_BUILD_TESTS "Build Tests" ON)
 option(NBL_BUILD_TEST_PLUGIN "Build Test Plugin" ON)
 option(NBL_BUILD_SGDB_PLUGIN "Build SteamGridDB Plugin" ON)
 option(NBL_BUILD_IGDB_PLUGIN "Build IGDB.com Plugin" ON)
+option(NBL_BUILD_RA_PLUGIN "Build RetroAchivements Plugin" ON)
 
 #
 # Dependencies
@@ -72,13 +73,6 @@ file(GLOB_RECURSE NBL_WRAPPER_SOURCES ${NBL_SRC_DIR}/wrapper/**.cpp)
 add_executable(Nebula_Wrapper ${NBL_WRAPPER_SOURCES})
 target_include_directories(Nebula_Wrapper PRIVATE ${NBL_SRC_DIR}/wrapper)
 target_link_libraries(Nebula_Wrapper PRIVATE Nebula_Api)
-
-if(${NBL_BUILD_TESTS}) 
-    file(GLOB_RECURSE NBL_TEST_SOURCES ${NBL_SRC_DIR}/test/**.cpp)
-    add_executable(Nebula_Test ${NBL_TEST_SOURCES})
-    target_link_libraries(Nebula_Test PRIVATE Nebula_Api)
-    target_link_libraries(Nebula_Test PRIVATE GTest::gtest_main)
-endif()
 
 if(${NBL_BUILD_TEST_PLUGIN}) 
 
@@ -143,7 +137,43 @@ if(${NBL_BUILD_IGDB_PLUGIN})
 
 endif()
 
+
+if(${NBL_BUILD_RA_PLUGIN}) 
+
+    file(GLOB NBL_RA_PLUGIN_SOURCES ${NBL_SRC_DIR}/plugin_retroachievements/*.cpp)
+    add_library(Nebula_RaPlugin SHARED ${NBL_RA_PLUGIN_SOURCES})
+    target_link_libraries(Nebula_RaPlugin PRIVATE Nebula_Api)
+    set_target_properties(Nebula_RaPlugin PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/retroachievements"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/retroachievements"
+        PREFIX ""
+        OUTPUT_NAME "plugin"
+    )
+
+    add_custom_command(
+        TARGET Nebula_RaPlugin
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/plugin_retroachievements/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/retroachievements"
+        VERBATIM
+    )
+
+endif()
+
 if(${NBL_BUILD_FRONTEND}) 
     add_subdirectory(src/frontend)
+endif()
+
+if(${NBL_BUILD_TESTS}) 
+    file(GLOB NBL_TEST_SOURCES ${NBL_SRC_DIR}/test/*.cpp)
+    if(${NBL_BUILD_RA_PLUGIN}) 
+        file(GLOB NBL_RA_TEST_SOURCES ${NBL_SRC_DIR}/test/retroachievements/*.cpp)
+        list(APPEND NBL_TEST_SOURCES ${NBL_RA_TEST_SOURCES} ${NBL_RA_PLUGIN_SOURCES})
+    endif()
+
+    list(FILTER NBL_TEST_SOURCES EXCLUDE REGEX ".*/Plugin.cpp$")
+
+    add_executable(Nebula_Test ${NBL_TEST_SOURCES})
+    target_link_libraries(Nebula_Test PRIVATE Nebula_Api)
+    target_link_libraries(Nebula_Test PRIVATE GTest::gtest_main)
 endif()
 

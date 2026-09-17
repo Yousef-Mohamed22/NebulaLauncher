@@ -1,10 +1,10 @@
 #include "NblPluginModel.hpp"
 #include "ApplicationContext.hpp"
-#include "Codec/Json.hpp"
-#include "Data/Model.hpp"
-#include "Plugin/Field.hpp"
-#include "Plugin/PluginContext.hpp"
 
+#include <Codec/Json.hpp>
+#include <Data/Model.hpp>
+#include <Plugin/Field.hpp>
+#include <Plugin/PluginContext.hpp>
 #include <Plugin/PluginLoader.hpp>
 #include <Platform/StringBuilder.hpp>
 
@@ -50,7 +50,7 @@ QVariant NblPluginModel::data(const QModelIndex& index, int role) const {
                 NBL_CHECK(nbl::parseJson(nbl::StringReader(fields.fieldsJson), &frame, &element));
                 if(element.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-                nbl::decodeFieldValues(plugin.fields, element.object, &values, &frame);
+                nbl::decodeFieldValues(ctx->pluginContext(), plugin.fields, element.object, &values, &frame);
                 qtFields = NblFieldRef(&dummy).fromNbl({ .compositeValue = values });
 
                 return nbl::Result::SUCCESS;
@@ -108,8 +108,10 @@ void NblPluginModel::saveFields(QVariantMap fields, int row) {
                 memcpy(placeholders.data, field.stringData.customPlaceholders.data, field.stringData.customPlaceholders.length * sizeof(nbl::Placeholder));
                 placeholders.length = field.stringData.customPlaceholders.length;
                 nbl::StringBuilder applied(&frame);
-                nbl::formatPlaceholders(value.compositeValue[i].stringValue.raw, &applied, placeholders, field.stringData.strictPlaceholders);
+                nbl::formatPlaceholders(value.compositeValue[i].stringValue.raw, &applied, placeholders, field.flags & nbl::FieldFlag::STRICT_PLACEHOLDERS);
                 NBL_ASSERT(applied.buildNullTerminated(&value.compositeValue[i].stringValue.resolved).success());
+            } else {
+                value.compositeValue[i].stringValue.resolved = value.compositeValue[i].stringValue.raw;
             }
         }
     }
@@ -119,7 +121,7 @@ void NblPluginModel::saveFields(QVariantMap fields, int row) {
     }
 
     nbl::StringBuilder builder(&frame);
-    nbl::Result res = nbl::encodeFieldValues(plugin.fields, value.compositeValue, builder);
+    nbl::Result res = nbl::encodeFieldValues(ctx->pluginContext(), plugin.fields, value.compositeValue, builder);
     if(res.error()) {
         ctx->pluginContext()->pushNotification(nbl::NotificationType::ERROR, "An error occurred", "Unable to save plugin configuration");
         return;

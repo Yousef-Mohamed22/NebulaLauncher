@@ -206,7 +206,6 @@ nbl::Result nbl::lookupInstallations(
         InstallationLookupCallback callback) {
 
     
-    ArenaFrame frame(Arena::threadLocal());
 
     static nbl::PreparedStatement _lookupInstallationsStmts[16];
 
@@ -258,6 +257,12 @@ excluded_tags AS (
 	FROM tag_closure
 	WHERE NOT ?2 IS NULL
 	  AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
+),
+achievements AS (
+	SELECT game.gId, aId, (dateUnlocked > 0) AS unlocked
+	FROM achievement 
+	JOIN achievement_set ON achievement.asId = achievement_set.asId 
+	JOIN game ON achievement_set.gId = game.gId
 )
 SELECT DISTINCT 
 installation.iId, installation.gId,
@@ -279,6 +284,10 @@ WHERE (?12 = 0 OR installation.deviceId = ?12)
   AND (?9 IS NULL OR resolved_title LIKE '%' || ?9 || '%')
   AND (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
   AND (?2 IS NULL OR NOT EXISTS (SELECT tId FROM excluded_tags INTERSECT SELECT tId FROM all_installation_tags WHERE all_installation_tags.iId = installation.iId))
+  AND (?13 = 0 OR ?13 <= (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId))
+  AND (?14 = 0 OR ?14 > (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId))
+  AND (?15 = 0 OR ?15 <= (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId AND achievements.unlocked = 1))
+  AND (?16 = 0 OR ?16 > (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId AND achievements.unlocked = 1))
 GROUP BY installation.iId
 )";
 
@@ -286,6 +295,8 @@ GROUP BY installation.iId
 LIMIT ?11
 OFFSET ?10;
         )";
+
+        ArenaFrame frame(Arena::threadLocal());
 
         StringBuilder stmtBuilder(&frame);
         stmtBuilder.append(_stmtBegin);
@@ -316,6 +327,9 @@ OFFSET ?10;
             case SortBy::RATING:
                 stmtBuilder.append("ORDER BY game.rating");
                 break;
+            case SortBy::ACHIEVEMENT_PROGRESS:
+                stmtBuilder.append("ORDER BY CAST((SELECT COUNT(aId) FROM achievements WHERE achievements.gId=game.gId AND unlocked = 1) AS REAL) / (SELECT COUNT(aId) FROM achievements WHERE achievements.gId=game.gId)");
+                break;
             default:
                 return nbl::Result::INVALID_ARGUMENT;
         }
@@ -333,6 +347,9 @@ OFFSET ?10;
         NBL_CHECK(connection->prepare(stmt, &lookupInstallationsStmt));
     }
 
+
+
+    ArenaFrame frame(Arena::threadLocal());
 
     if(criteria.tags.length == 0) {
         NBL_CHECK(lookupInstallationsStmt.bindNull(1));
@@ -373,16 +390,22 @@ OFFSET ?10;
         NBL_CHECK(lookupInstallationsStmt.bindString(2, tagsJson));
     }
 
-    NBL_CHECK(lookupInstallationsStmt.bindUint(3, criteria.minReleaseDate));
-    NBL_CHECK(lookupInstallationsStmt.bindUint(4, criteria.maxReleaseDate));
-    NBL_CHECK(lookupInstallationsStmt.bindFloat(5, criteria.minRating));
-    NBL_CHECK(lookupInstallationsStmt.bindFloat(6, criteria.maxRating));
-    NBL_CHECK(lookupInstallationsStmt.bindUint(7, criteria.minPlayTime));
-    NBL_CHECK(lookupInstallationsStmt.bindUint(8, criteria.maxPlayTime));
-    NBL_CHECK(lookupInstallationsStmt.bindStringOrNull(9, criteria.titleFilter));
-    NBL_CHECK(lookupInstallationsStmt.bindUint(10, criteria.offset));
-    NBL_CHECK(lookupInstallationsStmt.bindUint(11, criteria.limit == 0 ? 10 : criteria.limit));
-    NBL_CHECK(lookupInstallationsStmt.bindInt(12, criteria.deviceId));
+    NBL_CHECK(lookupInstallationsStmt.bindAll(3, 
+        criteria.minReleaseDate, 
+        criteria.maxReleaseDate, 
+        criteria.minRating, 
+        criteria.maxRating, 
+        criteria.minPlayTime, 
+        criteria.maxPlayTime, 
+        criteria.titleFilter, 
+        criteria.offset, 
+        criteria.limit == 0 ? 10 : criteria.limit, 
+        criteria.deviceId,
+        criteria.minAchievements,
+        criteria.maxAchievements,
+        criteria.minUnlockedAchievements,
+        criteria.maxUnlockedAchievements
+    ));
 
     NBL_CHECK(connection->execute(&lookupInstallationsStmt, [&](
         i32 columnCount, 

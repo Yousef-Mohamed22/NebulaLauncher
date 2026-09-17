@@ -19,13 +19,13 @@ FieldInputDelegate {
         width: parent.width
         label: root.field.name
 
-        controlsOffset: root.field.listTemplate.type == 3 ? 0 : 16 * 0.9
+        controlsOffset: (root.field.fieldTemplate.type == 3 || root.field.fieldTemplate.name.length == 0) ? 0 : 16 * 0.9
 
         minItems: root.field.min
         maxItems: root.field.max
 
         createNew: function() { 
-            let value = root.field.listTemplate.defaultValue
+            let value = root.field.fieldTemplate.defaultValue
             root.value.push(value)
             return value
         }
@@ -34,14 +34,14 @@ FieldInputDelegate {
             required property int index
             required property var modelData
 
-            field: root.field.listTemplate
+            field: root.field.fieldTemplate
             width: parent.width
 
             Component.onCompleted: {
                 load(modelData)
             }
 
-            onModifiedChanged: {
+            onModified: {
                 if(modified) {
                     root.value[index] = save()
                 }

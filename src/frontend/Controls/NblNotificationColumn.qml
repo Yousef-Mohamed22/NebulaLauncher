@@ -17,6 +17,8 @@ Item {
     function push(details) {
         if(details.icon == null) {
             if(details.type == "error") {
+                details.icon = ""
+            } else if(details.type == "warning") {
                 details.icon = ""
             } else {
                 details.icon = ""
@@ -26,6 +28,8 @@ Item {
         if(details.color == null) {
             if(details.type == "error") {
                 details.color = "#af1f43"
+            } else if(details.type == "warning") {
+                details.color = "#d9a107"
             } else {
                 details.color = Theme.colors.layer1
             }

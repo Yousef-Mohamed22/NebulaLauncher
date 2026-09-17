@@ -116,7 +116,11 @@ NblDialog {
                         minRating: 0,
                         maxRating: 0,
                         minTime: 0,
-                        maxTime: 0
+                        maxTime: 0,
+                        minAchievements: 0,
+                        maxAchievements: 0,
+                        minUnlockedAchievements: 0,
+                        maxUnlockedAchievements: 0,
                     }
                 }
 
@@ -163,7 +167,11 @@ NblDialog {
                             minRating: minRatingBox.value,
                             maxRating: maxRatingBox.value,
                             minTime: minTimeBox.value,
-                            maxTime: maxTimeBox.value
+                            maxTime: maxTimeBox.value,
+                            minAchievements: minAchBox.value,
+                            maxAchievements: maxAchBox.value,
+                            minUnlockedAchievements: minUnlockedAchBox.value,
+                            maxUnlockedAchievements: maxUnlockedAchBox.value,
                         }
                     }
 
@@ -230,7 +238,7 @@ NblDialog {
                             id: sortByBox
                             width: parent.width
                             label: "Sort By"
-                            model: [ "Title", "Last Played", "Added", "Play Count", "Play Time", "Release Date", "Rating" ]
+                            model: [ "Title", "Last Played", "Added", "Play Count", "Play Time", "Release Date", "Rating", "Achievement Progress" ]
                             currentIndex: dropdown.modelData.sortBy
                         }
 
@@ -368,6 +376,38 @@ NblDialog {
                             label: "Maximum Play Time (ms) (exclusive)"
                             min: 0
                             value: dropdown.modelData.maxTime
+                        }
+
+                        NblNumberInput {
+                            id: minAchBox
+                            width: parent.width
+                            label: "Minimum Achievements"
+                            min: 0
+                            value: dropdown.modelData.minAchievements
+                        }
+
+                        NblNumberInput {
+                            id: maxAchBox
+                            width: parent.width
+                            label: "Maximum Achievements"
+                            min: 0
+                            value: dropdown.modelData.maxAchievements
+                        }
+
+                        NblNumberInput {
+                            id: minUnlockedAchBox
+                            width: parent.width
+                            label: "Minimum Unlocked Achievements"
+                            min: 0
+                            value: dropdown.modelData.minUnlockedAchievements
+                        }
+
+                        NblNumberInput {
+                            id: maxUnlockedAchBox
+                            width: parent.width
+                            label: "Maximum Unlocked Achievements"
+                            min: 0
+                            value: dropdown.modelData.maxUnlockedAchievements
                         }
                     }
                 }

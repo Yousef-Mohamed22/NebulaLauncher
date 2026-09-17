@@ -211,7 +211,7 @@ SettingsTab {
                 model: NblGameSearchModel {
                     id: searchModel
                     searchQuery: filterBox.text
-                    pageSize: 10
+                    pageSize: 5
                 }
 
                 delegate: Item {

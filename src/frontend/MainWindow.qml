@@ -1,6 +1,9 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 
 import Nebula.Pages
 
@@ -17,68 +20,84 @@ ApplicationWindow {
 
     property alias currentPage: pageLoader.currentItem
 
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.colors.layer0
-    }
+    Item {
 
-    ColumnLayout {
-        id: columnLayout
+        id: content
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 8
 
-        Header {
-            sidebar: sidebar
-            Layout.fillWidth: true
-            Layout.preferredHeight: 64
+        Rectangle {
+            anchors.fill: parent
+            color: Theme.colors.layer0
         }
 
-        RowLayout {
-            id: rowLayout
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+        ColumnLayout {
+            id: columnLayout
+            anchors.fill: parent
+            anchors.margins: 8
             spacing: 8
 
-            layoutDirection: Qt.RightToLeft
+            Header {
+                sidebar: sidebar
+                Layout.fillWidth: true
+                Layout.preferredHeight: 64
+            }
 
-            StackView {
-                id: pageLoader
+            RowLayout {
+                id: rowLayout
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                spacing: 8
 
-                popEnter: null
-                popExit: null
-                pushEnter: null
-                pushExit: null
-                replaceEnter: null
-                replaceExit: null
-            }
-            Sidebar {
-                id: sidebar
-                Layout.fillHeight: true
+                layoutDirection: Qt.RightToLeft
 
-                onTabClicked: (tabId) => {
-                    root.openTab(tabId)
+                StackView {
+                    id: pageLoader
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    popEnter: null
+                    popExit: null
+                    pushEnter: null
+                    pushExit: null
+                    replaceEnter: null
+                    replaceExit: null
                 }
-                onTabEdited: (tabId) => {
-                    let tabPage = pageLoader.currentItem as NblTabPage
-                    if(tabPage && tabPage.tabId == tabId) {
-                        tabPage.refresh()
-                    } 
-                }
-                onGameAdded: function(id) {
-                    root.openGameDetails(id)
+                Sidebar {
+                    id: sidebar
+                    Layout.fillHeight: true
+
+                    onTabClicked: (tabId) => {
+                        root.openTab(tabId)
+                    }
+                    onTabEdited: (tabId) => {
+                        let tabPage = pageLoader.currentItem as NblTabPage
+                        if(tabPage && tabPage.tabId == tabId) {
+                            tabPage.refresh()
+                        } 
+                    }
+                    onGameAdded: function(id) {
+                        root.openGameDetails(id)
+                    }
                 }
             }
         }
+
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            blurEnabled: dialogParent.children.length > 0
+            blur: 1.0
+        }
     }
+
 
     Item {
         id: dialogParent
     }
 
     NblNotificationColumn {
+
+        parent: Overlay.overlay
+        z: 100
 
         id: notificationColumn
         width: 316

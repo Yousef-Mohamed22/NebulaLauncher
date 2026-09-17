@@ -14,8 +14,8 @@ NblDialog {
 
     targetWidth: 960
 
-    showCancelButton: sidebar.currentTab.showCancelButton
-    showApplyButton: sidebar.currentTab.showApplyButton
+    showCancelButton: (tabLoader.item as SettingsTab).showCancelButton
+    showApplyButton: (tabLoader.item as SettingsTab).showApplyButton
 
     Item {
 
@@ -28,7 +28,7 @@ NblDialog {
             width: parent.sidebarWidth
             height: parent.height + root.navigationHeight + root.navigationGap
 
-            property SettingsTab currentTab: themeSettingsTab
+            property int currentTab: 0
 
             Rectangle { 
                 width: 2
@@ -46,7 +46,7 @@ NblDialog {
                 id: tabFlickable
 
                 contentWidth: width
-                contentHeight: themeSettingsTab.height
+                contentHeight: tabRepeater.height
                 flickableDirection: Flickable.VerticalFlick
                 clip: true
 
@@ -66,18 +66,19 @@ NblDialog {
 
                     Repeater {
                         model: [
-                            { icon: "", name: "Theme", tab: themeSettingsTab },
-                            { icon: "", name: "Tags", tab: tagSettingsTab },
-                            { icon: "󰊗", name: "Games", tab: gameSettingsTab },
-                            { icon: "", name: "Online Accounts", tab: accountSettingsTab },
-                            { icon: "", name: "Plugins", tab: pluginsTab }
+                            { icon: "", name: "Theme", tab: "ThemeSettingsTab.qml" },
+                            { icon: "", name: "Tags", tab: "TagSettingsTab.qml" },
+                            { icon: "󰊗", name: "Games", tab: "GameSettingsTab.qml" },
+                            { icon: "", name: "Online Accounts", tab: "AccountsSettingsTab.qml" },
+                            { icon: "", name: "Plugins", tab: "PluginSettingsTab.qml" }
                         ]
 
                         delegate: Item {
 
                             required property var modelData
+                            required property int index
 
-                            readonly property bool isActive: sidebar.currentTab == modelData.tab
+                            readonly property bool isActive: sidebar.currentTab == index
                             readonly property bool isHighlighted: isActive || tabArea.containsMouse
 
                             width: tabRepeater.width
@@ -114,8 +115,10 @@ NblDialog {
                                 cursorShape: Qt.PointingHandCursor
                                 anchors.fill: parent
                                 onClicked: {
-                                    if(parent.modelData.tab == sidebar.currentTab) return
-                                    if(sidebar.currentTab.modified) {
+                                    if(parent.index == sidebar.currentTab) return
+
+                                    let currentTab = tabLoader.item as SettingsTab
+                                    if(currentTab.modified) {
                                         ApplicationContext.pushNotification({
                                             type: "error",
                                             title: "Cannot Change Tabs",
@@ -124,12 +127,11 @@ NblDialog {
                                         return
                                     }
 
-                                    sidebar.currentTab.modified = false
-                                    sidebar.currentTab.visible = false
+                                    currentTab.modified = false
+                                    currentTab.visible = false
 
-                                    sidebar.currentTab = parent.modelData.tab
-                                    sidebar.currentTab.refresh()
-                                    sidebar.currentTab.visible = true
+                                    sidebar.currentTab = parent.index
+                                    tabLoader.source = parent.modelData.tab
                                 }
                             }
                         }
@@ -145,46 +147,20 @@ NblDialog {
             x: parent.sidebarWidth + 24
             y: 24
 
-            ThemeSettingsTab {
-                id: themeSettingsTab
+            Loader {
+                id: tabLoader
                 anchors.fill: parent
-                visible: true
-            }
-
-            TagSettingsTab {
-                id: tagSettingsTab
-                anchors.fill: parent
-                visible: false
-                onVisibleChanged: {
-                    if(visible) {
-                        paused = false
-                    }
-                }
-            }
-
-            GameSettingsTab {
-                id: gameSettingsTab
-                anchors.fill: parent
-                visible: false
-            }
-
-            AccountsSettingsTab {
-                id: accountSettingsTab
-                anchors.fill: parent
-                visible: false
-            }
-
-           PluginSettingsTab {
-                id: pluginsTab
-                anchors.fill: parent
-                visible: false
+                source: "ThemeSettingsTab.qml"
+                active: true
             }
         }
 
     }
 
     onApply: {
-        sidebar.currentTab.apply()
+        if(tabLoader.item) {
+            (tabLoader.item as SettingsTab).apply()
+        }
     }
 
 }

@@ -276,6 +276,23 @@ bool nbl::fileExists(StringView path) {
 }
 
 
+nbl::Result nbl::deleteFile(StringView path) {
+
+    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+
+    int rc;
+    if(path.nullTerminated) {
+        rc = unlink(path.data);
+    } else {
+        char temp[PATH_MAX] = {};
+        memcpy(temp, path.data, path.length);
+        rc = unlink(temp);
+    }
+
+    if(rc != 0) return nbl::Result::IO_ERROR;
+    return nbl::Result::SUCCESS;
+}
+
 bool nbl::isExecutable(StringView path) {
     if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 

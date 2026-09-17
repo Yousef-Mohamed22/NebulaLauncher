@@ -12,6 +12,7 @@
 #include <Core/Result.hpp>
 #include <Core/String.hpp>
 #include <Core/Span.hpp>
+#include <Core/Optional.hpp>
 #include <Codec/Json.hpp>
 #include <Platform/Logging.hpp>
 #include <functional>
@@ -34,7 +35,8 @@ enum class DataType {
     NULL_TYPE,
     INTEGER,
     FLOAT,
-    TEXT
+    TEXT,
+    BLOB
 };
 
 /**
@@ -54,6 +56,7 @@ struct DataValue {
         i64 intValue;
         f64 floatValue;
         StringView textValue;
+        ConstSpan<u8> blobValue;
     };
 
     inline u64 uintValue() const {
@@ -126,6 +129,8 @@ public:
      */
     Result bindString(i32 index, StringView value);
 
+    Result bindBlob(i32 index, ConstSpan<u8> value);
+
     /**
      * \brief Binds a string value or null to the given index of the prepared statement, depending on whether the string is empty
      * \param index The index to bind the string or null value to 
@@ -146,6 +151,49 @@ public:
      * \return Whether the result of the binding operation was successful
      */
     Result bindNull(i32 index);
+
+
+    template<typename T>
+    inline Result bind(i32 index, T value) {
+        return nbl::Result::UNIMPLEMENTED;
+    }
+
+    inline Result bind(i32 index, i64 value) { return bindInt(index, value); }
+    inline Result bind(i32 index, i32 value) { return bindInt(index, value); }
+    inline Result bind(i32 index, i16 value) { return bindInt(index, value); }
+    inline Result bind(i32 index, i8 value) { return bindInt(index, value); }
+
+    inline Result bind(i32 index, bool value) { return bindInt(index, value ? 1 : 0); }
+
+    inline Result bind(i32 index, u64 value) { return bindUint(index, value); }
+    inline Result bind(i32 index, u32 value) { return bindUint(index, value); }
+    inline Result bind(i32 index, u16 value) { return bindUint(index, value); }
+    inline Result bind(i32 index, u8 value) { return bindUint(index, value); }
+
+    inline Result bind(i32 index, f64 value) { return bindFloat(index, value); }
+    inline Result bind(i32 index, f32 value) { return bindFloat(index, value); }
+
+    inline Result bind(i32 index, StringView value) { return bindStringOrNull(index, value); }
+    inline Result bind(i32 index, ConstSpan<u8> value) { return bindBlob(index, value); }
+    inline Result bind(i32 index, Span<u8> value) { return bindBlob(index, value); }
+
+    template<typename T>
+    inline Result bind(i32 index, Optional<T> value) { 
+        if(value.hasValue()) {
+            return bind<T>(*value);
+        }
+        return bindNull(index); 
+    }
+
+    template<typename... Args>
+    inline Result bindAll(i32 startIndex, Args&&... args) {
+        Result out = nbl::Result::SUCCESS;
+        ([&] { 
+            if(out.error()) return;
+            out = bind(startIndex++, std::forward<Args>(args)); 
+        }(), ...); 
+        return out;
+    }
 
     /**
      * \brief Resets the parameters bound to the statement

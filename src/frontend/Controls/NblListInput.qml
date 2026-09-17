@@ -21,6 +21,8 @@ Item {
     readonly property int count: items.count
     readonly property int controlsWidth: allowReorder ? 64 : 48
 
+    readonly property int itemWidth: width - root.controlsWidth - 8
+
     required property var createNew
     required property Component delegate
 
@@ -90,7 +92,7 @@ Item {
 
             Column {
                 id: itemsColumn
-                width: parent.width - root.controlsWidth - 8
+                width: root.itemWidth
                 spacing: 8
 
                 Repeater {

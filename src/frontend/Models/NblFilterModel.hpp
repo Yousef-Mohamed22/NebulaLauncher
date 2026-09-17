@@ -6,37 +6,28 @@
 
 #include <QObject>
 #include <QtQml>
+#include "NblPagedListModel.hpp"
 
-class NblFilterModel : public QAbstractListModel {
+class NblFilterModel : public NblPagedListModel {
 
     Q_OBJECT
     QML_ELEMENT
 
     Q_PROPERTY(qint64 filterId READ filterId WRITE setFilterId NOTIFY filterIdChanged)
-    Q_PROPERTY(int currentPage READ currentPage NOTIFY currentPageChanged)
-    Q_PROPERTY(int pageSize READ pageSize WRITE setPageSize NOTIFY pageSizeChanged)
-    Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
-    Q_PROPERTY(bool allLoaded READ allLoaded NOTIFY allLoadedChanged)
     Q_PROPERTY(bool searchInstallations READ searchInstallations WRITE setSearchInstallations NOTIFY searchInstallationsChanged)
 
 public:
 
     explicit NblFilterModel(QObject* parent = nullptr) :
-        QAbstractListModel(parent),
+        NblPagedListModel(parent),
         _mFilterId(0),
-        _mCurrentPage(0),
-        _mPageSize(10),
-        _mIsLoading(false),
-        _mAllLoaded(false)
+        _mSearchInstallations(false)
     { }
 
     NblFilterModel(i64 filterId, QObject* parent = nullptr) :
-        QAbstractListModel(parent),
+        NblPagedListModel(parent),
         _mFilterId(filterId),
-        _mCurrentPage(1),
-        _mPageSize(10),
-        _mIsLoading(false),
-        _mAllLoaded(false)
+        _mSearchInstallations(false)
     { }
 
     enum Roles {
@@ -53,21 +44,15 @@ public:
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    quint64 currentPage() const { return _mCurrentPage; }
-    quint64 pageSize() const { return _mPageSize; }
-    bool isLoading() const { return _mIsLoading; }
-    bool allLoaded() const { return _mAllLoaded; }
     bool searchInstallations() const { return _mSearchInstallations; }
 
-    void setPageSize(int size) { 
-        _mPageSize = nbl::max(1, size);
-    }
 
     qint64 filterId() const {
         return _mFilterId;
     }
 
     void setFilterId(qint64 fid) {
+        if(fid == _mFilterId) return;
         _mFilterId = fid;
         emit filterIdChanged();
 
@@ -75,23 +60,24 @@ public:
     }
 
     void setSearchInstallations(bool value) {
+        if(_mSearchInstallations == value) return;
         _mSearchInstallations = value;
         emit searchInstallationsChanged();
 
         refresh();
     }
 
-    Q_INVOKABLE void loadNextPage();
-    Q_INVOKABLE void refresh();
-
 signals:
 
     void filterIdChanged();
-    void currentPageChanged();
-    void pageSizeChanged();
-    void isLoadingChanged();
-    void allLoadedChanged();
     void searchInstallationsChanged();
+
+protected:
+
+    void _clear() override {
+        _mData.clear();
+    }
+    nbl::Result _fetchPageData(qsizetype limit, qsizetype offset) override;
 
 private:
 
@@ -102,14 +88,7 @@ private:
         QString icon;
     };
 
-    void _fetchPageData();
-
     qint64 _mFilterId;
-
-    quint64 _mCurrentPage;
-    quint64 _mPageSize;
-    bool _mIsLoading;
-    bool _mAllLoaded;
     bool _mSearchInstallations;
 
     QList<_Item> _mData;

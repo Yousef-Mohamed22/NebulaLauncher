@@ -1,0 +1,6 @@
+{
+    "id": "retroachievements",
+    "version": "0.1.0",
+    "name": "RetroAchievements",
+    "description": "Adds an AchievementProvider for RetroAchievements"
+}

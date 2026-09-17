@@ -2,6 +2,7 @@
 #include <Core/Array.hpp>
 #include <Core/Result.hpp>
 #include <Platform/Logging.hpp>
+#include "Plugin/Field.hpp"
 
 namespace {
 
@@ -10,19 +11,15 @@ nbl::Array _fields = {
         .type = nbl::FieldType::STRING,
         .key = "command",
         .name = "Command",
-        .stringData = {
-            .applyGamePlaceholders = true,
-            .strictPlaceholders = false
-        }
+        .stringData = { },
+        .flags = nbl::FieldFlag::APPLY_GAME_PLACEHOLDERS | 0
     },
     nbl::Field {
         .type = nbl::FieldType::STRING,
         .key = "working_dir",
         .name = "Working Directory",
-        .stringData = {
-            .applyGamePlaceholders = true,
-            .strictPlaceholders = true
-        }
+        .stringData = { },
+        .flags = nbl::FieldFlag::APPLY_GAME_PLACEHOLDERS | nbl::FieldFlag::STRICT_PLACEHOLDERS
     }
 };
 

@@ -10,6 +10,9 @@
 
 #include <Data/Database.hpp>
 #include <Codec/Json.hpp>
+#include <Core/Span.hpp>
+#include <Core/Either.hpp>
+
 #include <functional>
 
 namespace nbl {
@@ -25,6 +28,7 @@ enum class SortBy {
     PLAY_TIME,
     RELEASE_DATE,
     RATING,
+    ACHIEVEMENT_PROGRESS,
     _END
 };
 
@@ -60,6 +64,22 @@ inline LogoPosition byId(u32 id) {
     return static_cast<LogoPosition>(id);
 }
 
+enum class AchievementSortBy : u32 {
+    NUMBER,             // The achievement's provider-determined index
+    NAME,               // The achievement's display name
+    DATE_UNLOCKED,      // The date the achievement was unlocked
+    PROGRESS,           // How close the user is to completing the achievement
+    GLOBAL_UNLOCK_RATE, // The percentage of players worldwide who have unlocked the achievement
+};
+
+enum class AchievementProviderStatus : u32 {
+    NOT_ADDED,           // The achievement provider has not considered this game yet.
+    ADDED_BY_PROVIDER,   // The achievement provdier has automatically determined that it can provide achievements for this game.
+    ADDED_BY_USER,       // The user manually added information for this achievement provider and game.
+    REMOVED_BY_PROVIDER, // The achievement provider has automatically determined that it cannot provide achievements for this game.
+    REMOVED_BY_USER      // The user manually removed information for this achievement provider and game. Providers should not attempt to re-add achievement sets for states with this status.
+};
+
 
 struct SearchCriteria {
     ConstSpan<ConstSpan<i64>> tags;
@@ -77,6 +97,10 @@ struct SearchCriteria {
     StringView titleFilter;
     i64 gameId;
     i64 deviceId;
+    u64 minAchievements;
+    u64 maxAchievements;
+    u64 minUnlockedAchievements;
+    u64 maxUnlockedAchievements;
 };
 
 
@@ -489,6 +513,137 @@ Result getPluginFieldsVersion(DatabaseConnection* connection, StringView pluginI
 Result setPluginFields(DatabaseConnection* connection, StringView pluginid, StringView fieldsJson, StringView version);
 
 Result prunePluginFields(DatabaseConnection* connection, JsonArray keepIds);
+
+
+// Achievements
+
+enum class AchievementFlag : u8 {
+    PROGRESSION = 0b001,
+    WIN_CONDITION = 0b010,
+    SPOILER = 0b100,
+    MISSABLE = 0b1000
+};
+typedef u8 AchievementFlags;
+
+inline AchievementFlags operator|(AchievementFlag flag, AchievementFlag other) { return static_cast<u8>(flag) | static_cast<u8>(other); }
+inline AchievementFlags operator|(AchievementFlag flag, AchievementFlags other) { return static_cast<u8>(flag) | other; }
+inline AchievementFlags operator|(AchievementFlags other, AchievementFlag flag) { return static_cast<u8>(flag) | other; }
+
+inline AchievementFlags& operator|=(AchievementFlags& flags, AchievementFlag other) { flags = flags | other; return flags; }
+
+inline AchievementFlags operator&(AchievementFlag flag, AchievementFlag other) { return static_cast<u8>(flag) & static_cast<u8>(other); }
+inline AchievementFlags operator&(AchievementFlag flag, AchievementFlags other) { return static_cast<u8>(flag) & other; }
+inline AchievementFlags operator&(AchievementFlags other, AchievementFlag flag) { return static_cast<u8>(flag) & other; }
+
+inline AchievementFlags& operator&=(AchievementFlags& flags, AchievementFlag other) { flags = flags | other; return flags; }
+
+struct Achievement {
+    i64 id;
+    i64 setId;
+    u64 number;
+    StringView providerId;
+    StringView title;
+    StringView description;
+    StringView icon;
+    f64 globalUnlockRate;
+    struct {
+        u32 numerator;
+        u32 denominator;
+    } progress;
+    u64 dateUnlocked;
+    AchievementFlags flags;
+    u32 borderColor;
+    ConstSpan<u8> providerData;
+
+    template<typename T>
+    void getProviderData(T* output) const {
+        if(providerData.length != sizeof(T)) return;
+        memcpy(output, providerData.data, sizeof(T));
+    }
+};
+
+typedef std::function_ref<Result(const Achievement&)> AchievementCallback;
+
+
+Result addAchievement(DatabaseConnection* connection, const Achievement& achievement, i64* outId);
+
+Result upsertAchievement(DatabaseConnection* connection, const Achievement& achievement, i64* outId);
+
+Result upsertAchievementMeta(DatabaseConnection* connection, const Achievement& achievement, i64* outId);
+
+Result updateAchievement(DatabaseConnection* connection, const Achievement& achievement);
+
+Result updateAchievementProgress(DatabaseConnection* connection, const Achievement& achievement);
+
+Result deleteAchievement(DatabaseConnection* connection, i64 id);
+
+Result getAchievement(DatabaseConnection* connection, i64 id, AchievementCallback callback);
+
+Result enumerateGameAchievements(DatabaseConnection* connection, i64 limit, i64 offset, AchievementSortBy sortBy, SortOrder sortOrder, i64 gameId, AchievementCallback callback);
+
+Result enumerateSetAchievements(DatabaseConnection* connection, i64 limit, i64 offset, AchievementSortBy sortBy, SortOrder sortOrder, i64 setId, AchievementCallback callback);
+
+Result countSetAchievements(DatabaseConnection* connection, i64 setId, u64* outNumAchievements);
+
+Result countUnlockedSetAchievements(DatabaseConnection* connection, i64 setId, u64* outNumAchievements);
+
+Result countGameAchievements(DatabaseConnection* connection, i64 gameId, u64* outNumAchievements, bool includeHidden = false);
+
+Result countUnlockedGameAchievements(DatabaseConnection* connection, i64 gameId, u64* outNumAchievements, bool includeHidden = false);
+
+
+
+struct AchievementSet {
+    i64 id;
+    i64 gameId;
+    u64 lastUpdated;
+    bool hidden;
+    u32 awardColor;
+    StringView name;
+    StringView provider;
+    StringView providerId;
+    ConstSpan<u8> providerData;
+
+    template<typename T>
+    void getProviderData(T* output) const {
+        if(providerData.length != sizeof(T)) return;
+        memcpy(output, providerData.data, sizeof(T));
+    }
+};
+
+typedef std::function_ref<Result(const AchievementSet&)> AchievementSetCallback;
+
+Result addAchievementSet(DatabaseConnection* connection, const AchievementSet& achievementSet, i64* outId);
+
+Result upsertAchievementSet(DatabaseConnection* connection, const AchievementSet& achievement, i64* outId);
+
+Result updateAchivementSet(DatabaseConnection* connection, const AchievementSet& achievementSet);
+
+Result updateAchivementSetHidden(DatabaseConnection* connection, i64 id, bool hidden);
+
+Result deleteAchievementSet(DatabaseConnection* connection, i64 id);
+
+Result deleteAchievementSetsForProvider(DatabaseConnection* connection, i64 gameId, StringView provider);
+
+Result getAchievementSet(DatabaseConnection* connection, i64 id, AchievementSetCallback callback);
+
+Result enumerateGameAchievementSets(DatabaseConnection* connection, i64 limit, i64 offset, i64 gameId, AchievementSetCallback callback);
+
+Result countGameAchivementSetsWithProvider(DatabaseConnection* connection, i64 gameId, StringView providerId, u64* outNumSets);
+
+
+struct AchievementState {
+    i64 gameId;
+    StringView provider;
+    StringView fields;
+    AchievementProviderStatus status;
+};
+
+typedef std::function_ref<Result(const AchievementState&)> AchievementStateCallback;
+
+Result enumerateAchievementStates(DatabaseConnection* connection, i64 gameId, AchievementStateCallback);
+
+Result upsertAchievementState(DatabaseConnection* connection, i64 gameId, const AchievementState& state);
 
 }
 

@@ -7,7 +7,8 @@
 #include <Platform/Logging.hpp>
 #include <Core/Array.hpp>
 #include <Core/String.hpp>
-#include "Data/Model.hpp"
+#include <Data/Model.hpp>
+#include <Plugin/Field.hpp>
 
 
 namespace {
@@ -19,11 +20,11 @@ enum _TestEnum : u32 {
     _END
 };
 
-u32 _count(void* userData) { 
+u32 _count(nbl::PluginContext* pluginContext, void* userData) { 
     return _END;
 }
 
-nbl::StringView _name(u32 index, void* userData) {
+nbl::StringView _name(nbl::PluginContext* pluginContext, u32 index, void* userData) {
     switch(index) {
         case ONE: return "one";
         case TWO: return "two";
@@ -32,14 +33,14 @@ nbl::StringView _name(u32 index, void* userData) {
     return "";
 }
 
-u32 _index(nbl::StringView name, void* userData) {
+u32 _index(nbl::PluginContext* pluginContext, nbl::StringView name, void* userData) {
     if(name == "one") return ONE;
     if(name == "two") return TWO;
     if(name == "three") return THREE;
     return 0;
 }
 
-void _suggest(nbl::StringView current, std::function_ref<void(nbl::StringView)> suggestionConsumer, void* userData) {
+void _suggest(nbl::PluginContext* pluginContext, nbl::StringView current, std::function_ref<void(nbl::StringView)> suggestionConsumer, void* userData) {
 
     suggestionConsumer("Hello");
     suggestionConsumer("World");
@@ -133,30 +134,29 @@ nbl::Array _fields = {
         .key = "account",
         .name = "Account",
         .accountData = {
-            .accountProvider = "test",
-            .showDefaultOption = false
+            .accountProvider = "test"
         },
         .defaultValue = {
             .accountValue = {
                 .id = 0,
                 .isDefault = true
             }
-        }
+        },
     },
     nbl::Field {
         .type = nbl::FieldType::ACCOUNT,
         .key = "account_default",
         .name = "Account (Default)",
         .accountData = {
-            .accountProvider = "test",
-            .showDefaultOption = true
+            .accountProvider = "test"
         },
         .defaultValue = {
             .accountValue = {
                 .id = 0,
                 .isDefault = true
             }
-        }
+        },
+        .flags = static_cast<nbl::FieldFlags>(nbl::FieldFlag::SHOW_DEFAULT_OPTION)
     },
     nbl::Field {
         .type = nbl::FieldType::LIST,
@@ -334,7 +334,7 @@ nbl::Result _launch(
     nbl::log(nbl::LogLevel::INFO, "Integer: ", fields.data[1].integerValue);
     nbl::log(nbl::LogLevel::INFO, "Float: ", fields.data[2].floatValue);
     nbl::log(nbl::LogLevel::INFO, "Boolean: ", fields.data[3].booleanValue);
-    nbl::log(nbl::LogLevel::INFO, "Enum: ", _name(fields.data[4].enumValue, nullptr));
+    nbl::log(nbl::LogLevel::INFO, "Enum: ", _name(ctx, fields.data[4].enumValue, nullptr));
     nbl::log(nbl::LogLevel::INFO, "Date: ", fields.data[5].uintegerValue);
 
     nbl::log(nbl::LogLevel::INFO, "Account: ", fields.data[6].accountValue.id);

@@ -21,13 +21,9 @@ FieldInputDelegate {
         label: root.field.name
 
         onTextEdited: {
-            if(root.value == null) {
-                root.value = { 
-                    raw: text,
-                    resolved: ""
-                }
-            } else {
-                root.value.raw = text
+            root.value = { 
+                raw: text,
+                resolved: text
             }
         }
     }

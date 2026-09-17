@@ -46,7 +46,11 @@ nbl::Result _serializeCriteria(const nbl::SearchCriteria& criteria, nbl::Writer 
             .add("offset", criteria.offset)
             .add("limit", criteria.limit)
             .add("titleFilter", criteria.titleFilter)
-            .add("gameId", criteria.gameId);
+            .add("gameId", criteria.gameId)
+            .add("minAchievements", criteria.minAchievements)
+            .add("maxAchievements", criteria.maxAchievements)
+            .add("minUnlockedAchievements", criteria.minUnlockedAchievements)
+            .add("maxUnlockedAchievements", criteria.maxUnlockedAchievements);
         });
 }
 
@@ -119,29 +123,12 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* 
         outCriteria->excludedTags = outTags;
     }
 
-    const nbl::JsonElement* minReleaseDateValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "minReleaseDate", nbl::JsonType::NUMBER, &minReleaseDateValue));
-    if(minReleaseDateValue) outCriteria->minReleaseDate = minReleaseDateValue->number.asUint();
-
-    const nbl::JsonElement* maxReleaseDateValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "maxReleaseDate", nbl::JsonType::NUMBER, &maxReleaseDateValue));
-    if(maxReleaseDateValue) outCriteria->maxReleaseDate = maxReleaseDateValue->number.asUint();
-
-    const nbl::JsonElement* minRatingValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "minRating", nbl::JsonType::NUMBER, &minRatingValue));
-    if(minRatingValue) outCriteria->minRating = minRatingValue->number.asFloat();
-
-    const nbl::JsonElement* maxRatingValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "maxRating", nbl::JsonType::NUMBER, &maxRatingValue));
-    if(maxRatingValue) outCriteria->maxRating = maxRatingValue->number.asFloat();
-
-    const nbl::JsonElement* minPlayTimeValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "minPlayTime", nbl::JsonType::NUMBER, &minPlayTimeValue));
-    if(minPlayTimeValue) outCriteria->minPlayTime = minPlayTimeValue->number.asUint();
-
-    const nbl::JsonElement* maxPlayTimeValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "maxPlayTime", nbl::JsonType::NUMBER, &maxPlayTimeValue));
-    if(maxPlayTimeValue) outCriteria->maxPlayTime = maxPlayTimeValue->number.asUint();
+    outCriteria->minReleaseDate = criteriaObject.getNumber("minReleaseDate").asUint();
+    outCriteria->maxReleaseDate = criteriaObject.getNumber("maxReleaseDate").asUint();
+    outCriteria->minRating = criteriaObject.getNumber("minRating").asFloat();
+    outCriteria->maxRating = criteriaObject.getNumber("maxRating").asFloat();
+    outCriteria->minPlayTime = criteriaObject.getNumber("minPlayTime").asUint();
+    outCriteria->maxPlayTime = criteriaObject.getNumber("maxPlayTime").asUint();
 
     const nbl::JsonElement* sortByValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "sortBy", nbl::JsonType::STRING, &sortByValue));
@@ -155,23 +142,15 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* 
         NBL_CHECK(nbl::byName(sortOrderValue->string, &outCriteria->sortOrder));
     }
 
-    const nbl::JsonElement* offsetValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "offset", nbl::JsonType::NUMBER, &offsetValue));
-    if(offsetValue) outCriteria->offset = offsetValue->number.asUint();
+    outCriteria->offset = criteriaObject.getNumber("offset").asUint();
+    outCriteria->limit = criteriaObject.getNumber("limit").asUint();
+    outCriteria->titleFilter = criteriaObject.getString("titleFilter");
+    outCriteria->gameId = criteriaObject.getNumber("gameId").intValue;
 
-    const nbl::JsonElement* limitValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "limit", nbl::JsonType::NUMBER, &limitValue));
-    if(limitValue) outCriteria->limit = limitValue->number.asUint();
-
-    const nbl::JsonElement* titleFilterValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "titleFilter", nbl::JsonType::STRING, &titleFilterValue));
-    if(titleFilterValue) outCriteria->titleFilter = titleFilterValue->string;
-
-    const nbl::JsonElement* gameIdValue = nullptr;
-    NBL_CHECK(getChecked(criteriaObject, "gameId", nbl::JsonType::NUMBER, &gameIdValue));
-    if(gameIdValue) outCriteria->gameId = gameIdValue->number.intValue;
-
-
+    outCriteria->minAchievements = criteriaObject.getNumber("minAchievements").asUint();
+    outCriteria->maxAchievements = criteriaObject.getNumber("maxAchievements").asUint();
+    outCriteria->minUnlockedAchievements = criteriaObject.getNumber("minUnlockedAchievements").asUint();
+    outCriteria->maxUnlockedAchievements = criteriaObject.getNumber("maxUnlockedAchievements").asUint();
 
     return nbl::Result::SUCCESS;
 }

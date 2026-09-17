@@ -34,7 +34,7 @@ Item {
             Repeater {
                 model: NblTabModel {
                     id: tabModel
-                    pageSize: 10
+                    pageSize: 20
                     tabId: root.tabId
                 }
                 delegate: NblFilterRow {

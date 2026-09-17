@@ -44,6 +44,13 @@ public:
         };
     }
 
+    inline bool is(Writer writer) {
+        return writer.impl == this && writer.pfnWrite == _write;
+    }
+    static inline bool isLinearWriter(Writer writer) {
+        return writer.pfnWrite == _write;
+    }
+
 private:
 
     static inline Result _write(void* impl, const void* data, usize dataLength, usize* written) noexcept {

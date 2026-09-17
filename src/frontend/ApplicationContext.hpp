@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qtmetamacros.h>
 #include <QObject>
 #include <QColor>
 #include <QtQml>
@@ -62,6 +63,7 @@ class ApplicationContext : public QObject {
 
     // Properties
     Q_PROPERTY(QString dataFolder READ dataFolder CONSTANT)
+    Q_PROPERTY(QString pluginFolder READ pluginFolder CONSTANT)
     Q_PROPERTY(qint64 deviceId READ deviceId CONSTANT)
 
 public:
@@ -79,6 +81,7 @@ public:
     }
 
     QString dataFolder() const;
+    QString pluginFolder() const;
     qint64 deviceId() const { return _mDeviceId; }
 
     Q_INVOKABLE NblProcessHandle* launchInstallation(qint64 installationId);

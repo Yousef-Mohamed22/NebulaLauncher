@@ -33,6 +33,8 @@ nbl::StringView nbl::getName(SortBy sortBy) {
             return "release_date";
         case SortBy::RATING:
             return "rating";
+        case SortBy::ACHIEVEMENT_PROGRESS:
+            return "achievement_progress";
     }
 }
 
@@ -71,8 +73,6 @@ nbl::Result nbl::byName(StringView name, SortOrder* outSortOrder) {
 
 
 nbl::Result nbl::initDatabase(DatabaseConnection* connection) {
-
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 
     i32 userVersion = 0;
 
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS game_external_id (
     platformName TEXT,
     platformId TEXT,
     UNIQUE (gId, platformName),
-    FOREIGN KEY(gId) REFERENCES game(gId)
+    FOREIGN KEY(gId) REFERENCES game(gId) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS device (
     deviceId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -197,6 +197,47 @@ CREATE TABLE IF NOT EXISTS plugin_fields (
     pluginId TEXT UNIQUE PRIMARY KEY,
     fields TEXT NOT NULL,
     version TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS achievement_set (
+    asId INTEGER PRIMARY KEY AUTOINCREMENT,
+    gId INTEGER NOT NULL,
+    lastUpdated INTEGER DEFAULT 0,
+    hidden BOOLEAN NOT NULL DEFAULT 0,
+    awardColor INTEGER NOT NULL DEFAULT 0,
+    name TEXT NOT NULL,
+    providerId TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    providerData BLOB,
+    FOREIGN KEY(gId) REFERENCES game(gId) ON DELETE CASCADE,
+    UNIQUE (gId, providerId, provider)
+);
+
+CREATE TABLE IF NOT EXISTS achievement (
+    aId INTEGER PRIMARY KEY AUTOINCREMENT,
+    asId INTEGER NOT NULL,
+    providerId TEXT,
+    title TEXT,
+    description TEXT,
+    icon TEXT,
+    globalUnlockRate REAL,
+    progressNumerator INTEGER DEFAULT 0,
+    progressDenominator INTEGER DEFAULT 0,
+    dateUnlocked INTEGER,
+    flags INTEGER DEFAULT 0,
+    borderColor INTEGER DEFAULT 0,
+    providerData BLOB,
+    FOREIGN KEY(asId) REFERENCES achievement_set(asId) ON DELETE CASCADE,
+    UNIQUE (providerId, asId)
+);
+
+CREATE TABLE IF NOT EXISTS achievement_state (
+    gId INTEGER NOT NULL,
+    provider TEXT NOT NULL,
+    fields TEXT,
+    status INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(gId) REFERENCES game(gId) ON DELETE CASCADE,
+    UNIQUE (gId, provider)
 );
 
 -- Default Rows

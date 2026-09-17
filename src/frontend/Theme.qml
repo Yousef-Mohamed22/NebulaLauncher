@@ -9,7 +9,12 @@ QtObject {
     property string nerdFont: _private.nerdFont.name
     property string monospaceFont: _private.monoFont.name
 
-    property string dateFormat: "yyyy/MM/dd"
+    property string dateInputFormat: "yyyy/MM/dd"
+    function formatDateInput(epochMilli) {
+        return Qt.formatDate(new Date(epochMilli), dateInputFormat)
+    }
+
+    property string dateFormat: "MMM d, yyyy"
     function formatDate(epochMilli) {
         return Qt.formatDate(new Date(epochMilli), dateFormat)
     }
@@ -67,6 +72,15 @@ QtObject {
             var l = 0.4 + finalize(hash ^ 0x7f4a7c15) * 0.5;
 
             return Qt.hsla(h, s, l, 1.0);
+        }
+
+        function mixSourceOver(c1, c2) {
+            return Qt.rgba(
+                (c1.r * c1.a) + (c2.r * (1 - c1.a)),
+                (c1.g * c1.a) + (c2.g * (1 - c1.a)),
+                (c1.b * c1.a) + (c2.b * (1 - c1.a)),
+                1.0
+            )
         }
 
         property bool lightMode: false

@@ -1,9 +1,10 @@
 #include "Models/NblEnumFieldModel.hpp"
+#include "ApplicationContext.hpp"
 
 int NblEnumFieldModel::rowCount(const QModelIndex& parent) const {
     Q_UNUSED(parent)
     if(_pField == nullptr) return 0;
-    return static_cast<int>(_pField->enumData.count());
+    return static_cast<int>(_pField->enumData.count(ApplicationContext::instance()->pluginContext()));
 }
 
 QVariant NblEnumFieldModel::data(const QModelIndex& index, int role) const {
@@ -14,11 +15,11 @@ QVariant NblEnumFieldModel::data(const QModelIndex& index, int role) const {
 
     switch(role) {
         case NameRole: {
-            nbl::StringView name = field.enumData.name(static_cast<u32>(index.row()));
+            nbl::StringView name = field.enumData.name(ApplicationContext::instance()->pluginContext(), static_cast<u32>(index.row()));
             return QByteArray(name.data, name.length);
         }
         case DisplayNameRole: {
-            nbl::StringView name = field.enumData.displayName(static_cast<u32>(index.row()));
+            nbl::StringView name = field.enumData.displayName(ApplicationContext::instance()->pluginContext(), static_cast<u32>(index.row()));
             return QByteArray(name.data, name.length);
         }
         default:
@@ -36,5 +37,5 @@ QHash<int, QByteArray> NblEnumFieldModel::roleNames() const {
 quint32 NblEnumFieldModel::indexOf(QByteArray name) {
     nbl::StringView nameView = nbl::StringView(name.data(), name.length());
     if(_pField == nullptr) return 0;
-    return _pField->enumData.index(nameView);
+    return _pField->enumData.index(ApplicationContext::instance()->pluginContext(), nameView);
 }

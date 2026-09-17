@@ -58,6 +58,7 @@ struct Result {
 
         END_OF_STREAM = 1,
         CANCELED = 2,
+        NO_CHANGE = 3,
 
         INVALID_ARGUMENT = -1,
         INVALID_STATE = -2,

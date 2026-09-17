@@ -1,12 +1,14 @@
 #include <Plugin/Field.hpp>
 #include <Codec/Json.hpp>
 #include <Platform/Allocator.hpp>
+#include "Core/Span.hpp"
+#include "Utility/Placeholder.hpp"
 
 
 namespace {
 
 
-nbl::Result _decodeFieldValue(const nbl::Field& field, nbl::JsonElement element, nbl::FieldValue* outValue, nbl::LinearAllocator* allocator) {
+nbl::Result _decodeFieldValue(nbl::PluginContext* context, const nbl::Field& field, nbl::JsonElement element, nbl::FieldValue* outValue, nbl::LinearAllocator* allocator) {
 
     switch(field.type) {
         case nbl::FieldType::STRING: 
@@ -41,7 +43,7 @@ nbl::Result _decodeFieldValue(const nbl::Field& field, nbl::JsonElement element,
             break;
         case nbl::FieldType::ENUM: {
             if(element.type != nbl::JsonType::STRING) return nbl::Result::INVALID_ARGUMENT;
-            u32 index = field.enumData.index(element.string);
+            u32 index = field.enumData.index(context, element.string);
             *outValue = nbl::FieldValue { .enumValue = index };
             break;
         }
@@ -57,6 +59,9 @@ nbl::Result _decodeFieldValue(const nbl::Field& field, nbl::JsonElement element,
             };
             break;
         case nbl::FieldType::LIST: {
+            if(!nbl::shouldEncodeField(field.listData.templateField->type)) {
+                return nbl::Result::INVALID_ARGUMENT;
+            }
             if(element.type != nbl::JsonType::ARRAY) return nbl::Result::INVALID_ARGUMENT;
             usize items = element.array.count;
             outValue->compositeValue.length = items;
@@ -64,31 +69,34 @@ nbl::Result _decodeFieldValue(const nbl::Field& field, nbl::JsonElement element,
                 NBL_CHECK(allocator->allocate<nbl::FieldValue>(&outValue->compositeValue.data, items));
                 for(usize i = 0 ; i < items ; i++) {
                     nbl::JsonElement ele = element.array[i];
-                    NBL_CHECK(_decodeFieldValue(*field.listData.templateField, ele, &outValue->compositeValue[i], allocator));
+                    NBL_CHECK(_decodeFieldValue(context, *field.listData.templateField, ele, &outValue->compositeValue[i], allocator));
                 }
             }
             break;
         }
         case nbl::FieldType::STRUCT:
+        case nbl::FieldType::CUSTOM:
             if(element.type != nbl::JsonType::OBJECT) return nbl::Result::INVALID_ARGUMENT;
-            NBL_CHECK(nbl::decodeFieldValues(field.structData.fields, element.object, &outValue->compositeValue, allocator));
+            NBL_CHECK(nbl::decodeFieldValues(context, field.structData.fields, element.object, &outValue->compositeValue, allocator));
             break;
+        case nbl::FieldType::ACTION:
+        case nbl::FieldType::FIELD_ACTION:
+            return nbl::Result::INVALID_ARGUMENT;
     }
     
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result _encodeFieldValue(const nbl::Field& field, nbl::FieldValue value, nbl::Writer writer) {
+nbl::Result _encodeFieldValue(nbl::PluginContext* context, const nbl::Field& field, nbl::FieldValue value, nbl::Writer writer, nbl::Span<nbl::Placeholder> extraPlaceholders) {
     switch(field.type) {
-        case nbl::FieldType::STRING:
-            if(value.stringValue.raw.empty()) {
-                return nbl::writeJson(writer, value.stringValue.resolved);
-            } else {
-                return nbl::JsonWriter(writer).writeObject([&](auto obj) {
-                    obj.add("resolved", value.stringValue.resolved);
-                    obj.add("raw", value.stringValue.raw);
+        case nbl::FieldType::STRING: {
+            return nbl::JsonWriter(writer).writeObject([&](auto obj) {
+                obj.add("raw", value.stringValue.raw);
+                obj.writeString("resolved", [&](auto writer){
+                    return nbl::formatPlaceholders(value.stringValue.raw, writer, nbl::Array { field.stringData.customPlaceholders, extraPlaceholders }, (field.flags & nbl::FieldFlag::STRICT_PLACEHOLDERS));
                 });
-            }
+            });
+        }
         case nbl::FieldType::FLOAT:
             return nbl::writeJson(writer, value.floatValue);
         case nbl::FieldType::INTEGER:
@@ -96,7 +104,7 @@ nbl::Result _encodeFieldValue(const nbl::Field& field, nbl::FieldValue value, nb
         case nbl::FieldType::BOOLEAN:
             return nbl::writeJson(writer, value.booleanValue);
         case nbl::FieldType::ENUM: {
-            nbl::StringView name = field.enumData.name(value.enumValue);
+            nbl::StringView name = field.enumData.name(context, value.enumValue);
             return nbl::writeJson(writer, name);
         }
         case nbl::FieldType::DATE: 
@@ -114,17 +122,23 @@ nbl::Result _encodeFieldValue(const nbl::Field& field, nbl::FieldValue value, nb
                 for(nbl::FieldValue& listValue : value.compositeValue) {
                     arr.write([&](nbl::Writer w) {
                         return _encodeFieldValue(
+                            context,
                             *field.listData.templateField,
                             listValue,
-                            w);
+                            w,
+                            extraPlaceholders);
                     });
                 }
             });
             break;
         }
-        case nbl::FieldType::STRUCT: {
-            return encodeFieldValues(field.structData.fields, value.compositeValue, writer);
+        case nbl::FieldType::STRUCT: 
+        case nbl::FieldType::CUSTOM: {
+            return encodeFieldValues(context, field.structData.fields, value.compositeValue, writer);
         }
+        case nbl::FieldType::ACTION:
+        case nbl::FieldType::FIELD_ACTION:
+            return nbl::Result::INVALID_ARGUMENT;
     }
     return nbl::Result::INVALID_ARGUMENT;
 
@@ -133,19 +147,24 @@ nbl::Result _encodeFieldValue(const nbl::Field& field, nbl::FieldValue value, nb
 }
 
 
-nbl::Result nbl::encodeFieldValues(Span<Field> fields, Span<FieldValue> values, Writer writer) {
+nbl::Result nbl::encodeFieldValues(PluginContext* context, Span<Field> fields, Span<FieldValue> values, Writer writer, Span<Placeholder> extraPlaceholders) {
 
     return JsonWriter(writer).writeObject([&](JsonWriter::ObjectWriter& obj) {
         for(usize i = 0 ; i < fields.length ; i++) {
             const Field& field = fields[i];
+
+            if(!shouldEncodeField(field.type)) continue;
+            else if(field.type == FieldType::LIST && !shouldEncodeField(field.listData.templateField->type)) continue;
+
             obj.write(field.key, [&](Writer writer) {
-                return _encodeFieldValue(field, values[i], writer);
+                return _encodeFieldValue(context, field, values[i], writer, extraPlaceholders);
             });
         }
     });   
 }
 
-nbl::Result nbl::decodeFieldValues(Span<Field> fields, JsonObject obj, Span<FieldValue>* outValues, LinearAllocator* allocator) {
+
+nbl::Result nbl::decodeFieldValues(PluginContext* context, Span<Field> fields, JsonObject obj, Span<FieldValue>* outValues, LinearAllocator* allocator) {
 
     Span<FieldValue> values;
     NBL_CHECK(allocator->allocate<FieldValue>(&values.data, fields.length));
@@ -155,11 +174,14 @@ nbl::Result nbl::decodeFieldValues(Span<Field> fields, JsonObject obj, Span<Fiel
 
         const Field& field = fields[i];
 
+        if(!shouldEncodeField(field.type)) continue;
+        else if(field.type == FieldType::LIST && !shouldEncodeField(field.listData.templateField->type)) continue;
+
         const JsonElement* val = obj.get(field.key);
         if(val == nullptr) {
             values[i] = field.defaultValue;
         } else {
-            NBL_CHECK(_decodeFieldValue(field, *val, &values[i], allocator));
+            NBL_CHECK(_decodeFieldValue(context, field, *val, &values[i], allocator));
         }
     }
 

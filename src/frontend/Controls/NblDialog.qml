@@ -58,15 +58,21 @@ Item {
         height: root.height
         modal: true
 
-        topPadding: (height - Math.min(height - 16, root.targetHeight)) / 2
+        function snapToPixel(v) {
+            const ratio = Screen.devicePixelRatio
+            return Math.round(v * ratio) / ratio
+        }
+
+        topPadding: snapToPixel((height - Math.min(height - 16, root.targetHeight)) / 2)
         bottomPadding: topPadding
 
-        leftPadding: (width - Math.min(width - 16, root.targetWidth)) / 2
+        leftPadding: snapToPixel((width - Math.min(width - 16, root.targetWidth)) / 2)
         rightPadding: leftPadding
 
         background: Rectangle {
             anchors.fill: parent
-            color: "#AA000000"
+            opacity: 0.3
+            color: "black"
         }
 
         contentItem: Item {

@@ -32,6 +32,21 @@ Item {
         isFavorite = false
         details = ApplicationContext.getGameDetails(details.gameId)
         installationPicker.refresh()
+        achievementsSection.refresh()
+        achievementUpdateRunner.update(root.details.gameId)
+    }
+
+    Component.onCompleted: {
+        achievementUpdateRunner.update(root.details.gameId)
+    }
+
+    AchievementUpdateRunner { 
+        id: achievementUpdateRunner
+        onUpdateComplete: ret => {
+            if(ret) {
+                achievementsSection.refresh()
+            }
+        }
     }
 
     GridLayout {
@@ -330,120 +345,177 @@ Item {
                 radius: 8
             }
 
-            Column {
+            NblScrollView {
 
                 anchors.fill: parent
-                anchors.margins: 16
-                spacing: 8
+                anchors.topMargin: 16
+                anchors.bottomMargin: 16
+                anchors.leftMargin: 4
+                anchors.rightMargin: 4
+                contentHeight: righthandColumn.height
+                contentWidth: width
+                clip: true
 
-                function _formatElapsedTime(totalMs) {
-                    let totalSeconds = Math.floor(totalMs / 1000);
-                    let seconds = totalSeconds % 60;
-                    let minutes = Math.floor(totalSeconds / 60) % 60;
-                    let hours = Math.floor(totalSeconds / 3600);
+                ColumnLayout {
 
-                    let pad = (num) => String(num).padStart(2, '0');
-
-                    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-                }
-
-                Label {
-                    font.family: Theme.font
-                    font.pixelSize: 16
-                    font.weight: 600
-                    color: Theme.colors.text
-                    text: "Metadata"
-                }
-
-                Label {
-                    font.family: Theme.font
-                    font.pixelSize: 14
-                    font.weight: 600
-                    color: Theme.colors.textDim
-                    text: "Release Date: " + Theme.formatDate(root.details.releaseDate)
-                }
-
-                Label {
-                    font.family: Theme.font
-                    font.pixelSize: 14
-                    font.weight: 600
-                    color: Theme.colors.textDim
-                    text: "Added: " + Theme.formatDate(root.details.added)
-                }
-
-                Label {
-                    font.family: Theme.font
-                    font.pixelSize: 14
-                    font.weight: 600
-                    color: Theme.colors.textDim
-                    text: "Last played: " + (root.details.lastPlayed == 0 ? "Never" : Theme.formatDate(root.details.lastPlayed))
-                }
-
-                Label {
-                    visible: root.details.rating > 0
-                    font.family: Theme.font
-                    font.pixelSize: 14
-                    font.weight: 600
-                    color: Theme.colors.textDim
-                    text: "Rating: " + root.details.rating.toFixed(1) + "%"
-                }
-
-                Label {
-                    font.family: Theme.font
-                    font.pixelSize: 14
-                    font.weight: 600
-                    color: Theme.colors.textDim
-                    text: "Play time: " + parent._formatElapsedTime(root.details.playTime)
-                }
-
-                Label {
-                    font.family: Theme.font
-                    font.pixelSize: 14
-                    font.weight: 600
-                    color: Theme.colors.textDim
-                    text: "Play count: " + root.details.playCount
-                }
-
-
-
-                Label {
-                    font.family: Theme.font
-                    font.pixelSize: 16
-                    font.weight: 600
-                    color: Theme.colors.text
-                    text: "Tags"
-                    topPadding: 12
-                }
-
-                Flow {
-
-                    width: parent.width
+                    id: righthandColumn
+                    width: parent.width - 20
+                    x: 12
                     spacing: 8
 
-                    Repeater {
-                        model: NblGameTagModel {
-                            id: tagModel
+                    Column {
+
+                        Layout.fillWidth: true
+                        visible: achievementsSection.setCount > 0
+                        spacing: 8
+
+                        Item {
+                            width: parent.width
+                            height: 16
+                            RowLayout {
+                                spacing: 4
+                                Label {
+                                    font.weight: 600
+                                    color: Theme.colors.text
+                                    text: "Achievements"
+                                }
+                                Label {
+                                    font.weight: 600
+                                    color: Theme.colors.textDim
+                                    text: `(${achievementsSection.unlockedCount} / ${achievementsSection.totalCount}) (${(100.0 * (achievementsSection.unlockedCount / achievementsSection.totalCount)).toFixed(0)}%)`
+                                }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    let dialog = DialogManager.create("Pages/AchievementsDialog.qml", { 
+                                        gameId: root.details.gameId,
+                                    }) as NblDialog
+                                    dialog.closed.connect(() => {
+                                        achievementsSection.refresh()
+                                    })
+                                    dialog.open()
+                                }
+                            }
+                        }
+
+                        NblAchievementsSection {
+                            id: achievementsSection
+                            width: parent.width
                             gameId: root.details.gameId
-                            pageSize: 8
                         }
+                    }
 
-                        NblTag {
-                            required property var model;
-                            color: model.color
-                            text: model.name
-                            width: (parent.width / 2) - 4
+                    Label {
+                        font.family: Theme.font
+                        font.pixelSize: 16
+                        font.weight: 600
+                        color: Theme.colors.text
+                        text: "Tags"
+                    }
 
-                            Component.onCompleted: {
-                                if(model.name == "favorite") root.isFavorite = true
+                    Flow {
+
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        Repeater {
+                            model: NblGameTagModel {
+                                id: tagModel
+                                gameId: root.details.gameId
+                                pageSize: 8
                             }
 
-                            onClicked: {
-                                root.tagClicked(model.id, model.name, model.color)
+                            NblTag {
+                                required property var model;
+                                color: model.color
+                                text: model.name
+                                width: (parent.width / 2) - 4
+
+                                Component.onCompleted: {
+                                    if(model.name == "favorite") root.isFavorite = true
+                                }
+
+                                onClicked: {
+                                    root.tagClicked(model.id, model.name, model.color)
+                                }
                             }
                         }
+                    }
+
+
+
+                    Label {
+                        font.family: Theme.font
+                        font.pixelSize: 16
+                        font.weight: 600
+                        color: Theme.colors.text
+                        text: "Metadata"
+                    }
+
+                    Label {
+                        font.family: Theme.font
+                        font.pixelSize: 14
+                        font.weight: 600
+                        color: Theme.colors.textDim
+                        text: "Release Date: " + Theme.formatDate(root.details.releaseDate)
+                    }
+
+                    Label {
+                        font.family: Theme.font
+                        font.pixelSize: 14
+                        font.weight: 600
+                        color: Theme.colors.textDim
+                        text: "Added: " + Theme.formatDate(root.details.added)
+                    }
+
+                    Label {
+                        font.family: Theme.font
+                        font.pixelSize: 14
+                        font.weight: 600
+                        color: Theme.colors.textDim
+                        text: "Last played: " + (root.details.lastPlayed == 0 ? "Never" : Theme.formatDate(root.details.lastPlayed))
+                    }
+
+                    Label {
+                        visible: root.details.rating > 0
+                        font.family: Theme.font
+                        font.pixelSize: 14
+                        font.weight: 600
+                        color: Theme.colors.textDim
+                        text: "Rating: " + root.details.rating.toFixed(1) + "%"
+                    }
+
+                    Label {
+                        font.family: Theme.font
+                        font.pixelSize: 14
+                        font.weight: 600
+                        color: Theme.colors.textDim
+                        text: "Play time: " + root._formatElapsedTime(root.details.playTime)
+                    }
+
+                    Label {
+                        font.family: Theme.font
+                        font.pixelSize: 14
+                        font.weight: 600
+                        color: Theme.colors.textDim
+                        text: "Play count: " + root.details.playCount
                     }
                 }
             }
         }
     }
+
+    function _formatElapsedTime(totalMs) {
+        let totalSeconds = Math.floor(totalMs / 1000);
+        let seconds = totalSeconds % 60;
+        let minutes = Math.floor(totalSeconds / 60) % 60;
+        let hours = Math.floor(totalSeconds / 3600);
+
+        let pad = (num) => String(num).padStart(2, '0');
+
+        return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+
 }

@@ -184,6 +184,7 @@ public:
 
 
 bool fileExists(StringView path);
+Result deleteFile(StringView path);
 
 Result makeDirectories(StringView path);
 Result createLink(StringView target, StringView path);

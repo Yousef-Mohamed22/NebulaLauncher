@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 
 Column {
@@ -64,7 +65,9 @@ Column {
             rating: ratingField.value,
             tags: gameTags.getAddedTags(),
             removedTags: gameTags.getRemovedTags(),
-            externalIds: platformList.encode()
+            externalIds: platformList.encode(),
+            hiddenSets: shownSets.encode(),
+            achievementProviders: achievementsColumn.saveAll()
         }
     }
 
@@ -217,6 +220,135 @@ Column {
         onValueModified: { root.modified = true }
         tooltip: "The game's rating from 0-100"
     }
+
+
+    Column {
+        id: achievementsColumn
+        width: parent.width
+        visible: achievementsRepeater.count > 0
+
+        NblSectionHeader {
+            width: parent.width
+            label: "Achievement Providers"
+        }
+
+        function saveAll() {
+            let out = {}
+            for(let i = 0 ; i < achievementsRepeater.count ; i++) {
+                let item = achievementsRepeater.itemAt(i)
+                out[item.modelData.id] = {
+                    fields: item.save(),
+                    status: item.providerStatus,
+                    originalStatus: item.modelData.status
+                }
+            }
+            return out
+        }
+
+        Repeater {
+            id: achievementsRepeater
+            model: NblAchievementStateModel {
+                id: achievementsModel
+                gameId: root.gameId
+            }
+            delegate: Column {
+
+                id: providerColumn
+                width: achievementsColumn.width - 12
+                x: 12
+                spacing: 8
+
+                required property var modelData
+                required property int index
+
+                property int providerStatus: modelData.status
+                property bool added: providerStatus == 1 || providerStatus == 2
+
+                function save() { return added ? fieldList.save() : {} }
+
+                Component.onCompleted: {
+                    console.log("Status:",providerStatus)
+                    fieldList.load(modelData.fieldValues)
+                }
+
+                RowLayout {
+                    width: parent.width
+                    height: 40
+                    Label {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        text: providerColumn.modelData.name
+                        verticalAlignment: Qt.AlignVCenter
+                    }
+                    NblButton {
+                        Layout.preferredWidth: 128
+                        Layout.fillHeight: true
+                        text: providerColumn.added ? "Remove" : "Add"
+                        icon: providerColumn.added ? '' : ""
+                        centered: true
+                        activeColor: providerColumn.added ? Theme.colors.border : Theme.colors.accent
+                        inactiveColor: providerColumn.added ? Theme.colors.layer1 : Theme.colors.accent
+                        onClicked: {
+                            if(providerColumn.added) {
+                                providerColumn.providerStatus = 4
+                            } else {
+                                providerColumn.providerStatus = 2
+                            }
+                            console.log(providerColumn.providerStatus)
+                        }
+                    }
+                }
+
+                NblFieldInputRepeater {
+                    id: fieldList
+                    width: parent.width
+                    fields: providerColumn.added ? achievementsModel.fields(parent.index) : null
+                }
+            }
+        }
+    }
+
+
+    Column {
+        id: shownSets
+        width: parent.width
+        visible: setsRepeater.count > 0
+        spacing: 8
+
+        function encode() {
+            let out = []
+            for(let i = 0 ; i < setsRepeater.count ; i++) {
+                let item = setsRepeater.itemAt(i) as NblCheckBox
+                out.push({ 
+                    id: item.modelData.id,
+                    hidden: !item.checked
+                })
+            }
+            return out
+        }
+
+        NblSectionHeader {
+            width: parent.width
+            label: "Show Achievement Sets"
+        }
+        
+        Repeater {
+            id: setsRepeater
+            model: NblAchievementSetsModel {
+                gameId: root.gameId
+                includeHidden: true
+            }
+            delegate: NblCheckBox {
+                required property var modelData
+                x: 12
+                width: shownSets.width - 12
+                elide: Text.ElideRight
+                text: modelData.name
+                checked: !modelData.hidden
+            }
+        }
+    }
+
     NblListInput {
         id: platformList
         width: parent.width
@@ -236,7 +368,7 @@ Column {
         }
         delegate: RowLayout {
             required property var modelData
-            width: parent.width
+            width: platformList.itemWidth
 
             NblTextBox {
                 Layout.fillHeight: true
