@@ -172,6 +172,7 @@ struct GameLookupResult {
 typedef std::function_ref<Result(const GameMeta&)> GameMetaCallback;
 typedef std::function_ref<Result(const GameDetails&)> GameDetailsCallback;
 typedef std::function_ref<Result(const GameLookupResult&)> GameLookupCallback;
+typedef std::function_ref<Result(i64 gameId, StringView platformName, StringView platformId)> GameExternalIdCallback;
 
 /**
  * \brief Adds a game to the database with the specified information
@@ -229,6 +230,17 @@ Result getGameTags(DatabaseConnection* connection, i64 gameId, TagCallback callb
 Result getGameMeta(DatabaseConnection* connection, i64 gameId, GameMetaCallback callback);
 
 Result getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCallback callback);
+
+
+Result enumerateGameExternalIds(DatabaseConnection* connection, i64 gameId, GameExternalIdCallback callback);
+
+Result getGameExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName, GameExternalIdCallback callback);
+
+Result setGameExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName, StringView platformId);
+
+Result removeGameExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName);
+
+Result clearGameExternalIds(DatabaseConnection* connection, i64 gameId);
 
 /**
  * \brief Looks up games in the database that match the specified criteria and invokes a callback for each matching game

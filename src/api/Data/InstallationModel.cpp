@@ -640,3 +640,4 @@ WHERE iId = ?2;
     return connection->execute(&_incrementInstallationPlayTimeStmt);
 
 }
+

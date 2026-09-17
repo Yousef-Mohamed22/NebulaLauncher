@@ -111,6 +111,13 @@ CREATE TABLE IF NOT EXISTS game (
     lastPlayedDeleted INTEGER,
     added INTEGER
 );
+CREATE TABLE IF NOT EXISTS game_external_id (
+    gId INTEGER,
+    platformName TEXT,
+    platformId TEXT,
+    UNIQUE (gId, platformName),
+    FOREIGN KEY(gId) REFERENCES game(gId)
+);
 CREATE TABLE IF NOT EXISTS device (
     deviceId INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE

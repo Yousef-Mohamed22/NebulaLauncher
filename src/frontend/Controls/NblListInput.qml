@@ -28,8 +28,14 @@ Item {
         return itemRepeater.itemAt(i)
     }
 
+    function wasAdded(i) {
+        return items[i].added
+    }
+
     signal itemPopped(int index)
     signal itemMoved(int oldIndex, int currentIndex)
+    signal itemAdded()
+
 
     implicitHeight: contentColumn.height
 
@@ -37,7 +43,7 @@ Item {
 
         items.clear()
         for(let i = 0 ; i < initialItems.length ; i++) {
-            items.append({ modelData: initialItems[i] })
+            items.append({ modelData: initialItems[i], added: false })
         }
     }
 
@@ -275,7 +281,8 @@ Item {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    root.items.append({ modelData: root.createNew(root.items.count) })
+                    root.items.append({ modelData: root.createNew(root.items.count), added: true })
+                    root.itemAdded()
                 }
             }
         }

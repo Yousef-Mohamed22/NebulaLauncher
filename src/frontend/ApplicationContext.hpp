@@ -118,6 +118,8 @@ public:
     Q_INVOKABLE int updateGame(QVariantMap details);
     Q_INVOKABLE int deleteGame(qint64 gameId);
 
+    Q_INVOKABLE QVariantMap gameExternalIds(qint64 gameIds);
+
     Q_INVOKABLE NblFieldList* getInstallationTypeFields(QString installationType);
     Q_INVOKABLE NblAccountsModel* accountsModel(QString accountProvider);
 

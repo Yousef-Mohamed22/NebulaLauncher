@@ -110,7 +110,7 @@ NblDialog {
             NblListInput {
                 id: platformList
                 width: parent.width
-                label: "Platform IDs"
+                label: "External IDs"
                 controlsOffset: titleBox.backgroundOffset
 
                 createNew: function() {

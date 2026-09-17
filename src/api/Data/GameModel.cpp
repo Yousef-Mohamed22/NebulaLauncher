@@ -424,3 +424,110 @@ OFFSET ?8;
     });
 }
 
+
+nbl::Result nbl::enumerateGameExternalIds(DatabaseConnection* connection, i64 gameId, GameExternalIdCallback callback) {
+ 
+    static nbl::PreparedStatement _enumerateExternalIdsStmt;
+    if(!_enumerateExternalIdsStmt.isValid(connection)) {
+
+        NBL_CHECK(connection->prepare(R"(
+SELECT gId, platformName, platformId
+FROM game_external_id
+WHERE gId = ?1;
+        )", &_enumerateExternalIdsStmt));
+    }
+
+    NBL_CHECK(_enumerateExternalIdsStmt.bindInt(1, gameId));
+
+    return connection->execute(&_enumerateExternalIdsStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount != 3) {
+            return nbl::Result::IO_ERROR;
+        }
+        return callback(
+            columnValues[0].intValue,
+            columnValues[1].textValue, 
+            columnValues[2].textValue
+        );
+    });
+}
+
+nbl::Result nbl::getGameExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName, GameExternalIdCallback callback) {
+
+    static nbl::PreparedStatement _getExternalIdStmt;
+if(!_getExternalIdStmt.isValid(connection)) {
+
+    NBL_CHECK(connection->prepare(R"(
+SELECT gId, platformName, platformId
+FROM game_external_id
+WHERE gId = ?1 AND platformName = ?2;
+        )", &_getExternalIdStmt));
+    }
+
+    NBL_CHECK(_getExternalIdStmt.bindInt(1, gameId));
+    NBL_CHECK(_getExternalIdStmt.bindString(2, platformName));
+
+    return connection->execute(&_getExternalIdStmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount != 3) {
+            return nbl::Result::IO_ERROR;
+        }
+        return callback(
+            columnValues[0].intValue,
+            columnValues[1].textValue, 
+            columnValues[2].textValue
+        );
+    });
+}
+
+nbl::Result nbl::setGameExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName, StringView platformId) {
+
+    static nbl::PreparedStatement _setExternalIdStmt;
+    if(!_setExternalIdStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+INSERT INTO game_external_id (gId, platformName, platformId)
+VALUES (?1, ?2, ?3)
+ON CONFLICT(gId, platformName) DO
+UPDATE SET platformId = ?3;
+        )", &_setExternalIdStmt));
+    }
+    
+    NBL_CHECK(_setExternalIdStmt.bindUint(1, gameId));
+    NBL_CHECK(_setExternalIdStmt.bindString(2, platformName));
+    NBL_CHECK(_setExternalIdStmt.bindString(3, platformId));
+
+    return connection->execute(&_setExternalIdStmt);
+
+}
+
+nbl::Result nbl::removeGameExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName) {
+    
+    static nbl::PreparedStatement _removeExternalIdStmt;
+    if(!_removeExternalIdStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+DELETE FROM game_external_id 
+WHERE gId = ?1 AND platformName = ?2;
+        )", &_removeExternalIdStmt));
+    }
+    
+    NBL_CHECK(_removeExternalIdStmt.bindUint(1, gameId));
+    NBL_CHECK(_removeExternalIdStmt.bindString(2, platformName));
+
+    return connection->execute(&_removeExternalIdStmt);
+
+}
+
+nbl::Result nbl::clearGameExternalIds(DatabaseConnection* connection, i64 gameId) {
+    
+    static nbl::PreparedStatement _clearExternalIdsStmt;
+    if(!_clearExternalIdsStmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+DELETE FROM game_external_id 
+WHERE gId = ?1;
+        )", &_clearExternalIdsStmt));
+    }
+    
+    NBL_CHECK(_clearExternalIdsStmt.bindUint(1, gameId));
+
+    return connection->execute(&_clearExternalIdsStmt);
+}

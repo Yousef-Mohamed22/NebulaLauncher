@@ -39,6 +39,13 @@ Column {
 
         ratingField.value = details.rating
 
+        let ids = ApplicationContext.gameExternalIds(gameId)
+        let externalIds = []
+        for(let platformName in ids) {
+            externalIds.push({ platform: platformName, id: ids[platformName] })
+        }
+        platformList.initialItems = externalIds
+
         modified = false
     }
 
@@ -56,7 +63,8 @@ Column {
             releaseDate: releaseDateField.getTime(),
             rating: ratingField.value,
             tags: gameTags.getAddedTags(),
-            removedTags: gameTags.getRemovedTags()
+            removedTags: gameTags.getRemovedTags(),
+            externalIds: platformList.encode()
         }
     }
 
@@ -208,5 +216,48 @@ Column {
         onValueModified: { root.modified = true }
         tooltip: "The game's rating from 0-100"
     }
+    NblListInput {
+        id: platformList
+        width: parent.width
+        label: "External IDs"
+        controlsOffset: gameTitleField.backgroundOffset
 
+        function encode() {
+            let out = []
+            for(let i = 0 ; i < count ; i++) {
+                out.push(itemAt(i).modelData)
+            }
+            return out;
+        }
+
+        createNew: function() {
+            return { platform: "", id: "" }
+        }
+        delegate: RowLayout {
+            required property var modelData
+            width: parent.width
+
+            NblTextBox {
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.preferredWidth: 200
+                label: "Platform Name"
+                text: parent.modelData.platform
+                onTextEdited: {
+                    parent.modelData.platform = text
+                }
+            }
+
+            NblTextBox {
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.preferredWidth: 200
+                label: "ID"
+                text: parent.modelData.id
+                onTextEdited: {
+                    parent.modelData.id = text
+                }
+            }
+        }
+    }
 }

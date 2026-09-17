@@ -559,7 +559,7 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
         meta.logoPosition = position;
     }
 
-    NBL_CHECK(nbl::addInstallation(databaseConnection(), meta, &meta.id));
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::addInstallation(databaseConnection(), meta, &meta.id));
 
     for(QVariant tag : params.find("addedInstallationTags")->toList()) {
         tagInstallation(meta.id, tag.toLongLong());
@@ -574,7 +574,15 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
         untagGame(realGId, tag.toLongLong());
     }
 
-    NBL_CHECK(databaseConnection()->commitTransaction());
+    for(QVariant qs : params.find("externalIds")->toList()) {
+        QByteArray name = qs.toMap().find("platform")->toString().toUtf8();
+        QByteArray id = qs.toMap().find("id")->toString().toUtf8();
+        nbl::StringView nblName(name.data(), name.length());
+        nbl::StringView nblId(id.data(), id.length());
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::setGameExternalId(databaseConnection(), realGId, nblName, nblId));
+    }
+
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), databaseConnection()->commitTransaction());
     return InstallationAddResult(
         true,
         gId == 0,
@@ -1155,6 +1163,13 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
     for(QVariant qs : params.find("tags")->toList()) {
         tagGame(gId, qs.toLongLong());
     }
+    for(QVariant qs : params.find("externalIds")->toList()) {
+        QByteArray name = qs.toMap().find("platform")->toString().toUtf8();
+        QByteArray id = qs.toMap().find("id")->toString().toUtf8();
+        nbl::StringView nblName(name.data(), name.length());
+        nbl::StringView nblId(id.data(), id.length());
+        nbl::setGameExternalId(databaseConnection(), gId, nblName, nblId);
+    }
 
     return gId;
 }
@@ -1208,11 +1223,32 @@ int ApplicationContext::updateGame(QVariantMap params) {
     for(QVariant qs : params.find("removedTags")->toList()) {
         untagGame(gId, qs.toLongLong());
     }
+
+    nbl::clearGameExternalIds(databaseConnection(), gId);
+    for(QVariant qs : params.find("externalIds")->toList()) {
+        QByteArray name = qs.toMap().find("platform")->toString().toUtf8();
+        QByteArray id = qs.toMap().find("id")->toString().toUtf8();
+        nbl::StringView nblName(name.data(), name.length());
+        nbl::StringView nblId(id.data(), id.length());
+        nbl::setGameExternalId(databaseConnection(), gId, nblName, nblId);
+    }
+
     return 0;
 }
 
 int ApplicationContext::deleteGame(qint64 gameId) {
     return nbl::removeGame(databaseConnection(), gameId);
+}
+
+QVariantMap ApplicationContext::gameExternalIds(qint64 gameId) {
+    QVariantMap out = {};
+    nbl::enumerateGameExternalIds(databaseConnection(), gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
+
+        out[fromNbl(platformName)] = fromNbl(platformId);
+        return nbl::Result::NOT_FOUND;
+    });
+
+    return out;
 }
 
 
