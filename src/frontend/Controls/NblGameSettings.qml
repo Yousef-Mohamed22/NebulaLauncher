@@ -80,7 +80,8 @@ Column {
                 targetWidth: 700,
                 targetHeight: 700,
                 title: gameTitleField.text,
-                releaseDate: releaseDateField.getTime()
+                releaseDate: releaseDateField.getTime(),
+                platformIds: platformList.encode()
             }) as MetadataSearchDialog
             dialog.apply.connect(function() {
 

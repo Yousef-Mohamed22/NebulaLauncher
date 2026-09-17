@@ -63,14 +63,14 @@ void OnlineGameSearchWorker::run() {
         }
         out["tags"] = tags;
         
-        QVariantMap platformIds = {};
+        QVariantList platformIds = {};
         for(usize i = 0 ; i < nbl::min(value.platformIds.length, value.platformNames.length) ; i++) {
-            platformIds.insert(
-                    QString::fromUtf8(value.platformNames[i].data, value.platformNames[i].length), 
-                    QString::fromUtf8(value.platformIds[i].data, value.platformIds[i].length)
-            );
+            QVariantMap id = {};
+            id["platform"] = QString::fromUtf8(value.platformNames[i].data, value.platformNames[i].length);
+            id["id"] = QString::fromUtf8(value.platformIds[i].data, value.platformIds[i].length);
+            platformIds.append(id);
         }
-        out["platformIds"] = platformIds;
+        out["externalIds"] = platformIds;
 
         emit resultAvailable(out);
         return nbl::Result::SUCCESS;

@@ -251,6 +251,7 @@ NblDialog {
                                     params["description"] = resultItem.meta["description"]
                                     params["releaseDate"] = resultItem.meta["releaseDate"]
                                     params["rating"] = resultItem.meta["rating"]
+                                    params["externalIds"] = resultItem.meta["externalIds"]
 
                                     let tags = []
 

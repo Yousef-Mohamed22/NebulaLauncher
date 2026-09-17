@@ -145,10 +145,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
             if(response.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
             if(!response.object.getBoolean("success")) return nbl::Result::SUCCESS;
 
-            nbl::JsonArray data = response.object.getArray("data");
-            if(data.count == 0) return nbl::Result::SUCCESS;
+            nbl::JsonObject data = response.object.getObject("data");
+            if(data.entryCount == 0) return nbl::Result::SUCCESS;
 
-            intId = data.getObject(0).getNumber("id").asUint();
+            intId = data.getNumber("id").asUint();
             frame.popTo(begin);
         }
 

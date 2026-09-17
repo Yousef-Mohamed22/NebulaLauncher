@@ -2,9 +2,9 @@
 
 #include <Core/String.hpp>
 #include <Plugin/PluginContext.hpp>
+#include <Data/Model.hpp>
 
 #include <functional>
-#include <Data/Model.hpp>
 
 namespace nbl {
 

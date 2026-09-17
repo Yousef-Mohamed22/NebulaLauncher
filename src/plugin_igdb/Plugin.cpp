@@ -14,6 +14,7 @@
 #include <Platform/Time.hpp>
 #include <utility>
 #include <Plugin/Field.hpp>
+#include "Data/Model.hpp"
 
 
 
@@ -22,6 +23,60 @@ namespace {
 char _clientIdBuffer[256];
 char _clientSecretBuffer[256];
 char _accessTokenBuffer[256];
+
+
+enum _ExternalGameSource : u32 {
+    EXT_STEAM = 1,
+    EXT_GIANTBOMB = 3,
+    EXT_GOG = 5,
+    EXT_YOUTUBE = 10,
+    EXT_MICROSOFT = 11,
+    EXT_APPLE = 13,
+    EXT_TWITCH = 14,
+    EXT_ANDROID = 15,
+    EXT_AMAZON = 20,
+    EXT_AMAZON_LUNA = 22,
+    EXT_AMAZON_ADG = 23,
+    EXT_EGS = 26,
+    EXT_OCULUS = 28,
+    EXT_UTOMIK = 29,
+    EXT_ITCHIO = 30,
+    EXT_XBOX = 31,
+    EXT_KARTRIDGE = 32,
+    EXT_PS = 36,
+    EXT_FOCUS = 37,
+    EXT_XBOX_GPU_CLOUD = 54,
+    EXT_GAMEJOLT = 55
+};
+
+
+nbl::StringView _externalSourceName(u32 index) {
+    switch(index) {
+        case EXT_STEAM: return "steam";
+    	case EXT_GIANTBOMB: return "giantbomb";
+    	case EXT_GOG: return "gog";
+    	case EXT_YOUTUBE: return "youtube";
+    	case EXT_MICROSOFT: return "microsoft_store";
+    	case EXT_APPLE: return "app_store";
+    	case EXT_TWITCH: return "twitch";
+    	case EXT_ANDROID: return "play_store";
+    	case EXT_AMAZON: return "amazon_appstore";
+    	case EXT_AMAZON_LUNA: return "amazon_luna";
+    	case EXT_AMAZON_ADG: return "amazon_digital_games";
+    	case EXT_EGS: return "epic_games";
+    	case EXT_OCULUS: return "oculus";
+    	case EXT_UTOMIK: return "utomik";
+    	case EXT_ITCHIO: return "itchio";
+    	case EXT_XBOX: return "xbox";
+    	case EXT_KARTRIDGE: return "kartridge";
+    	case EXT_PS: return "playstation";
+    	case EXT_FOCUS: return "focus_entertainment";
+    	case EXT_XBOX_GPU_CLOUD: return "xbox_gamepass_ultimate_cloud";
+    	case EXT_GAMEJOLT: return "gamejolt";
+    }
+    return "";
+};
+
 
 enum _TagMode : u32 {
     TAG_MODE_ALL = 0,
@@ -256,7 +311,7 @@ bool _canProvide(nbl::PluginContext* context, const nbl::OnlineGameLookupInfo& i
 nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInfo& info, nbl::OnlineGameCallback callback, void* userData) {
 
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    nbl::StringView fields = "fields aggregated_rating,artworks.image_id,artworks.image_type,cover.image_id,cover.image_type,first_release_date,name,summary,themes.slug,genres.slug,player_perspectives.slug";
+    nbl::StringView fields = "fields aggregated_rating,artworks.image_id,artworks.image_type,cover.image_id,cover.image_type,first_release_date,name,summary,external_games.uid,external_games.external_game_source";
 
     nbl::StringBuilder builder(&frame);
     builder.append(fields);
@@ -343,20 +398,50 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
             if(element.type != nbl::JsonType::OBJECT) continue;
 
             u64 imageType = element.object.getNumber("image_type").asUint();
-            if(meta.posterUrl.length == 0 && imageType == 8) {
+            if(meta.posterUrl.length == 0 && (imageType == 8 || imageType == 10)) {
                 NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.object.getString("image_id")).append(".png").build(&meta.posterUrl));
             }
             if(meta.iconUrl.length == 0 && (imageType == 11 || imageType == 13)) {
                 NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.object.getString("image_id")).append(".png").build(&meta.iconUrl));
             }
-            if(meta.logoUrl.length == 0 && (imageType == 5 || imageType == 6)) {
+            if(meta.logoUrl.length == 0 && (imageType == 5 || imageType == 6 || imageType == 7)) {
                 NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.object.getString("image_id")).append(".png").build(&meta.logoUrl));
             }
-            if(meta.bannerUrl.length == 0 && imageType == 2) {
+            if(meta.bannerUrl.length == 0 && (imageType == 1 || imageType == 2 || imageType == 3)) {
                 NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.object.getString("image_id")).append(".png").build(&meta.bannerUrl));
+                if(imageType == 3) { // Key art with logo
+                    meta.logoPosition = nbl::LogoPosition::HIDDEN;
+                }
             }
         }
 
+        nbl::StringView idStr;
+        NBL_CHECK(nbl::StringBuilder(&subFrame).append(id).build(&idStr));
+
+        nbl::JsonArray arr = obj.getArray("external_games");
+
+        subFrame.allocate(&meta.platformNames.data, arr.count + 1);
+        subFrame.allocate(&meta.platformIds.data, arr.count + 1);
+
+        meta.platformNames[meta.platformNames.length++] = "igdb";
+        meta.platformIds[meta.platformIds.length++] = idStr;
+
+        if(arr.count > 0) {
+
+            for(nbl::JsonElement element : arr) {
+                if(element.type != nbl::JsonType::OBJECT) continue;
+                nbl::JsonObject& obj = element.object;
+
+                nbl::StringView uid = obj.getString("uid");
+                u64 sourceId = obj.getNumber("external_game_source").asUint();
+
+                nbl::StringView platformName = _externalSourceName(sourceId);
+                if(uid.empty() || platformName.empty()) continue;
+
+                meta.platformNames[meta.platformNames.length++] = platformName;
+                meta.platformIds[meta.platformIds.length++] = uid;
+            }
+        }
 
         if(_tagMode != TAG_MODE_NONE) {
 

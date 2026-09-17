@@ -117,6 +117,8 @@ int MetadataSearchHelper::lookup(QByteArray title, quint64 releaseDate, QVariant
 
             memcpy(data, value.data(), value.length());
             ids[index] = nbl::StringView(static_cast<char*>(data), value.length());
+
+            index++;
         }
 
         info.platformIds = nbl::Span<nbl::StringView>(ids, platformIds.count());

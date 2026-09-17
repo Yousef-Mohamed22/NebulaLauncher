@@ -1243,9 +1243,8 @@ int ApplicationContext::deleteGame(qint64 gameId) {
 QVariantMap ApplicationContext::gameExternalIds(qint64 gameId) {
     QVariantMap out = {};
     nbl::enumerateGameExternalIds(databaseConnection(), gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
-
-        out[fromNbl(platformName)] = fromNbl(platformId);
-        return nbl::Result::NOT_FOUND;
+        out[QString(fromNbl(platformName))] = QString(fromNbl(platformId));
+        return nbl::Result::SUCCESS;
     });
 
     return out;

@@ -113,6 +113,8 @@ NblDialog {
                 label: "External IDs"
                 controlsOffset: titleBox.backgroundOffset
 
+                initialItems: root.platformIds
+
                 createNew: function() {
                     return { platform: "", id: "" }
                 }
