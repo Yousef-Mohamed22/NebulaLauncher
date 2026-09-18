@@ -19,12 +19,14 @@ nbl::Result nbl::PluginLoader::loadAll() {
     nbl::Arena registrationsTempArena{};
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 64, &registrationsTempArena));
 
+    nbl::Registry::Builder builder(&registrationsTempArena);
+
     {
         PluginInitContext builtin{};
         LoadedPlugin builtinPlugin{};
-        NBL_CHECK(PluginInitContext::create(&registrationsTempArena, &builtinPlugin, _pContext->databaseConnection(), _pContext->databasePath(), _pContext->pluginDataPath(), &builtin));
+        NBL_CHECK(PluginInitContext::create(&builder, &builtinPlugin, _pContext->databaseConnection(), _pContext->databasePath(), _pContext->pluginDataPath(), &builtin));
 
-        builtin.registerInstallationType(&InstallationType::COMMAND);
+        builtin.registerObject(&InstallationType::COMMAND);
     }
 
     StringView pluginFolder;
@@ -38,63 +40,17 @@ nbl::Result nbl::PluginLoader::loadAll() {
         nbl::StringView fullPath = {};
         NBL_CHECK(nbl::StringBuilder(&frame).append(_mPluginFolder).append('/').append(pluginFolder).build(&fullPath));
 
-        nbl::Result res = _load(fullPath, &registrationsTempArena);
+        nbl::Result res = _load(fullPath, &builder);
         if(res.error()) {
             nbl::log(nbl::LogLevel::WARN, "Unable to load plugin at ", pluginFolder, " (error ", res, ")");
         }
     }
 
-    // Process registrations
-    if(registrationsTempArena.index() > 0) {
-
-        usize registryCounts[PluginRegistries::count()];
-        usize registryMoved[PluginRegistries::count()];
-        usize offsets[PluginRegistries::count()];
-        usize totalSize = 0;
-
-        {
-            u8* current = static_cast<u8*>(registrationsTempArena.begin());
-            while(current < registrationsTempArena.end()) {
-                PluginRegistries::Registry reg = *reinterpret_cast<PluginRegistries::Registry*>(current);
-                current += sizeof(PluginRegistries::Registry);
-
-                registryCounts[reg]++;
-                current += sizeof(void*);
-                totalSize += sizeof(void*);
-            }
-        }
-
-        u8* allocation;
-        NBL_CHECK(_pContext->_mArena.push(totalSize, reinterpret_cast<void**>(&allocation)));
-
-
-        for(usize i = 0 ; i < PluginRegistries::count() ; i++) {
-
-            usize thisSize = registryCounts[i] * sizeof(void*);
-            totalSize -= thisSize;
-            offsets[i] = totalSize;
-            _pContext->_pStarts[i] = allocation + offsets[i];
-            _pContext->_mCounts[i] = registryCounts[i];
-        }
-
-        {
-            u8* current = static_cast<u8*>(registrationsTempArena.begin());
-            while(current < registrationsTempArena.end()) {
-                PluginRegistries::Registry reg = *reinterpret_cast<PluginRegistries::Registry*>(current);
-                current += sizeof(PluginRegistries::Registry);
-
-                usize realOffset = offsets[reg] + (registryMoved[reg]++) * sizeof(void*);
-                memcpy(allocation + realOffset, current, sizeof(void*));
-
-                current += sizeof(void*);
-            }
-        }
-    }
- 
+    NBL_CHECK(builder.build(&_pContext->_mArena, &_pContext->_mRegistry));
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::PluginLoader::_load(StringView folder, LinearAllocator* registrations) {
+nbl::Result nbl::PluginLoader::_load(StringView folder, Registry::Builder* registrations) {
 
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 

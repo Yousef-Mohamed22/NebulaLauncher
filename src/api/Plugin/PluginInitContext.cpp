@@ -19,24 +19,11 @@ bool nbl::PluginInitContext::_verifyId(nbl::StringView id) {
 }
 
 
-nbl::Result nbl::PluginInitContext::_register(nbl::PluginRegistries::Registry registry, const void* value) {
-
-    PluginRegistries::Registry* reg;
-    NBL_CHECK(_pAllocator->allocate(&reg));
-    *reg = registry;
-
-    const void** val;
-    NBL_CHECK(_pAllocator->allocate(&val));
-    *val = value;
-
-    return nbl::Result::SUCCESS;
-}
 
 
+nbl::Result nbl::PluginInitContext::create(Registry::Builder* builder, LoadedPlugin* plugin, DatabaseConnection* connection, StringView databasePath, StringView pluginDataPath, PluginInitContext* outCtx) {
 
-nbl::Result nbl::PluginInitContext::create(LinearAllocator* allocator, LoadedPlugin* plugin, DatabaseConnection* connection, StringView databasePath, StringView pluginDataPath, PluginInitContext* outCtx) {
-
-    outCtx->_pAllocator = allocator;
+    outCtx->_pBuilder = builder;
     outCtx->_pPlugin = plugin;
     outCtx->_pConnection = connection;
     outCtx->_mDatabasePath = databasePath;

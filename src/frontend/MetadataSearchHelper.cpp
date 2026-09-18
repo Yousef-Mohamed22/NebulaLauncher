@@ -80,7 +80,7 @@ int MetadataSearchHelper::lookup(QByteArray title, quint64 releaseDate, QVariant
 
     ApplicationContext* ctx = ApplicationContext::instance();
 
-    if(ctx->pluginContext()->metadataProviders().length == 0) {
+    if(ctx->pluginContext()->registry<nbl::MetadataProvider>().length == 0) {
         emit done();
         return nbl::Result::SUCCESS;
     } 
@@ -127,7 +127,7 @@ int MetadataSearchHelper::lookup(QByteArray title, quint64 releaseDate, QVariant
 
 
     nbl::PluginContext* context = ApplicationContext::instance()->pluginContext();
-    for(const nbl::MetadataProvider* provider : context->metadataProviders()) {
+    for(const nbl::MetadataProvider* provider : context->registry<nbl::MetadataProvider>()) {
         if(provider->canProvide(context, info)) {
 
             MetadataSearchWorker* worker = new MetadataSearchWorker(this, &info, provider);

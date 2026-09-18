@@ -72,7 +72,7 @@ void _stopServer() {
 i32 _sThreadProc(void* userData) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider* prov = ctx->accountProviders().data[_sTracker.current];
+    const nbl::AccountProvider* prov = ctx->registry<nbl::AccountProvider>().data[_sTracker.current];
 
     nbl::Result result = prov->basicData.login(
         ctx,
@@ -93,7 +93,7 @@ i32 _sThreadProc(void* userData) {
 nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider* prov = ctx->accountProviders().data[_sTracker.current];
+    const nbl::AccountProvider* prov = ctx->registry<nbl::AccountProvider>().data[_sTracker.current];
     
     nbl::StringView codeVerifier(_sTracker.oAuthData.challenge.data, 128);
 
@@ -145,7 +145,7 @@ nbl::Result _sServerHandler(nbl::StringView path, void* userData) {
 i32 _sTokenThreadProc(void* userData) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider* prov = ctx->accountProviders().data[_sTracker.current];
+    const nbl::AccountProvider* prov = ctx->registry<nbl::AccountProvider>().data[_sTracker.current];
 
     nbl::Result result = prov->tokenData.login(
         ctx,
@@ -169,14 +169,14 @@ int NblAccountProviderModel::rowCount(const QModelIndex& parent) const {
     Q_UNUSED(parent)
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
     if(ctx == nullptr) return 0;
-    return ctx->accountProviders().length;
+    return ctx->registry<nbl::AccountProvider>().length;
 }
 
 QVariant NblAccountProviderModel::data(const QModelIndex& index, int role) const {
     if(index.row() >= rowCount()) return QVariant();
     
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider* type = ctx->accountProviders().data[index.row()];
+    const nbl::AccountProvider* type = ctx->registry<nbl::AccountProvider>().data[index.row()];
 
     switch(role) {
         case IdRole:
@@ -233,7 +233,7 @@ void NblAccountProviderModel::loginOAuth(quint32 index) {
         ctx->pushNotification(nbl::NotificationType::ERROR, "Cannot log in", "Already trying to login to another account");
         return;
     }
-    const nbl::AccountProvider* type = ctx->accountProviders().data[index];
+    const nbl::AccountProvider* type = ctx->registry<nbl::AccountProvider>().data[index];
     _sTracker.current = index;
  
     u16 port = type->oAuthData.port;
@@ -335,7 +335,7 @@ void NblAccountProviderModel::loginToken(quint32 index, QString token) {
 void NblAccountProviderModel::logout(quint32 index, quint32 accountId) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider* prov = ctx->accountProviders().data[index];
+    const nbl::AccountProvider* prov = ctx->registry<nbl::AccountProvider>().data[index];
 
     prov->logout(ctx, accountId);
 }
@@ -343,7 +343,7 @@ void NblAccountProviderModel::logout(quint32 index, quint32 accountId) {
 NblAccountsModel* NblAccountProviderModel::accounts(quint32 index) {
 
     nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-    const nbl::AccountProvider* type = ctx->accountProviders().data[index];
+    const nbl::AccountProvider* type = ctx->registry<nbl::AccountProvider>().data[index];
 
     return new NblAccountsModel(type, this);
 }

@@ -30,14 +30,14 @@ public:
         Q_UNUSED(parent)
         nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
         if(ctx == nullptr) return 0;
-        return ctx->types().length;
+        return ctx->registry<nbl::InstallationType>().length;
     }
 
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override {
         if(index.row() >= rowCount()) return QVariant();
         
         nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
-        const nbl::InstallationType* type = ctx->types().data[index.row()];
+        const nbl::InstallationType* type = ctx->registry<nbl::InstallationType>()[index.row()];
 
         switch(role) {
             case IdRole:

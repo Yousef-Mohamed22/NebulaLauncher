@@ -122,7 +122,7 @@ int OnlineGameSearchHelper::lookup(QByteArray title) {
 
     ApplicationContext* ctx = ApplicationContext::instance();
 
-    if(ctx->pluginContext()->metadataProviders().length == 0) {
+    if(ctx->pluginContext()->registry<nbl::GameProvider>().length == 0) {
         emit done();
         return nbl::Result::SUCCESS;
     } 
@@ -144,7 +144,7 @@ int OnlineGameSearchHelper::lookup(QByteArray title) {
 
 
     nbl::PluginContext* context = ApplicationContext::instance()->pluginContext();
-    for(const nbl::GameProvider* provider : context->gameProviders()) {
+    for(const nbl::GameProvider* provider : context->registry<nbl::GameProvider>()) {
         if((c == CLASS_TITLE || provider->id == titleView.slice(0, sep)) && provider->canProvide(context, info)) {
 
             OnlineGameSearchWorker* worker = new OnlineGameSearchWorker(this, &info, provider);

@@ -13,17 +13,9 @@ namespace nbl {
 class PluginInitContext {
 public:
 
-    inline Result registerInstallationType(const InstallationType* type) {
-        return _register(PluginRegistries::Registry::INSTALLATION_TYPE, type);
-    }
-    Result registerAccountProvider(const AccountProvider* provider) {
-        return _register(PluginRegistries::Registry::ACCOUNT_PROVIDER, provider);
-    }
-    Result registerMetadataProvider(const MetadataProvider* provider) {
-        return _register(PluginRegistries::Registry::METADATA_PROVIDER, provider);
-    }
-    Result registerGameProvider(const GameProvider* provider) {
-        return _register(PluginRegistries::Registry::GAME_PROVIDER, provider);
+    template<typename T>
+    inline Result registerObject(T* object) {
+        return _pBuilder->add(object);
     }
 
     inline const PluginMeta* getMeta() const { return &_pPlugin->meta; }
@@ -37,14 +29,14 @@ public:
     Result storeFieldValues(Span<Field> fields, Span<FieldValue> values);
     Result setFields(Span<Field> fields, void(*pfnUpdateCallback)(Span<Field> fields, Span<FieldValue> newValues, void* userData), void* userData);
 
-    static Result create(LinearAllocator* allocator, LoadedPlugin* plugin, DatabaseConnection* connection, StringView databasePath, StringView pluginDataPath, PluginInitContext* outCtx);
+    static Result create(Registry::Builder* builder, LoadedPlugin* plugin, DatabaseConnection* connection, StringView databasePath, StringView pluginDataPath, PluginInitContext* outCtx);
 
 private:
 
     bool _verifyId(StringView id);
-    Result _register(PluginRegistries::Registry reg, const void* value);
 
-    LinearAllocator* _pAllocator;
+    Registry::Builder* _pBuilder;
+    
     LoadedPlugin* _pPlugin;
     DatabaseConnection* _pConnection;
 

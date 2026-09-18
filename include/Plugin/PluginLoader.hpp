@@ -38,7 +38,7 @@ public:
 
 private:
 
-    Result _load(StringView folder, LinearAllocator* registrations);
+    Result _load(StringView folder, Registry::Builder* registrations);
 
     Arena _mMetaArena;
     Arena _mDataArena;

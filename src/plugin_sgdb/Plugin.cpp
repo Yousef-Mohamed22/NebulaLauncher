@@ -428,8 +428,8 @@ nbl::Array _pluginFields {
 extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
 
     nbl::log(nbl::LogLevel::INFO, "Initializing SteamGridDB plugin...");
-    context->registerAccountProvider(&_provider);
-    context->registerMetadataProvider(&_metaProvider);
+    NBL_CHECK(context->registerObject(&_provider));
+    NBL_CHECK(context->registerObject(&_metaProvider));
     
     context->setFields(_pluginFields, [](nbl::Span<nbl::Field> fields, nbl::Span<nbl::FieldValue> fieldValues, void* userData) {
         _filters.allowNsfw = fieldValues[0].enumValue;

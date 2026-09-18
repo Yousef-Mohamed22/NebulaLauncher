@@ -13,69 +13,6 @@
 #include <Data/Model.hpp>
 
 
-const nbl::InstallationType* nbl::PluginContext::getInstallationType(StringView id) const {
-    for(const auto& type : types()) {
-        if(type->id == id) {
-            return type;
-        }
-    }
-    return nullptr;
-}
-
-nbl::ConstSpan<const nbl::InstallationType*> nbl::PluginContext::types() const {
-    return nbl::ConstSpan(
-        static_cast<const InstallationType**>(_pStarts[PluginRegistries::INSTALLATION_TYPE]),
-        _mCounts[PluginRegistries::INSTALLATION_TYPE]
-    );
-}
-
-const nbl::AccountProvider* nbl::PluginContext::getAccountProvider(StringView id) const {
-    for(const auto& prov : accountProviders()) {
-        if(prov->id == id) {
-            return prov;
-        }
-    }
-    return nullptr;
-}
-
-nbl::ConstSpan<const nbl::AccountProvider*> nbl::PluginContext::accountProviders() const {
-    return nbl::ConstSpan(
-        static_cast<const AccountProvider**>(_pStarts[PluginRegistries::ACCOUNT_PROVIDER]),
-        _mCounts[PluginRegistries::ACCOUNT_PROVIDER]
-    );
-}
-
-const nbl::MetadataProvider* nbl::PluginContext::getMetadataProvider(StringView id) const {
-    for(const auto& prov : metadataProviders()) {
-        if(prov->id == id) {
-            return prov;
-        }
-    }
-    return nullptr;
-}
-nbl::ConstSpan<const nbl::MetadataProvider*> nbl::PluginContext::metadataProviders() const {
-    return nbl::ConstSpan(
-        static_cast<const MetadataProvider**>(_pStarts[PluginRegistries::METADATA_PROVIDER]),
-        _mCounts[PluginRegistries::METADATA_PROVIDER]
-    );
-}
-
-const nbl::GameProvider* nbl::PluginContext::getGameProvider(StringView id) const {
-    for(const auto& prov : gameProviders()) {
-        if(prov->id == id) {
-            return prov;
-        }
-    }
-    return nullptr;
-}
-nbl::ConstSpan<const nbl::GameProvider*> nbl::PluginContext::gameProviders() const {
-    return nbl::ConstSpan(
-        static_cast<const GameProvider**>(_pStarts[PluginRegistries::GAME_PROVIDER]),
-        _mCounts[PluginRegistries::GAME_PROVIDER]
-    );
-}
-
-
 nbl::Result nbl::PluginContext::create(StringView databasePath, StringView pluginDataPath, NotificationConsumer consumer, PluginContext* ctx) {
 
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 16, &ctx->_mArena));

@@ -409,10 +409,10 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
         nbl::log(nbl::LogLevel::INFO, "string=", values[0].stringValue.resolved);
     }
 
-    context->registerInstallationType(&_type);
-    context->registerAccountProvider(&_provider);
-    context->registerMetadataProvider(&_metaProvider);
-    context->registerGameProvider(&_gameProvider);
+    NBL_CHECK(context->registerObject(&_type));
+    NBL_CHECK(context->registerObject(&_provider));
+    NBL_CHECK(context->registerObject(&_metaProvider));
+    NBL_CHECK(context->registerObject(&_gameProvider));
 
     return 0;
 }

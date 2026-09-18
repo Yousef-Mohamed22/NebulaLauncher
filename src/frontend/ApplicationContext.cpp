@@ -352,7 +352,7 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
                 return nbl::Result::INVALID_STATE;
             }
 
-            const nbl::InstallationType* installType = ctx->_mContext.getInstallationType(meta.type);
+            const nbl::InstallationType* installType = ctx->_mContext.get<nbl::InstallationType>(meta.type);
             if(installType == nullptr) {
                 nbl::log(nbl::LogLevel::ERROR, "Unknown installation type: ", meta.type);
                 return nbl::Result::INVALID_STATE;
@@ -413,7 +413,7 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
             return nbl::Result::INVALID_STATE;
         }
 
-        const nbl::InstallationType* installType = _mContext.getInstallationType(meta.type);
+        const nbl::InstallationType* installType = _mContext.get<nbl::InstallationType>(meta.type);
         if(installType == nullptr) {
             nbl::log(nbl::LogLevel::ERROR, "Unknown installation type: ", meta.type);
             return nbl::Result::INVALID_STATE;
@@ -461,7 +461,7 @@ NblInstallationDetails* ApplicationContext::getInstallationDetails(qint64 instal
 
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
 
-        const nbl::InstallationType* type = _mContext.getInstallationType(details.installation.type);
+        const nbl::InstallationType* type = _mContext.get<nbl::InstallationType>(details.installation.type);
         QVariant qtFields{};
         if(type != nullptr) {
             nbl::Span<nbl::Field> fields = type->fields;
@@ -645,18 +645,29 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
         untagGame(realGId, tag.toLongLong());
     }
 
-    QVariantList externalIds = params.find("externalIds")->toList();
-    for(QVariant qs : externalIds) {
-        QByteArray name = qs.toMap().find("platform")->toString().toUtf8();
-        QByteArray id = qs.toMap().find("id")->toString().toUtf8();
-        nbl::StringView nblName(name.data(), name.length());
-        nbl::StringView nblId(id.data(), id.length());
-        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::setGameExternalId(databaseConnection(), realGId, nblName, nblId));
+    QVariantList externalIds{};
+    if(gId == 0) {
+        externalIds = params.find("externalIds")->toList();
+        for(QVariant qs : externalIds) {
+            QByteArray name = qs.toMap().find("platform")->toString().toUtf8();
+            QByteArray id = qs.toMap().find("id")->toString().toUtf8();
+            nbl::StringView nblName(name.data(), name.length());
+            nbl::StringView nblId(id.data(), id.length());
+            NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::setGameExternalId(databaseConnection(), realGId, nblName, nblId));
+        }
+    } else {
+        nbl::enumerateGameExternalIds(databaseConnection(), realGId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
+            QVariantMap out{};
+            out["platform"] = QString(fromNbl(platformName));
+            out["id"] = QString(fromNbl(platformId));
+            externalIds.append(out);
+            return nbl::Result::SUCCESS;
+        });
     }
 
 
     QVariantMap fields = params.find("fields")->toMap();
-    const nbl::InstallationType* it = _mContext.getInstallationType(nbl::StringView(type.data(), type.length()));
+    const nbl::InstallationType* it = _mContext.get<nbl::InstallationType>(nbl::StringView(type.data(), type.length()));
 
     NBL_CHECK_OR_ROLLBACK(databaseConnection(), _applyInstallationCommand(databaseConnection(), meta, it, fields, externalIds));
 
@@ -720,7 +731,7 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     }));
 
     QVariantMap fields = params.find("fields")->toMap();
-    const nbl::InstallationType* it = _mContext.getInstallationType(nbl::StringView(type.data(), type.length()));
+    const nbl::InstallationType* it = _mContext.get<nbl::InstallationType>(nbl::StringView(type.data(), type.length()));
 
     //NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::updateInstallation(databaseConnection(), meta));
     NBL_CHECK_OR_ROLLBACK(databaseConnection(), _applyInstallationCommand(databaseConnection(), meta, it, fields, externalIds));
@@ -1330,7 +1341,7 @@ NblFieldList* ApplicationContext::getInstallationTypeFields(QString installation
     QByteArray utf = installationType.toUtf8();
     nbl::StringView name(utf.data(), utf.length());
 
-    const nbl::InstallationType* type = _mContext.getInstallationType(name);
+    const nbl::InstallationType* type = _mContext.get<nbl::InstallationType>(name);
     if(type == nullptr) return nullptr;
 
     return new NblFieldList(type->fields);
@@ -1342,7 +1353,7 @@ NblAccountsModel* ApplicationContext::accountsModel(QString accountProvider) {
     QByteArray utf = accountProvider.toUtf8();
     nbl::StringView name(utf.data(), utf.length());
 
-    const nbl::AccountProvider* prov = _mContext.getAccountProvider(name);
+    const nbl::AccountProvider* prov = _mContext.get<nbl::AccountProvider>(name);
     if(prov == nullptr) return nullptr;
 
     return new NblAccountsModel(prov);

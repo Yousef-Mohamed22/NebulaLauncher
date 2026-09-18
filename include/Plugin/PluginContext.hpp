@@ -6,23 +6,9 @@
 #include <Core/String.hpp>
 #include <Core/Optional.hpp>
 #include <Data/Database.hpp>
+#include <Plugin/Registry.hpp>
 
 namespace nbl {
-
-class PluginRegistries {
-public:
-
-    enum Registry : usize {
-        INSTALLATION_TYPE,
-        ACCOUNT_PROVIDER,
-        METADATA_PROVIDER,
-        GAME_PROVIDER,
-        _END
-    };
-
-    constexpr static usize count() { return _END; }
-
-};
 
 enum NotificationType {
     INFO,
@@ -48,17 +34,15 @@ struct GameProvider;
 class PluginContext {
 public:
 
-    const InstallationType* getInstallationType(StringView id) const;
-    ConstSpan<const InstallationType*> types() const;
+    template<typename T>
+    inline ConstSpan<const T*> registry() const {
+        return _mRegistry.get<T>();
+    }
 
-    const AccountProvider* getAccountProvider(StringView id) const;
-    ConstSpan<const AccountProvider*> accountProviders() const;
-
-    const MetadataProvider* getMetadataProvider(StringView id) const;
-    ConstSpan<const MetadataProvider*> metadataProviders() const;
-
-    const GameProvider* getGameProvider(StringView id) const;
-    ConstSpan<const GameProvider*> gameProviders() const;
+    template<typename T>
+    inline const T* get(StringView name) const {
+        return _mRegistry.get<T>(name);
+    }
 
     Result runCommand(i64 installationId, StringView commandLine, StringView workingDir, ProcessHandle* handle);
 
@@ -79,8 +63,7 @@ public:
 private:
     Arena _mArena;
 
-    void* _pStarts[PluginRegistries::count()];
-    usize _mCounts[PluginRegistries::count()];
+    Registry _mRegistry;
 
     StringView _mDatabasePath;
     StringView _mPluginDataPath;

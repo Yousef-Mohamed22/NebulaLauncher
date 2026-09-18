@@ -678,8 +678,8 @@ nbl::Result _loadConfig(nbl::Span<nbl::FieldValue> values) {
 extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
 
     nbl::log(nbl::LogLevel::INFO, "Initializing IGDB plugin...");
-    context->registerAccountProvider(&_provider);
-    context->registerGameProvider(&_gameProvider);
+    NBL_CHECK(context->registerObject(&_provider));
+    NBL_CHECK(context->registerObject(&_gameProvider));
 
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 4, &_configArena));
 
