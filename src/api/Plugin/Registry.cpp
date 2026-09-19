@@ -1,5 +1,4 @@
 #include <Plugin/Registry.hpp>
-#include "Platform/Logging.hpp"
 
 nbl::Result nbl::Registry::Builder::_add(PluginRegistry registry, void* value) {
 
@@ -28,7 +27,6 @@ nbl::Result nbl::Registry::Builder::build(LinearAllocator* allocator, Registry* 
     usize runningOffset = 0;
     for(usize i = 0 ; i < PluginRegistry::count() ; i++) {
         
-        nbl::log(nbl::LogLevel::INFO, "start of ", i, " is ", allocation + runningOffset);
         outReg->_pStarts[i] = allocation + runningOffset;
 
         offsets[i] = runningOffset;
@@ -39,9 +37,6 @@ nbl::Result nbl::Registry::Builder::build(LinearAllocator* allocator, Registry* 
         const _RegisteredObject& obj = _pBegin[i];
         usize offset = offsets[obj.registry.value] + registryMoved[obj.registry.value];
         registryMoved[obj.registry.value]++;
-
-
-        nbl::log(nbl::LogLevel::INFO, "Put a ", static_cast<usize>(obj.registry.value), " at ", allocation + offset);
         allocation[offset] = obj.value;
     }
 
