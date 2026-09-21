@@ -66,6 +66,10 @@ Item {
             width: root.width
             sourceComponent: root.multiLine ? multiLineComponent : singleLineComponent
             active: true
+
+            onLoaded: {
+                item.scrolled()
+            }
         }
 
         Component {
@@ -81,7 +85,6 @@ Item {
                 
                 clip: true
                 Row {
-
                     id: singleLineList
 
                     spacing: 16
@@ -105,16 +108,25 @@ Item {
 
             Flow {
 
-                Component.onCompleted: {
-                    while(!root.allLoaded && triggerItem.isOnScreen()) {
+                function scrolled() {
+                    while(!root.allLoaded && isAtEnd()) {
                         root.loadMore()
                     }
                 }
+                function isAtEnd() {
 
-                function scrolled() {
-                    while(!root.allLoaded && triggerItem.isOnScreen()) {
-                        root.loadMore()
-                    }
+                    if(multiLineRepeater.count == 0) return true
+                    let globalPos = multiLineRepeater.itemAt(multiLineRepeater.count - 1).mapToItem(null, 0, 0);
+
+                    let itemLeft = globalPos.x;
+                    let itemRight = globalPos.x + width;
+                    let itemTop = globalPos.y;
+                    let itemBottom = globalPos.y + height;
+
+                    let insideX = (itemRight > 0) && (itemLeft < root.Window.width);
+                    let insideY = (itemBottom > 0) && (itemTop < root.Window.height);
+
+                    return insideX && insideY;
                 }
 
                 id: multiLineList
@@ -124,26 +136,9 @@ Item {
                 spacing: 16
 
                 Repeater {
+                    id: multiLineRepeater
                     model: root.model
                     delegate: content.buttonDelegate
-                }
-
-                Item {
-                    id: triggerItem
-                    function isOnScreen() {
-
-                        let globalPos = mapToItem(null, 0, 0);
-
-                        let itemLeft = globalPos.x;
-                        let itemRight = globalPos.x + width;
-                        let itemTop = globalPos.y;
-                        let itemBottom = globalPos.y + height;
-
-                        let insideX = (itemRight > 0) && (itemLeft < root.Window.width);
-                        let insideY = (itemBottom > 0) && (itemTop < root.Window.height);
-
-                        return insideX && insideY;
-                    }
                 }
             }
         }

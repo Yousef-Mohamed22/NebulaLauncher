@@ -133,7 +133,7 @@ NblDialog {
                 delegate: NblDropdown {
 
                     id: dropdown
-                    width: controls.width
+                    width: parent.width
                     icon: filterIconPicker.icon
                     iconSize: 20
 
@@ -169,7 +169,7 @@ NblDialog {
 
                     Column {
 
-                        width: controls.width
+                        width: dropdown.contentWidth
 
                         id: filterContent
                         spacing: 8
@@ -177,7 +177,7 @@ NblDialog {
 
                         NblTextBox {
                             id: filterNameBox
-                            width: controls.width
+                            width: parent.width
                             label: "Name"
                             text: dropdown.modelData.name
                         }
@@ -190,14 +190,14 @@ NblDialog {
 
                         NblComboBox {
                             id: searchBox
-                            width: controls.width
+                            width: parent.width
                             label: "Search for"
                             model: [ "Games", "Installations" ]
                             currentIndex: dropdown.modelData.showInstallations ? 1 : 0
                         }
 
                         RowLayout {
-                            width: controls.width
+                            width: parent.width
 
                             NblCheckBox {
                                 id: multiLineBox
@@ -228,7 +228,7 @@ NblDialog {
 
                         NblComboBox {
                             id: sortByBox
-                            width: controls.width
+                            width: parent.width
                             label: "Sort By"
                             model: [ "Title", "Last Played", "Added", "Play Count", "Play Time", "Release Date", "Rating" ]
                             currentIndex: dropdown.modelData.sortBy
@@ -236,7 +236,7 @@ NblDialog {
 
                         NblComboBox {
                             id: sortOrderBox
-                            width: controls.width
+                            width: parent.width
                             label: "Sort Order"
                             model: [ "Ascending", "Descending" ]
                             currentIndex: dropdown.modelData.sortOrder
@@ -245,7 +245,7 @@ NblDialog {
                         NblListInput {
                             id: tagSetsList
                             label: "Tag Sets"
-                            width: controls.width
+                            width: parent.width
 
                             initialItems: getInitialItems()
 
@@ -269,7 +269,7 @@ NblDialog {
                             }
                             delegate: NblTagList {
                                 required property var modelData
-                                width: controls.width
+                                width: parent.width
                                 labelIndent: 24
                                 label: "Tag Set " + modelData.index
                                 initialTags: ApplicationContext.getTagsFromIds(modelData.initialTagIds)
