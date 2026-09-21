@@ -28,10 +28,10 @@ Column {
 
         let dataFolder = ApplicationContext.dataFolder
 
-        if(details.poster.length > 0) posterPicker.imageSource = "file://" + dataFolder + "/media/poster/" + details.poster
-        if(details.icon.length > 0) iconPicker.imageSource = "file://" + dataFolder + "/media/icon/" + details.icon
-        if(details.logo.length > 0) logoPicker.imageSource = "file://" + dataFolder + "/media/logo/" + details.logo
-        if(details.banner.length > 0) bannerPicker.imageSource = "file://" + dataFolder + "/media/banner/" + details.banner
+        if(details.poster.length > 0) posterPicker.imageSource = ApplicationContext.mediaUrl(details.poster, "poster")
+        if(details.icon.length > 0) iconPicker.imageSource = ApplicationContext.mediaUrl(details.icon, "icon")
+        if(details.logo.length > 0) logoPicker.imageSource = ApplicationContext.mediaUrl(details.logo, "logo")
+        if(details.banner.length > 0) bannerPicker.imageSource = ApplicationContext.mediaUrl(details.banner, "banner")
 
         logoPositionBox.currentIndex = details.logoPosition
 

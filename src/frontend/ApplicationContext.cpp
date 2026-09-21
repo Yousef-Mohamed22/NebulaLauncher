@@ -730,7 +730,6 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     QVariantMap fields = params.find("fields")->toMap();
     const nbl::InstallationType* it = _mContext.get<nbl::InstallationType>(nbl::StringView(type.data(), type.length()));
 
-    //NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::updateInstallation(databaseConnection(), meta));
     NBL_CHECK_OR_ROLLBACK(databaseConnection(), _applyInstallationCommand(databaseConnection(), meta, it, fields, externalIds));
 
     for(QVariant qs : params.find("addedInstallationTags")->toList()) {

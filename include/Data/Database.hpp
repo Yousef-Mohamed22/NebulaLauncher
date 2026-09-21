@@ -184,7 +184,6 @@ public:
      */
     ~DatabaseConnection();
 
-    // Deleted copy constructor
     DatabaseConnection(const DatabaseConnection&) = delete;
 
     /**

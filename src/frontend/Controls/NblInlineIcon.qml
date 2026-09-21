@@ -82,7 +82,7 @@ Item {
     }
 
     function getDbIconImage(icon) {
-        return "file://" + ApplicationContext.dataFolder + "/media/inline_icon/" + icon
+        return ApplicationContext.mediaUrl(icon, "inline_icon")
     }
 
 }

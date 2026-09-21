@@ -32,53 +32,11 @@ class NblFieldRef : public QObject {
     Q_PROPERTY(bool horizontal READ horizontal CONSTANT)
 
 public:
-
-    // NblFieldRef(QObject* parent = nullptr) :
-    //     QObject(parent),
-    //     _pField(nullptr),
-    //     _mValue{}
-    // { }
-
+    
     NblFieldRef(const nbl::Field* field, QObject* parent = nullptr) :
         QObject(parent),
         _pField(field)
     { }
-
-    // NblFieldRef(const NblFieldRef& other) :
-    //     QObject(other.parent()),
-    //     _pField(other._pField),
-    //     _mValue{}
-    // { }
-    //
-    // NblFieldRef(NblFieldRef&& other) :
-    //     QObject(other.parent()),
-    //     _pField(other._pField),
-    //     _mValue(std::move(other._mValue))
-    // {
-    //     other.setParent(nullptr);
-    //     other._pField = nullptr;
-    // }
-    //
-    // NblFieldRef& operator=(const NblFieldRef& other) {
-    //     if(&other == this) return *this;
-    //     setParent(other.parent());
-    //     _pField = other._pField;
-    //     _mValue = other._mValue;
-    //     //loadValue(other._mValue);
-    //     return *this;
-    // }
-    //
-    // NblFieldRef& operator=(NblFieldRef&& other) noexcept {
-    //     if(&other == this) return *this;
-    //     setParent(other.parent());
-    //     _pField = other._pField;
-    //     _mValue = std::move(other._mValue);
-    //     //_mComposite = std::move(other._mComposite);
-    //
-    //     other.setParent(nullptr);
-    //     other._pField = nullptr;
-    //     return *this;
-    // }
 
     quint32 type();
     QString key();
@@ -93,9 +51,6 @@ public:
     NblFieldList* structFields();
     bool horizontal();
 
-    // QVariant value();
-    // void setValue(QVariant value);
-
     Q_INVOKABLE void suggest(QString current, QJSValue callback);
 
     nbl::FieldValue toNbl(QVariant variant, nbl::LinearAllocator* allocator);
@@ -106,6 +61,5 @@ public:
 private:
 
     const nbl::Field* _pField;
-    //QVariant _mValue;
 
 };

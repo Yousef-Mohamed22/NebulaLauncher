@@ -28,7 +28,7 @@ Item {
         let spacePerItem = remainingSpace / wholeNumItems
 
         let realWidth = (idealWidth - 16) * (1 + spacePerItem)
-        return realWidth// - 4
+        return realWidth
     }
 
     signal itemClicked(int id)
@@ -139,6 +139,10 @@ Item {
                     id: multiLineRepeater
                     model: root.model
                     delegate: content.buttonDelegate
+
+                    onCountChanged: {
+                        parent.scrolled()
+                    }
                 }
             }
         }
@@ -152,10 +156,10 @@ Item {
 
         if(root.useIcons) {
             if(modelData.icon.byteLength == 0) return null
-            return ApplicationContext.mediaUrl(modelData.icon, "icon") //"file://" + ApplicationContext.dataFolder + "/media/icon/" + modelData.icon
+            return ApplicationContext.mediaUrl(modelData.icon, "icon") 
         }
         if(modelData.poster.byteLength == 0) return null
-        return ApplicationContext.mediaUrl(modelData.poster, "poster") //"file://" + ApplicationContext.dataFolder + "/media/poster/" + modelData.poster
+        return ApplicationContext.mediaUrl(modelData.poster, "poster") 
 
     }
 }
