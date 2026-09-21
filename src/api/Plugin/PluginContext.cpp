@@ -13,7 +13,7 @@
 #include <Data/Model.hpp>
 
 
-nbl::Result nbl::PluginContext::create(StringView databasePath, StringView pluginDataPath, NotificationConsumer consumer, PluginContext* ctx) {
+nbl::Result nbl::PluginContext::create(StringView databasePath, StringView pluginFolder, StringView pluginDataPath, NotificationConsumer consumer, PluginContext* ctx) {
 
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 16, &ctx->_mArena));
 
@@ -50,9 +50,10 @@ nbl::Result nbl::PluginContext::create(StringView databasePath, StringView plugi
     NBL_CHECK(nbl::DatabaseConnection::open(ctx->_mDatabasePath, &ctx->_mConnection));
     NBL_CHECK(nbl::initDatabase(&ctx->_mConnection));
 
-
-
     ctx->_mNotificationConsumer = consumer;
+
+    NBL_CHECK(nbl::PluginLoader::create(ctx, pluginFolder, &ctx->_mLoader));
+
     return nbl::Result::SUCCESS;
 }
 

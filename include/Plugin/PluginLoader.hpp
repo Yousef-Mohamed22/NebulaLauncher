@@ -1,10 +1,11 @@
 #pragma once
 
-#include <Plugin/PluginContext.hpp>
 #include <Core/String.hpp>
 
-#include <Platform/DynamicLibrary.hpp>
 #include <Plugin/Field.hpp>
+#include <Plugin/Registry.hpp>
+#include <Platform/Process.hpp>
+#include <Platform/DynamicLibrary.hpp>
 #include <Platform/Allocator.hpp>
 
 namespace nbl {
@@ -24,11 +25,15 @@ struct LoadedPlugin {
     void* userData;
 };
 
+class PluginContext;
 
 class PluginLoader {
 public:
 
-    Result loadAll();
+    ~PluginLoader() { awaitLoaded(); }
+
+    Result beginLoadAsync();
+    Result awaitLoaded();
 
     Span<LoadedPlugin> loadedPlugins() { 
         return _mPluginRefs;
@@ -38,10 +43,12 @@ public:
 
 private:
 
+    Result _loadAll();
     Result _load(StringView folder, Registry::Builder* registrations);
 
     Arena _mMetaArena;
     Arena _mDataArena;
+    Thread _mLoadThread;
     Span<LoadedPlugin> _mPluginRefs;
 
     StringView _mPluginFolder;

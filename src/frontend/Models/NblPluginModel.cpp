@@ -10,7 +10,7 @@
 
 int NblPluginModel::rowCount(const QModelIndex& parent) const {
     ApplicationContext* ctx = ApplicationContext::instance();
-    return ctx->pluginLoader()->loadedPlugins().length;
+    return ctx->pluginContext()->loadedPlugins().length;
 }
 
 QVariant NblPluginModel::data(const QModelIndex& index, int role) const {
@@ -18,7 +18,7 @@ QVariant NblPluginModel::data(const QModelIndex& index, int role) const {
     if(index.row() >= rowCount()) return QVariant();
     
     ApplicationContext* ctx = ApplicationContext::instance();
-    const nbl::LoadedPlugin& plugin = ctx->pluginLoader()->loadedPlugins()[index.row()];
+    const nbl::LoadedPlugin& plugin = ctx->pluginContext()->loadedPlugins()[index.row()];
 
     switch(role) {
         case IdRole:
@@ -79,7 +79,7 @@ QHash<int, QByteArray> NblPluginModel::roleNames() const {
 
 NblFieldList* NblPluginModel::fields(int row) {
     ApplicationContext* ctx = ApplicationContext::instance();
-    const nbl::LoadedPlugin& plugin = ctx->pluginLoader()->loadedPlugins()[row];
+    const nbl::LoadedPlugin& plugin = ctx->pluginContext()->loadedPlugins()[row];
 
     return new NblFieldList(plugin.fields, this);
 }
@@ -87,7 +87,7 @@ NblFieldList* NblPluginModel::fields(int row) {
 void NblPluginModel::saveFields(QVariantMap fields, int row) {
 
     ApplicationContext* ctx = ApplicationContext::instance();
-    const nbl::LoadedPlugin& plugin = ctx->pluginLoader()->loadedPlugins()[row];
+    const nbl::LoadedPlugin& plugin = ctx->pluginContext()->loadedPlugins()[row];
 
     nbl::Field dummy {
         .type = nbl::FieldType::STRUCT,

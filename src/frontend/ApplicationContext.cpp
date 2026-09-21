@@ -248,11 +248,18 @@ void ApplicationContext::_initialize() {
     nbl::StringView path;
     NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/nebula.db").build(&path).success());
 
+    nbl::StringView applicationPath = nbl::getBinaryPath();
+    usize lastSlash = 0;
+    NBL_ASSERT(applicationPath.findLast('/', &lastSlash).success());
+
+    nbl::StringView pluginFolder;
+    NBL_ASSERT(nbl::StringBuilder(&frame).append(applicationPath.slice(0, lastSlash)).append("/plugins").buildNullTerminated(&pluginFolder).success());
+    NBL_ASSERT(nbl::makeDirectories(pluginFolder).success());
 
     nbl::StringView pluginDataPath;
     NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/plugindata").build(&pluginDataPath).success());
 
-    NBL_ASSERT(nbl::PluginContext::create(path, pluginDataPath, {
+    NBL_ASSERT(nbl::PluginContext::create(path, pluginFolder, pluginDataPath, {
         .pfnNotify = [](void* userData, nbl::NotificationType type, nbl::StringView title, nbl::StringView message, nbl::Optional<nbl::StringView> icon, nbl::Optional<u32> duration) {
         
             ApplicationContext* ctx = static_cast<ApplicationContext*>(userData);
@@ -270,22 +277,12 @@ void ApplicationContext::_initialize() {
         .userData = this
     }, &_mContext).success());
 
-    nbl::StringView applicationPath = nbl::getBinaryPath();
-    usize lastSlash = 0;
-    NBL_ASSERT(applicationPath.findLast('/', &lastSlash).success());
-
-    nbl::StringView pluginFolder;
-    NBL_ASSERT(nbl::StringBuilder(&frame).append(applicationPath.slice(0, lastSlash)).append("/plugins").buildNullTerminated(&pluginFolder).success());
-    NBL_ASSERT(nbl::makeDirectories(pluginFolder).success());
-
-    NBL_ASSERT(nbl::PluginLoader::create(&_mContext, pluginFolder, &_mLoader).success());
-    NBL_ASSERT(_mLoader.loadAll().success());
-
 
     nbl::StringView hostname = nbl::getHostName();
-
     NBL_ASSERT(nbl::getOrAddDevice(databaseConnection(), hostname, &_mDeviceId).success()); 
     nbl::log(nbl::LogLevel::DEBUG, "Device ID: ", _mDeviceId);
+
+    NBL_ASSERT(_mContext.beginLoad().success());
 }
 
 

@@ -140,10 +140,6 @@ public:
         return &_mContext;
     }
 
-    nbl::PluginLoader* pluginLoader() {
-        return &_mLoader;
-    }
-
     void init() {
         if(!_bInitialized) {
             _initialize();
@@ -162,7 +158,6 @@ private:
 
     bool _bInitialized = false;
     nbl::PluginContext _mContext;
-    nbl::PluginLoader _mLoader;
     QHash<i64, NblProcessHandle*> _mRunningProcesses;
 
     i64 _mDeviceId;

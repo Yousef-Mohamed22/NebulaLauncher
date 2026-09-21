@@ -11,7 +11,21 @@
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/InstallationType.hpp>
 
-nbl::Result nbl::PluginLoader::loadAll() {
+
+nbl::Result nbl::PluginLoader::beginLoadAsync() {
+
+    return nbl::Thread::create([](void* userData) -> i32 {
+        return static_cast<PluginLoader*>(userData)->_loadAll();
+    }, this, &_mLoadThread);
+}
+
+nbl::Result nbl::PluginLoader::awaitLoaded() {
+    i32 result = 0;
+    _mLoadThread.join(&result);
+    return result;
+}
+
+nbl::Result nbl::PluginLoader::_loadAll() {
 
     nbl::FolderIterator it{};
     NBL_CHECK(nbl::FolderIterator::create(_mPluginFolder, &it));
@@ -49,6 +63,7 @@ nbl::Result nbl::PluginLoader::loadAll() {
     NBL_CHECK(builder.build(&_pContext->_mArena, &_pContext->_mRegistry));
     return nbl::Result::SUCCESS;
 }
+
 
 nbl::Result nbl::PluginLoader::_load(StringView folder, Registry::Builder* registrations) {
 

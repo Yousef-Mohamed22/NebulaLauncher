@@ -7,6 +7,7 @@
 #include <Core/Optional.hpp>
 #include <Data/Database.hpp>
 #include <Plugin/Registry.hpp>
+#include <Plugin/PluginLoader.hpp>
 
 namespace nbl {
 
@@ -31,16 +32,19 @@ struct InstallationType;
 struct MetadataProvider;
 struct GameProvider;
 
+
 class PluginContext {
 public:
 
     template<typename T>
-    inline ConstSpan<const T*> registry() const {
+    inline ConstSpan<const T*> registry() {
+        NBL_ASSERT(_mLoader.awaitLoaded().success());
         return _mRegistry.get<T>();
     }
 
     template<typename T>
-    inline const T* get(StringView name) const {
+    inline const T* get(StringView name) {
+        NBL_ASSERT(_mLoader.awaitLoaded().success());
         return _mRegistry.get<T>(name);
     }
 
@@ -58,16 +62,25 @@ public:
     inline StringView databasePath() const { return _mDatabasePath; }
     inline StringView pluginDataPath() const { return _mPluginDataPath; }
 
-    static Result create(StringView databasePath, StringView pluginDataPath, NotificationConsumer notificationConsumer, PluginContext* ctx);
+    inline Span<LoadedPlugin> loadedPlugins() { 
+        return _mLoader.loadedPlugins();
+    }
+
+    inline Result beginLoad() {
+        return _mLoader.beginLoadAsync();
+    }
+
+    static Result create(StringView databasePath, StringView pluginFolder, StringView pluginDataPath, NotificationConsumer notificationConsumer, PluginContext* ctx);
 
 private:
     Arena _mArena;
-
     Registry _mRegistry;
 
     StringView _mDatabasePath;
     StringView _mPluginDataPath;
     StringView _mWrapperPath;
+
+    PluginLoader _mLoader;
 
     NotificationConsumer _mNotificationConsumer;
     DatabaseConnection _mConnection;
