@@ -45,18 +45,28 @@ QtObject {
         }
 
         function tagColor(tagName) {
-            let hash = 0;
-            for (let i = 0; i < tagName.length; i++) {
-                hash = (hash << 5) - hash + tagName.charCodeAt(i)
-                hash |= 0
+
+            let hash = 2166136261;
+
+            for (var i = 0; i < tagName.length; ++i) {
+                hash ^= tagName.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
             }
 
-            let hue = ((hash & 0xFF) / 255.0)
-            let sat = (((hash >> 8) & 0xFF) / 255.0)
-            let val = (((hash >> 16) & 0xFF) / 255.0)
+            // end of MurmurHash3
+            function finalize(x) {
+                x = Math.imul(x ^ (x >>> 16), 0x85ebca6b);
+                x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
+                x = (x ^ (x >>> 16)) >>> 0;
 
-            return Qt.hsva(hue, 0.6 + sat * 0.3, 0.4 + val * 0.5)
+                return x / 4294967296.0;
+            }
 
+            var h = finalize(hash);
+            var s = 0.6 + finalize(hash ^ 0x9e3779b9) * 0.3;
+            var l = 0.4 + finalize(hash ^ 0x7f4a7c15) * 0.5;
+
+            return Qt.hsla(h, s, l, 1.0);
         }
 
         property bool lightMode: false

@@ -86,7 +86,7 @@ INSERT INTO game_tag (gId, tId) VALUES (?1, ?2);
         )", &_addGameTagStmt));
     }
 
-    NBL_CHECK(_addGameTagStmt.bindUint(1, gameId));
+    NBL_CHECK(_addGameTagStmt.bindInt(1, gameId));
     NBL_CHECK(_addGameTagStmt.bindInt(2, tag));
     return connection->execute(&_addGameTagStmt);
 }
@@ -100,7 +100,7 @@ DELETE FROM game_tag WHERE gId = ?1 AND tId = ?2;
         )", &_removeGameTagStmt));
     }
     
-    NBL_CHECK(_removeGameTagStmt.bindUint(1, gameId));
+    NBL_CHECK(_removeGameTagStmt.bindInt(1, gameId));
     NBL_CHECK(_removeGameTagStmt.bindInt(2, tag));
     return connection->execute(&_removeGameTagStmt);
 }
@@ -119,7 +119,7 @@ ORDER BY tag.name ASC;
         )", &_getGameTagsStmt));
     }
 
-    NBL_CHECK(_getGameTagsStmt.bindUint(1, gameId));
+    NBL_CHECK(_getGameTagsStmt.bindInt(1, gameId));
 
     return connection->execute(&_getGameTagsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
 
@@ -150,7 +150,7 @@ WHERE game.gId = ?1;
         )", &_getGameMetaStmt));
     }
 
-    NBL_CHECK(_getGameMetaStmt.bindUint(1, gameId));
+    NBL_CHECK(_getGameMetaStmt.bindInt(1, gameId));
 
     return connection->execute(&_getGameMetaStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
@@ -191,7 +191,7 @@ WHERE game.gId = ?1;
         )", &_getGameDetailsStmt));
     }
 
-    NBL_CHECK(_getGameDetailsStmt.bindUint(1, gameId));
+    NBL_CHECK(_getGameDetailsStmt.bindInt(1, gameId));
 
     return connection->execute(&_getGameDetailsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
@@ -492,7 +492,7 @@ UPDATE SET platformId = ?3;
         )", &_setExternalIdStmt));
     }
     
-    NBL_CHECK(_setExternalIdStmt.bindUint(1, gameId));
+    NBL_CHECK(_setExternalIdStmt.bindInt(1, gameId));
     NBL_CHECK(_setExternalIdStmt.bindString(2, platformName));
     NBL_CHECK(_setExternalIdStmt.bindString(3, platformId));
 
@@ -510,7 +510,7 @@ WHERE gId = ?1 AND platformName = ?2;
         )", &_removeExternalIdStmt));
     }
     
-    NBL_CHECK(_removeExternalIdStmt.bindUint(1, gameId));
+    NBL_CHECK(_removeExternalIdStmt.bindInt(1, gameId));
     NBL_CHECK(_removeExternalIdStmt.bindString(2, platformName));
 
     return connection->execute(&_removeExternalIdStmt);
@@ -527,7 +527,7 @@ WHERE gId = ?1;
         )", &_clearExternalIdsStmt));
     }
     
-    NBL_CHECK(_clearExternalIdsStmt.bindUint(1, gameId));
+    NBL_CHECK(_clearExternalIdsStmt.bindInt(1, gameId));
 
     return connection->execute(&_clearExternalIdsStmt);
 }
