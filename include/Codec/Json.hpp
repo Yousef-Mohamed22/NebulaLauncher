@@ -4,9 +4,9 @@
 #include <Core/String.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/Assert.hpp>
+#include <Platform/Allocator.hpp>
 
 #include <functional>
-#include "Platform/Allocator.hpp"
 
 namespace nbl {
 
@@ -85,6 +85,8 @@ struct JsonArray {
     StringView getString(usize index, StringView defaultValue={}) const;
     JsonNumber getNumber(usize index, JsonNumber defaultValue={}) const;
     bool getBoolean(usize index, bool defaultValue=false) const;
+
+    class Builder;
 };
 
 struct JsonObject {
@@ -114,6 +116,8 @@ struct JsonObject {
     StringView getString(StringView key, StringView defaultValue={}) const;
     JsonNumber getNumber(StringView key, JsonNumber defaultValue={}) const;
     bool getBoolean(StringView key, bool defaultValue=false) const;
+
+    class Builder;
 };
 
 struct JsonElement {
@@ -273,6 +277,92 @@ private:
     Result _mLastResult;
     Writer _mSink;
 
+};
+
+
+class JsonObject::Builder {
+public:
+
+    Builder() = default;
+
+    Builder(const Builder& other) = delete;
+
+    Result add(StringView key, JsonElement element);
+    Result addObject(StringView key, std::function_ref<Result(JsonObject::Builder&)> callback);
+    Result addArray(StringView key, std::function_ref<Result(JsonArray::Builder&)> callback);
+
+    Result build(JsonObject* out);
+
+    static Result create(nbl::LinearAllocator* allocator, nbl::JsonObject::Builder* outBuilder);
+
+private:
+
+    Builder(LinearAllocator* allocator, Arena* scratch) :
+        _pAllocator(allocator),
+        _mScratch{},
+        _pParentScratch(scratch),
+        _pBegin(static_cast<JsonObject::Entry*>(scratch->end())),
+        _mEntryCount(0)
+    { }
+
+    inline Arena* _scratch() { 
+        if(_pParentScratch) {
+            return _pParentScratch;
+        }
+        return &_mScratch;
+    }
+
+    nbl::LinearAllocator* _pAllocator;
+    Arena _mScratch;
+    Arena* _pParentScratch;
+    
+    JsonObject::Entry* _pBegin;
+    usize _mEntryCount;
+    
+
+    friend class JsonArray::Builder;
+};
+
+class JsonArray::Builder {
+public:
+
+    Builder() = default;
+
+    Builder(const Builder& other) = delete;
+
+    Result add(JsonElement element);
+    Result addObject(std::function_ref<Result(JsonObject::Builder&)> callback);
+    Result addArray(std::function_ref<Result(JsonArray::Builder&)> callback);
+
+    Result build(JsonArray* out);
+
+    static Result create(nbl::LinearAllocator* allocator, nbl::JsonArray::Builder* outBuilder);
+
+private:
+
+    Builder(LinearAllocator* allocator, Arena* scratch) :
+        _pAllocator(allocator),
+        _mScratch{},
+        _pParentScratch(scratch),
+        _mElementCount(0),
+        _pBegin(static_cast<JsonElement*>(scratch->end()))
+    { }
+
+    inline Arena* _scratch() { 
+        if(_pParentScratch) {
+            return _pParentScratch;
+        }
+        return &_mScratch;
+    }
+
+    nbl::LinearAllocator* _pAllocator;
+    Arena _mScratch;
+    Arena* _pParentScratch;
+
+    JsonElement* _pBegin;
+    usize _mElementCount;
+
+    friend class JsonObject::Builder;
 };
 
 

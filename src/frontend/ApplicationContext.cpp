@@ -219,6 +219,13 @@ nbl::Result _applyInstallationCommand(nbl::DatabaseConnection* connection, nbl::
                 NBL_CHECK(applied.buildNullTerminated(&value.compositeValue[i].stringValue.resolved));
             }
         }
+    } else {
+        for(usize i = 0 ; i < type->fields.length ; i++) {
+            const nbl::Field& field = type->fields[i];
+            if(field.type == nbl::FieldType::STRING) {
+                value.compositeValue[i].stringValue.resolved = value.compositeValue[i].stringValue.raw;
+            }
+        }
     }
 
     nbl::StringBuilder builder(&frame);
@@ -313,8 +320,6 @@ NblProcessHandle* ApplicationContext::launchInstallation(qint64 installationId) 
             _mContext.pushNotification(nbl::NotificationType::ERROR, "Cannot start installation", "A process for this installation is already running!");
             return nullptr;
         }
-
-        delete handle;
     }
 
     NblProcessHandle* handle = new NblProcessHandle();

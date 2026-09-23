@@ -29,6 +29,12 @@ public:
         return pop(this->index() - index);
     }
 
+    inline Result popToPtr(void* ptr) {
+        if(ptr < begin() || ptr >= end()) return nbl::Result::INVALID_ARGUMENT; 
+        usize amount = static_cast<u8*>(end()) - static_cast<u8*>(ptr);
+        return pop(amount);
+    }
+
     virtual usize index() const noexcept = 0;
     
     inline Writer writer() noexcept {
