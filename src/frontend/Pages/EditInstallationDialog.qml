@@ -160,6 +160,8 @@ NblDialog {
 
                 onApplied: {
 
+                    if(root.gameId == 0) return
+
                     let settings = gameSettings.encode()
                     let rc = ApplicationContext.updateGame(settings)
                     if(rc != 0) {

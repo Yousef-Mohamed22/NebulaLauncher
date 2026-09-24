@@ -29,7 +29,11 @@ Item {
     Label {
         id: text
         visible: !root.useImage
-        anchors.centerIn: parent
+        anchors.fill: parent
+        verticalAlignment: Qt.AlignVCenter
+        horizontalAlignment: Qt.AlignHCenter
+
+        elide: Text.ElideRight
 
         font.family: Theme.nerdFont
         font.pixelSize: Math.min(root.height, root.width)

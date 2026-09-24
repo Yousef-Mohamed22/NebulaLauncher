@@ -240,7 +240,7 @@ SettingsTab {
                         width: parent.width - collapsedHeight
                         label: gameElement.modelData.title
                         icon: gameSettings.gameId == 0 
-                            ? "file://" + ApplicationContext.dataFolder + "/media/icon/" + gameElement.modelData.icon
+                            ? ApplicationContext.mediaUrl(gameElement.modelData.icon, "icon")
                             : gameSettings.icon
                         colorizeIcon: false
                         iconRadius: 8

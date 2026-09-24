@@ -61,6 +61,7 @@ Item {
                     id: logoSource
                     anchors.fill: parent
                     source: "qrc:/qt/qml/Nebula/images/Nebula.png"
+                    usePlaceholder: false
                     layer.enabled: true
                     visible: false
                 }
