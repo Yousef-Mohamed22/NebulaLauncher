@@ -4,12 +4,16 @@ import QtQuick.Layouts
 
 import Nebula.Pages
 
-Window {
+ApplicationWindow {
     visible: true
     title: "Nebula"
     color: "black"
 
     id: root
+
+    font.family: Theme.font
+    font.pixelSize: 16
+    font.weight: 500
 
     property alias currentPage: pageLoader.currentItem
 
