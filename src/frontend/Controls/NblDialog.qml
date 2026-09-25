@@ -123,6 +123,7 @@ Item {
                                 anchors.centerIn: parent
                                 font.pixelSize: 16
                                 font.weight: 500
+                                font.family: Theme.font
                                 color: Theme.colors.blackOrWhite(root.okButtonColor)
                                 text: root.okText
                             }
@@ -157,6 +158,7 @@ Item {
                                 anchors.centerIn: parent
                                 font.pixelSize: 16
                                 font.weight: 500
+                                font.family: Theme.font
                                 color: Theme.colors.text
                                 text: root.applyText
                             }
@@ -190,6 +192,7 @@ Item {
                                 anchors.centerIn: parent
                                 font.pixelSize: 16
                                 font.weight: 500
+                                font.family: Theme.font
                                 color: Theme.colors.text
                                 text: root.cancelText
                             }

@@ -20,7 +20,7 @@ Item {
 
     signal clicked
 
-    readonly property real scaleFactor: Math.min(width / aspectRatio, height - (showTitle ? 48 : 0))
+    readonly property real scaleFactor: width / aspectRatio
     property bool highlighted
 
     Item {

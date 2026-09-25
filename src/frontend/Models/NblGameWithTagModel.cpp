@@ -51,7 +51,7 @@ void NblGameWithTagModel::refresh() {
     _mCriteriaData.tags[0] = static_cast<i64>(_mTag);
     _mCriteriaData.tagSets[0] = _mCriteriaData.tags;
     _mCriteria.tags = _mCriteriaData.tagSets.constSpan();
-    _mCriteria.deviceId = ApplicationContext::instance()->deviceId();
+    _mCriteria.deviceId = 0;
 
     _mData.clear();
     _mAllLoaded = false;
