@@ -134,7 +134,18 @@ void nbl::frontend::AccountModel::setProviderId(QString providerId) {
     _pProvider = prov;
     emit providerIdChanged();
 
-    refresh();
+    if(prov) {
+        refresh();
+    } else {
+        beginResetModel();
+        int preCount = count();
+        _mData.clear();
+
+        if(count() != preCount) {
+            emit countChanged();
+        }
+        endResetModel();
+    }
 }
 
 qint32 nbl::frontend::AccountModel::login(QVariantMap fields) {

@@ -89,6 +89,23 @@ WHERE oaId = ?1;)", &_stmt));
     });
 }
 
+
+nbl::Result nbl::OnlineAccount::getFirst(DatabaseConnection* connection, StringView provider, OnlineAccountCallback callback) {
+    PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT oaId, fields, provider, updatedAt, username, icon, iconNearestScaling, status
+FROM online_account
+WHERE provider = ?1
+LIMIT 1;)", &_stmt));
+    }
+
+    NBL_CHECK(_stmt.bind(1, provider));
+    return connection->execute(&_stmt, [&](i32 columns, nbl::DataValue* values, const char** names, i32 lastInsertRowId) {
+        return _processAccount(callback, columns, values, names, lastInsertRowId);
+    });
+}
+
 nbl::Result nbl::OnlineAccount::enumerate(DatabaseConnection* connection, OnlineAccountCallback callback) {
     PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {

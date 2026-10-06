@@ -43,7 +43,7 @@ public:
     }
     void complete(PluginContext* context, StringView username, StringView icon, bool iconNearestScaling, Span<FieldValue> values);
         
-    Result beginOAuthLogin(StringView url, StringView clientId, Span<StringView> claims, u16 port, OAuthResponseType type, StringBuilder* responseBuilder);
+    Result beginOAuthLogin(StringView url, StringView clientId, Span<StringView> claims, u16 port, OAuthResponseType type, Span<char> challengeB64, StringBuilder* responseBuilder);
 
     static Result create(
             void (*pfnFinished)(bool success, StringView message, void* userData), 
@@ -51,9 +51,14 @@ public:
             bool (*pfnOpenUrl)(StringView url, void* userData), 
             LoginTracker* outTracker) {
 
+        if(pfnFinished == nullptr || pfnStatus == nullptr || pfnOpenUrl == nullptr || outTracker == nullptr) {
+            return nbl::Result::INVALID_ARGUMENT;
+        }
+
         NBL_CHECK(nbl::Mutex::create(&outTracker->_mMutex));
         outTracker->_pfnFinished = pfnFinished;
         outTracker->_pfnStatus = pfnStatus;
+        outTracker->_pfnOpenUrl = pfnOpenUrl;
         outTracker->_bIdle = true;
         outTracker->_pUserData = nullptr;
         return nbl::Result::SUCCESS;

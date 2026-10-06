@@ -114,7 +114,12 @@ struct UrlEncode {
     StringView string;
 };
 
+struct UrlDecode {
+    StringView string;
+};
+
 Result toString(const UrlEncode& encode, Writer writer);
+Result toString(const UrlDecode& encode, Writer writer);
 
 class HttpClient {
 public:

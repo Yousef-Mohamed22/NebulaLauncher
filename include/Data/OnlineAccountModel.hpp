@@ -28,6 +28,7 @@ struct OnlineAccount {
     static Result updateStatus(DatabaseConnection* connection, i64 accountId, OnlineAccountStatus status);
     static Result remove(DatabaseConnection* connection, i64 accountId);
     static Result get(DatabaseConnection* connection, i64 accountId, OnlineAccountCallback callback);
+    static Result getFirst(DatabaseConnection* connection, StringView provider, OnlineAccountCallback callback);
     static Result enumerate(DatabaseConnection* connection, OnlineAccountCallback callback);
     static Result enumerateForProvider(DatabaseConnection* connection, StringView provider, OnlineAccountCallback callback);
 };

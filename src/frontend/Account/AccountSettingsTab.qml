@@ -224,31 +224,31 @@ SettingsTab {
                                 itemWidth: ((parent.width - 96 - 96 - 8) / count) - 8
                             }
 
-                            NblButton {
-                                Layout.preferredWidth: 96
+                            Row {
                                 Layout.preferredHeight: 48
-                                Layout.alignment: Qt.AlignBottom
-                                centered: true
-                                activeColor: Theme.colors.border
-                                inactiveColor: Theme.colors.border
-                                text: "Cancel"
-                                onClicked: {
-                                    providerItem.adding = false
+                                Layout.alignment: Qt.AlignBottom | Qt.AlignHCenter
+                                spacing: 8
+                                NblButton {
+                                    centered: true
+                                    width: 96
+                                    activeColor: Theme.colors.border
+                                    inactiveColor: Theme.colors.border
+                                    text: "Cancel"
+                                    onClicked: {
+                                        providerItem.adding = false
+                                    }
                                 }
-                            }
-                            NblButton {
-                                Layout.preferredWidth: 96
-                                Layout.preferredHeight: 48
-                                Layout.alignment: Qt.AlignBottom
-                                centered: true
-                                activeColor: Theme.colors.accent
-                                inactiveColor: Theme.colors.accent
-                                textColor: Theme.colors.textOnAccent
-                                text: providerItem.modelData.loginText
-                                onClicked: {
-                                    providerItem.adding = false
-                                    if(accountRepeater.model.login(accountFields.save()) == 0) {
-                                        providerRepeater.loggingInIndex = providerItem.index
+                                NblButton {
+                                    centered: true
+                                    activeColor: Theme.colors.accent
+                                    inactiveColor: Theme.colors.accent
+                                    textColor: Theme.colors.textOnAccent
+                                    text: providerItem.modelData.loginText
+                                    onClicked: {
+                                        providerItem.adding = false
+                                        if(accountRepeater.model.login(accountFields.save()) == 0) {
+                                            providerRepeater.loggingInIndex = providerItem.index
+                                        }
                                     }
                                 }
                             }

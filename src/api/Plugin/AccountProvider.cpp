@@ -7,7 +7,8 @@
 #include <Network/HttpServer.hpp>
 #include <Platform/Random.hpp>
 #include <Utility/Hash.hpp>
-#include "Plugin/Field.hpp"
+#include <Core/Result.hpp>
+#include <Plugin/Field.hpp>
 
 
 void nbl::LoginTracker::complete(PluginContext* context, StringView username, StringView icon, bool iconNearestScaling, Span<FieldValue> values) {
@@ -48,28 +49,31 @@ void nbl::LoginTracker::complete(PluginContext* context, StringView username, St
     }
 }
 
-nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView clientId, Span<StringView> scopes, u16 port, OAuthResponseType type, StringBuilder* responseBuilder) {
+nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView clientId, Span<StringView> scopes, u16 port, OAuthResponseType type, Span<char> challengeB64, StringBuilder* responseBuilder) {
 
-    if(port == 0) {
-        nbl::Random random{};
-        random.seed(nbl::getCurrentTime());
-        port = 40000 + (random.next() % 10000);
-    } 
+    if(challengeB64.length < 43 || challengeB64.length > 128) {
+        return nbl::Result::INVALID_ARGUMENT;
+    }
 
     for(const StringView& scope : scopes) {
         for(char c : scope) {
             if(c == ' ' || c == '"' || c == '\\') return nbl::Result::INVALID_ARGUMENT;
         }
     }
+    if(port == 0) {
+        nbl::Random random{};
+        random.seed(nbl::getCurrentTime());
+        port = 40000 + (random.next() % 10000);
+    } 
+
 
     // PKCE
-    nbl::Array<u8,96> challengeBytes;
-    nbl::Array<char, 128> challengeB64;
+    nbl::Array<u8, 96> challengeBytes;
     NBL_CHECK(nbl::secureRandom(challengeBytes));
-    NBL_CHECK(nbl::encodeBase64(challengeBytes, challengeB64, nbl::Base64CharacterSet::URL_SAFE));
+    NBL_CHECK(nbl::encodeBase64(challengeBytes.span().slice(0, nbl::b64DecodedLength(challengeB64.length)), challengeB64, nbl::Base64CharacterSet::URL_SAFE));
 
-    nbl::Array<u8,32> hash{};
-    NBL_CHECK(nbl::sha256(nbl::BufferStream(challengeB64.span()), hash));
+    nbl::Array<u8, 32> hash{};
+    NBL_CHECK(nbl::sha256(nbl::BufferStream(challengeB64), hash));
 
     nbl::Array<char, 43> hashB64{};
     NBL_CHECK(nbl::encodeBase64(hash, hashB64, nbl::Base64CharacterSet::URL_SAFE));
@@ -118,7 +122,49 @@ nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView client
 
     NBL_CHECK(nbl::OAuthCallbackListener::listen(port, responseBuilder));
 
-    return nbl::Result::SUCCESS;
+    if(type == OAuthResponseType::NONE) {
+        return responseBuilder->retain(0, 0);
+    }
+
+    StringView path{};
+    NBL_CHECK(responseBuilder->build(&path));
+
+    usize index = 0;
+    NBL_CHECK(path.findFirst('?', &index));
+
+    StringView current = path.tail(index + 1);
+    bool c = true;
+    while(c) {
+        Result findRes = current.findFirst('&', &index);
+        if(findRes == Result::NOT_FOUND) {
+            c = false;
+            index = current.length;
+        }
+        StringView arg = current.slice(0, index);
+
+        usize delim;
+        NBL_CHECK(arg.findFirst('=', &delim));
+
+        StringView field = arg.slice(0, delim);
+        StringView value = arg.tail(delim + 1);
+
+        NBL_DEBUG(field, '=', value);
+
+        if((type == OAuthResponseType::CODE && field == "code")
+        || (type == OAuthResponseType::TOKEN && field == "token")) {
+
+            usize preLength = responseBuilder->length();
+            NBL_CHECK(responseBuilder->appendChecked(UrlDecode(value)));
+            usize responseLength = responseBuilder->length() - preLength;
+            return responseBuilder->retainLast(responseLength);
+        }
+
+        if(c) {
+            current = current.tail(index + 1);
+        }
+    }
+
+    return nbl::Result::FORMAT_ERROR;
 }
 
 

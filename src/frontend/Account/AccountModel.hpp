@@ -15,13 +15,19 @@ class AccountModel : public QAbstractListModel {
     Q_OBJECT
     QML_NAMED_ELEMENT(AccountModel)
 
-    QML_UNCREATABLE("Obtain from AccountProviderModel")
-
     Q_PROPERTY(QString providerId READ providerId WRITE setProviderId NOTIFY providerIdChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(NblFieldList* fields READ fields CONSTANT)
 
 public:
+
+
+    explicit AccountModel(QObject* parent = nullptr) :
+        QAbstractListModel(parent),
+        _pProvider(nullptr)
+    { }
+
+
 
     explicit AccountModel(const AccountProvider* provider, QObject* parent = nullptr) :
         QAbstractListModel(parent),

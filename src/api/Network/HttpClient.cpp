@@ -421,3 +421,50 @@ nbl::Result nbl::toString(const UrlEncode& encode, Writer writer) {
     }
     return nbl::Result::SUCCESS;
 }
+
+nbl::Result nbl::toString(const UrlDecode& decode, Writer writer) {
+    for(usize i = 0 ; i < decode.string.length ; i++) {
+
+        char c = decode.string[i];
+        if(c == '%') {
+            if(i + 2 >= decode.string.length) {
+                NBL_DEBUG("Found '%' too close to the end of the string!");
+                return nbl::Result::FORMAT_ERROR;
+            }
+            char hex[2] = {
+                decode.string[i + 1],
+                decode.string[i + 2]
+            };
+
+            u8 chara;
+            for(usize i = 0 ; i < 2 ; i++) {
+                char hexChar = hex[i];
+                if(!(hexChar >= '0' && hexChar <= '9')
+                && !(hexChar >= 'a' && hexChar <= 'f')
+                && !(hexChar >= 'A' && hexChar <= 'F')) {
+                    NBL_DEBUG("Found invalid hex char! ", hexChar);
+                    return nbl::Result::FORMAT_ERROR;
+                }
+
+                u8 hexValue = (hexChar >= '0' && hexChar <= '9') 
+                    ? hexChar - '0'
+                    : hexChar >= 'a' && hexChar <= 'f' 
+                        ? hexChar - 'a' + 10
+                        : hexChar - 'A' + 10;
+
+                if(i == 0) {
+                    chara |= (hexValue << 4);
+                } else {
+                    chara |= (hexValue & 0xF);
+                }
+            }
+
+            NBL_CHECK(writer.writeChar(chara));
+            i += 2;
+            
+        } else {
+            NBL_CHECK(writer.writeChar(c));
+        }
+    }
+    return nbl::Result::SUCCESS;
+}

@@ -105,6 +105,27 @@ public:
         return Result::SUCCESS;
     }
 
+    Result retain(usize index, usize length) noexcept {
+
+        if(index + length > _mLength) return nbl::Result::INVALID_ARGUMENT;
+
+        char* ptr = static_cast<char*>(_pAllocator->begin()) + _mBegin;
+        if(length > 0) {
+            memmove(ptr, ptr + index, length);
+        }
+
+        NBL_CHECK(_pAllocator->popToPtr(ptr + length));
+        _mLength = length;
+
+        return nbl::Result::SUCCESS;
+    }
+
+
+    Result retainLast(usize length) noexcept {
+        if(length > _mLength) return nbl::Result::INVALID_ARGUMENT;
+        return retain(_mLength - length, length);
+    }
+
 
     operator Writer() noexcept {
         return writer();

@@ -70,6 +70,10 @@ struct FieldValue {
         struct {
             StringView resolved; 
             StringView raw; // No placeholders applied
+            inline void set(StringView str) noexcept {
+                resolved = str;
+                raw = str;
+            }
         } stringValue; // for STRING
         i64 integerValue; // for INTEGER
         u64 uintegerValue; // for DATE
@@ -77,7 +81,7 @@ struct FieldValue {
         bool booleanValue; // for BOOLEAN
         u32 enumValue; // for ENUM 
         struct {
-            u32 id;
+            i64 id;
             bool isDefault;
         } accountValue; // for ACCOUNT
         Span<FieldValue> compositeValue; // for LIST, STRUCT, and CUSTOM

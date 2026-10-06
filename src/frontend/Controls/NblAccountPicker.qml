@@ -14,8 +14,8 @@ Item {
     required property string accountProvider
     property bool showDefaultOption: false
 
-    readonly property AccountsModel model: AccountsModel {
-        providerId: accountProvider
+    readonly property AccountModel model: AccountModel {
+        providerId: root.accountProvider
     }
 
     property int selectedId

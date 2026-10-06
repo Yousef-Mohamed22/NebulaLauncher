@@ -16,6 +16,7 @@ nbl::Result _decodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
                 *outValue = nbl::FieldValue { 
                     .stringValue = {
                         .resolved = element.string,
+                        .raw = element.string,
                     }
                 };
             } else if(element.type == nbl::JsonType::OBJECT) {
@@ -90,12 +91,20 @@ nbl::Result _decodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
 nbl::Result _encodeFieldValue(nbl::PluginContext* context, const nbl::Field& field, nbl::FieldValue value, nbl::Writer writer, nbl::Span<nbl::Placeholder> extraPlaceholders) {
     switch(field.type) {
         case nbl::FieldType::STRING: {
-            return nbl::JsonWriter(writer).writeObject([&](auto obj) {
-                obj.add("raw", value.stringValue.raw);
-                obj.writeString("resolved", [&](auto writer){
-                    return nbl::formatPlaceholders(value.stringValue.raw, writer, nbl::Array { field.stringData.customPlaceholders, extraPlaceholders }, (field.flags & nbl::FieldFlag::STRICT_PLACEHOLDERS));
+
+            if(value.stringValue.raw == value.stringValue.resolved) {
+                NBL_CHECK(writer.writeChar('"'));
+                nbl::Writer w = nbl::jsonStringWriter(&writer);
+                NBL_CHECK(w.writeString(value.stringValue.raw));
+                return writer.writeChar('"');
+            } else {
+                return nbl::JsonWriter(writer).writeObject([&](auto obj) {
+                    obj.add("raw", value.stringValue.raw);
+                    obj.writeString("resolved", [&](auto writer){
+                        return nbl::formatPlaceholders(value.stringValue.raw, writer, nbl::Array { field.stringData.customPlaceholders, extraPlaceholders }, (field.flags & nbl::FieldFlag::STRICT_PLACEHOLDERS));
+                    });
                 });
-            });
+            }
         }
         case nbl::FieldType::FLOAT:
             return nbl::writeJson(writer, value.floatValue);
@@ -149,7 +158,10 @@ nbl::Result _encodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
 
 nbl::Result nbl::encodeFieldValues(PluginContext* context, Span<Field> fields, Span<FieldValue> values, Writer writer, Span<Placeholder> extraPlaceholders) {
 
-    return JsonWriter(writer).writeObject([&](JsonWriter::ObjectWriter& obj) {
+    u8 buffer[4096]{};
+    BufferedWriter bufferedWriter(writer, buffer, 4096);
+
+    return JsonWriter(bufferedWriter).writeObject([&](JsonWriter::ObjectWriter& obj) {
         for(usize i = 0 ; i < fields.length ; i++) {
             const Field& field = fields[i];
 
@@ -165,7 +177,6 @@ nbl::Result nbl::encodeFieldValues(PluginContext* context, Span<Field> fields, S
 
 
 nbl::Result nbl::decodeFieldValues(PluginContext* context, Span<Field> fields, JsonObject obj, Span<FieldValue>* outValues, LinearAllocator* allocator) {
-
     Span<FieldValue> values;
     NBL_CHECK(allocator->allocate<FieldValue>(&values.data, fields.length));
     values.length = fields.length;

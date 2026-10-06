@@ -183,6 +183,47 @@ struct JsonElement {
         type(JsonType::OBJECT),
         object(object)
     {}
+
+
+    inline JsonObject asObject(JsonObject defaultValue = {}) const noexcept {
+        if(type == JsonType::OBJECT) return object;
+        return defaultValue;
+    }
+
+    inline JsonArray asArray(JsonArray defaultValue = {}) const noexcept {
+        if(type == JsonType::ARRAY) return array;
+        return defaultValue;
+    }
+
+    inline JsonNumber asNumber(JsonNumber defaultValue = {}) const noexcept {
+        if(type == JsonType::NUMBER) return number;
+        return defaultValue;
+    }
+
+    inline i64 asInt(i64 defaultValue = {}) const noexcept {
+        if(type == JsonType::NUMBER) return number.asInt();
+        return defaultValue;
+    }
+
+    inline u64 asUint(u64 defaultValue = {}) const noexcept {
+        if(type == JsonType::NUMBER) return number.asUint();
+        return defaultValue;
+    }
+
+    inline f64 asFloat(f64 defaultValue = {}) const noexcept {
+        if(type == JsonType::NUMBER) return number.asFloat();
+        return defaultValue;
+    }
+
+    inline StringView asString(StringView defaultValue = {}) const noexcept {
+        if(type == JsonType::STRING) return string;
+        return defaultValue;
+    }
+
+    inline bool asBoolean(bool defaultValue = false) const noexcept {
+        if(type == JsonType::BOOLEAN) return boolean;
+        return defaultValue;
+    }
 };
 
 struct JsonObject::Entry {
