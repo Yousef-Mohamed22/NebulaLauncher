@@ -9,6 +9,7 @@
 #include <Core/String.hpp>
 #include <Data/Model.hpp>
 #include <Plugin/Field.hpp>
+#include "Data/OnlineAccountModel.hpp"
 
 
 namespace {
@@ -184,74 +185,42 @@ nbl::Array _fields = {
     }
 };
 
-struct _TestAccount {
-    nbl::AccountInfo info;
-    bool isLoggedIn;
+nbl::Array _accountFields {
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "username",
+        .name = "Username",
+        .flags = nbl::FieldFlag::EPHEMERAL | 0
+    },
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "password",
+        .name = "Password",
+        .flags = nbl::FieldFlag::PASSWORD | nbl::FieldFlag::EPHEMERAL
+    }
 };
-
-nbl::Array<_TestAccount, 3> _infos = {
-    _TestAccount{ .info = nbl::AccountInfo{ .userName = "Test1", .icon = "", .id = 1 }, .isLoggedIn = false },
-    _TestAccount{ .info = nbl::AccountInfo{ .userName = "Test2", .icon = "", .id = 2 }, .isLoggedIn = false },
-    _TestAccount{ .info = nbl::AccountInfo{ .userName = "Test3", .icon = "", .id = 3 }, .isLoggedIn = false },
-};
-
-u32 _firstFree = 0;
-
 
 nbl::AccountProvider _provider {
     .id = "test",
     .name = "Test",
-    .type = nbl::AccountProvider::Type::BASIC,
+    .fields = _accountFields,
     .maxAccounts = 3,
-    .basicData = {
-        .pfnLogin = [](nbl::PluginContext* context, nbl::StringView username, nbl::StringView password, nbl::LoginTracker* tracker, void* userData) -> nbl::Result {
+    .pfnLogin = [](nbl::PluginContext* context, nbl::Span<nbl::FieldValue> values, nbl::LoginTracker* tracker, void* userData) -> nbl::Result {
+        tracker->postStatus("3...");
+        nbl::sleep(1000);
+        tracker->postStatus("2...");
+        nbl::sleep(1000);
+        tracker->postStatus("1...");
+        nbl::sleep(1000);
 
-            if(username.length == 0) return nbl::Result::INVALID_ARGUMENT;
-            if(_firstFree == 3) return nbl::Result::INVALID_STATE;
-
-            u32 id = _firstFree;
-            _firstFree = _infos[id].info.id;
-            _infos[id].info.id = id;
-            _infos[id].isLoggedIn = true;
-
-            tracker->postStatus("3...");
-            nbl::sleep(1000);
-            tracker->postStatus("2...");
-            nbl::sleep(1000);
-            tracker->postStatus("1...");
-            nbl::sleep(1000);
-
-            tracker->finishTracking(true, {});
-            return nbl::Result::SUCCESS;
-        },
-        .pfnLogout = [](nbl::PluginContext* context, u32 accountId, void* userData) -> nbl::Result {
-            if(accountId > 2) return nbl::Result::INVALID_STATE;
-
-            _infos[accountId].isLoggedIn = false;
-            if(accountId < _firstFree) {
-                _infos[accountId].info.id = _firstFree;
-                _firstFree = accountId;
-            }
-
-            return nbl::Result::SUCCESS;
-        }
+        tracker->complete(context, values[0].stringValue.raw, "", false, values);
+        return nbl::Result::SUCCESS;
     },
-    .accountInfo = {
-        .pfnGet = [](nbl::PluginContext* context, u32 accountId, nbl::AccountInfo* info, void* userData) -> nbl::Result {
-            nbl::log(nbl::LogLevel::INFO, "Get: ", accountId);
-            if(accountId == 0 || accountId > 3) return nbl::Result::NOT_FOUND;
-            if(!_infos[accountId].isLoggedIn) return nbl::Result::NOT_FOUND;
-            *info = _infos[accountId - 1].info;
-            return nbl::Result::SUCCESS;
-        },
-        .pfnEnumerate = [](nbl::PluginContext* context, nbl::AccountCallback callback, void* userData) -> nbl::Result {
-            for(_TestAccount& acc : _infos) {
-                if(acc.isLoggedIn) {
-                    callback(acc.info);
-                }
-            }
-            return nbl::Result::SUCCESS;
-        }
+    .pfnRefresh = [](nbl::PluginContext* context, const nbl::OnlineAccount& account, nbl::LoginTracker* tracker, void* userData) -> nbl::Result {
+        return nbl::Result::NO_CHANGE;
+    },
+    .pfnLogout = [](nbl::PluginContext* context, i64 accountId, void* userData) -> nbl::Result {
+        return nbl::Result::SUCCESS;
     }
 };
 

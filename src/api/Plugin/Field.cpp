@@ -59,7 +59,7 @@ nbl::Result _decodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
             };
             break;
         case nbl::FieldType::LIST: {
-            if(!nbl::shouldEncodeField(field.listData.templateField->type)) {
+            if(!nbl::shouldEncodeField(*field.listData.templateField)) {
                 return nbl::Result::INVALID_ARGUMENT;
             }
             if(element.type != nbl::JsonType::ARRAY) return nbl::Result::INVALID_ARGUMENT;
@@ -153,8 +153,8 @@ nbl::Result nbl::encodeFieldValues(PluginContext* context, Span<Field> fields, S
         for(usize i = 0 ; i < fields.length ; i++) {
             const Field& field = fields[i];
 
-            if(!shouldEncodeField(field.type)) continue;
-            else if(field.type == FieldType::LIST && !shouldEncodeField(field.listData.templateField->type)) continue;
+            if(!shouldEncodeField(field)) continue;
+            else if(field.type == FieldType::LIST && !shouldEncodeField(*field.listData.templateField)) continue;
 
             obj.write(field.key, [&](Writer writer) {
                 return _encodeFieldValue(context, field, values[i], writer, extraPlaceholders);
@@ -174,8 +174,8 @@ nbl::Result nbl::decodeFieldValues(PluginContext* context, Span<Field> fields, J
 
         const Field& field = fields[i];
 
-        if(!shouldEncodeField(field.type)) continue;
-        else if(field.type == FieldType::LIST && !shouldEncodeField(field.listData.templateField->type)) continue;
+        if(!shouldEncodeField(field)) continue;
+        else if(field.type == FieldType::LIST && !shouldEncodeField(*field.listData.templateField)) continue;
 
         const JsonElement* val = obj.get(field.key);
         if(val == nullptr) {

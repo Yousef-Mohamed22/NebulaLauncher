@@ -79,6 +79,7 @@ struct Result {
         INTERRUPTED = -17,
         LIBRARY_ERROR = -18,
         TOO_MANY_OPEN_FILES = -19,
+        EXPIRED = -20,
         UNIMPLEMENTED = -998,
         UNEXPECTED_ERROR = -999
     };

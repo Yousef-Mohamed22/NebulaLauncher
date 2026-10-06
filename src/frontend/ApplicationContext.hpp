@@ -15,7 +15,6 @@
 #include "Models/NblInstallationDetails.hpp"
 #include "Models/NblGameDetails.hpp"
 #include "Models/NblFieldList.hpp"
-#include "Models/NblAccountsModel.hpp"
 #include "NblProcessHandle.hpp"
 
 inline QByteArray fromNbl(nbl::StringView sv) {
@@ -124,7 +123,6 @@ public:
     Q_INVOKABLE QVariantMap gameExternalIds(qint64 gameIds);
 
     Q_INVOKABLE NblFieldList* getInstallationTypeFields(QString installationType);
-    Q_INVOKABLE NblAccountsModel* accountsModel(QString accountProvider);
 
     Q_INVOKABLE void pushNotification(QVariantMap details) {
         emit notification(details);

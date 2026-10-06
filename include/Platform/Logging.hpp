@@ -86,6 +86,7 @@ Writer stdoutWriter();
  */
 Writer stderrWriter();
 
+
 /**
  * \brief Logs a message at a specified log level. This function takes a log level and a variadic list of arguments, converts the arguments to their string representations, and writes the log message to the standard output stream with a colored prefix indicating the log level. The log message is only logged if the specified log level is greater than or equal to the configured log level threshold (NBL_LOG_LEVEL).
  * \tparam Args The types of the arguments to be logged.
@@ -94,6 +95,8 @@ Writer stderrWriter();
  */
 template<typename... Args>
 inline void log(LogLevel level, Args&&... args) {
+
+    thread_local static u8 _logBuffer[4096];
 
     constexpr static const char* _prefixes[6] = {
         "\x1B[2m[TRACE] ",
@@ -108,11 +111,22 @@ inline void log(LogLevel level, Args&&... args) {
         return;
     }
 
-    stdout(_prefixes[static_cast<usize>(level)]);
-    Writer out = stdoutWriter();
+    BufferedWriter bufferedWriter(stdoutWriter(), _logBuffer, 4096);
+    Writer out = bufferedWriter;
+
+    out.writeString(_prefixes[static_cast<usize>(level)]);
     (void(toString(std::forward<Args>(args), out)), ...);
-    stdout("\n\x1B[0m");
+    out.writeString("\n\x1B[0m");
+
+    bufferedWriter.flush();
 }
+
+#define NBL_TRACE(...) nbl::log(nbl::LogLevel::TRACE, __VA_ARGS__);
+#define NBL_DEBUG(...) nbl::log(nbl::LogLevel::DEBUG, __VA_ARGS__);
+#define NBL_INFO(...) nbl::log(nbl::LogLevel::INFO, __VA_ARGS__);
+#define NBL_WARN(...) nbl::log(nbl::LogLevel::WARN, __VA_ARGS__);
+#define NBL_ERROR(...) nbl::log(nbl::LogLevel::ERROR, __VA_ARGS__);
+#define NBL_FATAL(...) nbl::log(nbl::LogLevel::FATAL, __VA_ARGS__);
 
 
 }

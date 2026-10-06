@@ -40,34 +40,3 @@ nbl::Result nbl::ra::downloadProfile(HttpClient *client, StringView apiKey, Stri
 
     return nbl::Result::SUCCESS;
 }
-
-nbl::Result nbl::ra::loadProfile(Reader reader, LinearAllocator* storage, UserProfile* out) {
-
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-
-    JsonElement element{};
-    NBL_CHECK(nbl::parseJson(reader, &frame, &element));
-    if(element.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
-
-    NBL_CHECK(nbl::StringBuilder(storage).append(element.object.getString("api_key")).buildNullTerminated(&out->apiKey));
-    NBL_CHECK(nbl::StringBuilder(storage).append(element.object.getString("username")).buildNullTerminated(&out->username));
-    NBL_CHECK(nbl::StringBuilder(storage).append(element.object.getString("ulid")).buildNullTerminated(&out->ulid));
-    NBL_CHECK(nbl::StringBuilder(storage).append(element.object.getString("pfp")).buildNullTerminated(&out->pfp));
-
-    out->points = element.object.getNumber("points").asUint();
-    out->truePoints = element.object.getNumber("true_points").asUint();
-
-    return nbl::Result::SUCCESS;
-}
-
-nbl::Result nbl::ra::saveProfile(Writer writer, const UserProfile& profile) {
-
-    return nbl::JsonWriter(writer).writeObject([&](auto& obj) {
-        obj.add("api_key", profile.apiKey);
-        obj.add("username", profile.username);
-        obj.add("ulid", profile.ulid);
-        obj.add("pfp", profile.pfp);
-        obj.add("points", profile.points);
-        obj.add("true_points", profile.truePoints);
-    });
-}

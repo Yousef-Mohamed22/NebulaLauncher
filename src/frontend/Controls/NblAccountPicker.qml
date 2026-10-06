@@ -14,7 +14,9 @@ Item {
     required property string accountProvider
     property bool showDefaultOption: false
 
-    readonly property NblAccountsModel model: ApplicationContext.accountsModel(accountProvider)
+    readonly property AccountsModel model: AccountsModel {
+        providerId: accountProvider
+    }
 
     property int selectedId
     property string selectedName: showDefaultOption ? "Default" : "No Registered Accounts"

@@ -10,6 +10,8 @@
 #include <Plugin/PluginInitContext.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/InstallationType.hpp>
+#include <Plugin/AccountProvider.hpp>
+#include <Data/OnlineAccountModel.hpp>
 
 
 nbl::Result nbl::PluginLoader::beginLoadAsync() {
@@ -61,6 +63,50 @@ nbl::Result nbl::PluginLoader::_loadAll() {
     }
 
     NBL_CHECK(builder.build(&_pContext->_mArena, &_pContext->_mRegistry));
+
+    LoginTracker tracker{};
+    NBL_CHECK(LoginTracker::create(
+        [](bool success, StringView error, void* userData) {
+            if(!success) {
+                const AccountProvider* prov = static_cast<const AccountProvider*>(userData);
+                NBL_ERROR("Failed to refresh account for ", prov->id, ": ", error);
+            }
+        },
+        [](StringView message, void* userData) {
+            NBL_DEBUG("Refresh tracker: ", message)
+        },
+        [](StringView url, void* userData) {
+            NBL_WARN("Attempt to open browser during refresh!");
+            return false;
+        },
+        &tracker
+    ));
+
+    NBL_CHECK(nbl::OnlineAccount::enumerate(_pContext->databaseConnection(), [&](const OnlineAccount& account) -> nbl::Result {
+
+        if(account.status == OnlineAccountStatus::NOT_LOGGED_IN) {
+            return OnlineAccount::remove(_pContext->databaseConnection(), account.id);
+        }
+
+        const nbl::AccountProvider* provider = _pContext->get<AccountProvider>(account.provider);
+        if(provider == nullptr) return nbl::Result::SUCCESS;
+
+        NBL_CHECK(tracker.startTracking(nullptr, account.id, provider));
+
+        nbl::Result res = provider->refresh(_pContext, account, &tracker);
+        if(res == Result::NO_CHANGE) {
+            NBL_DEBUG("Plugin requested no change to account in DB");
+            tracker._finishTracking(true, {});
+        } else if(res.error()) {
+            tracker.fail("An error occurred");
+            NBL_CHECK(OnlineAccount::updateStatus(_pContext->databaseConnection(), account.id, OnlineAccountStatus::EXPIRED))
+        } else if(tracker.isTracking()) {
+            tracker.fail("The AccountProvider failed to call complete() or fail() before returning from refresh()");
+            NBL_CHECK(OnlineAccount::updateStatus(_pContext->databaseConnection(), account.id, OnlineAccountStatus::EXPIRED))
+        }
+        return res;
+    }));
+
     return nbl::Result::SUCCESS;
 }
 

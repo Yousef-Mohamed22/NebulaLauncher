@@ -267,7 +267,6 @@ Column {
                 function save() { return added ? fieldList.save() : {} }
 
                 Component.onCompleted: {
-                    console.log("Status:",providerStatus)
                     fieldList.load(modelData.fieldValues)
                 }
 

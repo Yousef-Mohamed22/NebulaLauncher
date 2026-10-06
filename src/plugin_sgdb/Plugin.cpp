@@ -9,6 +9,8 @@
 #include <Network/HttpClient.hpp>
 #include <Codec/Json.hpp>
 #include <Core/String.hpp>
+#include "Data/OnlineAccountModel.hpp"
+#include "Plugin/Field.hpp"
 
 
 
@@ -31,27 +33,59 @@ char _tokenBuffer[64]{};
 usize _tokenLength = 0;
 nbl::HttpClient _httpClient{};
 
-nbl::Result _login(nbl::PluginContext* context, nbl::StringView token, nbl::LoginTracker* tracker, void* userData) {
+nbl::Array _accountFields = {
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "key",
+        .name = "API Key"
+    }
+};
 
-    if(token.length > 64) return nbl::Result::INVALID_ARGUMENT;
+nbl::Result _login(nbl::PluginContext* context, nbl::Span<nbl::FieldValue> fields, nbl::LoginTracker* tracker, void* userData) {
+
+    nbl::StringView token = fields[0].stringValue.raw;
+    if(token.length > 64) {
+        tracker->fail("Token is too long");
+        return nbl::Result::INVALID_ARGUMENT;
+    }
+
     memcpy(_tokenBuffer, token.data, token.length);
     _tokenLength = token.length;
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    nbl::StringView apiKeyPath;
-
-    NBL_CHECK(nbl::StringBuilder(&frame).append(context->pluginDataPath()).append("/sgdb/apikey.txt").buildNullTerminated(&apiKeyPath));
-
-    nbl::FileChannel channel;
-    NBL_CHECK(nbl::FileChannel::open(apiKeyPath, &channel, nbl::FileOpenFlag::WRITE | nbl::FileOpenFlag::CREATE));
-    NBL_CHECK(channel.writer().writeAll(_tokenBuffer, _tokenLength));
-
-    tracker->finishTracking(true, "");
+    tracker->complete(context, "API Key", "", false, fields);
     return nbl::Result::SUCCESS;
 }
-nbl::Result _logout(nbl::PluginContext* context, u32 accountId, void* userData) {
+
+nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& account, nbl::LoginTracker* tracker, void* userData) {
+
+    nbl::StringView fields = account.fields;
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::JsonElement element{};
+    NBL_CHECK(nbl::parseJson(nbl::StringReader(account.fields), &frame, &element));
+
+    nbl::Span<nbl::FieldValue> values{};
+
+    nbl::decodeFieldValues(context, _accountFields, element.object, &values, &frame);
+
+    nbl::StringView token = values[0].stringValue.raw;
+    if(token.length > 64) {
+        tracker->fail("Token is too long");
+        return nbl::Result::INVALID_ARGUMENT;
+    }
+
+    memcpy(_tokenBuffer, token.data, token.length);
+    _tokenLength = token.length;
+
+    return nbl::Result::NO_CHANGE;
+}
+
+
+nbl::Result _logout(nbl::PluginContext* context, i64 account, void* userData) {
 
     _tokenLength = 0;
+    memset(_tokenBuffer, 0, 64);
+
     return nbl::Result::SUCCESS;
 }
 
@@ -314,42 +348,15 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result _getAccount(nbl::PluginContext* context, u32 accountId, nbl::AccountInfo* info, void* userData) {
-
-    if(accountId > 0 || _tokenLength == 0) return nbl::Result::NOT_FOUND;
-    info->id = 0;
-    info->icon = "";
-    info->userName = "API Key";
-
-    return nbl::Result::SUCCESS;
-}
-
-nbl::Result _enumerateAccounts(nbl::PluginContext* context, nbl::AccountCallback callback, void* userData) {
-    if(_tokenLength > 0) {
-        callback({
-            .userName = "API Key",
-            .icon = "",
-            .id = 0
-        });
-    }
-    return nbl::Result::SUCCESS;
-}
-
 nbl::AccountProvider _provider {
     .id = "sgdb",
     .name = "SteamGridDB",
-    .type = nbl::AccountProvider::Type::TOKEN,
+    .fields = _accountFields,
     .maxAccounts = 1,
-    .tokenData = {
-        .pfnLogin = _login,
-        .pfnLogout = _logout,
-        .userData = nullptr,
-        .tokenText = "API Key"
-    },
-    .accountInfo = {
-        .pfnGet = _getAccount,
-        .pfnEnumerate = _enumerateAccounts
-    }
+    .pfnLogin = _login,
+    .pfnRefresh = _refresh,
+    .pfnLogout = _logout,
+    .userData = nullptr
 };
 
 nbl::MetadataProvider _metaProvider {

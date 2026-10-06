@@ -6,6 +6,7 @@
 #include "Codec/Json.hpp"
 #include "Core/String.hpp"
 #include "Data/Model.hpp"
+#include "Data/OnlineAccountModel.hpp"
 #include "Platform/Allocator.hpp"
 #include "Platform/File.hpp"
 #include "Platform/StringBuilder.hpp"
@@ -23,25 +24,85 @@ nbl::ra::UserProfile _profile;
 u8 _profileBuffer[4096];
 nbl::InPlaceAllocator _profileAlloc(_profileBuffer, 4096);
 
-nbl::Result _login(nbl::PluginContext* context, nbl::StringView username, nbl::StringView apiKey, nbl::LoginTracker* tracker, void* userData) {
+
+nbl::Array _accountFields {
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "username",
+        .name = "Username"
+    },
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "api_key",
+        .name = "API Key",
+        .flags = nbl::FieldFlag::PASSWORD | 0
+    },
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "ulid",
+        .name = "",
+        .flags = nbl::FieldFlag::HIDDEN | 0
+    },
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "pfp",
+        .name = "",
+        .flags = nbl::FieldFlag::HIDDEN | 0
+    },
+    nbl::Field {
+        .type = nbl::FieldType::INTEGER,
+        .key = "points",
+        .name = "",
+        .flags = nbl::FieldFlag::HIDDEN | 0
+    },
+    nbl::Field {
+        .type = nbl::FieldType::INTEGER,
+        .key = "true_points",
+        .name = "",
+        .flags = nbl::FieldFlag::HIDDEN | 0
+    }
+};
+
+
+nbl::Result _login(nbl::PluginContext* context, nbl::Span<nbl::FieldValue> fields, nbl::LoginTracker* tracker, void* userData) {
     tracker->postStatus("Downloading profile...");
+    NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, fields[1].stringValue.raw, fields[0].stringValue.raw, &_profileAlloc, &_profile));
 
-    NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, apiKey, username, &_profileAlloc, &_profile));
+    fields[2].stringValue.raw = _profile.ulid;
+    fields[3].stringValue.raw = _profile.pfp;
+    fields[4].uintegerValue = _profile.points;
+    fields[5].uintegerValue = _profile.truePoints;
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    nbl::StringView apiKeyPath;
-
-    NBL_CHECK(nbl::StringBuilder(&frame).append(context->pluginDataPath()).append("/retroachievements/auth.json").buildNullTerminated(&apiKeyPath));
-
-    nbl::FileChannel channel{};
-    NBL_CHECK(nbl::FileChannel::open(apiKeyPath, &channel, nbl::FileOpenFlag::WRITE | nbl::FileOpenFlag::CREATE | nbl::FileOpenFlag::CREATE_PARENTS));
-
-    NBL_CHECK(nbl::ra::saveProfile(channel.writer(), _profile));
-    tracker->finishTracking(true, {});
-
+    tracker->complete(context, _profile.username, _profile.pfp, false, fields);
     return nbl::Result::SUCCESS;
 }
-nbl::Result _logout(nbl::PluginContext* context, u32 accountId, void* userData) {
+
+nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& account, nbl::LoginTracker* tracker, void* userData) {
+
+    nbl::StringView fields = account.fields;
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::JsonElement element{};
+    NBL_CHECK(nbl::parseJson(nbl::StringReader(account.fields), &frame, &element));
+
+    nbl::Span<nbl::FieldValue> values{};
+
+    nbl::decodeFieldValues(context, _accountFields, element.object, &values, &frame);
+
+    _profileAlloc.popTo(0);
+    NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, values[1].stringValue.raw, values[0].stringValue.raw, &_profileAlloc, &_profile));
+
+    values[2].stringValue.raw = _profile.ulid;
+    values[3].stringValue.raw = _profile.pfp;
+    values[4].uintegerValue = _profile.points;
+    values[5].uintegerValue = _profile.truePoints;
+
+    tracker->complete(context, _profile.username, _profile.pfp, false, values);
+    return nbl::Result::SUCCESS;
+
+}
+
+nbl::Result _logout(nbl::PluginContext* context, i64 accountId, void* userData) {
 
     _profile.ulid = {};
     _profile.apiKey = {};
@@ -59,45 +120,15 @@ nbl::Result _logout(nbl::PluginContext* context, u32 accountId, void* userData) 
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result _getAccount(nbl::PluginContext* context, u32 accountId, nbl::AccountInfo* info, void* userData) {
-
-    if(accountId != 0 || !_profile.isValid()) return nbl::Result::NOT_FOUND;
-
-    *info = {
-        .userName = _profile.username,
-        .icon = _profile.pfp,
-        .id = 0,
-        .iconNearestScaling = false,
-    };
-    return nbl::Result::SUCCESS;
-}
-
-nbl::Result _enumerateAccounts(nbl::PluginContext* context, nbl::AccountCallback callback, void* userData) {
-
-    if(!_profile.isValid()) return nbl::Result::SUCCESS;
-    return callback({
-        .userName = _profile.username,
-        .icon = _profile.pfp,
-        .id = 0,
-        .iconNearestScaling = false,
-    });
-}
-
 nbl::AccountProvider _provider {
     .id = "ra",
     .name = "RetroAchievements",
-    .type = nbl::AccountProvider::Type::BASIC,
+    .fields = _accountFields,
     .maxAccounts = 1,
-    .basicData = {
-        .pfnLogin = _login,
-        .pfnLogout = _logout,
-        .userData = nullptr,
-        .passwordText = "API Key"
-    },
-    .accountInfo = {
-        .pfnGet = _getAccount,
-        .pfnEnumerate = _enumerateAccounts
-    }
+    .pfnLogin = _login,
+    .pfnRefresh = _refresh,
+    .pfnLogout = _logout,
+    .userData = nullptr,
 };
 
 
@@ -396,30 +427,11 @@ nbl::AchievementProvider _achProvider {
 extern "C" i32 initPlugin(nbl::PluginInitContext* context) {  
 
 
-    nbl::log(nbl::LogLevel::INFO, "Initializing RetroAchievements plugin");
+    nbl::log(nbl::LogLevel::INFO, "Initializing RetroAchievements plugin...");
     NBL_CHECK(context->registerObject(&_provider));
     NBL_CHECK(context->registerObject(&_achProvider));
 
     NBL_CHECK(nbl::HttpClient::create(1, 1, 0, 0, &_httpClient));
-
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    nbl::StringView pluginFolder;
-    nbl::StringView apiKeyPath;
-
-    NBL_CHECK(nbl::StringBuilder(&frame).append(context->pluginDataPath()).append("/retroachievements").buildNullTerminated(&pluginFolder));
-    NBL_CHECK(nbl::StringBuilder(&frame).append(pluginFolder).append("/auth.json").buildNullTerminated(&apiKeyPath));
-    NBL_CHECK(nbl::makeDirectories(pluginFolder));
-
-    nbl::FileChannel channel;
-    nbl::Result res = nbl::FileChannel::open(apiKeyPath, &channel, nbl::FileOpenFlag::READ);
-
-    if(res.error() && res != nbl::Result::NOT_FOUND) {
-        return res;
-    }
-
-    if(res == nbl::Result::SUCCESS) {
-        NBL_CHECK(nbl::ra::loadProfile(channel.reader(), &_profileAlloc, &_profile));
-    }
 
     return 0; 
 }

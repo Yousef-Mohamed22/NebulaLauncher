@@ -217,6 +217,11 @@ bool NblFieldRef::horizontal() {
     return _pField->flags & nbl::FieldFlag::HORIZONTAL; 
 }
 
+bool NblFieldRef::password() {
+    if(_pField->type != nbl::FieldType::STRING) return false;
+    return _pField->flags & nbl::FieldFlag::PASSWORD; 
+}
+
 QString NblFieldRef::document() {
     if(_pField->type != nbl::FieldType::CUSTOM) return {};
     return QString::fromUtf8(_pField->customData.document.data, _pField->customData.document.length);
@@ -263,4 +268,28 @@ QVariant NblFieldRef::fromNbl(nbl::FieldValue value) {
 
 const nbl::Field* NblFieldRef::field() {
     return _pField;
+}
+
+QVariant NblFieldRef::parse(QByteArray encodedFields, nbl::Span<nbl::Field> fields) {
+
+    nbl::Field dummy {
+        .type = nbl::FieldType::STRUCT,
+        .structData = { .fields = fields }
+    };
+
+    QVariant qtFields = QVariantMap();
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::Span<nbl::FieldValue> values;
+    if(frame.allocate(&values.data, fields.length).error()) return QVariant();
+
+    nbl::JsonElement element;
+    if(nbl::parseJson(nbl::StringReader(nbl::StringView(encodedFields.data(), encodedFields.length())), &frame, &element).error()) return QVariant();
+    if(element.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+
+    if(nbl::decodeFieldValues(ApplicationContext::instance()->pluginContext(), fields, element.object, &values, &frame).error()) return QVariant();
+
+    qtFields = NblFieldRef(&dummy).fromNbl({ .compositeValue = values });
+
+    return qtFields;
+
 }

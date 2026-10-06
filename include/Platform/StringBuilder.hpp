@@ -121,6 +121,8 @@ public:
         return _pAllocator;
     }
 
+    inline usize length() const noexcept { return _mLength; }
+
     static inline bool isStringBuilderWriter(Writer writer) noexcept {
         return writer.pfnWrite == _write;
     }

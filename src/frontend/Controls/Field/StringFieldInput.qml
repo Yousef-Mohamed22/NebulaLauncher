@@ -19,6 +19,7 @@ FieldInputDelegate {
         id: textBox
         width: parent.width
         label: root.field.name
+        echoMode: root.field.password ? TextInput.Password : TextInput.Normal
 
         onTextEdited: {
             root.value = { 

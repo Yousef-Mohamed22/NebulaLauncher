@@ -31,7 +31,6 @@
 #include <qstringview.h>
 #include <qvariant.h>
 
-#include "NblAccountsModel.hpp"
 #include "NblFieldList.hpp"
 #include "NblProcessHandle.hpp"
 #include "Plugin/AchievementProvider.hpp"
@@ -1520,15 +1519,4 @@ NblFieldList* ApplicationContext::getInstallationTypeFields(QString installation
     if(type == nullptr) return nullptr;
 
     return new NblFieldList(type->fields);
-}
-
-NblAccountsModel* ApplicationContext::accountsModel(QString accountProvider) {
-
-    QByteArray utf = accountProvider.toUtf8();
-    nbl::StringView name(utf.data(), utf.length());
-
-    const nbl::AccountProvider* prov = _mContext.get<nbl::AccountProvider>(name);
-    if(prov == nullptr) return nullptr;
-
-    return new NblAccountsModel(prov);
 }

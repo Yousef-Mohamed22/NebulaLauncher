@@ -5,16 +5,29 @@
 #include <Platform/Arena.hpp>
 #include <Platform/StringBuilder.hpp>
 
-void nbl::OAuthHttpServer::close() {
-    _mSocket.close();
-    _mListenThread.detach();
+void nbl::OAuthCallbackListener::close() {
+    _mListenThread.join(nullptr);
 }
 
 
 
-i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
+i32 nbl::OAuthCallbackListener::_threadProc(void* userData) {
 
-    OAuthHttpServer* self = static_cast<OAuthHttpServer*>(userData);
+    OAuthCallbackListener* self = static_cast<OAuthCallbackListener*>(userData);
+
+    ArenaFrame frame(Arena::threadLocal());
+    StringBuilder builder(&frame);
+
+    NBL_CHECK(OAuthCallbackListener::listen(self->_mPort, &builder));
+
+    StringView path;
+    NBL_CHECK(builder.buildNullTerminated(&path));
+    NBL_CHECK(self->_pfnHandler(path, self->_pUserData));
+
+    return 0;
+}
+
+nbl::Result nbl::OAuthCallbackListener::listen(u16 port, StringBuilder *output) {
 
     constexpr StringView okResponse = 
         "HTTP/1.1 200 OK\r\n"
@@ -34,13 +47,16 @@ i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
 
     bool succeeded = false;
 
+    nbl::ServerSocket socket{};
+    NBL_CHECK(nbl::ServerSocket::listen(port, SocketType::TCP, &socket));
+
     while(!succeeded) {
 
         Socket client;
-        nbl::Result res = self->_mSocket.accept(&client);
+        nbl::Result res = socket.accept(&client);
 
         if(res.error()) {
-            if(self->_mSocket.isClosed()) {
+            if(socket.isClosed()) {
                 break;
             } else {
                 nbl::log(nbl::LogLevel::WARN, "An error occurred while accepting a client!");
@@ -63,8 +79,6 @@ i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
 
         u8 state = 0;
 
-        ArenaFrame frame(Arena::threadLocal());
-        StringBuilder pathBuilder(&frame);
         bool done = false;
 
         while(!done) {
@@ -93,18 +107,13 @@ i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
                     if(lastRead == ' ') {
                         state++;
 
-                        StringView path;
-                        res = pathBuilder.buildNullTerminated(&path);
-                        if(res.error()) break;
-
-                        if(path.length == 0) {
+                        if(output->length() == 0) {
                             client.writer().writeString(clientErrorResponse);
                             client.close();
                             done = true;
                             break;
                         }
 
-                        res = self->_pfnHandler(path, self->_pUserData);
                         if(res.error()) {
                             client.writer().writeString(errorResponse);
                             client.close();
@@ -119,7 +128,7 @@ i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
                         done = true;
                         break;
                     };
-                    pathBuilder.append(lastRead);
+                    output->append(lastRead);
                     break;
             
                 case 5:
@@ -131,14 +140,13 @@ i32 nbl::OAuthHttpServer::_threadProc(void* userData) {
         }
     }
 
-    self->close();
+    socket.close();
     return succeeded ? 0 : -1;
 }
 
 
-nbl::Result nbl::OAuthHttpServer::create(u16 port, Result(*pfnHandler)(StringView, void*), void* userData, OAuthHttpServer* outServer) {
+nbl::Result nbl::OAuthCallbackListener::listenAsync(u16 port, Result(*pfnHandler)(StringView, void*), void* userData, OAuthCallbackListener* outServer) {
 
-    NBL_CHECK(nbl::ServerSocket::listen(port, SocketType::TCP, &outServer->_mSocket));
     NBL_CHECK(nbl::Thread::create(_threadProc, outServer, &outServer->_mListenThread));
 
     outServer->_pUserData = userData;

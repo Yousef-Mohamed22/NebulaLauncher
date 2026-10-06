@@ -30,6 +30,7 @@ class NblFieldRef : public QObject {
     Q_PROPERTY(NblFieldRef* fieldTemplate READ fieldTemplate CONSTANT)
     Q_PROPERTY(NblFieldList* structFields READ structFields CONSTANT)
     Q_PROPERTY(bool horizontal READ horizontal CONSTANT)
+    Q_PROPERTY(bool password READ password CONSTANT)
     Q_PROPERTY(QString document READ document CONSTANT)
 
 public:
@@ -51,6 +52,7 @@ public:
     NblFieldRef* fieldTemplate();
     NblFieldList* structFields();
     bool horizontal();
+    bool password();
     QString document();
 
     Q_INVOKABLE void suggest(QString current, QJSValue callback);
@@ -62,6 +64,8 @@ public:
     QVariant fromNbl(nbl::FieldValue value);
 
     const nbl::Field* field();
+
+    static QVariant parse(QByteArray array, nbl::Span<nbl::Field> fields);
 
 private:
 

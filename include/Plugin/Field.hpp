@@ -26,22 +26,18 @@ enum class FieldType : u8 {
     CUSTOM        = 11, // Loads a custom qml document from the plugin folder. Stored as a list of key-value pairs
 };
 
-
-constexpr inline bool shouldEncodeField(FieldType type) {
-    if(type == FieldType::ACTION || type == FieldType::FIELD_ACTION) return false;
-    return true;
-}
-
 #define _NBL_FIELD_FLAG(type, v) (static_cast<u64>(v) << 16) << (static_cast<u8>(type) * 4)
 
 // Affects how fields are saved, loaded, and displayed
 enum class FieldFlag : u64 {
 
     HIDDEN = 0x1, // This field will not be visible in the UI
-    SECRET = 0x2, // TODO: This field's value will be encrypted. The key should be placed in secret storage. Unimplemented because it breaks portability, and I'd need a way to let users import keys. 
+    SECRET = 0x2, // TODO: This field's value will be encrypted. The key should be placed in secret storage. Unimplemented because it breaks portability, and I'd need a way to let users import keys. (Just make them input a password? PBES2?)
+    EPHEMERAL = 0x4, // Not stored
     
     STRICT_PLACEHOLDERS = _NBL_FIELD_FLAG(FieldType::STRING, 0x1), // Unmatched placeholders will cause an error to be thrown during serialization
     APPLY_GAME_PLACEHOLDERS = _NBL_FIELD_FLAG(FieldType::STRING, 0x2), // If this field belongs to an installation type, game-specific placeholders will be applied
+    PASSWORD = _NBL_FIELD_FLAG(FieldType::STRING, 0x4), // The field should echo dots instead of characters
 
     SHOW_DEFAULT_OPTION = _NBL_FIELD_FLAG(FieldType::ACCOUNT, 0x1), // The "default" account option will be selectable
 
@@ -174,6 +170,12 @@ struct Field {
     FieldValue defaultValue;
     FieldFlags flags;
 };
+
+constexpr inline bool shouldEncodeField(Field field) {
+    if(field.type == FieldType::ACTION || field.type == FieldType::FIELD_ACTION) return false;
+    if(field.flags & FieldFlag::EPHEMERAL) return false;
+    return true;
+}
 
 Result encodeFieldValues(PluginContext* context, Span<Field> fields, Span<FieldValue> values, Writer writer, Span<Placeholder> extraPlaceholders={});
 Result decodeFieldValues(PluginContext* context, Span<Field> fields, JsonObject obj, Span<FieldValue>* outValues, LinearAllocator* allocator);

@@ -24,7 +24,4 @@ struct UserProfile {
 
 Result downloadProfile(HttpClient* client, StringView apiKey, StringView username, LinearAllocator* storage, UserProfile* out);
 
-Result loadProfile(Reader reader, LinearAllocator* storage, UserProfile* out);
-Result saveProfile(Writer writer, const UserProfile& profile);
-
 }

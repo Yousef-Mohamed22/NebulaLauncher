@@ -16,13 +16,10 @@
 #include <Data/Model.hpp>
 
 #include <utility>
+#include "Data/OnlineAccountModel.hpp"
 
 
 namespace {
-
-char _clientIdBuffer[256];
-char _clientSecretBuffer[256];
-char _accessTokenBuffer[256];
 
 
 enum _ExternalGameSource : u32 {
@@ -198,16 +195,17 @@ nbl::Optional<nbl::StringView> _findMapping(nbl::StringView tag) {
 };
 
 
-nbl::Ring<u64, 4> _requestTimes{};
 nbl::HttpClient _client{};
 
-nbl::StringView _clientId;
-nbl::StringView _clientSecret;
+char _accessTokenBuffer[256];
+char _clientIdBuffer[256];
+
 nbl::StringView _accessToken;
+nbl::StringView _clientId;
+u64 _expiry;
 
 
-
-nbl::Result _doLogin(nbl::StringView clientId, nbl::StringView clientSecret, nbl::StringView authFile) {
+nbl::Result _doLogin(nbl::StringView clientId, nbl::StringView clientSecret) {
 
     nbl::ArenaFrame frame(nbl::Arena::threadLocal());
     nbl::StringView url;
@@ -220,6 +218,7 @@ nbl::Result _doLogin(nbl::StringView clientId, nbl::StringView clientSecret, nbl
             .append("&grant_type=client_credentials")
             .buildNullTerminated(&url));
 
+    u64 preRequestTime = nbl::getCurrentTime();
     void* start = frame.end();
     NBL_CHECK(_client.makePostRequest(url, "", frame.writer()));
 
@@ -241,71 +240,108 @@ nbl::Result _doLogin(nbl::StringView clientId, nbl::StringView clientSecret, nbl
     u64 expiresIn = response.object.getNumber("expires_in").asUint();
 
     memcpy(_accessTokenBuffer, token.data, token.length);
-    memcpy(_clientSecretBuffer, clientSecret.data, clientSecret.length);
     memcpy(_clientIdBuffer, clientId.data, clientId.length);
 
     _accessToken = nbl::StringView(_accessTokenBuffer, token.length);
-    _clientSecret = nbl::StringView(_clientSecretBuffer, clientSecret.length);
     _clientId = nbl::StringView(_clientIdBuffer, clientId.length);
+    _expiry = preRequestTime;
+
+    return nbl::Result::SUCCESS;
+}
 
 
-    nbl::FileChannel channel;
-    NBL_CHECK(nbl::FileChannel::open(authFile, &channel, nbl::FileOpenFlag::CREATE | nbl::FileOpenFlag::WRITE));
+nbl::Array _accountFields {
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "client_id",
+        .name = "Client ID"
+    },
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "client_secret",
+        .name = "Client Secret",
+        .flags = nbl::FieldFlag::PASSWORD | 0
+    },
+    nbl::Field {
+        .type = nbl::FieldType::STRING,
+        .key = "access",
+        .name = "",
+        .flags = nbl::FieldFlag::HIDDEN | 0
+    },
+    nbl::Field {
+        .type = nbl::FieldType::DATE,
+        .key = "expiry",
+        .name = "",
+        .flags = nbl::FieldFlag::HIDDEN | 0
+    },
+};
+
+
+nbl::Result _login(nbl::PluginContext* context, nbl::Span<nbl::FieldValue> fields, nbl::LoginTracker* tracker, void* userData) {
+
+    nbl::StringView clientId = fields[0].stringValue.raw;
+    nbl::StringView clientSecret = fields[1].stringValue.raw;
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+
+    NBL_CHECK(_doLogin(clientId, clientSecret));
+
+    fields[2].stringValue.raw = _accessToken;
+    fields[3].uintegerValue = _expiry;
+
+    tracker->complete(context, "Twitch Developer Application", "", false, fields);
+
+    return nbl::Result::SUCCESS;
+}
+nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& account, nbl::LoginTracker* tracker, void* userData) {
+
+    nbl::StringView fields = account.fields;
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::JsonElement element{};
+    NBL_CHECK(nbl::parseJson(nbl::StringReader(account.fields), &frame, &element));
+
+    nbl::Span<nbl::FieldValue> values{};
+    nbl::decodeFieldValues(context, _accountFields, element.object, &values, &frame);
+
+    nbl::StringView clientId = values[0].stringValue.raw;
+    nbl::StringView clientSecret = values[1].stringValue.raw;
+    nbl::StringView accessToken = values[2].stringValue.raw;
+
+    if(clientSecret.length > 256) {
+        tracker->fail("Access token is too long");
+        return nbl::Result::INVALID_ARGUMENT;
+    }
+
+    _expiry = values[3].uintegerValue;
 
     u64 now = nbl::getCurrentTime();
+    if(now + (1000 * 60 * 60 * 24 * 3) < _expiry) {
+        memcpy(_accessTokenBuffer, accessToken.data, accessToken.length);
+        _accessToken = nbl::StringView(_accessTokenBuffer, accessToken.length);
+        return nbl::Result::NO_CHANGE;
+    }
 
-    nbl::JsonWriter(channel.writer()).writeObject([&](auto obj) {
-        obj.add("client_id", _clientId)
-            .add("client_secret", _clientSecret)
-            .add("access_token", _accessToken)
-            .add("expires_at", now + expiresIn)
-            .add("total_duration", expiresIn);
-    });
+    NBL_CHECK(_doLogin(clientId, clientSecret));
 
-    return nbl::Result::SUCCESS;
+    values[2].stringValue.raw = _accessToken;
+    values[3].uintegerValue = _expiry;
 
-
-}
-
-nbl::Result _login(nbl::PluginContext* context, nbl::StringView clientId, nbl::StringView clientSecret, nbl::LoginTracker* tracker, void* userData) {
-
-    if(clientId.length > 256 || clientSecret.length > 256) return nbl::Result::INVALID_ARGUMENT;
-
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-
-    nbl::StringView path;
-    NBL_CHECK(nbl::StringBuilder(&frame).append(context->pluginDataPath()).append("/igdb/auth.json").buildNullTerminated(&path));
-    NBL_CHECK(_doLogin(clientId, clientSecret, path));
-
-    tracker->finishTracking(true, {});
+    tracker->complete(context, "Twitch Developer Application", "", false, values);
 
     return nbl::Result::SUCCESS;
 }
-nbl::Result _logout(nbl::PluginContext* context, u32 accountId, void* userData) {
+nbl::Result _logout(nbl::PluginContext* context, i64 accountId, void* userData) {
 
     _accessToken.length = 0;
-    _clientId.length = 0;
-    _clientSecret.length = 0;
-
     memset(_accessTokenBuffer, 0, 256);
-    memset(_clientSecretBuffer, 0, 256);
-    memset(_clientIdBuffer, 0, 256);
-
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-
-    nbl::StringView path;
-    NBL_CHECK(nbl::StringBuilder(&frame).append(context->pluginDataPath()).append("/igdb/auth.json").buildNullTerminated(&path));
-
-    nbl::FileChannel channel;
-    NBL_CHECK(nbl::FileChannel::open(path, &channel, nbl::FileOpenFlag::CREATE | nbl::FileOpenFlag::WRITE));
-    NBL_CHECK(channel.writer().writeString("{}"));
 
     return nbl::Result::SUCCESS;
 }
 
 bool _canProvide(nbl::PluginContext* context, const nbl::OnlineGameLookupInfo& info, void* userData) {
 
-    return _clientId.length > 0 && _accessToken.length > 0;
+    return _accessToken.length > 0;
 }
 
 nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInfo& info, nbl::OnlineGameCallback callback, void* userData) {
@@ -486,43 +522,16 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result _getAccount(nbl::PluginContext* context, u32 accountId, nbl::AccountInfo* info, void* userData) {
-
-    if(accountId > 0 || _clientId.length == 0 || _accessToken.length == 0) return nbl::Result::NOT_FOUND;
-    info->id = 0;
-    info->icon = "";
-    info->userName = "Twitch Developer Application";
-
-    return nbl::Result::SUCCESS;
-}
-
-nbl::Result _enumerateAccounts(nbl::PluginContext* context, nbl::AccountCallback callback, void* userData) {
-    if(_clientId.length > 0 && _accessToken.length > 0) {
-        callback({
-            .userName = "Twitch Developer Application",
-            .icon = "",
-            .id = 0
-        });
-    }
-    return nbl::Result::SUCCESS;
-}
 
 nbl::AccountProvider _provider {
     .id = "igdb",
     .name = "IGDB",
-    .type = nbl::AccountProvider::Type::BASIC,
+    .fields = _accountFields,
     .maxAccounts = 1,
-    .basicData = {
-        .pfnLogin = _login,
-        .pfnLogout = _logout,
-        .userData = nullptr,
-        .usernameText = "Client ID",
-        .passwordText = "Client Secret"
-    },
-    .accountInfo = {
-        .pfnGet = _getAccount,
-        .pfnEnumerate = _enumerateAccounts
-    }
+    .pfnLogin = _login,
+    .pfnRefresh = _refresh,
+    .pfnLogout = _logout,
+    .userData = nullptr,
 };
 
 nbl::GameProvider _gameProvider {
@@ -532,54 +541,6 @@ nbl::GameProvider _gameProvider {
     .pfnProvide = _provide,
     .userData = nullptr
 };
-
-
-nbl::Result loadAuth(nbl::StringView file) {
-
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    nbl::JsonElement element;
-    {
-        nbl::FileChannel channel{};
-        NBL_CHECK(nbl::FileChannel::open(file, &channel, nbl::FileOpenFlag::READ));
-        NBL_CHECK(nbl::parseJson(channel.reader(), &frame, &element));
-    }
-
-    if(element.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
-    if(element.object.entryCount == 0) return nbl::Result::SUCCESS; // Special case
-
-    nbl::StringView clientId = element.object.getString("client_id");
-    nbl::StringView clientSecret = element.object.getString("client_secret");
-    nbl::StringView accessToken = element.object.getString("access_token");
-    u64 expiry = element.object.getNumber("expires_at").asUint();
-    u64 totalDuration = element.object.getNumber("total_duration").asUint();
-
-    if(clientId.empty() || clientId.length > 256 || clientSecret.empty() || clientSecret.length > 256) {
-        return nbl::Result::FORMAT_ERROR;
-    }
-
-    u64 now = nbl::getCurrentTime();
-
-    u64 remaining = expiry < now ? 0 : expiry - now;
-    if(totalDuration == 0 || static_cast<f64>(remaining) / static_cast<f64>(totalDuration) < 0.1f) {  
-
-        return _doLogin(clientId, clientSecret, file);
-
-    } else {
-        if(accessToken.empty() || accessToken.length > 256) {
-            return nbl::Result::FORMAT_ERROR;
-        }
-
-        memcpy(_clientIdBuffer, clientId.data, clientId.length);
-        memcpy(_clientSecretBuffer, clientSecret.data, clientSecret.length);
-        memcpy(_accessTokenBuffer, accessToken.data, accessToken.length);
-
-        _accessToken = nbl::StringView(_accessTokenBuffer, accessToken.length);
-        _clientSecret = nbl::StringView(_clientSecretBuffer, clientSecret.length);
-        _clientId = nbl::StringView(_clientIdBuffer, clientId.length);
-
-        return nbl::Result::SUCCESS;
-    }
-}
 
 
 nbl::Array _mappingFields = {
@@ -692,17 +653,6 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
 
     NBL_CHECK(nbl::HttpClient::create(4, 4, 0, 0, &_client));
 
-    nbl::StringView folderPath{};
-    NBL_CHECK(nbl::StringBuilder(&frame).append(context->pluginDataPath()).append("/igdb").buildNullTerminated(&folderPath));
-    NBL_CHECK(nbl::makeDirectories(folderPath));
-
-    nbl::StringView path{};
-    NBL_CHECK(nbl::StringBuilder(&frame).append(folderPath).append("/auth.json").buildNullTerminated(&path));
-
-    nbl::Result res = loadAuth(path);
-    if(res.error() && res != nbl::Result::NOT_FOUND) {
-        nbl::log(nbl::LogLevel::WARN, "An error occurred while loading IGDB authentication details!");
-    }
 
     nbl::Span<nbl::FieldValue> values{};
     NBL_CHECK(context->getStoredFieldValues(_pluginFields, &values, &frame));

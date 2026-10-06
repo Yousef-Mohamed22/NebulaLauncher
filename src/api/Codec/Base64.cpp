@@ -53,7 +53,7 @@ nbl::Base64CharacterSet nbl::Base64CharacterSet::URL_SAFE = { .encodingTable = B
 
 nbl::Result nbl::encodeBase64(Span<u8> input, Span<char> output, const Base64CharacterSet& characterSet) {
 
-    if(output.length < b64DecodedLength(input.length)) return nbl::Result::INVALID_ARGUMENT;
+    if(output.length < b64EncodedLength(input.length)) return nbl::Result::INVALID_ARGUMENT;
 
     usize dataLength = input.length;
     usize index = 0;
@@ -128,7 +128,7 @@ nbl::Result nbl::encodeBase64(Span<u8> input, Span<char> output, const Base64Cha
 
 nbl::Result nbl::decodeBase64(Span<char> input, Span<u8> output, const Base64CharacterSet& characterSet) {
 
-    if(output.length < b64EncodedLength(input.length)) return nbl::Result::INVALID_ARGUMENT;
+    if(output.length < b64DecodedLength(input.length)) return nbl::Result::INVALID_ARGUMENT;
 
     usize position = 0;
     usize encodedLength = input.length;

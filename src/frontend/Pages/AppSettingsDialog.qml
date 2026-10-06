@@ -69,7 +69,7 @@ NblDialog {
                             { icon: "", name: "Theme", tab: "ThemeSettingsTab.qml" },
                             { icon: "", name: "Tags", tab: "TagSettingsTab.qml" },
                             { icon: "󰊗", name: "Games", tab: "GameSettingsTab.qml" },
-                            { icon: "", name: "Online Accounts", tab: "AccountsSettingsTab.qml" },
+                            { icon: "", name: "Online Accounts", tab: "../Account/AccountSettingsTab.qml" },
                             { icon: "", name: "Plugins", tab: "PluginSettingsTab.qml" }
                         ]
 

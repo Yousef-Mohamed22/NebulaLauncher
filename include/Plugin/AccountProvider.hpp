@@ -2,30 +2,31 @@
 
 #include <Core/String.hpp>
 #include <Platform/Mutex.hpp>
-#include <functional>
-#include "Plugin/PluginContext.hpp"
+#include <Plugin/PluginContext.hpp>
+#include <Data/OnlineAccountModel.hpp>
 
 namespace nbl {
+
+enum class OAuthResponseType {
+    NONE = 0,
+    CODE = 1,
+    TOKEN = 2
+};
 
 class LoginTracker {
 public:
 
-    inline Result startTracking(void* userData) {
+    inline Result startTracking(void* userData, i64 account, const AccountProvider* provider) {
         auto lock = _mMutex.frameLock();
 
         if(!_bIdle) return nbl::Result::INVALID_STATE;
         _bIdle = false;
         _pUserData = userData;
+        _mAccount = account;
+        _pActive = provider;
         return nbl::Result::SUCCESS;
     }
 
-    inline void finishTracking(bool success, StringView message) {
-        auto lock = _mMutex.frameLock();
-
-        if(_bIdle) return;
-        _pfnFinished(success, message, _pUserData);
-        _bIdle = true;
-    }
     inline void postStatus(StringView message) {
         auto lock = _mMutex.frameLock();
         if(_bIdle) return;
@@ -37,7 +38,19 @@ public:
         return !_bIdle; 
     }
 
-    static Result create(void (*pfnFinished)(bool success, StringView message, void* userData), void (*pfnStatus)(StringView message, void* userData), LoginTracker* outTracker) {
+    void fail(StringView message) {
+        _finishTracking(false, message);
+    }
+    void complete(PluginContext* context, StringView username, StringView icon, bool iconNearestScaling, Span<FieldValue> values);
+        
+    Result beginOAuthLogin(StringView url, StringView clientId, Span<StringView> claims, u16 port, OAuthResponseType type, StringBuilder* responseBuilder);
+
+    static Result create(
+            void (*pfnFinished)(bool success, StringView message, void* userData), 
+            void (*pfnStatus)(StringView message, void* userData), 
+            bool (*pfnOpenUrl)(StringView url, void* userData), 
+            LoginTracker* outTracker) {
+
         NBL_CHECK(nbl::Mutex::create(&outTracker->_mMutex));
         outTracker->_pfnFinished = pfnFinished;
         outTracker->_pfnStatus = pfnStatus;
@@ -47,114 +60,64 @@ public:
     }
 
 private:
+
+    inline void _finishTracking(bool success, StringView message) {
+        auto lock = _mMutex.frameLock();
+
+        if(_bIdle) return;
+        _pfnFinished(success, message, _pUserData);
+        _bIdle = true;
+    }
+
     bool _bIdle;
     void* _pUserData;
+    i64 _mAccount;
+    const AccountProvider* _pActive;
     void (*_pfnFinished)(bool, StringView, void*);
     void (*_pfnStatus)(StringView, void*);
+    bool (*_pfnOpenUrl)(StringView, void*);
     Mutex _mMutex;
+
+    friend class PluginLoader;
 };
-
-
-struct AccountInfo {
-    StringView userName;
-    StringView icon;
-    u32 id;
-    bool iconNearestScaling;
-};
-
-typedef std::function_ref<Result(const AccountInfo&)> AccountCallback;
 
 
 struct AccountProvider {
 
-    enum class Type {
-        BASIC = 0,
-        OAUTH = 1,
-        TOKEN = 2
-    };
-
-    enum class OAuthResponseType {
-        NONE = 0,
-        CODE = 1,
-        TOKEN = 2
-    };
-
     StringView id;
     StringView name;
-    Type type;
+    StringView loginText = "Login";
+    Span<Field> fields;
     u32 maxAccounts;
-    union {
-        struct {
-            Result(*pfnLogin)(PluginContext* context, StringView username, StringView password, LoginTracker* tracker, void* userData);
-            Result(*pfnLogout)(PluginContext* context, u32 accountId, void* userData);
-            void* userData;
-            StringView usernameText = "Username";
-            StringView passwordText = "Password";
 
-            Result login(PluginContext* context, StringView username, StringView password, LoginTracker* tracker) const {
-                if(!pfnLogin) return nbl::Result::PLUGIN_ERROR;
-                return pfnLogin(context, username, password, tracker, userData);
-            }
-        } basicData;
-        struct {
-            Result(*pfnFinishLogin)(PluginContext* context, StringView response, StringView codeVerifier, LoginTracker* tracker, void* userData);
-            Result(*pfnLogout)(PluginContext* context, u32 accountId, void* userData);
-            void* userData;
-            OAuthResponseType responseType;
-            StringView clientId;
-            StringView loginUrl;
-            Span<StringView> scopes;
-            u16 port;
+    // Called when the user logs in through the UI
+    Result(*pfnLogin)(PluginContext* context, Span<FieldValue> values, LoginTracker* tracker, void* userData);
 
-            Result finishOAuthLogin(PluginContext* context, StringView response, StringView codeVerifier, LoginTracker* tracker) const {
-                if(!pfnFinishLogin) return nbl::Result::PLUGIN_ERROR;
-                return pfnFinishLogin(context, response, codeVerifier, tracker, userData);
-            }
+    // Called when the application is loaded
+    Result(*pfnRefresh)(PluginContext* context, const OnlineAccount& account, LoginTracker* tracker, void* userData);
 
-        } oAuthData;
-        struct {
-            Result(*pfnLogin)(PluginContext* context, StringView token, LoginTracker* tracker, void* userData);
-            Result(*pfnLogout)(PluginContext* context, u32 accountId, void* userData);
-            void* userData;
-            StringView tokenText = "Token";
+    // Called when the user logs out through the UI
+    Result(*pfnLogout)(PluginContext* context, i64 accountId, void* userData);
 
-            Result login(PluginContext* context, StringView token, LoginTracker* tracker) const {
-                if(!pfnLogin) return nbl::Result::PLUGIN_ERROR;
-                return pfnLogin(context, token, tracker, userData);
-            }
-        } tokenData;
-    };
+    // Passed to the above functions
+    void* userData;
 
-    struct {
-        Result(*pfnGet)(PluginContext* context, u32 accountId, AccountInfo* info, void* userData);
-        Result(*pfnEnumerate)(PluginContext* context, AccountCallback callback, void* userData);
-        void* userData;
-    } accountInfo;
 
-    Result logout(PluginContext* context, u32 accountId) const {
-        NBL_ASSERT(type <= Type::TOKEN);
-        if(type == Type::BASIC) {
-            if(!basicData.pfnLogout) return nbl::Result::PLUGIN_ERROR;
-            return basicData.pfnLogout(context, accountId, basicData.userData);
-        }
-        if(type == Type::OAUTH) {
-            if(!oAuthData.pfnLogout) return nbl::Result::PLUGIN_ERROR;
-            oAuthData.pfnLogout(context, accountId, basicData.userData);
-        }
-
-        if(!tokenData.pfnLogout) return nbl::Result::PLUGIN_ERROR;
-        return tokenData.pfnLogout(context, accountId, oAuthData.userData);
+    Result login(PluginContext* context, Span<FieldValue> values, LoginTracker* tracker) const {
+        if(!pfnLogin) return nbl::Result::PLUGIN_ERROR;
+        return pfnLogin(context, values, tracker, userData);
     }
 
-    Result getAccountInfo(PluginContext* context, u32 accountId, AccountInfo* info) const {
-        if(!accountInfo.pfnGet) return nbl::Result::PLUGIN_ERROR;
-        return accountInfo.pfnGet(context, accountId, info, accountInfo.userData);
+    Result refresh(PluginContext* context, const OnlineAccount& account, LoginTracker* tracker) const {
+        if(!pfnRefresh) return nbl::Result::PLUGIN_ERROR;
+        return pfnRefresh(context, account, tracker, userData);
     }
 
-    Result enumerateAccountInfo(PluginContext* context, AccountCallback callback) const {
-        if(!accountInfo.pfnEnumerate) return nbl::Result::PLUGIN_ERROR;
-        return accountInfo.pfnEnumerate(context, callback, accountInfo.userData);
+    Result logout(PluginContext* context, i64 accountId) const {
+        if(!pfnLogout) return nbl::Result::PLUGIN_ERROR;
+        return pfnLogout(context, accountId, userData);
     }
+
 };
 
 
