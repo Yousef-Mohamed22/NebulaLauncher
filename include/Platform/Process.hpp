@@ -97,11 +97,17 @@ enum class ProcessOutputMode {
     REDIRECT
 };
 
+struct EnvVar {
+    StringView variable;
+    StringView value;
+};
+
 struct ProcessCreateOptions {
     ProcessOutputMode outputMode;
     StringView outputRedirectFile;
     StringView workingDir;
     bool killOnParentExit;
+    Span<EnvVar> environment;
 };
 
 /**

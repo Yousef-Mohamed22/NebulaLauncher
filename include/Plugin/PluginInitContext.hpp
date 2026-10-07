@@ -21,6 +21,7 @@ public:
     inline const PluginMeta* getMeta() const { return &_pPlugin->meta; }
 
     inline StringView pluginDataPath() const { return _pContext->pluginDataPath(); }
+    inline StringView installFolder() const { return _mInstallFolder; }
 
     Result getStoredFieldsObject(JsonObject* outValues, StringView* outVersion, LinearAllocator* allocator);
     Result getStoredFieldsVersion(StringView* outVersion, LinearAllocator* allocator);
@@ -28,7 +29,7 @@ public:
     Result storeFieldValues(Span<Field> fields, Span<FieldValue> values);
     Result setFields(Span<Field> fields, void(*pfnUpdateCallback)(Span<Field> fields, Span<FieldValue> newValues, void* userData), void* userData);
 
-    static Result create(Registry::Builder* builder, LoadedPlugin* plugin, PluginContext* context,  PluginInitContext* outCtx);
+    static Result create(Registry::Builder* builder, LoadedPlugin* plugin, PluginContext* context, StringView installFolder, PluginInitContext* outCtx);
 
 private:
 
@@ -38,6 +39,8 @@ private:
     
     LoadedPlugin* _pPlugin;
     PluginContext* _pContext;
+
+    StringView _mInstallFolder;
 
 };
 

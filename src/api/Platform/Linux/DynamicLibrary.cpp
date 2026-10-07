@@ -24,6 +24,10 @@ nbl::StringView nbl::dynamicLibraryFileExt() {
     return _ext;
 }
 
+nbl::StringView nbl::executableFileExt() {
+    return {};
+}
+
 
 nbl::DynamicLibrary::~DynamicLibrary() {
     if(_pHandle) {

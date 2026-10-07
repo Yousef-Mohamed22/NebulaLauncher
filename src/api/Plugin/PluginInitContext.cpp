@@ -18,11 +18,12 @@ bool nbl::PluginInitContext::_verifyId(nbl::StringView id) {
     return true;
 }
 
-nbl::Result nbl::PluginInitContext::create(Registry::Builder* builder, LoadedPlugin* plugin, PluginContext* context, PluginInitContext* outCtx) {
+nbl::Result nbl::PluginInitContext::create(Registry::Builder* builder, LoadedPlugin* plugin, PluginContext* context, StringView installFolder, PluginInitContext* outCtx) {
 
     outCtx->_pBuilder = builder;
     outCtx->_pPlugin = plugin;
     outCtx->_pContext = context;
+    outCtx->_mInstallFolder = installFolder;
 
     return nbl::Result::SUCCESS;
 }

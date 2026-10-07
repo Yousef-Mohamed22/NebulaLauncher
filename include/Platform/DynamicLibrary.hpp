@@ -18,6 +18,7 @@ namespace nbl {
  * \return The dynamic library file extension, including the leading period. (i.e. ".so")
  */
 StringView dynamicLibraryFileExt();
+StringView executableFileExt();
 
 
 /**

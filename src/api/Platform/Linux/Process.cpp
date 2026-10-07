@@ -299,7 +299,29 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
         }
         argv[args.length + 1] = nullptr;
 
-        if(execvp(argv[0], argv) != 0) {
+
+        char** env;
+        if(frame.allocate(&env, sizeof(const char**) * (options.environment.length + 1)).error()) {
+            exit(1);
+        }
+        for(usize i = 0; i < options.environment.length; i++) {
+
+            StringView key = options.environment[i].variable;
+            StringView value = options.environment[i].value;
+            usize bufLen = key.length + 1 + value.length + 1;
+
+            if(frame.allocate(&env[i], bufLen).error()) {
+                exit(1);
+            }
+
+            memcpy(env[i], key.data, key.length);
+            env[i][key.length] = '=';
+            memcpy(env[i] + key.length + 1, value.data, value.length);
+            env[i][bufLen - 1] = '\0';
+        }
+        env[options.environment.length + 1] = nullptr;
+
+        if(execve(argv[0], argv, env) != 0) {
             exit(1);
         }
 
