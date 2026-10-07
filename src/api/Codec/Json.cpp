@@ -12,14 +12,12 @@ nbl::Result _deepCopy(nbl::JsonElement element, nbl::JsonElement* other, nbl::Li
     other->type = element.type;
     if(element.type == nbl::JsonType::STRING) {
         NBL_CHECK(nbl::StringBuilder(allocator).append(element.string).buildNullTerminated(&other->string));
-    }
-    if(element.type == nbl::JsonType::ARRAY) {
+    } else if(element.type == nbl::JsonType::ARRAY) {
         NBL_CHECK(allocator->allocate(&other->array.elements, element.array.count));
         for(usize i = 0 ; i < element.array.count ; i++) {
             NBL_CHECK(_deepCopy(element.array.elements[i], &other->array.elements[i], allocator));
         }
-    }
-    if(element.type == nbl::JsonType::OBJECT) {
+    } else if(element.type == nbl::JsonType::OBJECT) {
         NBL_CHECK(allocator->allocate(&other->object.buckets, element.object.bucketCount));
         NBL_CHECK(allocator->allocate(&other->object.entries, element.object.entryCount));
 

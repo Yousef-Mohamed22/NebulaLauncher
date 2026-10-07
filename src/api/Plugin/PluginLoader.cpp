@@ -132,48 +132,58 @@ nbl::Result nbl::PluginLoader::_load(StringView folder, Registry::Builder* regis
 
     if(id.empty() || name.empty() || version.empty()) return nbl::Result::INVALID_ARGUMENT;
 
-    LoadedPlugin lp = {};
+    auto _init = [&](LoadedPlugin* lp) -> Result {
+        NBL_CHECK(StringBuilder(&_mDataArena).append(id).buildNullTerminated(&lp->meta.id));
+        NBL_CHECK(StringBuilder(&_mDataArena).append(name).buildNullTerminated(&lp->meta.name));
+        NBL_CHECK(StringBuilder(&_mDataArena).append(description).buildNullTerminated(&lp->meta.description));
+        NBL_CHECK(StringBuilder(&_mDataArena).append(version).buildNullTerminated(&lp->meta.version));
 
-    NBL_CHECK(StringBuilder(&_mDataArena).append(id).buildNullTerminated(&lp.meta.id));
-    NBL_CHECK(StringBuilder(&_mDataArena).append(name).buildNullTerminated(&lp.meta.name));
-    NBL_CHECK(StringBuilder(&_mDataArena).append(description).buildNullTerminated(&lp.meta.description));
-    NBL_CHECK(StringBuilder(&_mDataArena).append(version).buildNullTerminated(&lp.meta.version));
+        StringView libraryPath = {};
+        NBL_CHECK(StringBuilder(&frame).append(folder).append("/plugin").append(dynamicLibraryFileExt()).build(&libraryPath));
 
-    StringView libraryPath = {};
-    NBL_CHECK(StringBuilder(&frame).append(folder).append("/plugin").append(dynamicLibraryFileExt()).build(&libraryPath));
+        NBL_CHECK(nbl::DynamicLibrary::load(libraryPath, &lp->lib));
 
-    NBL_CHECK(nbl::DynamicLibrary::load(libraryPath, &lp.lib));
+        i32(*initFunc)(nbl::PluginInitContext*);
+        NBL_CHECK(lp->lib.findSymbol("initPlugin", &initFunc));
 
-    i32(*initFunc)(nbl::PluginInitContext*);
-    NBL_CHECK(lp.lib.findSymbol("initPlugin", &initFunc));
+        PluginInitContext ctx;
+        NBL_CHECK(PluginInitContext::create(registrations, lp, _pContext, &ctx));
 
-    PluginInitContext ctx;
-    NBL_CHECK(PluginInitContext::create(registrations, &lp, _pContext, &ctx));
-
-    i32 rc = initFunc(&ctx);
-    if(rc != 0) {
-        nbl::log(nbl::LogLevel::ERROR, "An error occurred while initializing a plugin! ", rc);
-        return nbl::Result::PLUGIN_ERROR;
-    }
-
+        i32 rc = initFunc(&ctx);
+        if(rc != 0) {
+            NBL_ERROR("An error occurred while initializing a plugin! ", rc);
+            return nbl::Result::PLUGIN_ERROR;
+        }
+        return nbl::Result::SUCCESS;
+    };
+    
     LoadedPlugin* ref = nullptr;
     NBL_CHECK(_mMetaArena.allocate(&ref));
-    *ref = lp;
-    _mPluginRefs.length++;
+
+    Result res = _init(ref);
+    if(res.error()) {
+        NBL_ERROR("Failed to initialize plugin ", id);
+        _mMetaArena.popToPtr(ref);
+    }
 
     return nbl::Result::SUCCESS;
+}
+
+void nbl::PluginLoader::_unloadAll() {
+    for(LoadedPlugin& p : loadedPlugins()) {
+        (&p)->~LoadedPlugin();
+    }
+    _mMetaArena.popTo(0);
+    _mDataArena.popTo(0);
 }
 
 nbl::Result nbl::PluginLoader::create(PluginContext* context, StringView pluginFolder, PluginLoader* out) {
 
     NBL_CHECK(nbl::makeDirectories(pluginFolder));
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 32, &out->_mDataArena));
-    NBL_CHECK(nbl::Arena::create(1024 * 1024 * 4, &out->_mMetaArena));
+    NBL_CHECK(nbl::Arena::create(1024 * sizeof(LoadedPlugin), &out->_mMetaArena));
 
     NBL_CHECK(nbl::StringBuilder(&out->_mDataArena).append(pluginFolder).build(&out->_mPluginFolder));
-
-    out->_mPluginRefs.data = static_cast<LoadedPlugin*>(out->_mMetaArena.end());
-
     out->_pContext = context;
 
     return nbl::Result::SUCCESS;

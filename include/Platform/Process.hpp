@@ -24,6 +24,14 @@ StringView getHostName();
  */
 StringView getEnv(StringView name);
 
+/**
+ * \brief Sets the value of an environment variable.
+ * \param name The name of the environment variable to set.
+ * \param value The value to should to
+ * \param overwrite Whether the value should be set if it already has a value
+ */
+void setEnv(StringView name, StringView value, bool overwrite=true);
+
 
 /**
  * \brief Retrieves the path to the binary executable being run.

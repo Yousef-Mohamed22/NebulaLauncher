@@ -34,6 +34,7 @@ public:
 
         memset(out, 0, sizeof(T));
         new(out) T();
+        _mSize++;
 
         if(outPtr) *outPtr = out;
         return nbl::Result::SUCCESS;
@@ -47,6 +48,7 @@ public:
 
         value->~T();
         memset(voidValue, 0, sizeof(T));
+        _mSize--;
 
         if(_pFirstFree > voidValue) {
             void* nextFree = _pFirstFree;
@@ -104,6 +106,10 @@ public:
         return _mArena.capacity() / sizeof(T);
     }
 
+    usize size() const {
+        return _mSize;
+    }
+
     static Result create(usize numItems, Pool* outPool) {
         NBL_CHECK(nbl::Arena::create(numItems * sizeof(T), &outPool->_mArena));
         outPool->_pFirstFree = outPool->_mArena.end();
@@ -115,6 +121,7 @@ private:
 
     Arena _mArena;
     void* _pFirstFree;
+    usize _mSize;
 
     friend class Iterator;
     friend class ConstIterator;

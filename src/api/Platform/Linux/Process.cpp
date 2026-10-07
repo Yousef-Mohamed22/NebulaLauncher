@@ -68,14 +68,32 @@ nbl::StringView nbl::getEnv(nbl::StringView name) {
 }
 
 
+void nbl::setEnv(StringView name, StringView value, bool overwrite) {
+
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    if(!name.nullTerminated) {
+        StringBuilder(&frame).append(name).buildNullTerminated(&name);
+    } 
+    if(!value.nullTerminated) {
+        StringBuilder(&frame).append(value).buildNullTerminated(&value);
+    }
+
+    setenv(name.data, value.data, overwrite ? 1 : 0);
+}
+
+
 nbl::StringView nbl::getBinaryPath() {
 
-    static char path[PATH_MAX];
-    ssize_t len = ::readlink("/proc/self/exe", path, PATH_MAX - 1);
-    NBL_ASSERT(len != -1);
+    static char _path[PATH_MAX]{};
+    static StringView _out;
+    if(_out.empty()) {
+        ssize_t len = ::readlink("/proc/self/exe", _path, PATH_MAX - 1);
+        NBL_ASSERT(len != -1);
 
-    path[len] = '\0';
-    return nbl::StringView(path, len);
+        _path[len] = '\0';
+        _out = StringView(_path, len);
+    }
+    return _out;
 }
 
 

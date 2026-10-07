@@ -7,6 +7,7 @@
 #include <Platform/Process.hpp>
 #include <Platform/DynamicLibrary.hpp>
 #include <Platform/Allocator.hpp>
+#include <Platform/Pool.hpp>
 
 namespace nbl {
 
@@ -30,13 +31,19 @@ class PluginContext;
 class PluginLoader {
 public:
 
-    ~PluginLoader() { awaitLoaded(); }
+    ~PluginLoader() { 
+        awaitLoaded(); 
+        _unloadAll();
+    }
 
     Result beginLoadAsync();
     Result awaitLoaded();
 
     Span<LoadedPlugin> loadedPlugins() { 
-        return _mPluginRefs;
+        return {
+            .data = static_cast<LoadedPlugin*>(_mMetaArena.begin()),
+            .length = _mMetaArena.index() / sizeof(LoadedPlugin)
+        };
     }
 
     static Result create(PluginContext* context, StringView pluginFolder, PluginLoader* out);
@@ -46,10 +53,11 @@ private:
     Result _loadAll();
     Result _load(StringView folder, Registry::Builder* registrations);
 
+    void _unloadAll();
+
     Arena _mMetaArena;
     Arena _mDataArena;
     Thread _mLoadThread;
-    Span<LoadedPlugin> _mPluginRefs;
 
     StringView _mPluginFolder;
     PluginContext* _pContext;

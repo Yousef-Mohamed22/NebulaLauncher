@@ -61,7 +61,7 @@ nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
                         writer.writeString("\\t");
                         continue;
                 }
-                if(c < 0x20) {
+                if(c >= 0 && c < 0x20) {
                     nbl::log(nbl::LogLevel::ERROR, "Cannot escape character ", static_cast<i32>(c), " to encode in JSON string");
                     return nbl::Result::FORMAT_ERROR;
                 }

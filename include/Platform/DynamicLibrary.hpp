@@ -28,7 +28,22 @@ public:
 
     DynamicLibrary() = default;
 
+    DynamicLibrary(const DynamicLibrary& other) = delete;
+    inline DynamicLibrary(DynamicLibrary&& other) noexcept :
+        _pHandle(other._pHandle) 
+    {
+        other._pHandle = nullptr;
+    }
+
     ~DynamicLibrary();
+
+    DynamicLibrary& operator=(const DynamicLibrary& other) = delete;
+    DynamicLibrary& operator=(DynamicLibrary&& other) noexcept {
+        if(&other == this) return *this;
+        _pHandle = other._pHandle;
+        other._pHandle = nullptr;
+        return *this;
+    }
 
     /**
      * \brief Attempts to get the address of a symbol exported by the library.
