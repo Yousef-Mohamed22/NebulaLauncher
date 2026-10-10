@@ -103,6 +103,7 @@ nbl::Result _encodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
                     obj.writeString("resolved", [&](auto writer){
                         return nbl::formatPlaceholders(value.stringValue.raw, writer, nbl::Array { field.stringData.customPlaceholders, extraPlaceholders }, (field.flags & nbl::FieldFlag::STRICT_PLACEHOLDERS));
                     });
+                    return nbl::Result::SUCCESS;
                 });
             }
         }
@@ -138,6 +139,7 @@ nbl::Result _encodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
                             extraPlaceholders);
                     });
                 }
+                return nbl::Result::SUCCESS;
             });
             break;
         }
@@ -172,6 +174,7 @@ nbl::Result nbl::encodeFieldValues(PluginContext* context, Span<Field> fields, S
                 return _encodeFieldValue(context, field, values[i], writer, extraPlaceholders);
             });
         }
+        return nbl::Result::SUCCESS;
     });   
 }
 

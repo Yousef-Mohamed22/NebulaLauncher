@@ -13,6 +13,7 @@ Item {
     required property bool useIcons
     required property bool showTitles
     required property bool showInstallations
+    required property bool showFilterInfo
 
     property bool showRowTitle: true
 
@@ -60,9 +61,10 @@ Item {
             multiLine: root.multiLine
             useIcons: root.useIcons
             showTitles: root.showTitles
+            showFilterInfo: root.showFilterInfo
 
             model: NblFilterModel {
-                pageSize: 10
+                pageSize: 30
                 filterId: root.filterId
                 searchInstallations: root.showInstallations
             }

@@ -51,6 +51,7 @@ Item {
                     showTitles: modelData.showTitles
                     useIcons: modelData.useIcons
                     showInstallations: modelData.showInstallations
+                    showFilterInfo: modelData.showFilterInfo
 
                     onInstallationClicked: id => {
                         root.installationClicked(id)

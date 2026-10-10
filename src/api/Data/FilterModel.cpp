@@ -27,13 +27,16 @@ nbl::Result _serializeCriteria(const nbl::SearchCriteria& criteria, nbl::Writer 
                         for(i64 tagId : span) {
                             tags.add(tagId);
                         }
+                        return nbl::Result::SUCCESS;
                     });
                 }
+                return nbl::Result::SUCCESS;
             })
             .writeArray("excludedTags", [&](auto tags) {
                 for(i64 tag : criteria.excludedTags) {
                     tags.add(tag);
                 }
+                return nbl::Result::SUCCESS;
             })
             .add("minReleaseDate", criteria.minReleaseDate)
             .add("maxReleaseDate", criteria.maxReleaseDate)
@@ -51,6 +54,7 @@ nbl::Result _serializeCriteria(const nbl::SearchCriteria& criteria, nbl::Writer 
             .add("maxAchievements", criteria.maxAchievements)
             .add("minUnlockedAchievements", criteria.minUnlockedAchievements)
             .add("maxUnlockedAchievements", criteria.maxUnlockedAchievements);
+            return nbl::Result::SUCCESS;
         });
 }
 
@@ -177,70 +181,55 @@ SELECT COUNT(fId) FROM filter;
 
 nbl::Result nbl::addFilter(DatabaseConnection* connection, const FilterMeta& meta, i64* outFilterId) {
 
-    static nbl::PreparedStatement _addFilterStmt;
-    if(!_addFilterStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO filter (name, tabId, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons, onlyInstalled, showInstallations, priority) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);
-        )", &_addFilterStmt));
+INSERT INTO filter (name, tabId, icon, criteria, flags, priority) VALUES (?1, ?2, ?3, ?4, ?5, ?6);
+        )", &_stmt));
     }
 
-    _addFilterStmt.bindString(1, meta.name);
-    _addFilterStmt.bindInt(2, meta.tabId);
-    _addFilterStmt.bindString(3, meta.icon);
-    _addFilterStmt.bindInt(4, meta.colorizeIcon ? 1 : 0);
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    StringView criteriaJson;
+    auto builder = nbl::StringBuilder(&frame);
+    NBL_CHECK(_serializeCriteria(meta.criteria, builder));
+    NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
 
-    {
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    _stmt.bindAll(1, meta.name, meta.tabId, meta.icon, criteriaJson, meta.flags, meta.priority);
 
-        StringView criteriaJson;
-        auto builder = nbl::StringBuilder(&frame);
-        NBL_CHECK(_serializeCriteria(meta.criteria, builder));
-        NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
-
-        _addFilterStmt.bindString(5, criteriaJson);
-    }
-
-    _addFilterStmt.bindInt(6, meta.multiLine ? 1 : 0);
-    _addFilterStmt.bindInt(7, meta.showTitles ? 1 : 0);
-    _addFilterStmt.bindInt(8, meta.useIcons ? 1 : 0);
-    _addFilterStmt.bindInt(9, meta.onlyInstalled ? 1 : 0);
-    _addFilterStmt.bindInt(10, meta.showInstallations ? 1 : 0);
-    _addFilterStmt.bindInt(11, meta.priority);
-
-    return connection->execute(&_addFilterStmt, outFilterId);
+    return connection->execute(&_stmt, outFilterId);
 
 }
 
 
 nbl::Result nbl::removeFilter(DatabaseConnection* connection, i64 filterId) {
 
-    static nbl::PreparedStatement _removeFilterStmt;
-    if(!_removeFilterStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 DELETE FROM filter WHERE fId = ?1;
-        )", &_removeFilterStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_removeFilterStmt.bindInt(1, filterId));
+    NBL_CHECK(_stmt.bindInt(1, filterId));
 
-    return connection->execute(&_removeFilterStmt);
+    return connection->execute(&_stmt);
 }
 
 nbl::Result nbl::getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback callback) {
 
-    static nbl::PreparedStatement _getFilterStmt;
-    if(!_getFilterStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons, onlyInstalled, showInstallations FROM filter WHERE fId = ?1;
-        )", &_getFilterStmt));
+SELECT fId, name, icon, criteria, flags FROM filter WHERE fId = ?1;
+        )", &_stmt));
     }
 
-    NBL_CHECK(_getFilterStmt.bindInt(1, filterId));
+    NBL_CHECK(_stmt.bindInt(1, filterId));
 
-    return connection->execute(&_getFilterStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_stmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 10) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 10 columns in getFilter query result, but got ", columnCount);
+        if(columnCount != 5) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in getFilter query result, but got ", columnCount);
             return nbl::Result::IO_ERROR;
         }
 
@@ -249,16 +238,11 @@ SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons,
             .filterId = columnValues[0].intValue,
             .name = columnValues[1].textValue,
             .icon = columnValues[2].textValue,
-            .colorizeIcon = columnValues[3].intValue != 0,
-            .multiLine = columnValues[5].intValue != 0,
-            .showTitles = columnValues[6].intValue != 0,
-            .useIcons = columnValues[7].intValue != 0,
-            .onlyInstalled = columnValues[8].intValue != 0,
-            .showInstallations = columnValues[9].intValue != 0,
+            .flags = columnValues[4].uintValue(),
             .criteria = {},
         };
 
-        NBL_CHECK(_deserializeCriteria(columnValues[4].textValue, &frame, &meta.criteria));
+        NBL_CHECK(_deserializeCriteria(columnValues[3].textValue, &frame, &meta.criteria));
         
         return callback(meta);
     });
@@ -266,12 +250,12 @@ SELECT fId, name, icon, colorizeIcon, criteria, multiLine, showTitles, useIcons,
 
 nbl::Result nbl::setFilterCriteria(DatabaseConnection* connection, i64 filterId, const SearchCriteria& criteria) {
 
-    static nbl::PreparedStatement _setFilterCriteriaStmt;
-    if(!_setFilterCriteriaStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
 
         NBL_CHECK(connection->prepare(R"(
 UPDATE filter SET criteria = ?1 WHERE fId = ?2;
-        )", &_setFilterCriteriaStmt));
+        )", &_stmt));
     }
 
     {
@@ -282,67 +266,50 @@ UPDATE filter SET criteria = ?1 WHERE fId = ?2;
         NBL_CHECK(_serializeCriteria(criteria, builder));
         NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
 
-        _setFilterCriteriaStmt.bindString(1, criteriaJson);
+        _stmt.bindString(1, criteriaJson);
     }
 
-    NBL_CHECK(_setFilterCriteriaStmt.bindInt(2, filterId));
+    NBL_CHECK(_stmt.bindInt(2, filterId));
 
-    return connection->execute(&_setFilterCriteriaStmt);
+    return connection->execute(&_stmt);
 }
 
 nbl::Result nbl::updateFilter(DatabaseConnection* connection, const FilterMeta& meta) {
 
-    static nbl::PreparedStatement _updateFilterStmt;
-    if(!_updateFilterStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
 
         NBL_CHECK(connection->prepare(R"(
-UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, colorizeIcon = ?4, criteria = ?5, multiLine = ?6, showTitles = ?7, useIcons = ?8, onlyInstalled = ?9, showInstallations = ?10, priority = ?11 WHERE fId = ?12;
-        )", &_updateFilterStmt));
+UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, criteria = ?4, flags = ?5, priority = ?6 WHERE fId = ?7;
+        )", &_stmt));
     }
 
-    _updateFilterStmt.bindString(1, meta.name);
-    _updateFilterStmt.bindInt(2, meta.tabId);
-    _updateFilterStmt.bindString(3, meta.icon);
-    _updateFilterStmt.bindInt(4, meta.colorizeIcon ? 1 : 0);
+    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    StringView criteriaJson;
+    auto builder = nbl::StringBuilder(&frame);
+    NBL_CHECK(_serializeCriteria(meta.criteria, builder));
+    NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
 
-    {
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-
-        StringView criteriaJson;
-        auto builder = nbl::StringBuilder(&frame);
-        NBL_CHECK(_serializeCriteria(meta.criteria, builder));
-        NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
-
-        _updateFilterStmt.bindString(5, criteriaJson);
-    }
-
-    _updateFilterStmt.bindInt(6, meta.multiLine ? 1 : 0);
-    _updateFilterStmt.bindInt(7, meta.showTitles ? 1 : 0);
-    _updateFilterStmt.bindInt(8, meta.useIcons ? 1 : 0);
-    _updateFilterStmt.bindInt(9, meta.onlyInstalled ? 1 : 0);
-    _updateFilterStmt.bindInt(10, meta.showInstallations ? 1 : 0);
-    _updateFilterStmt.bindInt(11, meta.priority);
-
-    NBL_CHECK(_updateFilterStmt.bindInt(12, meta.filterId));
-
-    return connection->execute(&_updateFilterStmt);
+    _stmt.bindAll(1, meta.name, meta.tabId, meta.icon, criteriaJson, meta.flags, meta.priority, meta.filterId);
+    return connection->execute(&_stmt);
 }
 
 nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, InstallationLookupCallback callback) {
 
     NBL_CHECK(getFilter(connection, filterId, [&](const nbl::FilterMeta& meta) -> nbl::Result {
 
-        SearchCriteria updatedCriteria = meta.criteria;
-        updatedCriteria.offset = offset;
-        updatedCriteria.deviceId = deviceId;
+        FilterMeta updated = meta;
+
+        updated.criteria.offset = offset;
+        updated.criteria.deviceId = deviceId;
 
         if(limit > 0) {
-            updatedCriteria.limit = updatedCriteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
+            updated.criteria.limit = updated.criteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
         }
 
         return lookupInstallations(
             connection,
-            updatedCriteria,
+            updated,
             callback
         );
 
@@ -356,17 +323,18 @@ nbl::Result nbl::lookupGamesForFilter(DatabaseConnection* connection, i64 filter
 
     NBL_CHECK(getFilter(connection, filterId, [&](const nbl::FilterMeta& meta) -> nbl::Result {
 
-        SearchCriteria updatedCriteria = meta.criteria;
-        updatedCriteria.offset = offset;
-        updatedCriteria.deviceId = meta.onlyInstalled ? deviceId : 0;
+        FilterMeta updated = meta;
+
+        updated.criteria.offset = offset;
+        updated.criteria.deviceId = (meta.flags & FilterFlag::ONLY_INSTALLED) ? deviceId : 0;
 
         if(limit > 0) {
-            updatedCriteria.limit = updatedCriteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
+            updated.criteria.limit = updated.criteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
         }
 
         return lookupGames(
             connection,
-            updatedCriteria,
+            updated,
             callback
         );
 

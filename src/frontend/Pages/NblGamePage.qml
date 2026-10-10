@@ -366,7 +366,7 @@ Item {
                     Column {
 
                         Layout.fillWidth: true
-                        visible: achievementsSection.setCount > 0
+                        visible: achievementsSection.totalCount > 0
                         spacing: 8
 
                         Item {

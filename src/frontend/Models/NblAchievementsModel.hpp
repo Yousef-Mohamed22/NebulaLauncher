@@ -34,6 +34,7 @@ public:
         TitleRole,
         DescriptionRole,
         IconRole,
+        LockedIconRole,
         GlobalUnlockRateRole,
         NumeratorRole,
         DenominatorRole,
@@ -100,6 +101,7 @@ private:
         QString title;
         QString description;
         QString icon;
+        QString lockedIcon;
         f64 globalUnlockRate;
         struct {
             u32 numerator;

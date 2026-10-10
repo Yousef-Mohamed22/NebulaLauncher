@@ -47,6 +47,7 @@ public:
         ShowTitlesRole,
         UseIconsRole,
         ShowInstallationsRole,
+        ShowFilterInfoRole,
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override {

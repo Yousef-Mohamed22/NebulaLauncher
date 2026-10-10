@@ -80,7 +80,7 @@ void NblGameWithTagModel::_fetchPageData() {
     _mCriteria.offset = offset;
     _mCriteria.limit = limit;
 
-    if(nbl::lookupGames(db, _mCriteria, [&](const nbl::GameLookupResult& res) -> nbl::Result {
+    if(nbl::lookupGames(db, { .criteria = _mCriteria }, [&](const nbl::GameLookupResult& res) -> nbl::Result {
         _Row ref{
             res.id,
             fromNbl(res.title),

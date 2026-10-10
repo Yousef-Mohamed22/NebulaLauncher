@@ -5,6 +5,7 @@
 
 #include <QObject>
 #include <QtQml>
+#include "Data/Model.hpp"
 
 class NblFilterRef : public QObject { 
 
@@ -14,11 +15,14 @@ class NblFilterRef : public QObject {
     Q_PROPERTY(qint64 filterId READ filterId CONSTANT)
     Q_PROPERTY(QByteArray name READ name CONSTANT)
     Q_PROPERTY(QByteArray icon READ icon CONSTANT)
-    Q_PROPERTY(bool colorizeIcon READ colorizeIcon CONSTANT)
+
     Q_PROPERTY(bool multiLine READ multiLine CONSTANT)
     Q_PROPERTY(bool showTitles READ showTitles CONSTANT)
     Q_PROPERTY(bool useIcons READ useIcons CONSTANT)
+    Q_PROPERTY(bool onlyInstalled READ onlyInstalled CONSTANT)
+    Q_PROPERTY(bool colorizeIcon READ colorizeIcon CONSTANT)
     Q_PROPERTY(bool showInstallations READ showInstallations CONSTANT)
+    Q_PROPERTY(bool showFilterInfo READ showFilterInfo CONSTANT)
 
 public:
 
@@ -27,23 +31,15 @@ public:
         _mFilterId(0),
         _mName{},
         _mIcon{},
-        _mColorizeIcon(false),
-        _mMultiLine(false),
-        _mShowTitles(false),
-        _mUseIcons(false),
-        _mShowInstallations(false)
+        _mFlags(0)
     {}
 
-    NblFilterRef(i64 id, QByteArray name, QByteArray icon, bool colorizeIcon, bool multiLine, bool showTitles, bool useIcons, bool showInstallations, QObject* parent = nullptr) :
+    NblFilterRef(i64 id, QByteArray name, QByteArray icon, nbl::FilterFlags flags, QObject* parent = nullptr) :
         QObject(parent),
         _mFilterId(id),
         _mName(name),
         _mIcon(icon),
-        _mColorizeIcon(colorizeIcon),
-        _mMultiLine(multiLine),
-        _mShowTitles(showTitles),
-        _mUseIcons(useIcons),
-        _mShowInstallations(showInstallations)
+        _mFlags(flags)
     { }
 
     NblFilterRef(const NblFilterRef& other) :
@@ -51,11 +47,7 @@ public:
         _mFilterId(other._mFilterId),
         _mName(other._mName),
         _mIcon(other._mIcon),
-        _mColorizeIcon(other._mColorizeIcon),
-        _mMultiLine(other._mMultiLine),
-        _mShowTitles(other._mShowTitles),
-        _mUseIcons(other._mUseIcons),
-        _mShowInstallations(other._mShowInstallations)
+        _mFlags(other._mFlags)
     { }
 
     NblFilterRef& operator=(const NblFilterRef& other) {
@@ -63,11 +55,7 @@ public:
         _mFilterId = other._mFilterId;
         _mName = other._mName;
         _mIcon = other._mIcon;
-        _mColorizeIcon = other._mColorizeIcon;
-        _mMultiLine = other._mMultiLine;
-        _mShowTitles = other._mShowTitles;
-        _mUseIcons = other._mUseIcons;
-        _mShowInstallations = other._mShowInstallations;
+        _mFlags = other._mFlags;
 
         setParent(other.parent());
         return *this;
@@ -76,22 +64,21 @@ public:
     qint64 filterId() { return _mFilterId; }
     QByteArray name() { return _mName; }
     QByteArray icon() { return _mIcon; }
-    bool colorizeIcon() { return _mColorizeIcon; }
-    bool multiLine() { return _mMultiLine; }
-    bool showTitles() { return _mShowTitles; }
-    bool useIcons() { return _mUseIcons; }
-    bool showInstallations() { return _mShowInstallations; }
+
+    bool multiLine() { return _mFlags & nbl::FilterFlag::MULTI_LINE; }
+    bool showTitles() { return _mFlags & nbl::FilterFlag::SHOW_TITLES; }
+    bool useIcons() { return _mFlags & nbl::FilterFlag::USE_ICONS; }
+    bool onlyInstalled() { return _mFlags & nbl::FilterFlag::ONLY_INSTALLED; }
+    bool showInstallations() { return _mFlags & nbl::FilterFlag::SHOW_INSTALLATIONS; }
+    bool colorizeIcon() { return _mFlags & nbl::FilterFlag::COLORIZE_ICON; }
+    bool showFilterInfo() { return _mFlags & nbl::FilterFlag::SHOW_FILTER_INFO; }
 
 private:
     
     i64 _mFilterId;
     QByteArray _mName;
     QByteArray _mIcon;
-    bool _mColorizeIcon;
-    bool _mMultiLine;
-    bool _mShowTitles;
-    bool _mUseIcons;
-    bool _mShowInstallations;
+    nbl::FilterFlags _mFlags;
 
 };
 

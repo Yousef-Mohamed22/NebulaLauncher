@@ -61,10 +61,17 @@ nbl::StringView nbl::getHostName() {
 }
 
 nbl::StringView nbl::getEnv(nbl::StringView name) {
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    nbl::StringView data;
-    if(nbl::StringBuilder::nullTerminate(name, &data, &frame).error()) return "";
-    return ::getenv(data.data);
+    const char* value;
+    if(name.nullTerminated) {
+        value = ::getenv(name.data);
+    } else {
+        nbl::StringView data;
+        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        if(nbl::StringBuilder::nullTerminate(name, &data, &frame).error()) return "";
+        value = ::getenv(data.data);
+    }
+    if(value) return nbl::StringView(value);
+    return {};
 }
 
 
@@ -301,25 +308,40 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
 
 
         char** env;
-        if(frame.allocate(&env, sizeof(const char**) * (options.environment.length + 1)).error()) {
-            exit(1);
-        }
-        for(usize i = 0; i < options.environment.length; i++) {
+        if(options.environment.length == 0) {
+            env = environ;
+        } else {
 
-            StringView key = options.environment[i].variable;
-            StringView value = options.environment[i].value;
-            usize bufLen = key.length + 1 + value.length + 1;
-
-            if(frame.allocate(&env[i], bufLen).error()) {
-                exit(1);
+            usize numVars = 0;
+            while(environ && environ[numVars]) {
+                numVars++;
             }
 
-            memcpy(env[i], key.data, key.length);
-            env[i][key.length] = '=';
-            memcpy(env[i] + key.length + 1, value.data, value.length);
-            env[i][bufLen - 1] = '\0';
+            numVars += options.environment.length;
+
+            if(frame.allocate(&env, sizeof(const char**) * (numVars + 1)).error()) {
+                exit(1);
+            }
+            for(usize i = 0; i < options.environment.length; i++) {
+
+                StringView key = options.environment[i].variable;
+                StringView value = options.environment[i].value;
+                usize bufLen = key.length + 1 + value.length + 1;
+
+                if(frame.allocate(&env[i], bufLen).error()) {
+                    exit(1);
+                }
+
+                memcpy(env[i], key.data, key.length);
+                env[i][key.length] = '=';
+                memcpy(env[i] + key.length + 1, value.data, value.length);
+                env[i][bufLen - 1] = '\0';
+            }
+
+            memcpy(env + options.environment.length, environ, sizeof(char*) * (numVars - options.environment.length));
+
+            env[numVars] = nullptr;
         }
-        env[options.environment.length + 1] = nullptr;
 
         if(execve(argv[0], argv, env) != 0) {
             exit(1);

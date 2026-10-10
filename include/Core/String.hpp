@@ -19,6 +19,7 @@
 namespace nbl {
 
 constexpr usize cStringLength(const char* str) {
+    if(!str) return 0;
     usize out = 0;
     while(str[out] != '\0') ++out;
     return out;
@@ -358,6 +359,14 @@ struct FloatLimiter {
 inline Result toString(FloatLimiter limiter, Writer writer) {
     return writeFloat(limiter.value, writer, limiter.precision);
 }
+
+
+struct HexEncoder {
+    ConstSpan<u8> data;
+    bool upper;
+};
+// Specialization of the toString function for the HexEncoder struct, which writes the buffer to the stream in hexadecimal format.
+Result toString(HexEncoder encoder, Writer writer);
 
 /**
  * \brief A simple implementation of a string reader that can read data from a StringView. This struct implements the Reader interface, allowing it to be used wherever a Reader is expected.

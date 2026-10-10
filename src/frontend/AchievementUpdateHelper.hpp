@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qobject.h>
 #include <QObject>
 #include <QtQml>
 #include <QJSEngine>
@@ -34,25 +35,50 @@ class AchievementUpdateRunner : public QObject {
 
 public:
 
+    AchievementUpdateRunner(QObject* parent = nullptr) :
+        QObject(parent),
+        _pActiveThread(nullptr)
+    { }
+
+    ~AchievementUpdateRunner() {
+        if(_pActiveThread) {
+            _pActiveThread->quit();
+            _pActiveThread->wait();
+            _pActiveThread = nullptr;
+        }
+    }
+
     Q_INVOKABLE void update(qint64 gameId, qint64 setId=0) {
 
-        QThread* thread = new QThread(this);
+        if(_pActiveThread) {
+            _pActiveThread->quit();
+            _pActiveThread->wait();
+            _pActiveThread = nullptr;
+        }
+
+        _pActiveThread = new QThread(this);
         AchievementUpdateWorker* worker = new AchievementUpdateWorker(gameId,setId);
 
-        worker->moveToThread(thread);
+        worker->moveToThread(_pActiveThread);
 
-        connect(thread, &QThread::started, worker, &AchievementUpdateWorker::run);
+        connect(_pActiveThread, &QThread::started, worker, &AchievementUpdateWorker::run);
         connect(worker, &AchievementUpdateWorker::done, this, &AchievementUpdateRunner::updateComplete);
 
-        connect(worker, &AchievementUpdateWorker::done, thread, &QThread::quit);
+        connect(worker, &AchievementUpdateWorker::done, _pActiveThread, &QThread::quit);
         connect(worker, &AchievementUpdateWorker::done, worker, &QObject::deleteLater);
-        connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+        connect(worker, &AchievementUpdateWorker::done, this, [this]() {
+            _pActiveThread = nullptr;
+        });
+        connect(_pActiveThread, &QThread::finished, _pActiveThread, &QObject::deleteLater);
 
-        thread->start();
+        _pActiveThread->start();
     }
 
 signals:
 
     void updateComplete(bool shouldReload);
+
+private:
+    QThread* _pActiveThread;
 
 };

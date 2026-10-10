@@ -33,6 +33,7 @@
 
 #include "NblFieldList.hpp"
 #include "NblProcessHandle.hpp"
+#include "NblTabRef.hpp"
 #include "Plugin/AchievementProvider.hpp"
 
 
@@ -815,6 +816,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         bool showTitles = filter["showTitles"].toBool();
         bool onlyInstalled = filter["onlyInstalled"].toBool();
         bool showInstallations = filter["showInstallations"].toBool();
+        bool showFilterInfo = filter["showFilterInfo"].toBool();
         i64 priority = filter["priority"].toLongLong();
 
         if(icon.endsWith(".png") || icon.endsWith(".svg")) {
@@ -864,18 +866,23 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
             }
         }
 
+        nbl::FilterFlags flags;
+        if(colorizeIcon) flags |= nbl::FilterFlag::COLORIZE_ICON;
+        if(multiLine) flags |= nbl::FilterFlag::MULTI_LINE;
+        if(showTitles) flags |= nbl::FilterFlag::SHOW_TITLES;
+        if(useIcons) flags |= nbl::FilterFlag::USE_ICONS;
+        if(onlyInstalled) flags |= nbl::FilterFlag::ONLY_INSTALLED;
+        if(showInstallations) flags |= nbl::FilterFlag::SHOW_INSTALLATIONS;
+        if(showFilterInfo) flags |= nbl::FilterFlag::SHOW_FILTER_INFO;
+
+
         nbl::FilterMeta meta = {
             .filterId = filterId,
             .tabId = tabId,
             .priority = priority,
             .name = nbl::StringView(name.data(), name.length()),
             .icon = nbl::StringView(realIcon.data(), realIcon.length()),
-            .colorizeIcon = colorizeIcon,
-            .multiLine = multiLine,
-            .showTitles = showTitles,
-            .useIcons = useIcons,
-            .onlyInstalled = onlyInstalled,
-            .showInstallations = showInstallations,
+            .flags = flags,
             .criteria = {
                 .tags = tagSets,
                 .excludedTags = exclude,
@@ -920,11 +927,14 @@ int ApplicationContext::addTab(const QVariantMap& params) {
 
     QByteArray realIcon = icon.toUtf8();
 
+    nbl::TabFlags flags;
+    if(colorizeIcon) flags |= nbl::TabFlag::COLORIZE_ICON;
+    if(hidden) flags |= nbl::TabFlag::HIDDEN;
+
     nbl::TabMeta meta = {
         .name = nbl::StringView(name.data(), name.length()),
         .icon = nbl::StringView(realIcon.data(), realIcon.length()),
-        .colorizeIcon = colorizeIcon,
-        .hidden = hidden
+        .flags = flags
     };
 
     NBL_CHECK(c->beginTransaction());
@@ -948,14 +958,17 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
         NBL_CHECK_OR_ROLLBACK(c, pushImage(icon, "inline_icon", &icon));
     }
 
+    nbl::TabFlags flags;
+    if(colorizeIcon) flags |= nbl::TabFlag::COLORIZE_ICON;
+    if(hidden) flags |= nbl::TabFlag::HIDDEN;
+
     QByteArray realIcon = icon.toUtf8();
 
     nbl::TabMeta meta = {
         .tabId = static_cast<i64>(id),
         .name = nbl::StringView(name.data(), name.length()),
         .icon = nbl::StringView(realIcon.data(), realIcon.length()),
-        .colorizeIcon = colorizeIcon,
-        .hidden = hidden
+        .flags = flags
     };
 
     NBL_CHECK_OR_ROLLBACK(c, c->beginTransaction());
@@ -970,92 +983,13 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
     NBL_CHECK(c->commitTransaction());
     return nbl::Result::SUCCESS;
 }
-int ApplicationContext::deleteTab(qint64 id) { 
 
+int ApplicationContext::deleteTab(qint64 id) { 
     return nbl::removeTab(databaseConnection(), id);
 }
 
-QVariantMap ApplicationContext::getTabMeta(qint64 id) {
-
-    QVariantMap out = {};
-    out["id"] = id;
-
-    if(nbl::getTabMeta(databaseConnection(), static_cast<i64>(id), [&](const nbl::TabMeta& meta) -> nbl::Result {
-
-        out["name"] = fromNbl(meta.name);
-        out["icon"] = fromNbl(meta.icon);
-        out["colorizeIcon"] = meta.colorizeIcon;
-        out["hidden"] = meta.hidden;
-
-        return nbl::Result::SUCCESS;
-    }).error()) {
-        out["id"] = 0;
-        return out;
-    }
-
-    QVariantList filters = {};
-
-    if(nbl::getFiltersForTab(databaseConnection(), id, 0, INT32_MAX, [&](const nbl::FilterMeta& meta) -> nbl::Result {
-
-        QVariantMap filter = {};
-
-        filter["id"] = static_cast<qint64>(meta.filterId);
-        filter["name"] = fromNbl(meta.name);
-        filter["icon"] = fromNbl(meta.icon);
-        filter["colorizeIcon"] = meta.colorizeIcon;
-        filter["multiLine"] = meta.multiLine;
-        filter["useIcons"] = meta.useIcons;
-        filter["showTitles"] = meta.showTitles;
-        filter["onlyInstalled"] = meta.onlyInstalled;
-        filter["showInstallations"] = meta.showInstallations;
-        
-
-        nbl::getFilterCriteria(databaseConnection(), meta.filterId, [&](const nbl::SearchCriteria& criteria) -> nbl::Result {
-
-            filter["sortBy"] = static_cast<i32>(criteria.sortBy);
-            filter["sortOrder"] = static_cast<i32>(criteria.sortOrder);
-            filter["minReleaseDate"] = static_cast<quint64>(criteria.minReleaseDate);
-            filter["maxReleaseDate"] = static_cast<quint64>(criteria.maxReleaseDate);
-            filter["minRating"] = criteria.minRating;
-            filter["maxRating"] = criteria.maxRating;
-            filter["minTime"] = static_cast<quint64>(criteria.minPlayTime);
-            filter["maxTime"] = static_cast<quint64>(criteria.maxPlayTime);
-            filter["minAchievements"] = static_cast<quint64>(criteria.minAchievements);
-            filter["maxAchievements"] = static_cast<quint64>(criteria.maxAchievements);
-            filter["minUnlockedAchievements"] = static_cast<quint64>(criteria.minUnlockedAchievements);
-            filter["maxUnlockedAchievements"] = static_cast<quint64>(criteria.maxUnlockedAchievements);
-
-            QVariantList tags = {};
-            for(nbl::ConstSpan<i64> tagSet : criteria.tags) {
-                QVariantList tagsInSet = {};
-                for(i64 tag : tagSet) {
-                    tagsInSet.append(static_cast<qint64>(tag));
-                }
-                tags.append(QVariant(tagsInSet));
-            }
-
-            QVariantList excludeTags = {};
-            for(i64 excluded : criteria.excludedTags) {
-                excludeTags.append(static_cast<qint64>(excluded));
-            }
-
-            filter["tags"] = tags;
-            filter["excludeTags"] = excludeTags;
-
-            return nbl::Result::SUCCESS;
-        });
-
-        filters.append(filter);
-
-        return nbl::Result::SUCCESS;
-    }).error()) {
-        out["id"] = 0;
-        return out;
-    }
-
-    out["filters"] = filters;
-
-    return out;
+NblTabRef* ApplicationContext::getTabMeta(qint64 id) {
+    return NblTabRef::lookup(id);
 }
 
 

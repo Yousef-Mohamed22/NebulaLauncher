@@ -53,7 +53,7 @@ QtObject {
 
             let hash = 2166136261;
 
-            for (var i = 0; i < tagName.length; ++i) {
+            for (let i = 0; i < tagName.length; ++i) {
                 hash ^= tagName.charCodeAt(i);
                 hash = Math.imul(hash, 16777619);
             }

@@ -192,7 +192,7 @@ TEST(Game, LookupSingleGameByName) {
 
 
     ASSERT_TRUE(nbl::lookupGames(
-        &connection, criteria, 
+        &connection, { .criteria = criteria }, 
         [&](const nbl::GameLookupResult& details) -> nbl::Result {
 
         if(details.title == "Test Game" 
@@ -232,7 +232,7 @@ TEST(Game, LookupSingleGameByTag) {
     criteria.tags = tagSets.span();
 
     ASSERT_TRUE(nbl::lookupGames(
-        &connection, criteria, 
+        &connection, { .criteria = criteria }, 
         [&](const nbl::GameLookupResult& res) -> nbl::Result {
 
         if(res.title == "Test Game" 

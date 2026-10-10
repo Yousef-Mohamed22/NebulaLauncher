@@ -225,22 +225,26 @@ WHERE game.gId = ?1;
 
 
 
-nbl::Result nbl::lookupGames(DatabaseConnection *connection, const SearchCriteria& criteria, GameLookupCallback callback) {
+nbl::Result nbl::lookupGames(DatabaseConnection *connection, const FilterMeta& meta, GameLookupCallback callback) {
+
+    const SearchCriteria& criteria = meta.criteria;
 
     usize sortByIndex = static_cast<usize>(criteria.sortBy);
     usize sortOrderIndex = static_cast<usize>(criteria.sortOrder);
 
-    usize statementIndex = sortByIndex * 2 + sortOrderIndex;
-    if(statementIndex >= 16) {
+    bool hasTags = criteria.tags.length > 0 || criteria.excludedTags.length > 0;
+
+    usize statementIndex = (sortByIndex * 2 + sortOrderIndex) + (16 * hasTags);
+    if(statementIndex >= 32) {
         return nbl::Result::INVALID_ARGUMENT;
     }
 
-    static nbl::PreparedStatement _lookupGamesStmts[16];
+    static nbl::PreparedStatement _lookupGamesStmts[32];
     nbl::PreparedStatement& lookupGamesStmt = _lookupGamesStmts[statementIndex];
 
     if(!lookupGamesStmt.isValid(connection)) {
 
-        static StringView _stmtBegin = R"(
+        static StringView _stmtWith = R"(
 WITH 
 search_sets AS (
 	SELECT
@@ -278,32 +282,22 @@ excluded_tags AS (
 	FROM tag_closure
 	WHERE NOT ?2 IS NULL
 	  AND tag_closure.ancestorId IN (SELECT tId FROM tag WHERE name IN (SELECT value FROM json_each(?2)))
-),
-achievements AS (
-	SELECT game.gId, aId, (dateUnlocked > 0) AS unlocked
-	FROM achievement 
-	JOIN achievement_set ON achievement.asId = achievement_set.asId 
-	JOIN game ON achievement_set.gId = game.gId 
-)
+))";    
+        StringView _stmtSelect = R"(
 SELECT DISTINCT
-game.gId, game.title, game.releaseDate, game.rating, game.poster, game.icon
+game.gId, game.title, game.releaseDate, game.rating, game.poster, game.icon)";
+
+        StringView _stmtJoins = R"(
 FROM game
-LEFT JOIN matching_sets ON matching_sets.gId = game.gId
-LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId
 FULL OUTER JOIN installation ON installation.gId = game.gId
+)";
+        StringView _stmtWhere = R"(
 WHERE game.releaseDate >= ?3
   AND (?4 = 0 OR game.releaseDate <= ?4)
   AND game.rating >= ?5
   AND (?6 = 0 OR game.rating <= ?6)
   AND (?7 IS NULL OR game.title LIKE '%' || ?7 || '%')
-  AND (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
-  AND (?2 IS NULL OR NOT EXISTS (SELECT tId FROM excluded_tags INTERSECT SELECT tId FROM all_game_tags WHERE all_game_tags.gId = game.gId))
   AND (?10 = 0 OR installation.deviceId = ?10)
-  AND (?11 = 0 OR ?11 <= (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId))
-  AND (?12 = 0 OR ?12 > (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId))
-  AND (?13 = 0 OR ?13 <= (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId AND achievements.unlocked = 1))
-  AND (?14 = 0 OR ?14 > (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId AND achievements.unlocked = 1))
-GROUP BY game.gId
 )";
 
         static StringView _stmtEnd = R"(
@@ -315,7 +309,89 @@ OFFSET ?8;
         ArenaFrame frame(Arena::threadLocal());
 
         StringBuilder stmtBuilder(&frame);
-        stmtBuilder.append(_stmtBegin);
+
+        if(hasTags) {
+            stmtBuilder.append(_stmtWith);
+        }
+        if(criteria.sortBy == SortBy::ACHIEVEMENT_PROGRESS) {
+            if(hasTags) {
+                stmtBuilder.append(',');
+            } else {
+                stmtBuilder.append("WITH");
+            }
+
+            stmtBuilder.append(R"(
+achievements AS (
+	SELECT game.gId, aId, (dateUnlocked > 0) AS unlocked
+	FROM achievement 
+	JOIN achievement_set ON achievement.asId = achievement_set.asId 
+	JOIN game ON achievement_set.gId = game.gId 
+),
+achievement_counts AS (
+    SELECT gId, COUNT(aId) AS count
+    FROM achievements
+    GROUP BY gId
+),
+achievement_unlocked_counts AS (
+    SELECT gId, COUNT(aId) AS count
+    FROM achievements
+    WHERE unlocked
+    GROUP BY gId
+))");
+        }
+
+        stmtBuilder.append(_stmtSelect);
+        switch(criteria.sortBy) {
+        default:
+            break;
+        case SortBy::LAST_PLAYED:
+            stmtBuilder.append(R"(,
+MAX(MAX(installation.lastPlayed), game.lastPlayedDeleted))");
+            break;
+        case SortBy::ADDED:
+            stmtBuilder.append(R"(,
+MIN(installation.added))");
+            break;
+        case SortBy::PLAY_COUNT:
+            stmtBuilder.append(R"(,
+SUM(installation.playCount) + game.previousPlayCount)");
+            break;
+        case SortBy::PLAY_TIME:
+            stmtBuilder.append(R"(,
+SUM(installation.playTime) + game.previousPlayTime)");
+            break;
+        case SortBy::ACHIEVEMENT_PROGRESS:
+            stmtBuilder.append(R"(, 
+(SELECT count FROM achievement_counts WHERE game.gId = achievement_counts.gId), 
+(SELECT count FROM achievement_unlocked_counts WHERE game.gId = achievement_unlocked_counts.gId) 
+            )");
+           break;
+        }
+
+        stmtBuilder.append(_stmtJoins);
+        if(hasTags) {
+            stmtBuilder.append(R"(
+LEFT JOIN matching_sets ON matching_sets.gId = game.gId
+LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId)");
+        }
+
+        stmtBuilder.append(_stmtWhere);
+        if(hasTags) {
+            stmtBuilder.append(R"(
+  AND (?1 IS NULL OR matching_sets.matchedTags = set_sizes.requiredTags)
+  AND (?2 IS NULL OR NOT EXISTS (SELECT tId FROM excluded_tags INTERSECT SELECT tId FROM all_game_tags WHERE all_game_tags.gId = game.gId))
+            )");
+        }
+        if(criteria.sortBy == SortBy::ACHIEVEMENT_PROGRESS) {
+            stmtBuilder.append(R"(
+  AND (?11 = 0 OR ?11 <= (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId))
+  AND (?12 = 0 OR ?12 > (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId))
+  AND (?13 = 0 OR ?13 <= (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId AND achievements.unlocked = 1))
+  AND (?14 = 0 OR ?14 > (SELECT COUNT(aId) FROM achievements WHERE gId = game.gId AND achievements.unlocked = 1))
+            )");
+        }
+
+        stmtBuilder.append("GROUP BY game.gId\n");
 
         switch(criteria.sortBy) {
             case SortBy::TITLE:
@@ -359,7 +435,6 @@ OFFSET ?8;
 
         StringView finalStmt;
         NBL_CHECK(stmtBuilder.buildNullTerminated(&finalStmt));
-
         NBL_CHECK(connection->prepare(finalStmt, &lookupGamesStmt));
     }
 
@@ -378,8 +453,10 @@ OFFSET ?8;
                             for(i64 tag : tagSet) {
                                 inner.add(tag);
                             }
+                            return Result::SUCCESS;
                         });
                     }
+                    return Result::SUCCESS;
                 }));
 
             StringView tagsJson;
@@ -398,6 +475,7 @@ OFFSET ?8;
                     for(i64 tag : criteria.excludedTags) {
                         arr.add(tag);
                     }
+                    return Result::SUCCESS;
                 }));
 
             StringView tagsJson;
@@ -420,12 +498,16 @@ OFFSET ?8;
             criteria.titleFilter, 
             criteria.offset, 
             criteria.limit == 0 ? 10 : criteria.limit, 
-            criteria.deviceId,
-            criteria.minAchievements,
-            criteria.maxAchievements,
-            criteria.minUnlockedAchievements,
-            criteria.maxUnlockedAchievements
-        ));
+            criteria.deviceId));
+
+        if(criteria.sortBy == SortBy::ACHIEVEMENT_PROGRESS) {
+            NBL_CHECK(lookupGamesStmt.bindAll(11,
+                criteria.minAchievements,
+                criteria.maxAchievements,
+                criteria.minUnlockedAchievements,
+                criteria.maxUnlockedAchievements
+            ));
+        }
     }
 
     return connection->execute(&lookupGamesStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
@@ -437,7 +519,30 @@ OFFSET ?8;
             .rating = values[3].floatValue,
             .poster = values[4].textValue,
             .icon = values[5].textValue,
+            .filter = meta
         };
+
+        switch(criteria.sortBy) {
+        case SortBy::LAST_PLAYED:
+            res.lastPlayed = values[6].uintValue();
+            break;
+        case SortBy::ADDED:
+            res.firstAdded = values[6].uintValue();
+            break;
+        case SortBy::PLAY_COUNT:
+            res.playCount = values[6].uintValue();
+            break;
+        case SortBy::PLAY_TIME:
+            res.playTime = values[6].uintValue();
+            break;
+        case SortBy::ACHIEVEMENT_PROGRESS:
+            res.numAchievements = values[6].uintValue();
+            res.numUnlockedAchievements = values[7].uintValue();
+            break;
+        default:
+            break;
+        }
+
         return callback(res);
 
     });
@@ -549,4 +654,65 @@ WHERE gId = ?1;
     NBL_CHECK(_clearExternalIdsStmt.bindInt(1, gameId));
 
     return connection->execute(&_clearExternalIdsStmt);
+}
+
+
+nbl::Result nbl::getGameLastPlayed(DatabaseConnection* connection, i64 gameId, u64* outTime) {
+
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT max(max(installation.lastPlayed), game.lastPlayedDeleted) FROM installation JOIN game ON game.gId=installation.gId WHERE installation.gId=?1;
+        )", &_stmt));
+    }
+    
+    NBL_CHECK(_stmt.bindInt(1, gameId));
+    return connection->execute(&_stmt, [&](i32 count, DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
+        *outTime = values[0].uintValue();
+        return nbl::Result::SUCCESS;
+    });
+}
+nbl::Result nbl::getGameFirstAdded(DatabaseConnection* connection, i64 gameId, u64* outTime) {
+
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT min(added) FROM installation WHERE gId=?1;
+        )", &_stmt));
+    }
+    
+    NBL_CHECK(_stmt.bindInt(1, gameId));
+    return connection->execute(&_stmt, [&](i32 count, DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
+        *outTime = values[0].uintValue();
+        return nbl::Result::SUCCESS;
+    });
+
+}
+nbl::Result nbl::getGamePlayCount(DatabaseConnection* connection, i64 gameId, u64* outCount) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT sum(installation.playCount) + game.previousPlayCount FROM installation JOIN game ON game.gId=installation.gId WHERE installation.gId=?1;
+        )", &_stmt));
+    }
+    
+    NBL_CHECK(_stmt.bindInt(1, gameId));
+    return connection->execute(&_stmt, [&](i32 count, DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
+        *outCount = values[0].uintValue();
+        return nbl::Result::SUCCESS;
+    });
+}
+nbl::Result nbl::getGamePlayTime(DatabaseConnection* connection, i64 gameId, u64* outTime) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT sum(installation.playTime) + game.previousPlayTime FROM installation JOIN game ON game.gId=installation.gId WHERE installation.gId=?1;
+        )", &_stmt));
+    }
+    
+    NBL_CHECK(_stmt.bindInt(1, gameId));
+    return connection->execute(&_stmt, [&](i32 count, DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
+        *outTime = values[0].uintValue();
+        return nbl::Result::SUCCESS;
+    });
 }

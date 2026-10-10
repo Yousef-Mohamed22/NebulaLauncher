@@ -7,21 +7,18 @@
 #include <QColor>
 #include <QtQml>
 
+#include "NblPagedListModel.hpp"
 #include "NblTabRef.hpp"
 
-class NblAllTabsModel : public QAbstractListModel {
+class NblAllTabsModel : public NblPagedListModel {
 
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(int currentPage READ currentPage NOTIFY currentPageChanged)
-    Q_PROPERTY(int pageSize READ pageSize WRITE setPageSize NOTIFY pageSizeChanged)
-    Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
-
 public:
 
     explicit NblAllTabsModel(QObject* parent = nullptr) :
-        QAbstractListModel(parent),
+        NblPagedListModel(parent),
         _mCurrentPage(0),
         _mPageSize(0),
         _mIsLoading(false),
@@ -42,27 +39,12 @@ public:
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    quint64 currentPage() const { return _mCurrentPage; }
-    quint64 pageSize() const { return _mPageSize; }
-    bool isLoading() const { return _mIsLoading; }
-
-    void setPageSize(int size) { 
-        _mPageSize = size; 
-        refresh();
-    }
-
-    Q_INVOKABLE void loadNextPage();
-    Q_INVOKABLE void refresh();
-
-signals:
-
-    void currentPageChanged();
-    void pageSizeChanged();
-    void isLoadingChanged();
-
 private:
 
-    void _fetchPageData();
+    void _clear() override {
+        _mData.clear();
+    }
+    nbl::Result _fetchPageData(qsizetype limit, qsizetype offset) override;
 
     quint64 _mCurrentPage;
     quint64 _mPageSize;

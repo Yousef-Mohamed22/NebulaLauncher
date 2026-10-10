@@ -89,7 +89,7 @@ void NblGameSearchModel::_fetchPageData() {
         .titleFilter = query
     };
 
-    nbl::Result res = nbl::lookupGames(db, criteria, [&](const nbl::GameLookupResult& meta) -> nbl::Result {
+    nbl::Result res = nbl::lookupGames(db, { .criteria = criteria }, [&](const nbl::GameLookupResult& meta) -> nbl::Result {
 
         _Row ref(
                 meta.id,

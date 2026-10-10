@@ -28,6 +28,8 @@ QVariant NblTabModel::data(const QModelIndex& index, int role) const {
             return ref.showTitles();
         case ShowInstallationsRole:
             return ref.showInstallations();
+        case ShowFilterInfoRole:
+            return ref.showFilterInfo();
         default:
             return QVariant();
     }
@@ -43,6 +45,7 @@ QHash<int, QByteArray> NblTabModel::roleNames() const {
     roles[ShowTitlesRole] = "showTitles";
     roles[UseIconsRole] = "useIcons";
     roles[ShowInstallationsRole] = "showInstallations";
+    roles[ShowFilterInfoRole] = "showFilterInfo";
     return roles;
 }
 
@@ -83,14 +86,11 @@ void NblTabModel::_fetchPageData() {
     QList<NblFilterRef> found = {};
     found.reserve(_mPageSize);
     if(nbl::getFiltersForTab(db, _mTabId, offset, limit, [&](const nbl::FilterMeta& meta) -> nbl::Result {
-        NblFilterRef ref(meta.filterId, 
+        NblFilterRef ref(
+            meta.filterId, 
             QByteArray(meta.name.data, meta.name.length), 
             QByteArray(meta.icon.data, meta.icon.length),
-            meta.colorizeIcon,
-            meta.multiLine,
-            meta.showTitles,
-            meta.useIcons,
-            meta.showInstallations
+            meta.flags
         );
         found.append(ref);
         return nbl::Result::SUCCESS;

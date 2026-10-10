@@ -147,6 +147,79 @@ Result getTagsFromIds(DatabaseConnection* connection, StringView jsonIds, TagCal
 
 
 //
+// Filters
+// 
+
+enum class FilterFlag : u64 {
+    MULTI_LINE = 0x1,
+    SHOW_TITLES = 0x2,
+    USE_ICONS = 0x4,
+    ONLY_INSTALLED = 0x8,
+    SHOW_INSTALLATIONS = 0x10,
+    COLORIZE_ICON = 0x20,
+    SHOW_FILTER_INFO = 0x40
+};
+typedef u64 FilterFlags;
+
+
+inline FilterFlags operator&(FilterFlag flag, FilterFlag other) { return static_cast<FilterFlags>(flag) & static_cast<FilterFlags>(other); }
+inline FilterFlags operator&(FilterFlag flag, FilterFlags other) { return static_cast<FilterFlags>(flag) & other; }
+inline FilterFlags operator&(FilterFlags other, FilterFlag flag) { return static_cast<FilterFlags>(flag) & other; }
+
+inline FilterFlags& operator&=(FilterFlags& flags, FilterFlag other) { flags = flags & other; return flags; }
+
+inline FilterFlags operator|(FilterFlag flag, FilterFlag other) { return static_cast<FilterFlags>(flag) | static_cast<FilterFlags>(other); }
+inline FilterFlags operator|(FilterFlag flag, FilterFlags other) { return static_cast<FilterFlags>(flag) | other; }
+inline FilterFlags operator|(FilterFlags other, FilterFlag flag) { return static_cast<FilterFlags>(flag) | other; }
+
+inline FilterFlags& operator|=(FilterFlags& flags, FilterFlag other) { flags = flags | other; return flags; }
+
+struct FilterMeta {
+    i64 filterId;
+    i64 tabId;
+    i64 priority;
+    StringView name;
+    StringView icon;
+    FilterFlags flags;
+    SearchCriteria criteria;
+};
+
+typedef std::function_ref<Result(const FilterMeta&)> FilterCallback;
+typedef std::function_ref<Result(const SearchCriteria&)> FilterCriteriaCallback;
+
+Result countFilters(DatabaseConnection* connection, u64* numFilters);
+
+Result addFilter(DatabaseConnection* connection, const FilterMeta& meta, i64* outFilterId);
+
+Result removeFilter(DatabaseConnection* connection, i64 filterId);
+
+Result getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback callback);
+
+Result setFilterCriteria(DatabaseConnection* connection, i64 filterId, const SearchCriteria& criteria);
+
+Result updateFilter(DatabaseConnection* connection, const FilterMeta& meta);
+
+Result getFilterCriteria(DatabaseConnection* connection, i64 filterId, FilterCriteriaCallback callback);
+
+
+//
+// Devices
+//
+struct DeviceMeta {
+    i64 id; 
+    StringView name;
+};
+
+typedef std::function_ref<Result(const DeviceMeta&)> DeviceCallback;
+
+Result addDevice(DatabaseConnection* connection, DeviceMeta meta, i64* outId);
+Result getDevice(DatabaseConnection* connection, i64 id, DeviceCallback callback);
+Result removeDevice(DatabaseConnection* connection, i64 id);
+Result updateDevice(DatabaseConnection* connection, DeviceMeta meta); 
+Result getOrAddDevice(DatabaseConnection* connection, StringView hostname, i64* outId);
+
+
+//
 // Games
 //
 
@@ -185,6 +258,19 @@ struct GameLookupResult {
     f64 rating;
     StringView poster;
     StringView icon;
+
+    union {
+        struct {
+            u64 numAchievements;
+            u64 numUnlockedAchievements;
+        };
+        u64 firstAdded;
+        u64 playTime;
+        u64 playCount;
+        u64 lastPlayed;
+    };
+
+    const FilterMeta& filter;
 };
 
 /**
@@ -266,33 +352,25 @@ Result removeGameExternalId(DatabaseConnection* connection, i64 gameId, StringVi
 
 Result clearGameExternalIds(DatabaseConnection* connection, i64 gameId);
 
+
+Result getGameLastPlayed(DatabaseConnection* connection, i64 gameId, u64* outTime);
+Result getGameFirstAdded(DatabaseConnection* connection, i64 gameId, u64* outTime);
+Result getGamePlayCount(DatabaseConnection* connection, i64 gameId, u64* outCount);
+Result getGamePlayTime(DatabaseConnection* connection, i64 gameId, u64* outTime);
+
+
 /**
  * \brief Looks up games in the database that match the specified criteria and invokes a callback for each matching game
  * \param connection The database connection to use for the query
- * \param criteria A GameSearchCriteria struct containing the criteria for filtering and sorting the games to be retrieved
+ * \param criteria A FilterMeta struct containing the criteria for filtering and sorting the games to be retrieved
  * \param callback The callback function ""to invoke for each matching game found
  * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, the lookup will be aborted and this function will return that failure Result.
  */
 Result lookupGames(
         DatabaseConnection* connection, 
-        const SearchCriteria& criteria,
+        const FilterMeta& criteria,
         GameLookupCallback callback);
 
-//
-// Devices
-//
-struct DeviceMeta {
-    i64 id; 
-    StringView name;
-};
-
-typedef std::function_ref<Result(const DeviceMeta&)> DeviceCallback;
-
-Result addDevice(DatabaseConnection* connection, DeviceMeta meta, i64* outId);
-Result getDevice(DatabaseConnection* connection, i64 id, DeviceCallback callback);
-Result removeDevice(DatabaseConnection* connection, i64 id);
-Result updateDevice(DatabaseConnection* connection, DeviceMeta meta); 
-Result getOrAddDevice(DatabaseConnection* connection, StringView hostname, i64* outId);
 
 //
 // Installations
@@ -334,6 +412,8 @@ struct InstallationLookupResult {
 
     u64 releaseDate;
     f64 rating;
+
+    const FilterMeta& filter;
 };
 
 struct InstallationDetails {
@@ -399,14 +479,14 @@ Result getDirectInstallationTags(DatabaseConnection* connection, i64 installatio
 /**
  * \brief Looks up installations in the database that match the specified criteria and invokes a callback for each matching installation
  * \param connection The database connection to use for the query
- * \param criteria An SearchCriteria struct containing the criteria for filtering and sorting the installations to be retrieved
+ * \param criteria A FilterMeta struct containing the criteria for filtering and sorting the installations to be retrieved
  * \param callback The callback function to invoke for each matching installation found
  * \param userData A pointer to user-defined data that will be passed to the callback function
  * \return A Result indicating success or failure of the operation. If the callback returns a failure Result, the lookup will be aborted and this function will return that failure Result.
  */
 Result lookupInstallations(
         DatabaseConnection* connection, 
-        const SearchCriteria& criteria,
+        const FilterMeta& criteria,
         InstallationLookupCallback callback); 
 
 
@@ -429,55 +509,39 @@ Result markInstallationJustPlayed(DatabaseConnection* connection, i64 installati
  */
 Result bumpInstallationPlayTime(DatabaseConnection* connection, i64 installationId, u64 playTimeToAdd);
 
-//
-// Filters
-// 
-
-struct FilterMeta {
-    i64 filterId;
-    i64 tabId;
-    i64 priority;
-    StringView name;
-    StringView icon;
-    bool colorizeIcon;
-    bool multiLine;
-    bool showTitles;
-    bool useIcons;
-    bool onlyInstalled;
-    bool showInstallations;
-    SearchCriteria criteria;
-};
-
-typedef std::function_ref<Result(const FilterMeta&)> FilterCallback;
-typedef std::function_ref<Result(const SearchCriteria&)> FilterCriteriaCallback;
-
-Result countFilters(DatabaseConnection* connection, u64* numFilters);
-
-Result addFilter(DatabaseConnection* connection, const FilterMeta& meta, i64* outFilterId);
-
-Result removeFilter(DatabaseConnection* connection, i64 filterId);
-
-Result getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback callback);
-
-Result setFilterCriteria(DatabaseConnection* connection, i64 filterId, const SearchCriteria& criteria);
-
-Result updateFilter(DatabaseConnection* connection, const FilterMeta& meta);
-
 Result lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, InstallationLookupCallback callback);
 
 Result lookupGamesForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, GameLookupCallback callback);
 
-Result getFilterCriteria(DatabaseConnection* connection, i64 filterId, FilterCriteriaCallback callback);
 
 //
 // Tabs
 //
+
+enum class TabFlag : u64 {
+    COLORIZE_ICON = 0x1,
+    HIDDEN = 0x2
+};
+
+typedef u64 TabFlags;
+
+inline TabFlags operator|(TabFlag flag, TabFlag other) { return static_cast<u8>(flag) | static_cast<u8>(other); }
+inline TabFlags operator|(TabFlag flag, TabFlags other) { return static_cast<u8>(flag) | other; }
+inline TabFlags operator|(TabFlags other, TabFlag flag) { return static_cast<u8>(flag) | other; }
+
+inline TabFlags& operator|=(TabFlags& flags, TabFlag other) { flags = flags | other; return flags; }
+
+inline TabFlags operator&(TabFlag flag, TabFlag other) { return static_cast<u8>(flag) & static_cast<u8>(other); }
+inline TabFlags operator&(TabFlag flag, TabFlags other) { return static_cast<u8>(flag) & other; }
+inline TabFlags operator&(TabFlags other, TabFlag flag) { return static_cast<u8>(flag) & other; }
+
+inline TabFlags& operator&=(TabFlags& flags, TabFlag other) { flags = flags | other; return flags; }
+
 struct TabMeta {
     i64 tabId;
     StringView name;
     StringView icon;
-    bool colorizeIcon;
-    bool hidden;
+    TabFlags flags;
 };
 
 typedef std::function_ref<Result(const TabMeta&)> TabCallback;
@@ -518,10 +582,11 @@ Result prunePluginFields(DatabaseConnection* connection, JsonArray keepIds);
 // Achievements
 
 enum class AchievementFlag : u8 {
-    PROGRESSION = 0b001,
-    WIN_CONDITION = 0b010,
-    SPOILER = 0b100,
-    MISSABLE = 0b1000
+    PROGRESSION = 0b001,   // This achievement is required to beat the game
+    WIN_CONDITION = 0b010, // Unlocking this achievement is the same as beating the game
+    SPOILER = 0b100,       // This achievement's title and/or description would spoil the story for a new player
+    MISSABLE = 0b1000,     // It is possible to put your save file in a state in which this achievement is no longer obtainable without restarting
+    STALE = 0b10000000     // Used to easily identify achivements which have been removed from a set without iterating over all of them.
 };
 typedef u8 AchievementFlags;
 
@@ -545,6 +610,7 @@ struct Achievement {
     StringView title;
     StringView description;
     StringView icon;
+    StringView lockedIcon;
     f64 globalUnlockRate;
     struct {
         u32 numerator;

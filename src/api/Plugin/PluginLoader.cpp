@@ -69,6 +69,7 @@ nbl::Result nbl::PluginLoader::_loadAll() {
         [](bool success, StringView error, void* userData) {
             if(!success) {
                 const AccountProvider* prov = static_cast<const AccountProvider*>(userData);
+                NBL_ASSERT(prov != nullptr);
                 NBL_ERROR("Failed to refresh account for ", prov->id, ": ", error);
             }
         },
@@ -91,7 +92,7 @@ nbl::Result nbl::PluginLoader::_loadAll() {
         const nbl::AccountProvider* provider = _pContext->get<AccountProvider>(account.provider);
         if(provider == nullptr) return nbl::Result::SUCCESS;
 
-        NBL_CHECK(tracker.startTracking(nullptr, account.id, provider));
+        NBL_CHECK(tracker.startTracking(const_cast<AccountProvider*>(provider), account.id, provider));
 
         nbl::Result res = provider->refresh(_pContext, account, &tracker);
         if(res == Result::NO_CHANGE) {

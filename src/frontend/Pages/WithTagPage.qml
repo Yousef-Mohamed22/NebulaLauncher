@@ -89,6 +89,7 @@ Item {
                     multiLine: true
                     useIcons: root.useIcons
                     showTitles: root.showTitles
+                    showFilterInfo: false
 
                     onItemClicked: id => {
                         root.gameClicked(id)

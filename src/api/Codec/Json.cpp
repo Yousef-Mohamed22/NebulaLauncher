@@ -144,7 +144,7 @@ nbl::Result nbl::JsonObject::Builder::add(StringView key, JsonElement element) {
 
     return nbl::Result::SUCCESS;
 }
-nbl::Result nbl::JsonObject::Builder::addObject(StringView key, std::function_ref<Result(JsonObject::Builder&)> callback) {
+nbl::Result nbl::JsonObject::Builder::addObject(StringView key, std::function_ref<Result(JsonObject::Builder&)> callback, usize buckets) {
 
     JsonObject::Entry* entry;
     NBL_CHECK(_scratch()->allocate(&entry));
@@ -153,7 +153,7 @@ nbl::Result nbl::JsonObject::Builder::addObject(StringView key, std::function_re
 
     Builder child(_pAllocator, _scratch());
     NBL_CHECK(callback(child));
-    NBL_CHECK(child.build(&entry->value.object));
+    NBL_CHECK(child.build(&entry->value.object, buckets));
     entry->value.type = JsonType::OBJECT;
     _mEntryCount++;
 
@@ -175,38 +175,47 @@ nbl::Result nbl::JsonObject::Builder::addArray(StringView key, std::function_ref
 
     return nbl::Result::SUCCESS;
 }
-nbl::Result nbl::JsonObject::Builder::build(nbl::JsonObject* out) {
+nbl::Result nbl::JsonObject::Builder::build(nbl::JsonObject* out, usize bucketCount) {
 
     if(_mEntryCount == 0) return nbl::Result::SUCCESS;
+    if(bucketCount == 0) {
+        bucketCount = _mEntryCount * 1.5f;
+    }
 
     NBL_CHECK(_pAllocator->allocate(&out->entries, _mEntryCount));
 
     out->entryCount = _mEntryCount;
-    out->bucketCount = _mEntryCount * 1.5f;
+    out->bucketCount = bucketCount;
     NBL_CHECK(_pAllocator->allocate(&out->buckets, out->bucketCount));
 
+    if(bucketCount == 1) {
+        out->buckets[0].count = _mEntryCount;
+        out->buckets[0].offset = 0;
+        memcpy(out->entries, _pBegin, _mEntryCount * sizeof(Entry));
+    } else {
 
-    for(usize i = 0 ; i < _mEntryCount ; i++) {
-        usize bucketIndex = _pBegin[i].key.hash() % out->bucketCount;
-        out->buckets[bucketIndex].count++;
-    }
+        for(usize i = 0 ; i < _mEntryCount ; i++) {
+            usize bucketIndex = _pBegin[i].key.hash() % out->bucketCount;
+            out->buckets[bucketIndex].count++;
+        }
 
-    usize runningOffset = 0;
-    for(usize i = 0 ; i < out->bucketCount ; i++) {
-        out->buckets[i].offset = runningOffset;
-        runningOffset += out->buckets[i].count;
-    }
+        usize runningOffset = 0;
+        for(usize i = 0 ; i < out->bucketCount ; i++) {
+            out->buckets[i].offset = runningOffset;
+            runningOffset += out->buckets[i].count;
+        }
 
-    usize* bucketCounts;
-    NBL_CHECK(_scratch()->allocate(&bucketCounts, out->bucketCount));
+        usize* bucketCounts;
+        NBL_CHECK(_scratch()->allocate(&bucketCounts, out->bucketCount));
 
-    for(usize i = 0 ; i < _mEntryCount ; i++) {
-        usize bucketIndex = _pBegin[i].key.hash() % out->bucketCount;
+        for(usize i = 0 ; i < _mEntryCount ; i++) {
+            usize bucketIndex = _pBegin[i].key.hash() % out->bucketCount;
 
-        usize entryIndex = out->buckets[bucketIndex].offset + bucketCounts[bucketIndex];
-        bucketCounts[bucketIndex]++;
+            usize entryIndex = out->buckets[bucketIndex].offset + bucketCounts[bucketIndex];
+            bucketCounts[bucketIndex]++;
 
-        out->entries[entryIndex] = _pBegin[i];
+            out->entries[entryIndex] = _pBegin[i];
+        }
     }
 
     NBL_CHECK(_scratch()->popToPtr(_pBegin));

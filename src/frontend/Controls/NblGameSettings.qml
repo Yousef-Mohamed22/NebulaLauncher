@@ -226,6 +226,7 @@ Column {
         id: achievementsColumn
         width: parent.width
         visible: achievementsRepeater.count > 0
+        spacing: 8
 
         NblSectionHeader {
             width: parent.width
@@ -256,7 +257,6 @@ Column {
                 id: providerColumn
                 width: achievementsColumn.width - 12
                 x: 12
-                spacing: 8
 
                 required property var modelData
                 required property int index

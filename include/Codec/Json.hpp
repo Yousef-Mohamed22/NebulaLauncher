@@ -280,8 +280,8 @@ public:
     public:
         ArrayWriter& add(JsonElement element);
         ArrayWriter& write(std::function_ref<Result(Writer writer)> writer);
-        ArrayWriter& writeObject(std::function_ref<void(ObjectWriter& writer)> writer);
-        ArrayWriter& writeArray(std::function_ref<void(ArrayWriter& writer)> writer);
+        ArrayWriter& writeObject(std::function_ref<Result(ObjectWriter& writer)> writer);
+        ArrayWriter& writeArray(std::function_ref<Result(ArrayWriter& writer)> writer);
     private:
 
         ArrayWriter(JsonWriter& parent) :
@@ -298,8 +298,9 @@ public:
         ObjectWriter& add(StringView key, JsonElement element);
         ObjectWriter& write(StringView key, std::function_ref<Result(Writer writer)> writer);
         ObjectWriter& writeString(StringView key, std::function_ref<Result(Writer writer)> writer);
-        ObjectWriter& writeObject(StringView key, std::function_ref<void(ObjectWriter& writer)> writer);
-        ObjectWriter& writeArray(StringView key, std::function_ref<void(ArrayWriter& writer)> writer);
+        ObjectWriter& writeObject(StringView key, std::function_ref<Result(ObjectWriter& writer)> writer);
+        ObjectWriter& writeArray(StringView key, std::function_ref<Result(ArrayWriter& writer)> writer);
+
     private:
 
         ObjectWriter(JsonWriter& parent) :
@@ -313,8 +314,8 @@ public:
 
 
     Result writeElement(JsonElement element);
-    Result writeObject(std::function_ref<void(ObjectWriter& writer)> writer);
-    Result writeArray(std::function_ref<void(ArrayWriter& writer)> writer);
+    Result writeObject(std::function_ref<Result(ObjectWriter& writer)> writer);
+    Result writeArray(std::function_ref<Result(ArrayWriter& writer)> writer);
 
 private:
 
@@ -332,10 +333,10 @@ public:
     Builder(const Builder& other) = delete;
 
     Result add(StringView key, JsonElement element);
-    Result addObject(StringView key, std::function_ref<Result(JsonObject::Builder&)> callback);
+    Result addObject(StringView key, std::function_ref<Result(JsonObject::Builder&)> callback, usize buckets = 0);
     Result addArray(StringView key, std::function_ref<Result(JsonArray::Builder&)> callback);
 
-    Result build(JsonObject* out);
+    Result build(JsonObject* out, usize bucketCount = 0);
 
     static Result create(nbl::LinearAllocator* allocator, nbl::JsonObject::Builder* outBuilder);
 

@@ -175,21 +175,15 @@ CREATE TABLE IF NOT EXISTS tab (
     tabId INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     icon TEXT NOT NULL,
-    colorizeIcon BOOLEAN DEFAULT 1,
-    hidden BOOLEAN NOT NULL DEFAULT 0
+    flags INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS filter (
     fId INTEGER PRIMARY KEY,
     tabId INTEGER NOT NULL,
     name TEXT NOT NULL,
     icon TEXT NOT NULL,
-    colorizeIcon BOOLEAN NOT NULL DEFAULT 1,
     criteria TEXT NOT NULL,
-    multiLine BOOLEAN NOT NULL DEFAULT 0,
-    useIcons BOOLEAN NOT NULL DEFAULT 0,
-    showTitles BOOLEAN NOT NULL DEFAULT 0,
-    onlyInstalled BOOLEAN NOT NULL DEFAULT 0,
-    showInstallations BOOLEAN NOT NULL DEFAULT 0,
+    flags INTEGER NOT NULL DEFAULT 0,
     priority INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY(tabId) REFERENCES tab(tabId) ON DELETE CASCADE
 );
@@ -220,6 +214,7 @@ CREATE TABLE IF NOT EXISTS achievement (
     title TEXT,
     description TEXT,
     icon TEXT,
+    lockedIcon TEXT,
     globalUnlockRate REAL,
     progressNumerator INTEGER DEFAULT 0,
     progressDenominator INTEGER DEFAULT 0,

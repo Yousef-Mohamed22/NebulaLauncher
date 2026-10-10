@@ -17,13 +17,13 @@ NblDialog {
 
     onTabIdChanged: {
         if(tabId == 0) return
-        let encoded = ApplicationContext.getTabMeta(tabId)
+        let ref = ApplicationContext.getTabMeta(tabId)
 
-        nameInput.text = encoded.name
-        iconPicker.dbIcon = encoded.icon
-        iconPicker.colorize = encoded.colorizeIcon
-        hiddenBox.checked = encoded.hidden
-        filterList.initialItems = encoded.filters
+        nameInput.text = ref.name
+        iconPicker.dbIcon = ref.icon
+        iconPicker.colorize = ref.colorizeIcon
+        hiddenBox.checked = ref.hidden
+        filterList.initialItems = ref.encodeFilters()
     }
 
     function encode() {
@@ -107,6 +107,7 @@ NblDialog {
                         showTitles: false,
                         showInstallations: false,
                         onlyInstalled: false,
+                        showFilterInfo: false,
                         sortBy: 0,
                         sortOrder: 0,
                         tags: [],
@@ -137,7 +138,7 @@ NblDialog {
                 delegate: NblDropdown {
 
                     id: dropdown
-                    width: parent.width
+                    width: filterList.itemWidth
                     icon: filterIconPicker.icon
                     iconSize: 20
 
@@ -158,6 +159,7 @@ NblDialog {
                             showTitles: showTitlesBox.checked,
                             onlyInstalled: onlyInstalledBox.checked,
                             showInstallations: searchBox.currentIndex == 1,
+                            showFilterInfo: showFilterInfoBox.checked,
                             sortBy: sortByBox.currentIndex,
                             sortOrder: sortOrderBox.currentIndex,
                             tags: tagSetsList.encode(),
@@ -203,6 +205,13 @@ NblDialog {
                             model: [ "Games", "Installations" ]
                             currentIndex: dropdown.modelData.showInstallations ? 1 : 0
                         }
+                        NblCheckBox {
+                            id: onlyInstalledBox
+                            visible: searchBox.currentIndex == 0
+                            Layout.fillWidth: true
+                            text: "Only Installed"
+                            checked: dropdown.modelData.onlyInstalled
+                        }
 
                         RowLayout {
                             width: parent.width
@@ -226,11 +235,10 @@ NblDialog {
                                 checked: dropdown.modelData.showTitles
                             }
                             NblCheckBox {
-                                id: onlyInstalledBox
-                                visible: searchBox.currentIndex == 0
+                                id: showFilterInfoBox
                                 Layout.fillWidth: true
-                                text: "Only Installed"
-                                checked: dropdown.modelData.onlyInstalled
+                                text: "Show Filter Info"
+                                checked: dropdown.modelData.showFilterInfo
                             }
                         }
 

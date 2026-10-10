@@ -2,15 +2,13 @@
 #include <Plugin/AchievementProvider.hpp>
 #include <Plugin/AccountProvider.hpp>
 #include <Network/HttpClient.hpp>
-
-#include "Codec/Json.hpp"
-#include "Core/String.hpp"
-#include "Data/Model.hpp"
-#include "Data/OnlineAccountModel.hpp"
-#include "Platform/Allocator.hpp"
-#include "Platform/File.hpp"
-#include "Platform/StringBuilder.hpp"
-#include "Plugin/Field.hpp"
+#include <Codec/Json.hpp>
+#include <Core/String.hpp>
+#include <Data/Model.hpp>
+#include <Data/OnlineAccountModel.hpp>
+#include <Platform/Allocator.hpp>
+#include <Platform/StringBuilder.hpp>
+#include <Plugin/Field.hpp>
 
 #include "Constants.hpp"
 #include "Utility.hpp"
@@ -111,12 +109,6 @@ nbl::Result _logout(nbl::PluginContext* context, i64 accountId, void* userData) 
 
     _profileAlloc.popTo(0);
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-    nbl::StringView apiKeyPath;
-
-    NBL_CHECK(nbl::StringBuilder(&frame).append(context->pluginDataPath()).append("/retroachievements/auth.json").buildNullTerminated(&apiKeyPath));
-
-    NBL_CHECK(nbl::deleteFile(apiKeyPath));
     return nbl::Result::SUCCESS;
 }
 

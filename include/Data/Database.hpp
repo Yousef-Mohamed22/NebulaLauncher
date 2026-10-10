@@ -67,6 +67,23 @@ struct DataValue {
     }
 };
 
+inline Result toString(DataValue value, Writer writer) {
+    switch(value.type) {
+        case DataType::NULL_TYPE: 
+            return writer.writeString("NULL");
+        case DataType::INTEGER:
+            return toString(value.intValue, writer);
+        case DataType::FLOAT:
+            return toString(value.floatValue, writer);
+        case DataType::TEXT:
+            return writer.writeString(value.textValue);
+        case DataType::BLOB:
+            return toString(HexEncoder(value.blobValue), writer);
+    }
+    return nbl::Result::UNEXPECTED_ERROR;
+}
+
+
 
 /**
  * A callback called with untyped data from the database. The values might be numbers or null, but have all been cast to strings. 

@@ -16,6 +16,7 @@
 #include "Models/NblGameDetails.hpp"
 #include "Models/NblFieldList.hpp"
 #include "NblProcessHandle.hpp"
+#include "NblTabRef.hpp"
 
 inline QByteArray fromNbl(nbl::StringView sv) {
     return QByteArray(sv.data, sv.length);
@@ -97,7 +98,7 @@ public:
     Q_INVOKABLE int addTab(const QVariantMap& params);
     Q_INVOKABLE int updateTab(qint64 id, const QVariantMap& params);
     Q_INVOKABLE int deleteTab(qint64 id);
-    Q_INVOKABLE QVariantMap getTabMeta(qint64 id);
+    Q_INVOKABLE NblTabRef* getTabMeta(qint64 id);
 
     Q_INVOKABLE qint64 addTag(QString name, QColor color);
     Q_INVOKABLE qint64 findTagId(QString name);

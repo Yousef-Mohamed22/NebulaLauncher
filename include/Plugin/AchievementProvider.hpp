@@ -42,13 +42,19 @@ public:
     }
 
     Result updateSetProviderData(StringView id, ConstSpan<u8> providerData);
+    inline Result updateSetProviderData(StringView id, StringView providerData) {
+        return updateSetProviderData(id, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(providerData.data), .length = providerData.length });
+    }
     template<typename T>
-    Result updateSetProviderData(StringView id, const T& data) {
+    inline Result updateSetProviderData(StringView id, const T& data) {
         return updateSetProviderData(id, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&data), .length = sizeof(T) });
     }
 
 
     Result updateSetProviderData(i64 setId, ConstSpan<u8> providerData);
+    inline Result updateSetProviderData(i64 setId, StringView providerData) {
+        return updateSetProviderData(setId, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(providerData.data), .length = providerData.length });
+    }
     template<typename T>
     Result updateSetProviderData(i64 setId, const T& data) {
         return updateSetProviderData(setId, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&data), .length = sizeof(T) });
@@ -60,8 +66,11 @@ public:
     Result dropAchievementSet(StringView id);
     Result dropUnknownSets(Span<StringView> knownSets);
 
+    Result dropAllAchievements(i64 setId);
+    Result dropStaleAchievements(i64 setId);
+    Result markAchievementsStale(i64 setId);
 
-    Result addOrUpdateAchievement(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, AchievementFlags flags, Span<u8> providerData = {});
+    Result addOrUpdateAchievement(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, StringView lockedIcon, AchievementFlags flags, Span<u8> providerData = {});
     Result addOrUpdateAchievementWithProgress(Achievement ach);
     Result setAchievementProgress(i64 setId, StringView id, f64 globalUnlockRate, u32 progressNumerator, u32 progressDenominator, u64 dateUnlocked, u32 borderColor);
 

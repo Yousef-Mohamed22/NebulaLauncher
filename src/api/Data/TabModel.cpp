@@ -7,18 +7,19 @@
  */
 
 #include <Data/Model.hpp>
+#include "Core/Result.hpp"
 
 
 nbl::Result nbl::countTabs(DatabaseConnection* connection, u64* numTabs) {
 
-    static nbl::PreparedStatement _countFiltersStmt;
-    if(!_countFiltersStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT COUNT(tId) FROM tab;
-        )", &_countFiltersStmt));
+        )", &_stmt));
     }
 
-    return connection->execute(&_countFiltersStmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_stmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
         if(columnCount == 0) return nbl::Result::IO_ERROR;
 
@@ -31,70 +32,61 @@ SELECT COUNT(tId) FROM tab;
 
 nbl::Result nbl::addTab(DatabaseConnection* connection, const TabMeta& meta, i64* outTabId) {
 
-    static nbl::PreparedStatement _addTabStmt;
-    if(!_addTabStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO tab (name, icon, colorizeIcon, hidden) VALUES (?1, ?2, ?3, ?4);
-        )", &_addTabStmt));
+INSERT INTO tab (name, icon, flags) VALUES (?1, ?2, ?3);
+        )", &_stmt));
     }
 
-    NBL_CHECK(_addTabStmt.bindString(1, meta.name));
-    NBL_CHECK(_addTabStmt.bindString(2, meta.icon));
-    NBL_CHECK(_addTabStmt.bindInt(3, meta.colorizeIcon ? 1 : 0));
-    NBL_CHECK(_addTabStmt.bindInt(4, meta.hidden ? 1 : 0));
-
-    return connection->execute(&_addTabStmt, outTabId);
+    NBL_CHECK(_stmt.bindAll(1, meta.name, meta.icon, meta.flags));
+    return connection->execute(&_stmt, outTabId);
 }
 
 nbl::Result nbl::updateTab(DatabaseConnection* connection, const TabMeta& meta) {
 
-    static nbl::PreparedStatement _updateTabStmt;
-    if(!_updateTabStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-UPDATE tab SET name=?1, icon=?2, colorizeIcon=?3, hidden=?4 WHERE tabId=?5;
-        )", &_updateTabStmt));
+UPDATE tab SET name=?1, icon=?2, flags=?3  WHERE tabId=?4;
+        )", &_stmt));
     }
 
-    NBL_CHECK(_updateTabStmt.bindString(1, meta.name));
-    NBL_CHECK(_updateTabStmt.bindString(2, meta.icon));
-    NBL_CHECK(_updateTabStmt.bindInt(3, meta.colorizeIcon ? 1 : 0));
-    NBL_CHECK(_updateTabStmt.bindInt(4, meta.hidden ? 1 : 0));
-    NBL_CHECK(_updateTabStmt.bindInt(5, meta.tabId));
-
-    return connection->execute(&_updateTabStmt);
+    NBL_CHECK(_stmt.bindAll(1, meta.name, meta.icon, meta.flags, meta.tabId));
+    return connection->execute(&_stmt);
 }
 
 
 
 nbl::Result nbl::removeTab(DatabaseConnection* connection, i64 tabId) {
 
-    static nbl::PreparedStatement _removeTabStmt;
-    if(!_removeTabStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 DELETE FROM tab WHERE tabId = ?1;
-        )", &_removeTabStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_removeTabStmt.bindUint(1, tabId));
-    return connection->execute(&_removeTabStmt);
+    NBL_CHECK(_stmt.bindUint(1, tabId));
+    return connection->execute(&_stmt);
 }
 
 nbl::Result nbl::enumerateTabs(DatabaseConnection* connection, u64 offset, u64 limit, TabCallback callback) {
 
-    static nbl::PreparedStatement _enumerateTabsStmt;
-    if(!_enumerateTabsStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT tabId, name, icon, colorizeIcon, hidden FROM tab LIMIT ?1 OFFSET ?2;
-        )", &_enumerateTabsStmt));
+SELECT tabId, name, icon, flags FROM tab LIMIT ?1 OFFSET ?2;
+        )", &_stmt));
     }
 
-    _enumerateTabsStmt.bindUint(1, limit);
-    _enumerateTabsStmt.bindUint(2, offset);
+    _stmt.bindUint(1, limit);
+    _stmt.bindUint(2, offset);
 
-    return connection->execute(&_enumerateTabsStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_stmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 5) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in enumerate tabs query result, but got ", columnCount);
+        if(columnCount != 4) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 4 columns in enumerate tabs query result, but got ", columnCount);
             return nbl::Result::IO_ERROR;
         }
 
@@ -103,8 +95,7 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab LIMIT ?1 OFFSET ?2;
                 .tabId = columnValues[0].intValue,
                 .name = columnValues[1].textValue,
                 .icon = columnValues[2].textValue,
-                .colorizeIcon = columnValues[3].intValue != 0,
-                .hidden = columnValues[4].intValue != 0
+                .flags = columnValues[3].uintValue()
             }
         );
     });
@@ -113,19 +104,19 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab LIMIT ?1 OFFSET ?2;
 
 nbl::Result nbl::getTabMeta(DatabaseConnection* connection, i64 tabId, TabCallback callback) {
 
-    static nbl::PreparedStatement _getTabStmt;
-    if(!_getTabStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT tabId, name, icon, colorizeIcon, hidden FROM tab WHERE tabId=?1;
-        )", &_getTabStmt));
+SELECT tabId, name, icon, flags FROM tab WHERE tabId=?1;
+        )", &_stmt));
     }
 
-    _getTabStmt.bindInt(1, tabId);
+    _stmt.bindInt(1, tabId);
 
-    return connection->execute(&_getTabStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_stmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 5) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 5 columns in enumerate tabs query result, but got ", columnCount);
+        if(columnCount != 4) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 4 columns in enumerate tabs query result, but got ", columnCount);
             return nbl::Result::IO_ERROR;
         }
 
@@ -134,8 +125,7 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab WHERE tabId=?1;
                 .tabId = columnValues[0].intValue,
                 .name = columnValues[1].textValue,
                 .icon = columnValues[2].textValue,
-                .colorizeIcon = columnValues[3].intValue != 0,
-                .hidden = columnValues[4].intValue != 0
+                .flags = columnValues[3].uintValue()
             }
         );
     });
@@ -143,26 +133,24 @@ SELECT tabId, name, icon, colorizeIcon, hidden FROM tab WHERE tabId=?1;
 
 nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback) {
 
-    static nbl::PreparedStatement _getFiltersForTabStmt;
-    if(!_getFiltersForTabStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT filter.fId, filter.name, filter.icon, filter.colorizeIcon, filter.multiLine, filter.showTitles, filter.useIcons, filter.showInstallations
+SELECT filter.fId, filter.name, filter.icon, filter.flags
 FROM filter
 WHERE filter.tabId = ?1
 ORDER BY filter.priority DESC, filter.fId ASC
 LIMIT ?2
 OFFSET ?3;
-        )", &_getFiltersForTabStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_getFiltersForTabStmt.bindInt(1, tabId));
-    NBL_CHECK(_getFiltersForTabStmt.bindUint(2, limit));
-    NBL_CHECK(_getFiltersForTabStmt.bindUint(3, offset));
+    NBL_CHECK(_stmt.bindAll(1, tabId, limit, offset));
 
-    return connection->execute(&_getFiltersForTabStmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_stmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(columnCount != 8) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 8 columns in get filters for tab query result, but got ", columnCount);
+        if(columnCount != 4) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 4 columns in get filters for tab query result, but got ", columnCount);
             return nbl::Result::IO_ERROR;
         }
 
@@ -170,11 +158,7 @@ OFFSET ?3;
             .filterId = columnValues[0].intValue, 
             .name = columnValues[1].textValue, 
             .icon = columnValues[2].textValue, 
-            .colorizeIcon = columnValues[3].intValue != 0,
-            .multiLine = columnValues[4].intValue != 0,
-            .showTitles = columnValues[5].intValue != 0,
-            .useIcons = columnValues[6].intValue != 0,
-            .showInstallations = columnValues[7].intValue != 0,
+            .flags = columnValues[3].uintValue(),
             .criteria = {}
         };
 

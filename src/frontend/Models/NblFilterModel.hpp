@@ -34,7 +34,9 @@ public:
         IdRole,
         TitleRole,
         PosterRole,
-        IconRole
+        IconRole,
+        FilterInfoRole,
+        FilterInfoIconRole
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override {
@@ -86,6 +88,8 @@ private:
         QString title;
         QString poster;
         QString icon;
+        QString filterInfo;
+        QString filterInfoIcon;
     };
 
     qint64 _mFilterId;

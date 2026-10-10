@@ -182,15 +182,54 @@ DELETE FROM achievement_set WHERE provider=?1 AND gId=?2 AND providerId NOT IN (
     nbl::StringBuilder builder(&frame);
     nbl::JsonWriter(builder).writeArray([&](auto& array) {
         for(StringView set : knownSets) array.add(set);
+        return Result::SUCCESS;
     });
     nbl::StringView json{};
     NBL_CHECK(builder.buildNullTerminated(&json));
 
     NBL_CHECK(_stmt.bindAll(1, _mProvider, _mGameId, json));
     return _pConnection->execute(&_stmt);
+
 }
 
-nbl::Result nbl::AchievementHelper::addOrUpdateAchievement(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, AchievementFlags flags, Span<u8> providerData) {
+nbl::Result nbl::AchievementHelper::dropAllAchievements(i64 setId) {
+    static PreparedStatement _stmt{};
+    if(!_stmt.isValid(_pConnection)) {
+        _pConnection->prepare(R"(
+DELETE FROM achievement WHERE asId=?1;
+        )", &_stmt);
+    }
+
+    NBL_CHECK(_stmt.bind(1, setId));
+    return _pConnection->execute(&_stmt);
+}
+
+nbl::Result nbl::AchievementHelper::dropStaleAchievements(i64 setId) {
+    static PreparedStatement _stmt{};
+    if(!_stmt.isValid(_pConnection)) {
+        _pConnection->prepare(R"(
+DELETE FROM achievement WHERE asId=?1 AND (flags & 128) != 0;
+        )", &_stmt);
+    }
+
+    NBL_CHECK(_stmt.bind(1, setId));
+    return _pConnection->execute(&_stmt);
+}
+
+nbl::Result nbl::AchievementHelper::markAchievementsStale(i64 setId) {
+    static PreparedStatement _stmt{};
+    if(!_stmt.isValid(_pConnection)) {
+        _pConnection->prepare(R"(
+UPDATE achievement SET flags = (flags | 128) WHERE asId=?1;
+        )", &_stmt);
+    }
+
+    NBL_CHECK(_stmt.bind(1, setId));
+    return _pConnection->execute(&_stmt);
+}
+
+
+nbl::Result nbl::AchievementHelper::addOrUpdateAchievement(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, StringView lockedIcon, AchievementFlags flags, Span<u8> providerData) {
 
 
     // TODO: Don't expect provider's icon is local. Cache it, but not synchronously.
@@ -201,6 +240,7 @@ nbl::Result nbl::AchievementHelper::addOrUpdateAchievement(i64 setId, u64 number
         .title = name,
         .description = description,
         .icon = icon,
+        .lockedIcon = lockedIcon,
         .flags = flags,
         .providerData = providerData,
     };
@@ -208,7 +248,7 @@ nbl::Result nbl::AchievementHelper::addOrUpdateAchievement(i64 setId, u64 number
 }
 
 nbl::Result nbl::AchievementHelper::addOrUpdateAchievementWithProgress(Achievement ach) {
-    return nbl::upsertAchievementMeta(_pConnection, ach, nullptr);
+    return nbl::upsertAchievement(_pConnection, ach, nullptr);
 }
 
 
@@ -217,7 +257,7 @@ nbl::Result nbl::AchievementHelper::setAchievementProgress(i64 setId, StringView
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(_pConnection)) {
         _pConnection->prepare(R"(
-UPDATE achievement SET globalUnlockRate=?1, progressNumerator=?2, progressDenominator=?3, dateUnlocked=?4, borderColor=?5
+UPDATE achievement SET globalUnlockRate=?1, progressNumerator=?2, progressDenominator=?3, dateUnlocked=?4, borderColor=?5, flags = (flags & 127)
 WHERE asId=?6 AND providerId=?7;
         )", &_stmt);
     }

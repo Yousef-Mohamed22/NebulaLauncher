@@ -1,9 +1,14 @@
 #pragma once
 
+#include <qqmllist.h>
+#include <qtmetamacros.h>
 #include <Core/Types.hpp>
+#include <Data/Model.hpp>
 
 #include <QObject>
 #include <QtQml>
+
+#include <Data/Database.hpp>
 
 class NblTabRef : public QObject { 
 
@@ -13,8 +18,10 @@ class NblTabRef : public QObject {
     Q_PROPERTY(qint64 tabId READ tabId CONSTANT)
     Q_PROPERTY(QString name READ name CONSTANT)
     Q_PROPERTY(QString icon READ icon CONSTANT)
+
     Q_PROPERTY(bool colorizeIcon READ colorizeIcon CONSTANT)
     Q_PROPERTY(bool hidden READ hidden CONSTANT)
+
 
 public:
 
@@ -23,54 +30,46 @@ public:
         _mName{},
         _mIcon{},
         _mTabId(0),
-        _mColorizeIcon(false),
-        _mHidden(false)
+        _mFlags(0)
     {}
+
+    NblTabRef(const NblTabRef& other) :
+        _mTabId(other._mTabId),
+        _mName(other._mName),
+        _mIcon(other._mIcon),
+        _mFlags(other._mFlags)
+    { }
 
     virtual ~NblTabRef() = default;
 
-    NblTabRef(qint64 id, QString name, QString icon, bool colorizeIcon, bool hidden, QObject* parent = nullptr) :
-        QObject(parent),
-        _mName(name),
-        _mIcon(icon),
-        _mTabId(id),
-        _mColorizeIcon(colorizeIcon),
-        _mHidden(hidden)
-    { }
-
-    NblTabRef(const NblTabRef& other) :
-        QObject(other.parent()),
-        _mName(other._mName),
-        _mIcon(other._mIcon),
-        _mTabId(other._mTabId),
-        _mColorizeIcon(other._mColorizeIcon),
-        _mHidden(other._mHidden)
-    { }
-
     NblTabRef& operator=(const NblTabRef& other) {
         if(&other == this) return *this;
+        _mTabId = other._mTabId;
         _mName = other._mName;
         _mIcon = other._mIcon;
-        _mTabId = other._mTabId;
-        _mColorizeIcon = other._mColorizeIcon;
-        _mHidden = other._mHidden;
-
-        setParent(other.parent());
+        _mFlags = other._mFlags;
         return *this;
     }
 
-    qint64 tabId() { return _mTabId; }
-    QString name() { return _mName; }
-    QString icon() { return _mIcon; }
-    bool colorizeIcon() { return _mColorizeIcon; }
-    bool hidden() { return _mHidden; }
+
+
+    explicit NblTabRef(const nbl::TabMeta& meta, QObject* parent = nullptr);
+
+    qint64 tabId() const { return _mTabId; }
+    QString name() const { return _mName; }
+    QString icon() const { return _mIcon; }
+    bool colorizeIcon() const { return _mFlags & nbl::TabFlag::COLORIZE_ICON; }
+    bool hidden() const { return _mFlags & nbl::TabFlag::HIDDEN; }
+
+    Q_INVOKABLE QVariantList encodeFilters();
+
+    static NblTabRef* lookup(qint64 id);
 
 private:
 
     qint64 _mTabId;
     QString _mName;
     QString _mIcon;
-    bool _mColorizeIcon;
-    bool _mHidden;
+    nbl::TabFlags _mFlags;
 
 };

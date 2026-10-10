@@ -202,9 +202,11 @@ WHERE installation.iId = ?1;
 
 nbl::Result nbl::lookupInstallations(
         DatabaseConnection* connection, 
-        const SearchCriteria& criteria,
+        const FilterMeta& meta,
         InstallationLookupCallback callback) {
 
+
+    const SearchCriteria& criteria = meta.criteria;
     
 
     static nbl::PreparedStatement _lookupInstallationsStmts[16];
@@ -363,8 +365,10 @@ OFFSET ?10;
                         for(i64 tag : tagSet) {
                             inner.add(tag);
                         }
+                        return Result::SUCCESS;
                     });
                 }
+                return Result::SUCCESS;
             }));
 
         StringView tagsJson;
@@ -382,6 +386,7 @@ OFFSET ?10;
                 for(i64 tag : criteria.excludedTags) {
                     arr.add(tag);
                 }
+                return Result::SUCCESS;
             }));
 
         StringView tagsJson;
@@ -428,7 +433,8 @@ OFFSET ?10;
             .poster = columnValues[8].textValue,
             .icon = columnValues[9].textValue,
             .releaseDate = columnValues[10].uintValue(),
-            .rating = columnValues[11].floatValue
+            .rating = columnValues[11].floatValue,
+            .filter = meta
         };
 
         return callback(
@@ -484,7 +490,12 @@ OFFSET ?4;
             .poster = columnValues[8].textValue,
             .icon = columnValues[9].textValue,
             .releaseDate = columnValues[10].uintValue(),
-            .rating = columnValues[11].floatValue
+            .rating = columnValues[11].floatValue,
+            .filter = {
+                .criteria = {
+                    .gameId = gameId
+                }
+            }
         };
 
         return callback(res);

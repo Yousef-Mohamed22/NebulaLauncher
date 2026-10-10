@@ -125,3 +125,22 @@ nbl::Result nbl::writeHex(u64 value, Writer writer, u8 minDigits, bool lower) {
     return writer.writeAll(buffer + index, 16 - index);
 
 }
+
+
+nbl::Result nbl::toString(HexEncoder encoder, Writer writer) {
+
+    char numberOffset = '0';
+    char letterOffset = (encoder.upper ? 'A' : 'a') - 10;
+    for(u8 byte : encoder.data) {
+
+        u8 n1 = (byte >> 4) & 0xF;
+        u8 n2 = byte & 0xF;
+
+        char hex[2] = {
+            static_cast<char>(n1 + (n1 < 10) * numberOffset + (n1 >= 10) * letterOffset),
+            static_cast<char>(n2 + (n2 < 10) * numberOffset + (n2 >= 10) * letterOffset)
+        };
+        NBL_CHECK(writer.writeAll(hex, 2));
+    }
+    return nbl::Result::SUCCESS;
+}

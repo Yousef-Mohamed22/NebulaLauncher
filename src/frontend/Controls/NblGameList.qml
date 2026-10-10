@@ -7,6 +7,7 @@ Item {
     id: root
     required property bool multiLine
     required property bool showTitles
+    required property bool showFilterInfo
     required property bool useIcons
     required property var model
 
@@ -16,7 +17,7 @@ Item {
 
     readonly property real aspectRatio: useIcons ? 1 : (2/3)
     readonly property real itemWidth: calculateWidth(width - 16, requestedWidth)
-    readonly property real rowHeight: (itemWidth / aspectRatio) + (showTitles ? 24 : 0)
+    //readonly property real rowHeight: (itemWidth / aspectRatio) + (showTitles ? 24 : 0) + (showFilterInfo ? 24 : 0)
 
     function calculateWidth(rootWidth, itemWidth) {
 
@@ -46,13 +47,14 @@ Item {
                 required property var modelData
 
                 width: root.itemWidth
-                height: root.rowHeight
+
+                filterInfo: modelData.filterInfo ?? ""
+                filterInfoIcon: modelData.filterInfoIcon ?? ""
 
                 fallbackSource: "qrc:/qt/qml/Nebula/images/" + (root.useIcons ? "UnknownIcon.png" : "UnknownPoster.png")
                 imageSource: root.getImageSource(modelData) ?? fallbackSource
-                title: modelData.title
+                title: root.showTitles ? modelData.title : ""
                 aspectRatio: root.useIcons ? 1 : (2/3)
-                showTitle: root.showTitles
                 titleAlignment: root.useIcons ? Qt.AlignHCenter : Qt.AlignLeft
 
                 onClicked: {
@@ -78,7 +80,7 @@ Item {
                 function scrolled() {}
 
                 width: parent.width
-                height: root.rowHeight + 16
+                height: singleLineList.height
 
                 contentHeight: singleLineList.height
                 contentWidth: singleLineList.width

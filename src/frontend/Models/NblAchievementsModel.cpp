@@ -21,6 +21,8 @@ QVariant NblAchievementsModel::data(const QModelIndex& index, int role) const {
             return item.description;
         case IconRole:
             return item.icon;
+        case LockedIconRole:
+            return item.lockedIcon;
         case GlobalUnlockRateRole:
             return item.globalUnlockRate;
         case NumeratorRole:
@@ -46,6 +48,7 @@ QHash<int, QByteArray> NblAchievementsModel::roleNames() const {
     out[TitleRole] = "title";
     out[DescriptionRole] = "description";
     out[IconRole] = "icon";
+    out[LockedIconRole] = "lockedIcon";
     out[GlobalUnlockRateRole] = "globalUnlockRate";
     out[NumeratorRole] = "numerator";
     out[DenominatorRole] = "denominator";
@@ -69,6 +72,7 @@ nbl::Result NblAchievementsModel::_fetchPageData(qsizetype limit, qsizetype offs
             .title = fromNbl(a.title),
             .description = fromNbl(a.description),
             .icon = fromNbl(a.icon),
+            .lockedIcon = fromNbl(a.lockedIcon),
             .globalUnlockRate = a.globalUnlockRate,
             .progress = {
                 .numerator = a.progress.numerator,

@@ -140,7 +140,7 @@ NblDialog {
 
                                     enabled: false
                                     title: contentItem.displayTitle
-                                    icon: contentItem.modelData.icon
+                                    icon: contentItem.modelData.dateUnlocked == 0 ? contentItem.modelData.lockedIcon : contentItem.modelData.icon
                                     borderColor: contentItem.modelData.borderColor
                                     unlocked: contentItem.modelData.dateUnlocked > 0
                                     hidden: contentItem.isHidden
