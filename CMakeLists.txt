@@ -22,11 +22,14 @@ project(Nebula LANGUAGES C CXX)
 
 set(NBL_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+option(NBL_ENABLE_ASAN "Enable AddressSanitizer" OFF)
+
 option(NBL_BUILD_FRONTEND "Build Frontend" ON)
 option(NBL_BUILD_TESTS "Build Tests" ON)
 option(NBL_BUILD_TEST_PLUGIN "Build Test Plugin" ON)
 option(NBL_BUILD_SGDB_PLUGIN "Build SteamGridDB Plugin" ON)
 option(NBL_BUILD_IGDB_PLUGIN "Build IGDB.com Plugin" ON)
+option(NBL_BUILD_STEAM_PLUGIN "Build Steam Plugin" ON)
 option(NBL_BUILD_RA_PLUGIN "Build RetroAchivements Plugin" ON)
 option(NBL_BUILD_MINECRAFT_PLUGIN "Build Minecraft Plugin" ON)
 
@@ -53,6 +56,8 @@ CPMAddPackage(
         "CMAKE_USE_OPENSSL ON"
         "CMAKE_POSITION_INDEPENDENT_CODE ON"
 )
+
+find_package(OpenSSL REQUIRED)
 
 include(cmake/SQLite3.cmake)
 
@@ -81,7 +86,18 @@ target_include_directories(Nebula_Api PUBLIC ${NBL_INCLUDE_DIR})
 target_include_directories(Nebula_Api PRIVATE ${NBL_SRC_DIR}/api)
 target_precompile_headers(Nebula_Api PUBLIC ${NBL_API_HEADERS})
 target_link_libraries(Nebula_Api PRIVATE CURL::libcurl)
+target_link_libraries(Nebula_Api PRIVATE OpenSSL::Crypto)
 target_link_libraries(Nebula_Api PRIVATE SQLite3::SQLite3)
+
+if(NBL_ENABLE_ASAN)
+    if(MSVC)
+        target_compile_options(Nebula_Api PUBLIC /fsanitize=address)
+    else()
+        target_compile_options(Nebula_Api PUBLIC -fsanitize=address -fno-omit-frame-pointer)
+        target_link_options(Nebula_Api PUBLIC -fsanitize=address)
+    endif()
+endif()
+
 
 file(GLOB_RECURSE NBL_WRAPPER_SOURCES ${NBL_SRC_DIR}/wrapper/**.cpp)
 
@@ -196,6 +212,50 @@ if(${NBL_BUILD_MINECRAFT_PLUGIN})
     )
 
 endif()
+
+if(${NBL_BUILD_STEAM_PLUGIN}) 
+
+    CPMAddPackage(
+        NAME Steamworks
+        URL "https://partner.steamgames.com/downloads/steamworks_sdk_165.zip"
+        URL_HASH SHA256=8c42792e09100988e31e3dc069de2eb1bc60702a0445bb37298ba0c54067c202
+        DOWNLOAD_ONLY TRUE
+    )
+    add_library(Steamworks INTERFACE)
+    target_include_directories(Steamworks INTERFACE "${Steamworks_SOURCE_DIR}/public")
+
+    file(GLOB NBL_STEAM_CLIENT_SOURCES ${NBL_SRC_DIR}/plugin_steam/client/*.cpp)
+    add_executable(Nebula_SteamAchievementClient ${NBL_STEAM_CLIENT_SOURCES})
+    target_link_libraries(Nebula_SteamAchievementClient PRIVATE Nebula_Api)
+    target_link_libraries(Nebula_SteamAchievementClient PRIVATE Steamworks)
+    target_link_libraries(Nebula_SteamAchievementClient PRIVATE OpenSSL::Crypto)
+    set_target_properties(Nebula_SteamAchievementClient PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/steam"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/steam"
+        PREFIX ""
+        OUTPUT_NAME "AchievementClient"
+    )
+
+
+    file(GLOB NBL_STEAM_PLUGIN_SOURCES ${NBL_SRC_DIR}/plugin_steam/*.cpp)
+    add_library(Nebula_SteamPlugin SHARED ${NBL_STEAM_PLUGIN_SOURCES})
+    target_link_libraries(Nebula_SteamPlugin PRIVATE Nebula_Api)
+    set_target_properties(Nebula_SteamPlugin PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/steam"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins/steam"
+        PREFIX ""
+        OUTPUT_NAME "plugin"
+    )
+
+    add_custom_command(
+        TARGET Nebula_SteamPlugin
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/plugin_steam/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/steam"
+        VERBATIM
+    )
+
+endif()
+
 
 if(${NBL_BUILD_FRONTEND}) 
     add_subdirectory(src/frontend)

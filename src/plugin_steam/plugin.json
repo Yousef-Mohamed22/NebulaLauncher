@@ -1,0 +1,6 @@
+{
+    "id": "steam",
+    "version": "0.1.0",
+    "name": "Steam",
+    "description": "Adds an AchievementProvider for Steam"
+}
