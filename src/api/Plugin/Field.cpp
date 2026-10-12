@@ -91,21 +91,13 @@ nbl::Result _decodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
 nbl::Result _encodeFieldValue(nbl::PluginContext* context, const nbl::Field& field, nbl::FieldValue value, nbl::Writer writer, nbl::Span<nbl::Placeholder> extraPlaceholders) {
     switch(field.type) {
         case nbl::FieldType::STRING: {
-
-            if(value.stringValue.raw == value.stringValue.resolved) {
-                NBL_CHECK(writer.writeChar('"'));
-                nbl::Writer w = nbl::jsonStringWriter(&writer);
-                NBL_CHECK(w.writeString(value.stringValue.raw));
-                return writer.writeChar('"');
-            } else {
-                return nbl::JsonWriter(writer).writeObject([&](auto obj) {
-                    obj.add("raw", value.stringValue.raw);
-                    obj.writeString("resolved", [&](auto writer){
-                        return nbl::formatPlaceholders(value.stringValue.raw, writer, nbl::Array { field.stringData.customPlaceholders, extraPlaceholders }, (field.flags & nbl::FieldFlag::STRICT_PLACEHOLDERS));
-                    });
-                    return nbl::Result::SUCCESS;
+            return nbl::JsonWriter(writer).writeObject([&](auto obj) {
+                obj.add("raw", value.stringValue.raw);
+                obj.writeString("resolved", [&](auto writer){
+                    return nbl::formatPlaceholders(value.stringValue.raw, writer, nbl::Array { field.stringData.customPlaceholders, extraPlaceholders }, (field.flags & nbl::FieldFlag::STRICT_PLACEHOLDERS));
                 });
-            }
+                return nbl::Result::SUCCESS;
+            });
         }
         case nbl::FieldType::FLOAT:
             return nbl::writeJson(writer, value.floatValue);
