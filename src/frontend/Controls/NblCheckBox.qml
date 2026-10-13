@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 
+import Nebula
+
 CheckBox {
 
     id: root

@@ -1,5 +1,4 @@
 #include "AccountModel.hpp"
-#include <qstringview.h>
 #include "ApplicationContext.hpp"
 
 #include <QDesktopServices>
@@ -71,7 +70,7 @@ QVariant nbl::frontend::AccountModel::data(const QModelIndex& index, int role) c
             return static_cast<quint32>(r.status);
         case FieldValuesRole: {
             if(r.status == OnlineAccountStatus::NOT_LOGGED_IN) return QVariant();
-            return NblFieldRef::parse(r.encodedFields, _pProvider->fields);
+            return nbl::frontend::FieldRef::parse(r.encodedFields, _pProvider->fields);
         }
         default:
             return {};
@@ -117,8 +116,8 @@ void nbl::frontend::AccountModel::refresh() {
     endResetModel();
 }
 
-NblFieldList* nbl::frontend::AccountModel::fields() const {
-    return new NblFieldList(_pProvider->fields);
+nbl::frontend::FieldList* nbl::frontend::AccountModel::fields() const {
+    return new nbl::frontend::FieldList(_pProvider->fields);
 }
 
 void nbl::frontend::AccountModel::setProviderId(QString providerId) {
@@ -207,7 +206,7 @@ nbl::Result nbl::frontend::AccountModel::_startLogin(i64 accountId, QVariantMap 
             }
         };
 
-        nbl::FieldValue value = NblFieldRef(&dummy).toNbl(ud.qtFields, &frame);
+        nbl::FieldValue value = nbl::frontend::FieldRef(&dummy).toNbl(ud.qtFields, &frame);
         if(ud.provider->login(ApplicationContext::instance()->pluginContext(), value.compositeValue, &_tracker).error()) {
             _tracker.fail("An error occurred while logging in");
         }

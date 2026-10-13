@@ -1,5 +1,7 @@
 import QtQuick
 
+import Nebula
+
 NblTextBox {
 
     property var date: new Date()

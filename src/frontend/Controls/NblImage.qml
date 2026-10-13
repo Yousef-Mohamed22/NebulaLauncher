@@ -1,5 +1,7 @@
 import QtQuick
 
+import Nebula
+
 Image {
 
     id: root

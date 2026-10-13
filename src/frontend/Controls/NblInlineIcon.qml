@@ -4,6 +4,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
 
+import Nebula
+
 Item {
 
     id: root

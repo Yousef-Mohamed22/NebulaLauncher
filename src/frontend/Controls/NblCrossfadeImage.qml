@@ -1,6 +1,6 @@
 import QtQuick
 
-import Nebula.Controls
+import Nebula
 
 Item {
 

@@ -34,9 +34,20 @@ qt_add_shaders(Nebula_App "/"
     FILES ${NBL_APP_SHADERS}
 )
 
-target_include_directories(Nebula_App PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-target_include_directories(Nebula_App PRIVATE "${CMAKE_CURRENT_LIST_DIR}/Models")
-target_include_directories(Nebula_App PRIVATE "${CMAKE_CURRENT_LIST_DIR}/Account")
+target_include_directories(Nebula_App PRIVATE 
+    "${CMAKE_CURRENT_LIST_DIR}"
+    "${CMAKE_CURRENT_LIST_DIR}/Account" 
+    "${CMAKE_CURRENT_LIST_DIR}/Achievement" 
+    "${CMAKE_CURRENT_LIST_DIR}/Field" 
+    "${CMAKE_CURRENT_LIST_DIR}/Filter" 
+    "${CMAKE_CURRENT_LIST_DIR}/Game" 
+    "${CMAKE_CURRENT_LIST_DIR}/Installation" 
+    "${CMAKE_CURRENT_LIST_DIR}/Launch" 
+    "${CMAKE_CURRENT_LIST_DIR}/Plugin"
+    "${CMAKE_CURRENT_LIST_DIR}/Tab"
+    "${CMAKE_CURRENT_LIST_DIR}/Tag"
+)
+
 target_link_libraries(Nebula_App PRIVATE Nebula_Api)
 target_link_libraries(Nebula_App PRIVATE Qt6::Quick Qt6::ShaderTools)
 target_link_libraries(Nebula_App PRIVATE CURL::libcurl)

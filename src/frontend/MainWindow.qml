@@ -70,7 +70,7 @@ ApplicationWindow {
                         root.openTab(tabId)
                     }
                     onTabEdited: (tabId) => {
-                        let tabPage = pageLoader.currentItem as NblTabPage
+                        let tabPage = pageLoader.currentItem as TabPage
                         if(tabPage && tabPage.tabId == tabId) {
                             tabPage.refresh()
                         } 
@@ -120,7 +120,7 @@ ApplicationWindow {
                 pageLoader.pop()
             }
 
-            let tabPage = pageLoader.currentItem as NblTabPage
+            let tabPage = pageLoader.currentItem as TabPage
             if(tabPage) {
                 tabPage.refresh()
             }
@@ -132,7 +132,7 @@ ApplicationWindow {
             root.openGameDetails(gameId)
         }
         function onTagClicked(tagId, tagName, tagColor) {
-            root.openPage("Pages/WithTagPage.qml", {
+            root.openPage("Tag/GameWithTagPage.qml", {
                 tag: tagId,
                 name: tagName,
                 color: tagColor,
@@ -166,14 +166,14 @@ ApplicationWindow {
         }
 
         if(initDepth > 1) {
-            let page = pageLoader.currentItem as NblTabPage
+            let page = pageLoader.currentItem as TabPage
             if(page && page.tabId == id) {
                 page.refresh()
                 return
             }
         }
 
-        pageLoader.replace("Pages/NblTabPage.qml", {
+        pageLoader.replace("Tab/TabPage.qml", {
             tabId: id
         })
     }
@@ -193,7 +193,7 @@ ApplicationWindow {
         let iDetails = ApplicationContext.getInstallationDetails(installationId)
         let gDetails = ApplicationContext.getGameDetails(iDetails.gameId)
 
-        pageLoader.push("Pages/NblGamePage.qml", {
+        pageLoader.push("Game/GamePage.qml", {
             details: gDetails,
             installationDetails: iDetails,
         })
@@ -206,7 +206,7 @@ ApplicationWindow {
         }
         let details = ApplicationContext.getGameDetails(gameId)
 
-        pageLoader.push("Pages/NblGamePage.qml", {
+        pageLoader.push("Game/GamePage.qml", {
             details: details,
         })
     }
@@ -216,7 +216,7 @@ ApplicationWindow {
             pageLoader.pop()
         }
 
-        let tabPage = pageLoader.currentItem as NblTabPage
+        let tabPage = pageLoader.currentItem as TabPage
         if(tabPage) {
             tabPage.refresh()
         }

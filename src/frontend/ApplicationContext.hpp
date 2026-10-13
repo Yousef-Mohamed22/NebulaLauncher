@@ -1,6 +1,5 @@
 #pragma once
 
-#include <qtmetamacros.h>
 #include <QObject>
 #include <QColor>
 #include <QtQml>
@@ -12,11 +11,13 @@
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/PluginLoader.hpp>
 
-#include "Models/NblInstallationDetails.hpp"
-#include "Models/NblGameDetails.hpp"
-#include "Models/NblFieldList.hpp"
-#include "NblProcessHandle.hpp"
-#include "NblTabRef.hpp"
+
+
+#include "Installation/InstallationDetails.hpp"
+#include "Game/GameDetails.hpp"
+#include "Field/FieldList.hpp"
+#include "Tab/TabRef.hpp"
+#include "Launch/ProcessHandle.hpp"
 
 inline QByteArray fromNbl(nbl::StringView sv) {
     return QByteArray(sv.data, sv.length);
@@ -61,7 +62,6 @@ class ApplicationContext : public QObject {
     QML_ELEMENT
     QML_SINGLETON
 
-    // Properties
     Q_PROPERTY(QString dataFolder READ dataFolder CONSTANT)
     Q_PROPERTY(QString pluginFolder READ pluginFolder CONSTANT)
     Q_PROPERTY(qint64 deviceId READ deviceId CONSTANT)
@@ -80,26 +80,49 @@ public:
         return instance();
     }
 
+    // Properties
     QString dataFolder() const;
     QString pluginFolder() const;
-    qint64 deviceId() const { return _mDeviceId; }
 
-    Q_INVOKABLE NblProcessHandle* launchInstallation(qint64 installationId);
-    Q_INVOKABLE NblProcessHandle* getRunningInstallation(qint64 installationId);
+    qint64 deviceId() const { 
+        return _mDeviceId; 
+    }
+
+
+    // General
+    Q_INVOKABLE void saveSettings(const QVariantMap& settings);
+    Q_INVOKABLE QVariantMap loadSettings();
+
+    Q_INVOKABLE void pushNotification(QVariantMap details) {
+        emit notification(details);
+    }
+    Q_INVOKABLE QUrl mediaUrl(QString relativePath, QByteArray repo);
+
+
+    // InstallationType
+    Q_INVOKABLE nbl::frontend::ProcessHandle* launchInstallation(qint64 installationId);
+    Q_INVOKABLE nbl::frontend::ProcessHandle* getRunningInstallation(qint64 installationId);
     Q_INVOKABLE int openInstallationFolder(qint64 installationId);
 
-    Q_INVOKABLE NblInstallationDetails* getInstallationDetails(qint64 installationId);
-    Q_INVOKABLE NblGameDetails* getGameDetails(qint64 gameId);
+    // Game
+    Q_INVOKABLE qint64 addGame(QVariantMap details);
+    Q_INVOKABLE int updateGame(QVariantMap details);
+    Q_INVOKABLE int deleteGame(qint64 gameId);
+    Q_INVOKABLE nbl::frontend::GameDetails* getGameDetails(qint64 gameId);
 
+    // Installation
     Q_INVOKABLE InstallationAddResult addInstallation(const QVariantMap& params);
     Q_INVOKABLE int updateInstallation(qint64 id, const QVariantMap& params);
     Q_INVOKABLE int deleteInstallation(qint64 id);
+    Q_INVOKABLE nbl::frontend::InstallationDetails* getInstallationDetails(qint64 installationId);
 
+    // Tab
     Q_INVOKABLE int addTab(const QVariantMap& params);
     Q_INVOKABLE int updateTab(qint64 id, const QVariantMap& params);
     Q_INVOKABLE int deleteTab(qint64 id);
-    Q_INVOKABLE NblTabRef* getTabMeta(qint64 id);
+    Q_INVOKABLE nbl::frontend::TabRef* getTabMeta(qint64 id);
 
+    // Tag
     Q_INVOKABLE qint64 addTag(QString name, QColor color);
     Q_INVOKABLE qint64 findTagId(QString name);
     Q_INVOKABLE int removeTag(qint64 tag);
@@ -111,28 +134,12 @@ public:
     Q_INVOKABLE int tagInstallation(qint64 installationId, qint64 tag);
     Q_INVOKABLE int untagInstallation(qint64 installationId, qint64 tag);
     Q_INVOKABLE int updateTags(QVariantList modifiedTags);
-    
     Q_INVOKABLE QVariantList getTagsFromIds(QVariantList ids);
     Q_INVOKABLE QList<QVariant> getGameTags(qint64 gId);
     Q_INVOKABLE QList<QVariant> getInstallationTags(qint64 iId);
     Q_INVOKABLE QList<QVariant> getTagParents(qint64 tag);
-
-    Q_INVOKABLE qint64 addGame(QVariantMap details);
-    Q_INVOKABLE int updateGame(QVariantMap details);
-    Q_INVOKABLE int deleteGame(qint64 gameId);
-
     Q_INVOKABLE QVariantMap gameExternalIds(qint64 gameIds);
 
-    Q_INVOKABLE NblFieldList* getInstallationTypeFields(QString installationType);
-
-    Q_INVOKABLE void pushNotification(QVariantMap details) {
-        emit notification(details);
-    }
-
-    Q_INVOKABLE void saveSettings(const QVariantMap& settings);
-    Q_INVOKABLE QVariantMap loadSettings();
-
-    Q_INVOKABLE QUrl mediaUrl(QString relativePath, QByteArray repo);
 
     nbl::DatabaseConnection* databaseConnection() {
         return _mContext.databaseConnection();
@@ -141,6 +148,7 @@ public:
     nbl::PluginContext* pluginContext() {
         return &_mContext;
     }
+
 
     void init() {
         if(!_bInitialized) {
@@ -155,12 +163,14 @@ signals:
 
 private:
 
+    nbl::Result _pushImage(QString url, QString repo, QString* outUrl);
+
     void _initialize();
     ApplicationContext() = default;
 
     bool _bInitialized = false;
     nbl::PluginContext _mContext;
-    QHash<i64, NblProcessHandle*> _mRunningProcesses;
+    QHash<i64, nbl::frontend::ProcessHandle*> _mRunningProcesses;
 
     i64 _mDeviceId;
 

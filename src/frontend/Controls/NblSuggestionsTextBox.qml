@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 
+import Nebula
+
 NblTextBox {
 
     id: root

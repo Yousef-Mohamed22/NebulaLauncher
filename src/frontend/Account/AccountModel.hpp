@@ -3,7 +3,7 @@
 #include <QObject>
 #include <QtQml>
 
-#include "Models/NblFieldList.hpp"
+#include "Field/FieldList.hpp"
 
 #include <Data/OnlineAccountModel.hpp>
 #include <Plugin/AccountProvider.hpp>
@@ -13,11 +13,11 @@ namespace nbl::frontend {
 class AccountModel : public QAbstractListModel {
 
     Q_OBJECT
-    QML_NAMED_ELEMENT(AccountModel)
+    QML_ELEMENT
 
     Q_PROPERTY(QString providerId READ providerId WRITE setProviderId NOTIFY providerIdChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(NblFieldList* fields READ fields CONSTANT)
+    Q_PROPERTY(FieldList* fields READ fields CONSTANT)
 
 public:
 
@@ -51,7 +51,7 @@ public:
 
     int count() const { return rowCount(); }
 
-    NblFieldList* fields() const;
+    FieldList* fields() const;
 
     QString providerId() const {
         if(_pProvider == nullptr) return {};

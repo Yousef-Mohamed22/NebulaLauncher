@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Shapes
 
+import Nebula
+
 Item {
 
     id: root

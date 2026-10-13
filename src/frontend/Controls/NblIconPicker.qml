@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
 
-import Nebula.Controls
+import Nebula
 
 Item {
 

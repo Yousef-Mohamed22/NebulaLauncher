@@ -4,7 +4,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import Nebula.Controls
 
 NblDialog {
 
@@ -189,7 +188,7 @@ NblDialog {
                     contentHeight: gameSettings.height
                     clip: true
 
-                    NblGameSettings {
+                    GameSettings {
                         id: gameSettings
                         width: parent.width
                         x: 24
@@ -291,22 +290,24 @@ NblDialog {
                                 id: commandTypeBox
                                 label: "Type"
                                 width: parent.width
-                                model: NblInstallationTypeModel { }
+                                model: InstallationTypeModel { 
+                                    id: typeModel
+                                }
                                 textRole: "name"
                                 valueRole: "id"
 
                                 onActivated: {
                                     installationSettingsTab.modified = true
-                                    fieldList.fields = ApplicationContext.getInstallationTypeFields(currentValue)
+                                    fieldList.fields = typeModel.fields(typeModel.currentIndex)
                                 }
 
                                 tooltip: "The type of installation. This determines how the installation is launched."
                             }
 
-                            NblFieldInputRepeater { 
+                            FieldInputRepeater { 
                                 id: fieldList
                                 width: parent.width
-                                fields: ApplicationContext.getInstallationTypeFields(commandTypeBox.currentValue)
+                                fields: typeModel.fields(typeModel.currentIndex)
                                 onModified: {
                                     installationSettingsTab.modified = true
                                 }
@@ -338,7 +339,7 @@ NblDialog {
                                 tooltip: "A description for this particular installation."
                             }
 
-                            NblTagList {
+                            TagList {
                                 id: installationTags
                                 label: "Installation Tags"
                                 width: parent.width

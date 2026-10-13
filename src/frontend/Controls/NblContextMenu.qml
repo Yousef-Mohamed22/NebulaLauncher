@@ -1,6 +1,7 @@
 import QtQuick
-
 import QtQuick.Controls
+
+import Nebula
 
 Popup { 
     id: contextPopup

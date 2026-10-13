@@ -4,20 +4,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import Nebula.Controls
-
 SettingsTab {
 
     id: root
 
     showCancelButton: false
     showApplyButton: false
-
-    onRefreshed: {
-    }
-
-    onApplied: {
-    }
 
     NblScrollView {
 
@@ -218,7 +210,7 @@ SettingsTab {
                             spacing: 8
                             visible: providerItem.adding
 
-                            NblFieldInputRepeater {
+                            FieldInputRepeater {
                                 id: accountFields
                                 fields: accountRepeater.model.fields
                                 itemWidth: ((parent.width - 96 - 96 - 8) / count) - 8

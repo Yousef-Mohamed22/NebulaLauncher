@@ -18,7 +18,7 @@ ScrollView {
         x: root.width - 8
         height: root.height
 
-        opacity: active ? 1.0 : 0.0
+        opacity: active && root.contentHeight > root.height ? 1.0 : 0.0
 
         Behavior on opacity {
             NumberAnimation { duration: 150 }

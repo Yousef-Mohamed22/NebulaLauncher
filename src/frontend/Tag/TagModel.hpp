@@ -1,0 +1,50 @@
+#pragma once
+
+#include <Core/Types.hpp>
+#include <Platform/Logging.hpp>
+
+#include <QObject>
+#include <QColor>
+#include <QtQml>
+
+#include "Tag/TagRef.hpp"
+#include "PagedListModel.hpp"
+
+namespace nbl::frontend {
+
+class TagModel : public PagedListModel {
+
+    Q_OBJECT
+    QML_ELEMENT
+
+public:
+
+    explicit TagModel(QObject* parent = nullptr) :
+        PagedListModel(parent)
+    { }
+
+    enum Roles {
+        IdRole,
+        NameRole,
+        ColorRole
+    };
+
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override {
+        Q_UNUSED(parent)
+        return _mData.size();
+    }
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+    QHash<int, QByteArray> roleNames() const override;
+
+protected:
+
+    virtual void _clear() override { _mData.clear(); }
+    virtual nbl::Result _fetchPageData(qsizetype limit, qsizetype offset) override;
+
+private:
+
+    QList<TagRef> _mData;
+
+};
+
+}

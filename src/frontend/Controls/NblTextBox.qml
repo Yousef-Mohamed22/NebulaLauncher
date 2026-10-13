@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls.Basic
 
+import Nebula
+
 TextField {
 
     id: root

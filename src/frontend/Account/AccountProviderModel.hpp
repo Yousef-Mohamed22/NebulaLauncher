@@ -10,7 +10,7 @@ namespace nbl::frontend {
 class AccountProviderModel : public QAbstractListModel {
 
     Q_OBJECT
-    QML_NAMED_ELEMENT(AccountProviderModel)       
+    QML_ELEMENT       
 
     Q_PROPERTY(int count READ count CONSTANT)
 

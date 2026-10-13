@@ -2,9 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
-
-import Nebula.Controls
 
 Item {
 
@@ -21,7 +18,7 @@ Item {
 
     Component.onCompleted: {
         if(tabRepeater.count > 0) {
-            root.tabClicked((tabRepeater.itemAt(0) as NblTabButton).tabId)
+            root.tabClicked((tabRepeater.itemAt(0) as TabButton).tabId)
         }
     }
 
@@ -45,77 +42,70 @@ Item {
 
         spacing: 8
 
-        Flickable {
-
-            id: flickable
+        Item {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            interactive: false
 
-            contentWidth: width
-            contentHeight: tabList.height
+            NblScrollView {
 
-            flickableDirection: Flickable.VerticalFlick
+                id: flickable
+                width: parent.width + 8
+                height: parent.height
+                clip: true
 
-            ScrollBar.horizontal: null
-            ScrollBar.vertical: ScrollBar {
-                parent: flickable
-                anchors.top: flickable.top
-                anchors.bottom: flickable.bottom
-                anchors.right: flickable.right
-                active: flickable.movingVertically
-            }
+                contentWidth: width - 8
+                contentHeight: tabList.height
 
-            onAtYEndChanged: {
-                if(atYEnd) {
-                    tabsModel.loadNextPage()
-                }
-            }
-
-            Column {
-                id: tabList
-                width: parent.width
-                spacing: 8
-
-                Repeater {
-
-                    id: tabRepeater
-
-                    model: NblAllTabsModel { 
-                        pageSize: 20
-                        id: tabsModel
+                onAtYEndChanged: {
+                    if(atYEnd) {
+                        tabsModel.loadNextPage()
                     }
+                }
 
-                    delegate: NblTabButton {
-                        required property var modelData
+                Column {
+                    id: tabList
+                    width: flickable.contentWidth
+                    spacing: 8
 
-                        tabId: modelData.id
-                        width: parent.width
+                    Repeater {
 
-                        collapsed: root.collapsed
-                        icon: modelData.icon
-                        name: modelData.name
-                        colorize: modelData.colorizeIcon
+                        id: tabRepeater
 
-                        onClicked: {
-                            root.selectedTab = tabId
-                            root.tabClicked(tabId)
+                        model: TabModel { 
+                            pageSize: 20
+                            id: tabsModel
                         }
-                        onEditRequested: {
-                            let dialog = DialogManager.create("Pages/AddTabDialog.qml", { tabId: tabId }) as AddTabDialog
-                            dialog.apply.connect(function() {
-                                root.reloadTabs()
-                                root.tabEdited(tabId)
-                            })
-                            dialog.open()
-                        }
-                        onDeleteRequested: {
-                            DialogManager.openDeleteConfirmation("Are you sure you want to delete this tab?", function() {
-                                root.reloadTabs()
-                                root.tabEdited(tabId)
-                            })
+
+                        delegate: TabButton {
+                            required property var modelData
+
+                            tabId: modelData.id
+                            width: parent.width
+
+                            collapsed: root.collapsed
+                            icon: modelData.icon
+                            name: modelData.name
+                            colorize: modelData.colorizeIcon
+
+                            onClicked: {
+                                root.selectedTab = tabId
+                                root.tabClicked(tabId)
+                            }
+                            onEditRequested: {
+                                let dialog = DialogManager.create("Tab/AddTabDialog.qml", { tabId: tabId }) as AddTabDialog
+                                dialog.apply.connect(function() {
+                                    root.reloadTabs()
+                                    root.tabEdited(tabId)
+                                })
+                                dialog.open()
+                            }
+                            onDeleteRequested: {
+                                DialogManager.openDeleteConfirmation("Are you sure you want to delete this tab?", function() {
+                                    root.reloadTabs()
+                                    root.tabEdited(tabId)
+                                })
+                            }
                         }
                     }
                 }
@@ -170,7 +160,7 @@ Item {
                                 text: "Add Game"
                                 onClicked: {
                                     addMenu.close()
-                                    let dialog = DialogManager.create("Pages/GameLookupDialog.qml", {}) as GameLookupDialog
+                                    let dialog = DialogManager.create("Game/GameLookupDialog.qml", {}) as GameLookupDialog
                                     dialog.gameAdded.connect(function(id) {
                                         root.gameAdded(id)
                                     })
@@ -185,7 +175,7 @@ Item {
                                 text: "Add Tab"
                                 onClicked: {
                                     addMenu.close()
-                                    let dialog = DialogManager.create("Pages/AddTabDialog.qml", {}) as NblDialog
+                                    let dialog = DialogManager.create("Tab/AddTabDialog.qml", {}) as NblDialog
                                     dialog.apply.connect(function() {
                                         root.reloadTabs()
                                     })
