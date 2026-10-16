@@ -7,12 +7,12 @@
 nbl::Result nbl::AchievementHelper::setProviderStatus(nbl::AchievementProviderStatus status) {
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare("UPDATE achievement_state SET status=?1 WHERE gId=?2 AND provider=?3;", &_stmt);
+        _pConnection->prepare("INSERT INTO achievement_state (gId, provider, status) VALUES (?1, ?2, ?3) ON CONFLICT (gId, provider) DO UPDATE SET status=?3", &_stmt);
     }
     NBL_CHECK(_stmt.bindAll(1, 
-        static_cast<u32>(status),
         _mGameId,
-        _mProvider
+        _mProvider,
+        static_cast<u32>(status)
     ));
     return _pConnection->execute(&_stmt);
 }

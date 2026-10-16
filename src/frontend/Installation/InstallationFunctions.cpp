@@ -167,10 +167,10 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
     QString iconUrl = params.find("icon")->toString();
     QString logoUrl = params.find("logo")->toString();
 
-    i64 banner;
-    i64 poster;
-    i64 icon;
-    i64 logo;
+    i64 banner = 0;
+    i64 poster = 0;
+    i64 icon = 0;
+    i64 logo = 0;
 
     if(!bannerUrl.isEmpty()) NBL_CHECK(pushImage(bannerUrl, nbl::ImageClass::BANNER, &banner));
     if(!posterUrl.isEmpty()) NBL_CHECK(pushImage(posterUrl, nbl::ImageClass::POSTER, &poster));
@@ -248,7 +248,6 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
     NBL_CHECK_OR_ROLLBACK(databaseConnection(), databaseConnection()->commitTransaction());
     return InstallationAddResult(
         true,
-        gId == 0,
         gId,
         meta.id
     );
@@ -262,11 +261,10 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     QString iconUrl = params.find("icon")->toString();
     QString logoUrl = params.find("logo")->toString();
 
-
-    i64 banner;
-    i64 poster;
-    i64 icon;
-    i64 logo;
+    i64 banner = 0;
+    i64 poster = 0;
+    i64 icon = 0;
+    i64 logo = 0;
 
     if(!bannerUrl.isEmpty()) NBL_CHECK(pushImage(bannerUrl, nbl::ImageClass::BANNER, &banner));
     if(!posterUrl.isEmpty()) NBL_CHECK(pushImage(posterUrl, nbl::ImageClass::POSTER, &poster));

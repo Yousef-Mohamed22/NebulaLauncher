@@ -43,7 +43,6 @@ inline QByteArray inlineIcon(InlineIcon icon, bool isImage) {
 struct InstallationAddResult {
     Q_GADGET
     Q_PROPERTY(bool success MEMBER success)
-    Q_PROPERTY(bool addedGame MEMBER addedGame)
     Q_PROPERTY(qint64 gameId MEMBER gameId)
     Q_PROPERTY(qint64 installationId MEMBER installationId)
 
@@ -53,20 +52,17 @@ public:
 
     InstallationAddResult(nbl::Result errorCode) :
         success(false),
-        addedGame(false),
         gameId(0),
         installationId(0)
     { }
 
-    InstallationAddResult(bool success, bool addedGame, qint64 gameId, qint64 installationId) :
+    InstallationAddResult(bool success, qint64 gameId, qint64 installationId) :
         success(success),
-        addedGame(addedGame),
         gameId(gameId),
         installationId(installationId)
     { }
 
     bool success;
-    bool addedGame;
     qint64 gameId;
     qint64 installationId;
 };

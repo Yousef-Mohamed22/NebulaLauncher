@@ -5,13 +5,13 @@
  */
 
 
-#include <qtypes.h>
 #include "ApplicationContext.hpp"
-#include "Core/Result.hpp"
-#include "Data/Database.hpp"
-#include "Data/MediaManager.hpp"
+#include "Data/Model.hpp"
 #include "Field/FieldRef.hpp"
 
+#include <Core/Result.hpp>
+#include <Data/Database.hpp>
+#include <Data/MediaManager.hpp>
 #include <Plugin/AchievementProvider.hpp>
 
 nbl::frontend::GameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
@@ -58,10 +58,10 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
     QString iconUrl = params.find("icon")->toString();
     QString logoUrl = params.find("logo")->toString();
 
-    i64 banner;
-    i64 poster;
-    i64 icon;
-    i64 logo;
+    i64 banner = 0;
+    i64 poster = 0;
+    i64 icon = 0;
+    i64 logo = 0;
 
     if(!bannerUrl.isEmpty()) NBL_CHECK(pushImage(bannerUrl, nbl::ImageClass::BANNER, &banner));
     if(!posterUrl.isEmpty()) NBL_CHECK(pushImage(posterUrl, nbl::ImageClass::POSTER, &poster));
@@ -123,24 +123,23 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
             QVariantMap providerInfo = provIt->toMap();
 
             status = static_cast<nbl::AchievementProviderStatus>(providerInfo.find("status")->toUInt());
-
-            QVariantMap fields = providerInfo.find("fields")->toMap();
-
-            nbl::ArenaFrame frame(nbl::Arena::threadLocal());
-            nbl::Field dummy {
-                .type = nbl::FieldType::STRUCT,
-                .structData = { .fields = ap->fields }
-            };
-
-            fieldValues = nbl::frontend::FieldRef(&dummy).toNbl(fields, &frame).compositeValue;
-
-            nbl::StringBuilder builder(&frame);
-            NBL_CHECK(nbl::encodeFieldValues(&_mContext, ap->fields, fieldValues, builder, {}));
-
-            nbl::StringView fieldsJson;
-            NBL_CHECK(builder.buildNullTerminated(&fieldsJson));
-
             if(status == nbl::AchievementProviderStatus::ADDED_BY_USER) {
+                QVariantMap fields = providerInfo.find("fields")->toMap();
+
+                nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+                nbl::Field dummy {
+                    .type = nbl::FieldType::STRUCT,
+                    .structData = { .fields = ap->fields }
+                };
+
+                fieldValues = nbl::frontend::FieldRef(&dummy).toNbl(fields, &frame).compositeValue;
+
+                nbl::StringBuilder builder(&frame);
+                NBL_CHECK(nbl::encodeFieldValues(&_mContext, ap->fields, fieldValues, builder, {}));
+
+                nbl::StringView fieldsJson;
+                NBL_CHECK(builder.buildNullTerminated(&fieldsJson));
+
                 NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
                     .gameId = gameMeta.id,
                     .provider = ap->id,
@@ -148,6 +147,11 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
                     .status = status
                 }));
             }
+        }
+
+        if(status == nbl::AchievementProviderStatus::REMOVED_BY_USER
+        || status == nbl::AchievementProviderStatus::REMOVED_BY_PROVIDER) {
+            continue;
         }
 
         nbl::AchievementHelper helper(databaseConnection(), ap->id, gameMeta.id);
@@ -193,10 +197,10 @@ int ApplicationContext::updateGame(QVariantMap params) {
     QString iconUrl = params.find("icon")->toString();
     QString logoUrl = params.find("logo")->toString();
 
-    i64 banner;
-    i64 poster;
-    i64 icon;
-    i64 logo;
+    i64 banner = 0;
+    i64 poster = 0;
+    i64 icon = 0;
+    i64 logo = 0;
 
     if(!bannerUrl.isEmpty()) NBL_CHECK(pushImage(bannerUrl, nbl::ImageClass::BANNER, &banner));
     if(!posterUrl.isEmpty()) NBL_CHECK(pushImage(posterUrl, nbl::ImageClass::POSTER, &poster));
@@ -258,6 +262,22 @@ int ApplicationContext::updateGame(QVariantMap params) {
         nbl::AchievementProviderStatus status = static_cast<nbl::AchievementProviderStatus>(providerInfo.find("status")->toUInt());
         nbl::AchievementProviderStatus originalStatus = static_cast<nbl::AchievementProviderStatus>(providerInfo.find("originalStatus")->toUInt());
 
+        if(status == nbl::AchievementProviderStatus::REMOVED_BY_USER
+        || status == nbl::AchievementProviderStatus::REMOVED_BY_PROVIDER) {
+
+            if(originalStatus != status) {
+                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
+                    .gameId = gameMeta.id,
+                    .provider = ap->id,
+                    .fields = {},
+                    .status = status
+                }));
+                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::deleteAchievementSetsForProvider(databaseConnection(), gameMeta.id, ap->id));
+            }
+            continue;
+        }
+
+
         QVariantMap fields = providerInfo.find("fields")->toMap();
 
         nbl::ArenaFrame frame(nbl::Arena::threadLocal());
@@ -274,26 +294,13 @@ int ApplicationContext::updateGame(QVariantMap params) {
         nbl::StringView fieldsJson;
         NBL_CHECK_OR_ROLLBACK(databaseConnection(), builder.buildNullTerminated(&fieldsJson));
 
-        if(originalStatus != status) {
-            NBL_ASSERT(status == nbl::AchievementProviderStatus::REMOVED_BY_USER 
-                    || status == nbl::AchievementProviderStatus::ADDED_BY_USER); // Others not available in the UI
-
-            if(status == nbl::AchievementProviderStatus::REMOVED_BY_USER) {
-                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
-                    .gameId = gameMeta.id,
-                    .provider = ap->id,
-                    .fields = {},
-                    .status = status
-                }));
-                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::deleteAchievementSetsForProvider(databaseConnection(), gameMeta.id, ap->id));
-            } else {
-                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
-                    .gameId = gameMeta.id,
-                    .provider = ap->id,
-                    .fields = fieldsJson,
-                    .status = status
-                }));
-            }
+        if(status == nbl::AchievementProviderStatus::ADDED_BY_USER && status != originalStatus) {
+            NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
+                .gameId = gameMeta.id,
+                .provider = ap->id,
+                .fields = fieldsJson,
+                .status = status
+            }));
         }
 
         nbl::AchievementHelper helper(databaseConnection(), ap->id, gameMeta.id);

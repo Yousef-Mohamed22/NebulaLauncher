@@ -30,6 +30,8 @@ QVariant nbl::frontend::AchievementStateModel::data(const QModelIndex& index, in
         
             if(item.status != nbl::AchievementProviderStatus::ADDED_BY_USER && item.status != nbl::AchievementProviderStatus::ADDED_BY_PROVIDER) return QVariant();
 
+            if(item.encodedFields.length() == 0) return QVariant();
+
             nbl::Field dummy {
                 .type = nbl::FieldType::STRUCT,
                 .structData = { .fields = item.provider->fields }
@@ -42,11 +44,10 @@ QVariant nbl::frontend::AchievementStateModel::data(const QModelIndex& index, in
 
             nbl::JsonElement element;
             if(nbl::parseJson(nbl::StringReader(nbl::StringView(item.encodedFields.data(), item.encodedFields.length())), &frame, &element).error()) return QVariant();
-            if(element.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+            if(element.type != nbl::JsonType::OBJECT) return QVariant();
 
             if(nbl::decodeFieldValues(ctx->pluginContext(), item.provider->fields, element.object, &values, &frame).error()) return QVariant();
             qtFields = FieldRef(&dummy).fromNbl({ .compositeValue = values });
-
             return qtFields;
         }
     }

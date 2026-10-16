@@ -138,12 +138,14 @@ NblDialog {
                     implicitHeight: parent.height
                     Layout.fillWidth: true
                     aspectRatio: 2.0 / 3.0
+                    tooltip: "Poster override for this installation"
                 }
                 NblImagePicker {
                     id: iconPicker
                     label: "Icon"
                     implicitHeight: parent.height
                     Layout.fillWidth: true
+                    tooltip: "Icon override for this installation"
                 }
                 NblImagePicker {
                     id: logoPicker
@@ -151,6 +153,7 @@ NblDialog {
                     implicitHeight: parent.height
                     Layout.fillWidth: true
                     fillMode: Image.PreserveAspectFit
+                    tooltip: "Logo override for this installation"
                 }
             }
 
@@ -160,6 +163,7 @@ NblDialog {
                 height: 200
                 width: parent.width
                 aspectRatio: 96.0 / 31.0
+                tooltip: "Banner override for this installation"
             }
 
             NblComboBox {
@@ -226,11 +230,10 @@ NblDialog {
 
         let gId = root.gameId
 
-        let fields = fieldList.save()
         let params = {
             game: gId,
             type: commandTypeBox.currentValue,
-            fields: fields,
+            fields: fieldList.save(),
             title: titleField.text,
             description: descriptionField.text,
             gameTitle: gameTitleField.text,
