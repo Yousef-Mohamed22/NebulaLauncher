@@ -89,8 +89,8 @@ private:
     struct _Item {
         qint64 id;
         QString title;
-        QString poster;
-        QString icon;
+        qint64 poster;
+        qint64 icon;
         QString filterInfo;
         QString filterInfoIcon;
     };

@@ -20,9 +20,9 @@ QVariant nbl::frontend::AchievementModel::data(const QModelIndex& index, int rol
         case DescriptionRole:
             return item.description;
         case IconRole:
-            return item.icon;
+            return nbl::frontend::mediaUrl(item.icon);
         case LockedIconRole:
-            return item.lockedIcon;
+            return nbl::frontend::mediaUrl(item.lockedIcon);
         case GlobalUnlockRateRole:
             return item.globalUnlockRate;
         case NumeratorRole:
@@ -71,8 +71,8 @@ nbl::Result nbl::frontend::AchievementModel::_fetchPageData(qsizetype limit, qsi
             .number = a.number,
             .title = fromNbl(a.title),
             .description = fromNbl(a.description),
-            .icon = fromNbl(a.icon),
-            .lockedIcon = fromNbl(a.lockedIcon),
+            .icon = a.icon,
+            .lockedIcon = a.lockedIcon,
             .globalUnlockRate = a.globalUnlockRate,
             .progress = {
                 .numerator = a.progress.numerator,

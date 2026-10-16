@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QtQml>
 
+#include "Data/Model.hpp"
 #include "Field/FieldList.hpp"
 
 #include <Data/OnlineAccountModel.hpp>
@@ -40,6 +41,7 @@ public:
         IdRole,
         UsernameRole,
         IconRole,
+        IconIsImageRole,
         IconNearestScalingRole,
         StatusRole,
         FieldValuesRole
@@ -77,8 +79,8 @@ private:
         qint64 id;
         QByteArray encodedFields;
         QString username;
-        QString icon;
-        bool iconNearestScaling;
+        InlineIcon icon;
+        OnlineAccountFlags flags;
         OnlineAccountStatus status;
     };
 

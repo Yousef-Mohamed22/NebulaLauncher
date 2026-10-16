@@ -5,7 +5,11 @@
  */
 
 #include "ApplicationContext.hpp"
+#include "Data/MediaManager.hpp"
+#include "Field/FieldRef.hpp"
+#include "Field/FieldList.hpp"
 
+#include <Plugin/InstallationType.hpp>
 
 namespace {
 
@@ -116,14 +120,14 @@ nbl::frontend::InstallationDetails* ApplicationContext::getInstallationDetails(q
         out = new nbl::frontend::InstallationDetails(
             details.installation.id,
             details.game.id,
-            fromNbl(details.installation.type),
+            nbl::frontend::fromNbl(details.installation.type),
             qtFields.toMap(),
-            fromNbl(details.installation.title),
-            fromNbl(details.installation.description),
-            fromNbl(details.installation.poster),
-            fromNbl(details.installation.banner),
-            fromNbl(details.installation.icon),
-            fromNbl(details.installation.logo),
+            nbl::frontend::fromNbl(details.installation.title),
+            nbl::frontend::fromNbl(details.installation.description),
+            details.installation.poster,
+            details.installation.banner,
+            details.installation.icon,
+            details.installation.logo,
             static_cast<u64>(details.installation.logoPosition),
             details.installation.playTime,
             details.installation.playCount,
@@ -131,12 +135,12 @@ nbl::frontend::InstallationDetails* ApplicationContext::getInstallationDetails(q
             details.installation.added,
             details.game.releaseDate,
             details.game.rating,
-            fromNbl(details.game.title),
-            fromNbl(details.game.description),
-            fromNbl(details.game.poster),
-            fromNbl(details.game.banner),
-            fromNbl(details.game.icon),
-            fromNbl(details.game.logo),
+            nbl::frontend::fromNbl(details.game.title),
+            nbl::frontend::fromNbl(details.game.description),
+            details.game.poster,
+            details.game.banner,
+            details.game.icon,
+            details.game.logo,
             static_cast<u64>(details.game.logoPosition)
         );
 
@@ -163,16 +167,16 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
     QString iconUrl = params.find("icon")->toString();
     QString logoUrl = params.find("logo")->toString();
 
-    if(!bannerUrl.isEmpty()) NBL_CHECK(_pushImage(bannerUrl, "banner", &bannerUrl));
-    if(!posterUrl.isEmpty()) NBL_CHECK(_pushImage(posterUrl, "poster", &posterUrl));
-    if(!iconUrl.isEmpty())   NBL_CHECK(_pushImage(iconUrl, "icon", &iconUrl));
-    if(!logoUrl.isEmpty())   NBL_CHECK(_pushImage(logoUrl, "logo", &logoUrl));
-    nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
+    i64 banner;
+    i64 poster;
+    i64 icon;
+    i64 logo;
 
-    QByteArray banner = bannerUrl.toUtf8();
-    QByteArray poster = posterUrl.toUtf8();
-    QByteArray icon = iconUrl.toUtf8();
-    QByteArray logo = logoUrl.toUtf8();
+    if(!bannerUrl.isEmpty()) NBL_CHECK(pushImage(bannerUrl, nbl::ImageClass::BANNER, &banner));
+    if(!posterUrl.isEmpty()) NBL_CHECK(pushImage(posterUrl, nbl::ImageClass::POSTER, &poster));
+    if(!iconUrl.isEmpty())   NBL_CHECK(pushImage(iconUrl, nbl::ImageClass::ICON, &icon));
+    if(!logoUrl.isEmpty())   NBL_CHECK(pushImage(logoUrl, nbl::ImageClass::LOGO, &logo));
+    nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
 
 
     // Add a new installation
@@ -180,9 +184,9 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
     nbl::InstallationMeta meta = {
         .id = 0,
         .gameId = gId,
-        .deviceId = _mDeviceId,
+        .deviceId = deviceId(),
         .type = nbl::StringView(type.data(), type.length()),
-        .command = "",
+        .command = "null",
     };
 
     QByteArray installationTitle = params.find("title")->toString().toUtf8();
@@ -193,10 +197,10 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
     meta.logoPosition = nbl::LogoPosition::INHERIT;
 
     if(gId != 0) {
-        meta.banner = nbl::StringView(banner.data(), banner.length());
-        meta.poster = nbl::StringView(poster.data(), poster.length());
-        meta.icon = nbl::StringView(icon.data(), icon.length());
-        meta.logo = nbl::StringView(logo.data(), logo.length());
+        meta.banner = banner;
+        meta.poster = poster;
+        meta.icon = icon;
+        meta.logo = logo;
         meta.logoPosition = position;
     }
 
@@ -228,8 +232,8 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
     } else {
         nbl::enumerateGameExternalIds(databaseConnection(), gId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
             QVariantMap out{};
-            out["platform"] = QString(fromNbl(platformName));
-            out["id"] = QString(fromNbl(platformId));
+            out["platform"] = QString(nbl::frontend::fromNbl(platformName));
+            out["id"] = QString(nbl::frontend::fromNbl(platformId));
             externalIds.append(out);
             return nbl::Result::SUCCESS;
         });
@@ -258,16 +262,18 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     QString iconUrl = params.find("icon")->toString();
     QString logoUrl = params.find("logo")->toString();
 
-    if(!bannerUrl.isEmpty()) NBL_CHECK(_pushImage(bannerUrl, "banner", &bannerUrl));
-    if(!posterUrl.isEmpty()) NBL_CHECK(_pushImage(posterUrl, "poster", &posterUrl));
-    if(!iconUrl.isEmpty())   NBL_CHECK(_pushImage(iconUrl, "icon", &iconUrl));
-    if(!logoUrl.isEmpty())   NBL_CHECK(_pushImage(logoUrl, "logo", &logoUrl));
-    nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
 
-    QByteArray banner = bannerUrl.toUtf8();
-    QByteArray poster = posterUrl.toUtf8();
-    QByteArray icon = iconUrl.toUtf8();
-    QByteArray logo = logoUrl.toUtf8();
+    i64 banner;
+    i64 poster;
+    i64 icon;
+    i64 logo;
+
+    if(!bannerUrl.isEmpty()) NBL_CHECK(pushImage(bannerUrl, nbl::ImageClass::BANNER, &banner));
+    if(!posterUrl.isEmpty()) NBL_CHECK(pushImage(posterUrl, nbl::ImageClass::POSTER, &poster));
+    if(!iconUrl.isEmpty())   NBL_CHECK(pushImage(iconUrl, nbl::ImageClass::ICON, &icon));
+    if(!logoUrl.isEmpty())   NBL_CHECK(pushImage(logoUrl, nbl::ImageClass::LOGO, &logo));
+
+    nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
 
     bool okay = false;
     i64 gId = params.find("game")->toLongLong(&okay);
@@ -280,13 +286,13 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     nbl::InstallationMeta meta = {
         .id = installationId,
         .gameId = gId,
-        .deviceId = _mDeviceId,
+        .deviceId = deviceId(),
         .title = nbl::StringView(installationTitle.data(), installationTitle.length()),
         .description = nbl::StringView(installationDesc.data(), installationDesc.length()),
-        .banner = nbl::StringView(banner.data(), banner.length()),
-        .poster = nbl::StringView(poster.data(), poster.length()),
-        .icon = nbl::StringView(icon.data(), icon.length()),
-        .logo = nbl::StringView(logo.data(), logo.length()),
+        .banner = banner,
+        .poster = poster,
+        .icon = icon,
+        .logo = logo,
         .logoPosition = position,
         .type = nbl::StringView(type.data(), type.length()),
         .command = ""
@@ -296,8 +302,8 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     NBL_CHECK(databaseConnection()->beginTransaction());
     NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::enumerateGameExternalIds(databaseConnection(), meta.gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
         QVariantMap out{};
-        out["platform"] = QString(fromNbl(platformName));
-        out["id"] = QString(fromNbl(platformId));
+        out["platform"] = QString(nbl::frontend::fromNbl(platformName));
+        out["id"] = QString(nbl::frontend::fromNbl(platformId));
         externalIds.append(out);
         return nbl::Result::SUCCESS;
     }));

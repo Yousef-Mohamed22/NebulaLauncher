@@ -151,7 +151,7 @@ NblDialog {
                 text: "Search"
                 activeColor: Theme.colors.accent
                 inactiveColor: enabled ? Theme.colors.accent : Theme.colors.border
-                enabled: searchHelper.status != MetadataSearchHelper.Status.SEARCHING
+                enabled: searchHelper.status != MetadataLookupHelper.Status.SEARCHING
                 onClicked: {
 
                     let platforms = {}
@@ -186,7 +186,7 @@ NblDialog {
                     elide: Text.ElideRight
                     horizontalAlignment: Qt.AlignHCenter
                     verticalAlignment: Qt.AlignVCenter
-                    visible: searchHelper.status === MetadataSearchHelper.Status.SEARCHING
+                    visible: searchHelper.status === MetadataLookupHelper.Status.SEARCHING
                     color: Theme.colors.textDim
                     text: "Searching..."
                 }
@@ -195,7 +195,7 @@ NblDialog {
                     elide: Text.ElideRight
                     horizontalAlignment: Qt.AlignHCenter
                     verticalAlignment: Qt.AlignVCenter
-                    visible: searchHelper.status === MetadataSearchHelper.Status.DONE && root.totalResults == 0
+                    visible: searchHelper.status === MetadataLookupHelper.Status.DONE && root.totalResults == 0
 color: Theme.colors.textDim
                     text: "No results found."
                 }

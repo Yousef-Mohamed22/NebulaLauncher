@@ -1,6 +1,7 @@
 #include <Plugin/AchievementProvider.hpp>
 #include <Data/Model.hpp>
 #include <Platform/Time.hpp>
+#include "Data/MediaManager.hpp"
 
 
 nbl::Result nbl::AchievementHelper::setProviderStatus(nbl::AchievementProviderStatus status) {
@@ -231,23 +232,51 @@ UPDATE achievement SET flags = (flags | 128) WHERE asId=?1;
 
 nbl::Result nbl::AchievementHelper::addOrUpdateAchievement(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, StringView lockedIcon, AchievementFlags flags, Span<u8> providerData) {
 
+    i64 iconId;
+    i64 lockedIconId;
+    _pMediaManager->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &iconId);
+    _pMediaManager->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &lockedIconId);
 
-    // TODO: Don't expect provider's icon is local. Cache it, but not synchronously.
     Achievement ach = {
         .setId = setId,
         .number = number,
         .providerId = id,
         .title = name,
         .description = description,
-        .icon = icon,
-        .lockedIcon = lockedIcon,
+        .icon = iconId,
+        .lockedIcon = lockedIconId,
         .flags = flags,
         .providerData = providerData,
     };
     return nbl::upsertAchievementMeta(_pConnection, ach, &ach.id);
 }
 
-nbl::Result nbl::AchievementHelper::addOrUpdateAchievementWithProgress(Achievement ach) {
+nbl::Result nbl::AchievementHelper::addOrUpdateAchievementWithProgress(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, StringView lockedIcon, f64 globalUnlockRate, u32 progressNumerator, u32 progressDenominator, u64 dateUnlocked, AchievementFlags flags, u32 borderColor, Span<u8> providerData) {
+
+    i64 iconId;
+    i64 lockedIconId;
+    _pMediaManager->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &iconId);
+    _pMediaManager->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &lockedIconId);
+
+    nbl::Achievement ach = {
+        .setId = setId,
+        .number = number,
+        .providerId = id,
+        .title = name,
+        .description = description,
+        .icon = iconId,
+        .lockedIcon = lockedIconId,
+        .globalUnlockRate = globalUnlockRate,
+        .progress = {
+            .numerator = progressNumerator,
+            .denominator = progressDenominator
+        },
+        .dateUnlocked = dateUnlocked,
+        .flags = flags,
+        .borderColor = borderColor,
+        .providerData = providerData
+    };
+
     return nbl::upsertAchievement(_pConnection, ach, nullptr);
 }
 

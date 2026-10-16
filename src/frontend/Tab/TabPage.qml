@@ -2,6 +2,8 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 
+import Nebula
+
 Item {
 
     id: root
@@ -50,6 +52,7 @@ Item {
                     useIcons: modelData.useIcons
                     showInstallations: modelData.showInstallations
                     showFilterInfo: modelData.showFilterInfo
+                    iconIsImage: modelData.iconIsImage
 
                     onInstallationClicked: id => {
                         root.installationClicked(id)

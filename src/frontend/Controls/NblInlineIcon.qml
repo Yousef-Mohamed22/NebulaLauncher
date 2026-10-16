@@ -16,21 +16,11 @@ Item {
     property bool colorize: true
     property int imageRadius: 0
     property bool smoothImage: true
-
-    property string dbIcon: ""
-    onDbIconChanged: {
-        if(dbIcon.endsWith(".png") || dbIcon.endsWith(".svg")) {
-            icon = getDbIconImage(dbIcon)
-        } else {
-            icon = dbIcon
-        }
-    }
-
-    readonly property bool useImage: icon.endsWith(".png") || icon.endsWith(".svg")
+    property bool isImage: false
 
     Label {
         id: text
-        visible: !root.useImage
+        visible: !root.isImage
         anchors.fill: parent
         verticalAlignment: Qt.AlignVCenter
         horizontalAlignment: Qt.AlignHCenter
@@ -46,14 +36,14 @@ Item {
 
     Item {
         id: image
-        visible: root.useImage
+        visible: root.isImage
 
         anchors.fill: parent
 
         Image {
             id: imageSource
             anchors.fill: parent
-            source: root.useImage ? root.icon : ""
+            source: root.isImage ? root.icon : ""
             smooth: root.smoothImage
             mipmap: root.smoothImage
             fillMode: Image.PreserveAspectFit
@@ -87,8 +77,8 @@ Item {
         }
     }
 
-    function getDbIconImage(icon) {
-        return ApplicationContext.mediaUrl(icon, "inline_icon")
-    }
+    // function getDbIconImage(icon) {
+    //     return ApplicationContext.mediaUrl(icon, "inline_icon")
+    // }
 
 }

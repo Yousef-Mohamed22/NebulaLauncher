@@ -107,7 +107,7 @@ QVariantList ApplicationContext::getTagsFromIds(QVariantList ids) {
     nbl::getTagsFromIds(databaseConnection(), nbl::StringView(namesJson.data(), namesJson.length()), [&](const nbl::TagMeta& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
-        tag["name"] = fromNbl(meta.name);
+        tag["name"] = nbl::frontend::fromNbl(meta.name);
         tag["color"] = QColor(meta.color);
 
         out.append(tag);
@@ -121,7 +121,7 @@ QList<QVariant> ApplicationContext::getGameTags(qint64 gameId) {
     nbl::getGameTags(databaseConnection(), gameId, [&](const nbl::TagMeta& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
-        tag["name"] = fromNbl(meta.name);
+        tag["name"] = nbl::frontend::fromNbl(meta.name);
         tag["color"] = QColor(meta.color);
 
         out.append(tag);
@@ -135,7 +135,7 @@ QList<QVariant> ApplicationContext::getInstallationTags(qint64 installationId) {
     nbl::getDirectInstallationTags(databaseConnection(), installationId, [&](const nbl::TagMeta& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
-        tag["name"] = fromNbl(meta.name);
+        tag["name"] = nbl::frontend::fromNbl(meta.name);
         tag["color"] = QColor(meta.color);
 
         out.append(tag);
@@ -151,7 +151,7 @@ QList<QVariant> ApplicationContext::getTagParents(qint64 tag) {
     nbl::parents(databaseConnection(), tag, [&](const nbl::TagMeta& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
-        tag["name"] = fromNbl(meta.name);
+        tag["name"] = nbl::frontend::fromNbl(meta.name);
         tag["color"] = QColor(meta.color);
 
         out.append(tag);

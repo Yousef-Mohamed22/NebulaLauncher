@@ -194,7 +194,7 @@ INSERT INTO filter (name, tabId, icon, criteria, flags, priority) VALUES (?1, ?2
     NBL_CHECK(_serializeCriteria(meta.criteria, builder));
     NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
 
-    _stmt.bindAll(1, meta.name, meta.tabId, meta.icon, criteriaJson, meta.flags, meta.priority);
+    _stmt.bindAll(1, meta.name, meta.tabId, meta.icon.encoded, criteriaJson, meta.flags, meta.priority);
 
     return connection->execute(&_stmt, outFilterId);
 
@@ -237,11 +237,11 @@ SELECT fId, name, icon, criteria, flags FROM filter WHERE fId = ?1;
         FilterMeta meta = {
             .filterId = columnValues[0].intValue,
             .name = columnValues[1].textValue,
-            .icon = columnValues[2].textValue,
+            .icon = InlineIcon::fromDataValue(columnValues[2]),
             .flags = columnValues[4].uintValue(),
             .criteria = {},
         };
-
+        
         NBL_CHECK(_deserializeCriteria(columnValues[3].textValue, &frame, &meta.criteria));
         
         return callback(meta);
@@ -290,7 +290,7 @@ UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, criteria = ?4, flags = ?5, p
     NBL_CHECK(_serializeCriteria(meta.criteria, builder));
     NBL_CHECK(builder.buildNullTerminated(&criteriaJson));
 
-    _stmt.bindAll(1, meta.name, meta.tabId, meta.icon, criteriaJson, meta.flags, meta.priority, meta.filterId);
+    _stmt.bindAll(1, meta.name, meta.tabId, meta.icon.encoded, criteriaJson, meta.flags, meta.priority, meta.filterId);
     return connection->execute(&_stmt);
 }
 

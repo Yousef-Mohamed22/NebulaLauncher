@@ -1,5 +1,6 @@
 #include "AccountModel.hpp"
 #include "ApplicationContext.hpp"
+#include "Data/OnlineAccountModel.hpp"
 
 #include <QDesktopServices>
 
@@ -35,9 +36,10 @@ nbl::Result _startTracking(void* userData, i64 accountId, const nbl::AccountProv
                 emit model->loginStatus(QString::fromUtf8(message.data, message.length));
             },
             [](nbl::StringView url, void* userData) {
-                QDesktopServices::openUrl(QUrl(fromNbl(url)));
+                QDesktopServices::openUrl(QUrl(nbl::frontend::fromNbl(url)));
                 return true;
             },
+            ApplicationContext::instance()->mediaManager(),
             &_tracker
         ));
         _setup = true;
@@ -63,9 +65,11 @@ QVariant nbl::frontend::AccountModel::data(const QModelIndex& index, int role) c
         case UsernameRole:
             return r.username;
         case IconRole:
-            return r.icon;
+            return nbl::frontend::inlineIcon(r.icon, r.flags & OnlineAccountFlag::IMAGE_ICON);
+        case IconIsImageRole:
+            return (r.flags & OnlineAccountFlag::IMAGE_ICON) != 0;
         case IconNearestScalingRole:
-            return r.iconNearestScaling;
+            return (r.flags & OnlineAccountFlag::ICON_NEAREST_SCALING) != 0;
         case StatusRole:
             return static_cast<quint32>(r.status);
         case FieldValuesRole: {
@@ -82,6 +86,7 @@ QHash<int, QByteArray> nbl::frontend::AccountModel::roleNames() const {
     out[IdRole] = "id";
     out[UsernameRole] = "username";
     out[IconRole] = "icon";
+    out[IconIsImageRole] = "iconIsImage";
     out[IconNearestScalingRole] = "iconNearestScaling";
     out[StatusRole] = "status";
     out[FieldValuesRole] = "fieldValues";
@@ -102,8 +107,8 @@ void nbl::frontend::AccountModel::refresh() {
             .id = account.id,
             .encodedFields = fromNbl(account.fields),
             .username = fromNbl(account.username),
-            .icon = fromNbl(account.icon),
-            .iconNearestScaling = account.iconNearestScaling,
+            .icon = { .encoded = account.icon },
+            .flags = account.flags,
             .status = account.status
         });
         return nbl::Result::SUCCESS;
@@ -167,7 +172,7 @@ qint32 nbl::frontend::AccountModel::login(QVariantMap fields) {
             .updatedAt = nbl::getCurrentTime(),
             .username = {},
             .icon = {},
-            .iconNearestScaling = false,
+            .flags = 0,
             .status = OnlineAccountStatus::NOT_LOGGED_IN
         }, 
         &newAccount

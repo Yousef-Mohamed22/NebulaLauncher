@@ -99,10 +99,10 @@ CREATE TABLE IF NOT EXISTS game (
     gId INTEGER PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
-    poster TEXT,
-    banner TEXT,
-    icon TEXT,
-    logo TEXT,
+    poster INTEGER,
+    banner INTEGER,
+    icon INTEGER,
+    logo INTEGER,
     logoPosition INTEGER NOT NULL DEFAULT 0,
     releaseDate INTEGER,
     rating REAL,
@@ -128,10 +128,10 @@ CREATE TABLE IF NOT EXISTS installation (
     deviceId INTEGER,
     title TEXT,
     description TEXT,
-    poster TEXT,
-    banner TEXT,
-    icon TEXT,
-    logo TEXT,
+    poster INTEGER,
+    banner INTEGER,
+    icon INTEGER,
+    logo INTEGER,
     logoPosition INTEGER NOT NULL DEFAULT 4,
     type TEXT NOT NULL,
     command TEXT NOT NULL,
@@ -174,14 +174,14 @@ CREATE TABLE IF NOT EXISTS installation_tag (
 CREATE TABLE IF NOT EXISTS tab (
     tabId INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    icon TEXT NOT NULL,
+    icon INTEGER NOT NULL,
     flags INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS filter (
     fId INTEGER PRIMARY KEY,
     tabId INTEGER NOT NULL,
     name TEXT NOT NULL,
-    icon TEXT NOT NULL,
+    icon INTEGER NOT NULL,
     criteria TEXT NOT NULL,
     flags INTEGER NOT NULL DEFAULT 0,
     priority INTEGER NOT NULL DEFAULT 0,
@@ -210,11 +210,12 @@ CREATE TABLE IF NOT EXISTS achievement_set (
 CREATE TABLE IF NOT EXISTS achievement (
     aId INTEGER PRIMARY KEY,
     asId INTEGER NOT NULL,
+    number INTEGER NOT NULL DEFAULT 0,
     providerId TEXT,
     title TEXT,
     description TEXT,
-    icon TEXT,
-    lockedIcon TEXT,
+    icon INTEGER,
+    lockedIcon INTEGER,
     globalUnlockRate REAL,
     progressNumerator INTEGER DEFAULT 0,
     progressDenominator INTEGER DEFAULT 0,
@@ -241,8 +242,8 @@ CREATE TABLE IF NOT EXISTS online_account (
     provider TEXT NOT NULL,
     updatedAt INTEGER DEFAULT 0,
     username TEXT,
-    icon TEXT,
-    iconNearestScaling INTEGER DEFAULT 0,
+    icon INTEGER,
+    flags INTEGER DEFAULT 0,
     status INTEGER DEFAULT 0
 );
 
@@ -258,23 +259,23 @@ VALUES
 (1, 1, 0);
 
 INSERT INTO tab 
-(tabId,name,icon,hidden) 
+(tabId,name,icon,flags) 
 VALUES 
 (1,'Home','',0);
 
 INSERT INTO filter 
-(fId,tabId,name,icon,criteria,multiLine,priority) 
+(fId,tabId,name,icon,criteria,flags,priority) 
 VALUES
 (1,1,'All Games','󰊗','{"sortBy":"title","sortOrder":"ascending"}',1,0),
 (2,1,'Recently Played','','{"sortBy":"last_played","sortOrder":"descending"}',0,1);
 
 INSERT INTO tab 
-(tabId,name,icon,hidden) 
+(tabId,name,icon,flags) 
 VALUES 
 (2,'Favorites','',0);
 
 INSERT INTO filter 
-(fId,tabId,name,icon,criteria,multiLine,priority) 
+(fId,tabId,name,icon,criteria,flags,priority) 
 VALUES
 (3,2,'Favorites','','{"sortBy":"title","sortOrder":"ascending","tags":[[1]]}',1,0);
 

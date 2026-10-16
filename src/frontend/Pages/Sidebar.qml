@@ -3,12 +3,15 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 
+import Nebula
+
 Item {
 
     id: root
 
     property bool collapsed: true
     property int selectedTab: 0
+    property bool showHidden: false
 
     signal tabClicked(int tabId)
     signal tabEdited(int tabId)
@@ -81,12 +84,14 @@ Item {
                             required property var modelData
 
                             tabId: modelData.id
-                            width: parent.width
+                            width: tabList.width
+                            visible: !modelData.hidden || root.showHidden
 
                             collapsed: root.collapsed
                             icon: modelData.icon
                             name: modelData.name
                             colorize: modelData.colorizeIcon
+                            iconIsImage: modelData.iconIsImage
 
                             onClicked: {
                                 root.selectedTab = tabId

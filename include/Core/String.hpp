@@ -71,7 +71,9 @@ struct StringView {
     constexpr StringView& operator=(const char* cstring) noexcept {
         data = cstring;
         length = 0;
-        while(*cstring++) length++;
+        if(cstring) {
+            while(*cstring++) length++;
+        }
         return *this;
     }
 

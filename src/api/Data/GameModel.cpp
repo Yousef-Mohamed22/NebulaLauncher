@@ -17,111 +17,91 @@
 
 nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& meta, i64* outGameId) {
 
-    static nbl::PreparedStatement _addGameStmt;
-    if(!_addGameStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 INSERT INTO game (title, description, banner, poster, icon, logo, logoPosition, releaseDate, rating, added) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);
-        )", &_addGameStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_addGameStmt.bindStringOrNull(1, meta.title));
-    NBL_CHECK(_addGameStmt.bindStringOrNull(2, meta.description));
-    NBL_CHECK(_addGameStmt.bindStringOrNull(3, meta.banner));
-    NBL_CHECK(_addGameStmt.bindStringOrNull(4, meta.poster));
-    NBL_CHECK(_addGameStmt.bindStringOrNull(5, meta.icon));
-    NBL_CHECK(_addGameStmt.bindStringOrNull(6, meta.logo));
-    NBL_CHECK(_addGameStmt.bindUint(7, static_cast<u32>(meta.logoPosition)));
-    NBL_CHECK(_addGameStmt.bindUint(8, meta.releaseDate));
-    NBL_CHECK(_addGameStmt.bindFloat(9, meta.rating));
-    NBL_CHECK(_addGameStmt.bindUint(10, nbl::getCurrentTime()));
+    NBL_CHECK(_stmt.bindAll(1, meta.title, meta.description, meta.banner, meta.poster, meta.icon, meta.logo, static_cast<u32>(meta.logoPosition), meta.releaseDate, meta.rating, nbl::getCurrentTime()));
 
-    return connection->execute(&_addGameStmt, outGameId); 
+    return connection->execute(&_stmt, outGameId); 
 }
 
 nbl::Result nbl::removeGame(DatabaseConnection* connection, i64 gameId) {
 
-    static nbl::PreparedStatement _removeGameStmt;
-    if(!_removeGameStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 DELETE FROM game WHERE gId = ?1;
-        )", &_removeGameStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_removeGameStmt.bindUint(1, gameId));
-    return connection->execute(&_removeGameStmt);
+    NBL_CHECK(_stmt.bindUint(1, gameId));
+    return connection->execute(&_stmt);
 }
 
 
 nbl::Result nbl::updateGame(DatabaseConnection* connection, const GameMeta& meta) {
 
-    static nbl::PreparedStatement _updateGameStmt;
-    if(!_updateGameStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 UPDATE game SET title=?1, description=?2, banner=?3, poster=?4, icon=?5, logo=?6, logoPosition=?7, releaseDate=?8, rating=?9 WHERE gId=?10;
-        )", &_updateGameStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_updateGameStmt.bindStringOrNull(1, meta.title));
-    NBL_CHECK(_updateGameStmt.bindStringOrNull(2, meta.description));
-    NBL_CHECK(_updateGameStmt.bindStringOrNull(3, meta.banner));
-    NBL_CHECK(_updateGameStmt.bindStringOrNull(4, meta.poster));
-    NBL_CHECK(_updateGameStmt.bindStringOrNull(5, meta.icon));
-    NBL_CHECK(_updateGameStmt.bindStringOrNull(6, meta.logo));
-    NBL_CHECK(_updateGameStmt.bindUint(7, static_cast<u32>(meta.logoPosition)));
-    NBL_CHECK(_updateGameStmt.bindUint(8, meta.releaseDate));
-    NBL_CHECK(_updateGameStmt.bindFloat(9, meta.rating));
-    NBL_CHECK(_updateGameStmt.bindInt(10, meta.id));
+    NBL_CHECK(_stmt.bindAll(1, meta.title, meta.description, meta.banner, meta.poster, meta.icon, meta.logo, static_cast<u32>(meta.logoPosition), meta.releaseDate, meta.rating, meta.id));
 
-    return connection->execute(&_updateGameStmt); 
+    return connection->execute(&_stmt); 
 
 }
 
 
 nbl::Result nbl::addGameTag(DatabaseConnection* connection, i64 gameId, i64 tag) {
 
-    static nbl::PreparedStatement _addGameTagStmt;
-    if(!_addGameTagStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 INSERT INTO game_tag (gId, tId) VALUES (?1, ?2);
-        )", &_addGameTagStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_addGameTagStmt.bindInt(1, gameId));
-    NBL_CHECK(_addGameTagStmt.bindInt(2, tag));
-    return connection->execute(&_addGameTagStmt);
+    NBL_CHECK(_stmt.bindAll(1, gameId, tag));
+    return connection->execute(&_stmt);
 }
 
 nbl::Result nbl::removeGameTag(DatabaseConnection* connection, i64 gameId, i64 tag) {
 
-    static nbl::PreparedStatement _removeGameTagStmt;
-    if(!_removeGameTagStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 DELETE FROM game_tag WHERE gId = ?1 AND tId = ?2;
-        )", &_removeGameTagStmt));
+        )", &_stmt));
     }
     
-    NBL_CHECK(_removeGameTagStmt.bindInt(1, gameId));
-    NBL_CHECK(_removeGameTagStmt.bindInt(2, tag));
-    return connection->execute(&_removeGameTagStmt);
+    NBL_CHECK(_stmt.bindAll(1, gameId, tag));
+    return connection->execute(&_stmt);
 }
 
 
 nbl::Result nbl::getGameTags(DatabaseConnection* connection, i64 gameId, TagCallback callback) {
 
-    static nbl::PreparedStatement _getGameTagsStmt;
-    if(!_getGameTagsStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT tag.tId, tag.name, tag.color
 FROM tag
 JOIN game_tag ON game_tag.tId = tag.tId
 WHERE game_tag.gId = ?1
 ORDER BY tag.name ASC;
-        )", &_getGameTagsStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_getGameTagsStmt.bindInt(1, gameId));
+    NBL_CHECK(_stmt.bindInt(1, gameId));
 
-    return connection->execute(&_getGameTagsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_stmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
 
         if(argc != 3) {
             return nbl::Result::INVALID_STATE;
@@ -160,10 +140,10 @@ WHERE game.gId = ?1;
             .id = values[0].intValue,
             .title = values[1].textValue,
             .description = values[2].textValue,
-            .banner = values[3].textValue,
-            .poster = values[4].textValue,
-            .icon = values[5].textValue,
-            .logo = values[6].textValue,
+            .banner = values[3].intValue,
+            .poster = values[4].intValue,
+            .icon = values[5].intValue,
+            .logo = values[6].intValue,
             .logoPosition = static_cast<LogoPosition>(values[7].uintValue()),
             .releaseDate = values[8].uintValue(),
             .rating = values[9].floatValue,
@@ -200,10 +180,10 @@ WHERE game.gId = ?1;
                 .id = values[0].intValue,
                 .title = values[1].textValue,
                 .description = values[2].textValue,
-                .banner = values[3].textValue,
-                .poster = values[4].textValue,
-                .icon = values[5].textValue,
-                .logo = values[6].textValue,
+                .banner = values[3].intValue,
+                .poster = values[4].intValue,
+                .icon = values[5].intValue,
+                .logo = values[6].intValue,
                 .logoPosition = static_cast<LogoPosition>(values[7].intValue),
                 .releaseDate = values[8].uintValue(),
                 .rating = values[9].floatValue,
@@ -517,8 +497,8 @@ LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId)");
             .title = values[1].textValue,
             .releaseDate = values[2].uintValue(),
             .rating = values[3].floatValue,
-            .poster = values[4].textValue,
-            .icon = values[5].textValue,
+            .poster = values[4].intValue,
+            .icon = values[5].intValue,
             .filter = meta
         };
 

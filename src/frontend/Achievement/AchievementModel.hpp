@@ -104,8 +104,8 @@ private:
         quint64 number;
         QString title;
         QString description;
-        QString icon;
-        QString lockedIcon;
+        qint64 icon;
+        qint64 lockedIcon;
         f64 globalUnlockRate;
         struct {
             u32 numerator;

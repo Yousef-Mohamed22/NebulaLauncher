@@ -73,8 +73,8 @@ private:
     struct _Row {
         qint64 gId;
         QByteArray title;
-        QByteArray poster;
-        QByteArray icon;
+        qint64 poster;
+        qint64 icon;
     };
 
     void _fetchPageData();

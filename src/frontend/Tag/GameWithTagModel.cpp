@@ -50,8 +50,8 @@ nbl::Result nbl::frontend::GameWithTagModel::_fetchPageData(qsizetype limit, qsi
         _Row ref{
             res.id,
             fromNbl(res.title),
-            fromNbl(res.poster),
-            fromNbl(res.icon)
+            res.poster,
+            res.icon
         };
         found.append(ref);
         return nbl::Result::SUCCESS;

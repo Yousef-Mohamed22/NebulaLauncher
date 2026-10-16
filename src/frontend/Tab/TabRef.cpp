@@ -7,10 +7,15 @@
 nbl::frontend::TabRef::TabRef(const nbl::TabMeta& meta, QObject* parent) :
     QObject(parent),
     _mName(fromNbl(meta.name)),
-    _mIcon(fromNbl(meta.icon)),
+    _mIcon(meta.icon),
     _mTabId(meta.tabId),
     _mFlags(meta.flags)
 { }
+
+
+QString nbl::frontend::TabRef::icon() const {
+    return nbl::frontend::inlineIcon(_mIcon, _mFlags & TabFlag::IMAGE_ICON); 
+}
 
 
 QVariantList nbl::frontend::TabRef::encodeFilters() {
@@ -24,16 +29,17 @@ QVariantList nbl::frontend::TabRef::encodeFilters() {
 
         filter["id"] = static_cast<quint64>(meta.filterId);
         filter["name"] = fromNbl(meta.name);
-        filter["icon"] = fromNbl(meta.icon);
+        filter["icon"] = nbl::frontend::inlineIcon(meta.icon, meta.flags & TabFlag::IMAGE_ICON);
         
         // Flags
-        filter["colorizeIcon"] = (meta.flags & nbl::FilterFlag::COLORIZE_ICON) > 0;
-        filter["multiLine"] = (meta.flags & nbl::FilterFlag::MULTI_LINE) > 0;
-        filter["useIcons"] = (meta.flags & nbl::FilterFlag::USE_ICONS) > 0;
-        filter["showTitles"] = (meta.flags & nbl::FilterFlag::SHOW_TITLES) > 0;
-        filter["onlyInstalled"] = (meta.flags & nbl::FilterFlag::ONLY_INSTALLED) > 0;
-        filter["showInstallations"] = (meta.flags & nbl::FilterFlag::SHOW_INSTALLATIONS) > 0;
-        filter["showFilterInfo"] = (meta.flags & nbl::FilterFlag::SHOW_FILTER_INFO) > 0;
+        filter["colorizeIcon"] = (meta.flags & nbl::FilterFlag::COLORIZE_ICON) != 0;
+        filter["multiLine"] = (meta.flags & nbl::FilterFlag::MULTI_LINE) != 0;
+        filter["useIcons"] = (meta.flags & nbl::FilterFlag::USE_ICONS) != 0;
+        filter["showTitles"] = (meta.flags & nbl::FilterFlag::SHOW_TITLES) != 0;
+        filter["onlyInstalled"] = (meta.flags & nbl::FilterFlag::ONLY_INSTALLED) != 0;
+        filter["showInstallations"] = (meta.flags & nbl::FilterFlag::SHOW_INSTALLATIONS) != 0;
+        filter["showFilterInfo"] = (meta.flags & nbl::FilterFlag::SHOW_FILTER_INFO) != 0;
+        filter["iconIsImage"] = (meta.flags & FilterFlag::IMAGE_ICON) != 0;
         
         // Criteria
         nbl::getFilterCriteria(conn, meta.filterId, [&](const nbl::SearchCriteria& criteria) -> nbl::Result {

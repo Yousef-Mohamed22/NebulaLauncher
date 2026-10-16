@@ -80,6 +80,7 @@ nbl::Result nbl::PluginLoader::_loadAll() {
             NBL_WARN("Attempt to open browser during refresh!");
             return false;
         },
+        _pContext->mediaManager(),
         &tracker
     ));
 

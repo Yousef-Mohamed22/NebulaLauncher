@@ -7,6 +7,8 @@
 #include "ApplicationContext.hpp"
 #include "Launch/ProcessHandle.hpp"
 
+#include <Plugin/InstallationType.hpp>
+
 #include <QDesktopServices>
 
 namespace {
@@ -72,8 +74,8 @@ nbl::frontend::ProcessHandle* ApplicationContext::launchInstallation(qint64 inst
 
         nbl::Result res = nbl::getInstallationMeta(ctx->databaseConnection(), installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
-            if(meta.deviceId != ctx->_mDeviceId) {
-                nbl::log(nbl::LogLevel::ERROR, "Attempt to launch an installation from another device! (", meta.deviceId, " != ", ctx->_mDeviceId, ")");
+            if(meta.deviceId != ctx->deviceId()) {
+                nbl::log(nbl::LogLevel::ERROR, "Attempt to launch an installation from another device! (", meta.deviceId, " != ", ctx->deviceId(), ")");
                 return nbl::Result::INVALID_STATE;
             }
 
@@ -133,7 +135,7 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
 
     nbl::Result res = nbl::getInstallationMeta(databaseConnection(), installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
 
-        if(meta.deviceId != _mDeviceId) {
+        if(meta.deviceId != deviceId()) {
             nbl::log(nbl::LogLevel::ERROR, "Attempt to open an installation folder for another device!");
             return nbl::Result::INVALID_STATE;
         }
@@ -162,7 +164,7 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
             return nbl::Result::SUCCESS;
         }
 
-        QDesktopServices::openUrl(QUrl::fromLocalFile(fromNbl(folder)));
+        QDesktopServices::openUrl(QUrl::fromLocalFile(nbl::frontend::fromNbl(folder)));
         return nbl::Result::SUCCESS;
     });
 

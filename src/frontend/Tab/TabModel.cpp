@@ -22,6 +22,10 @@ QVariant nbl::frontend::TabModel::data(const QModelIndex& index, int role) const
             return ref.icon();
         case ColorizeRole:
             return ref.colorizeIcon();
+        case IconIsImageRole:
+            return ref.iconIsImage();
+        case HiddenRole:
+            return ref.hidden();
         default:
             return QVariant();
     }
@@ -33,6 +37,8 @@ QHash<int, QByteArray> nbl::frontend::TabModel::roleNames() const {
     roles[NameRole] = "name";
     roles[IconRole] = "icon";
     roles[ColorizeRole] = "colorizeIcon";
+    roles[IconIsImageRole] = "iconIsImage";
+    roles[HiddenRole] = "hidden";
     return roles;
 }
 

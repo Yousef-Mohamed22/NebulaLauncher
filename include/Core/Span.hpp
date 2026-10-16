@@ -64,6 +64,11 @@ struct ConstSpan {
         return { data + start, length };
     }
 
+    constexpr ConstSpan<T> slice(usize start) const {
+        NBL_ASSERT(start <= length);
+        return { data + start, length - start };
+    }
+
 };
 
 

@@ -14,7 +14,7 @@ namespace nbl::frontend {
 class OnlineGameLookupHelper : public QObject {
 
     Q_OBJECT
-    QML_ELEMENT
+    QML_NAMED_ELEMENT(OnlineGameLookupHelper)
 
     Q_PROPERTY(Status status READ status NOTIFY statusUpdated)
 

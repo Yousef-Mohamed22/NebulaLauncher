@@ -11,9 +11,10 @@
 #include <Platform/StringBuilder.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include "Data/MediaManager.hpp"
 
 
-nbl::Result nbl::PluginContext::create(StringView databasePath, StringView pluginFolder, StringView pluginDataPath, NotificationConsumer consumer, PluginContext* ctx) {
+nbl::Result nbl::PluginContext::create(StringView deviceName, StringView databasePath, StringView mediaDbPath, StringView pluginFolder, StringView pluginDataPath, NotificationConsumer consumer, PluginContext* ctx) {
 
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 16, &ctx->_mArena));
 
@@ -49,6 +50,12 @@ nbl::Result nbl::PluginContext::create(StringView databasePath, StringView plugi
 
     NBL_CHECK(nbl::DatabaseConnection::open(ctx->_mDatabasePath, &ctx->_mConnection));
     NBL_CHECK(nbl::initDatabase(&ctx->_mConnection));
+
+    i64 deviceId;
+    NBL_ASSERT(nbl::getOrAddDevice(&ctx->_mConnection, deviceName, &deviceId).success()); 
+    nbl::log(nbl::LogLevel::DEBUG, "Device ID: ", deviceId);
+
+    NBL_CHECK(nbl::MediaManager::create(mediaDbPath, deviceId, &ctx->_mMediaManager));
 
     ctx->_mNotificationConsumer = consumer;
 

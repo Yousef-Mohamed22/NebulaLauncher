@@ -39,7 +39,7 @@ INSERT INTO tab (name, icon, flags) VALUES (?1, ?2, ?3);
         )", &_stmt));
     }
 
-    NBL_CHECK(_stmt.bindAll(1, meta.name, meta.icon, meta.flags));
+    NBL_CHECK(_stmt.bindAll(1, meta.name, meta.icon.encoded, meta.flags));
     return connection->execute(&_stmt, outTabId);
 }
 
@@ -52,7 +52,7 @@ UPDATE tab SET name=?1, icon=?2, flags=?3  WHERE tabId=?4;
         )", &_stmt));
     }
 
-    NBL_CHECK(_stmt.bindAll(1, meta.name, meta.icon, meta.flags, meta.tabId));
+    NBL_CHECK(_stmt.bindAll(1, meta.name, meta.icon.encoded, meta.flags, meta.tabId));
     return connection->execute(&_stmt);
 }
 
@@ -94,7 +94,7 @@ SELECT tabId, name, icon, flags FROM tab LIMIT ?1 OFFSET ?2;
             TabMeta {
                 .tabId = columnValues[0].intValue,
                 .name = columnValues[1].textValue,
-                .icon = columnValues[2].textValue,
+                .icon = InlineIcon::fromDataValue(columnValues[2]),
                 .flags = columnValues[3].uintValue()
             }
         );
@@ -124,7 +124,7 @@ SELECT tabId, name, icon, flags FROM tab WHERE tabId=?1;
             TabMeta {
                 .tabId = columnValues[0].intValue,
                 .name = columnValues[1].textValue,
-                .icon = columnValues[2].textValue,
+                .icon = InlineIcon::fromDataValue(columnValues[2]),
                 .flags = columnValues[3].uintValue()
             }
         );
@@ -157,7 +157,7 @@ OFFSET ?3;
         nbl::FilterMeta meta = {
             .filterId = columnValues[0].intValue, 
             .name = columnValues[1].textValue, 
-            .icon = columnValues[2].textValue, 
+            .icon = InlineIcon::fromDataValue(columnValues[2]),
             .flags = columnValues[3].uintValue(),
             .criteria = {}
         };

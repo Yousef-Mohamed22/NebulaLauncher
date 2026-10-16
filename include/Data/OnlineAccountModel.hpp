@@ -10,6 +10,26 @@ enum class OnlineAccountStatus : u8 {
     EXPIRED
 };
 
+enum class OnlineAccountFlag : u64 {
+    IMAGE_ICON = 0x1,
+    ICON_NEAREST_SCALING = 0x2
+};
+typedef u64 OnlineAccountFlags;
+
+
+inline OnlineAccountFlags operator&(OnlineAccountFlag flag, OnlineAccountFlag other) { return static_cast<OnlineAccountFlags>(flag) & static_cast<OnlineAccountFlags>(other); }
+inline OnlineAccountFlags operator&(OnlineAccountFlag flag, OnlineAccountFlags other) { return static_cast<OnlineAccountFlags>(flag) & other; }
+inline OnlineAccountFlags operator&(OnlineAccountFlags other, OnlineAccountFlag flag) { return static_cast<OnlineAccountFlags>(flag) & other; }
+
+inline OnlineAccountFlags& operator&=(OnlineAccountFlags& flags, OnlineAccountFlag other) { flags = flags & other; return flags; }
+
+inline OnlineAccountFlags operator|(OnlineAccountFlag flag, OnlineAccountFlag other) { return static_cast<OnlineAccountFlags>(flag) | static_cast<OnlineAccountFlags>(other); }
+inline OnlineAccountFlags operator|(OnlineAccountFlag flag, OnlineAccountFlags other) { return static_cast<OnlineAccountFlags>(flag) | other; }
+inline OnlineAccountFlags operator|(OnlineAccountFlags other, OnlineAccountFlag flag) { return static_cast<OnlineAccountFlags>(flag) | other; }
+
+inline OnlineAccountFlags& operator|=(OnlineAccountFlags& flags, OnlineAccountFlag other) { flags = flags | other; return flags; }
+
+
 struct OnlineAccount;
 typedef std::function_ref<Result(const OnlineAccount&)> OnlineAccountCallback;
 
@@ -19,8 +39,8 @@ struct OnlineAccount {
     StringView provider;
     u64 updatedAt;
     StringView username;
-    StringView icon;
-    bool iconNearestScaling;
+    i64 icon;
+    OnlineAccountFlags flags;
     OnlineAccountStatus status;
 
     static Result create(DatabaseConnection* connection, const OnlineAccount& account, i64* outAccountId);

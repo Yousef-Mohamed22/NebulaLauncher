@@ -4,12 +4,15 @@
  * \brief Partial implementation of ApplicationContext.hpp, containing functions related to managing tabs
  */
 
+#include <QObject>
 
 #include "ApplicationContext.hpp"
+#include "Data/MediaManager.hpp"
+#include "Data/Model.hpp"
 
 namespace {
 
-nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const QVariantList& filters, std::function_ref<nbl::Result(QString, QString, QString*)> imageHandler) {
+nbl::Result _pushFilters(ApplicationContext* context, nbl::DatabaseConnection* connection, i64 tabId, const QVariantList& filters) {
 
     for(const QVariant& filterVar : filters) {
 
@@ -27,12 +30,22 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         bool onlyInstalled = filter["onlyInstalled"].toBool();
         bool showInstallations = filter["showInstallations"].toBool();
         bool showFilterInfo = filter["showFilterInfo"].toBool();
+        bool iconIsImage = filter["iconIsImage"].toBool();
         i64 priority = filter["priority"].toLongLong();
 
-        if(icon.endsWith(".png") || icon.endsWith(".svg")) {
-            NBL_CHECK(imageHandler(icon, "inline_icon", &icon));
+
+        nbl::InlineIcon iconId{};
+        if(iconIsImage) {
+            NBL_CHECK(context->pushImage(icon, nbl::ImageClass::INLINE_ICON, &iconId.imageId));
+        } else {
+            if(icon.length() > 0) {
+                QByteArray utf = icon.toUtf8();
+                qsizetype length = nbl::min(static_cast<qsizetype>(4), utf.length());
+                memcpy(iconId.utf.data, utf.data(), length);
+                iconId.utf.length = length;
+            }
         }
-        QByteArray realIcon = icon.toUtf8();
+
 
         nbl::SortBy sortBy = static_cast<nbl::SortBy>(filter["sortBy"].toInt());
         nbl::SortOrder sortOrder = static_cast<nbl::SortOrder>(filter["sortOrder"].toInt());
@@ -85,6 +98,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
         if(onlyInstalled) flags |= nbl::FilterFlag::ONLY_INSTALLED;
         if(showInstallations) flags |= nbl::FilterFlag::SHOW_INSTALLATIONS;
         if(showFilterInfo) flags |= nbl::FilterFlag::SHOW_FILTER_INFO;
+        if(iconIsImage) flags |= nbl::FilterFlag::IMAGE_ICON;
 
 
         nbl::FilterMeta meta = {
@@ -92,7 +106,7 @@ nbl::Result _pushFilters(nbl::DatabaseConnection* connection, i64 tabId, const Q
             .tabId = tabId,
             .priority = priority,
             .name = nbl::StringView(name.data(), name.length()),
-            .icon = nbl::StringView(realIcon.data(), realIcon.length()),
+            .icon = iconId,
             .flags = flags,
             .criteria = {
                 .tags = tagSets,
@@ -130,9 +144,18 @@ int ApplicationContext::addTab(const QVariantMap& params) {
     QString icon = params["icon"].toString();
     bool colorizeIcon = params["colorizeIcon"].toBool();
     bool hidden = params["hidden"].toBool();
+    bool iconIsImage = params["iconIsImage"].toBool();
 
-    if(icon.endsWith(".png") || icon.endsWith(".svg")) {
-        NBL_CHECK(_pushImage(icon, "inline_icon", &icon));
+    nbl::InlineIcon iconId{};
+    if(iconIsImage) {
+        NBL_CHECK(pushImage(icon, nbl::ImageClass::INLINE_ICON, &iconId.imageId));
+    } else {
+        if(icon.length() > 0) {
+            QByteArray utf = icon.toUtf8();
+            qsizetype length = nbl::min(static_cast<qsizetype>(4), utf.length());
+            memcpy(iconId.utf.data, utf.data(), length);
+            iconId.utf.length = length;
+        }
     }
 
     QByteArray realIcon = icon.toUtf8();
@@ -140,10 +163,11 @@ int ApplicationContext::addTab(const QVariantMap& params) {
     nbl::TabFlags flags;
     if(colorizeIcon) flags |= nbl::TabFlag::COLORIZE_ICON;
     if(hidden) flags |= nbl::TabFlag::HIDDEN;
+    if(iconIsImage) flags |= nbl::TabFlag::IMAGE_ICON;
 
     nbl::TabMeta meta = {
         .name = nbl::StringView(name.data(), name.length()),
-        .icon = nbl::StringView(realIcon.data(), realIcon.length()),
+        .icon = iconId,
         .flags = flags
     };
 
@@ -151,7 +175,7 @@ int ApplicationContext::addTab(const QVariantMap& params) {
     NBL_CHECK(c->beginTransaction());
 
     NBL_CHECK_OR_ROLLBACK(c, nbl::addTab(c, meta, &meta.tabId));
-    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(c, meta.tabId, params["filters"].toList(), [&](QString icon, QString repo, QString* out) { return _pushImage(icon, repo, out); }));
+    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(this, c, meta.tabId, params["filters"].toList()));
 
     NBL_CHECK(c->commitTransaction());
 
@@ -163,21 +187,31 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
     QString icon = params["icon"].toString();
     bool colorizeIcon = params["colorizeIcon"].toBool();
     bool hidden = params["hidden"].toBool();
+    bool iconIsImage = params["iconIsImage"].toBool();
 
-    if(icon.endsWith(".png") || icon.endsWith(".svg")) {
-        NBL_CHECK(_pushImage(icon, "inline_icon", &icon));
+    nbl::InlineIcon iconId{};
+    if(iconIsImage) {
+        NBL_CHECK(pushImage(icon, nbl::ImageClass::INLINE_ICON, &iconId.imageId));
+    } else {
+        if(icon.length() > 0) {
+            QByteArray utf = icon.toUtf8();
+            qsizetype length = nbl::min(static_cast<qsizetype>(4), utf.length());
+            memcpy(iconId.utf.data, utf.data(), length);
+            iconId.utf.length = length;
+        }
     }
 
     nbl::TabFlags flags;
     if(colorizeIcon) flags |= nbl::TabFlag::COLORIZE_ICON;
     if(hidden) flags |= nbl::TabFlag::HIDDEN;
+    if(iconIsImage) flags |= nbl::TabFlag::IMAGE_ICON;
 
     QByteArray realIcon = icon.toUtf8();
 
     nbl::TabMeta meta = {
         .tabId = static_cast<i64>(id),
         .name = nbl::StringView(name.data(), name.length()),
-        .icon = nbl::StringView(realIcon.data(), realIcon.length()),
+        .icon = iconId,
         .flags = flags
     };
 
@@ -185,7 +219,7 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
     NBL_CHECK(c->beginTransaction());
     NBL_CHECK_OR_ROLLBACK(c, nbl::updateTab(c, meta));
 
-    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(c, meta.tabId, params["filters"].toList(), [&](QString icon, QString repo, QString* out) { return _pushImage(icon, repo, out); }));
+    NBL_CHECK_OR_ROLLBACK(c, _pushFilters(this, c, meta.tabId, params["filters"].toList()));
 
     for(const QVariant& removed : params["removedFilters"].toList()) {
         NBL_CHECK_OR_ROLLBACK(c, nbl::removeFilter(c, removed.toLongLong()));

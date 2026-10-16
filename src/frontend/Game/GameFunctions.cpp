@@ -6,6 +6,8 @@
 
 
 #include "ApplicationContext.hpp"
+#include "Data/MediaManager.hpp"
+#include "Field/FieldRef.hpp"
 
 #include <Plugin/AchievementProvider.hpp>
 
@@ -21,12 +23,12 @@ nbl::frontend::GameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
 
         out = new nbl::frontend::GameDetails(
             details.game.id,
-            fromNbl(details.game.title),
-            fromNbl(details.game.description),
-            fromNbl(details.game.poster),
-            fromNbl(details.game.banner),
-            fromNbl(details.game.icon),
-            fromNbl(details.game.logo),
+            nbl::frontend::fromNbl(details.game.title),
+            nbl::frontend::fromNbl(details.game.description),
+            details.game.poster,
+            details.game.banner,
+            details.game.icon,
+            details.game.logo,
             static_cast<u64>(details.game.logoPosition),
             details.totalPlayTime,
             details.totalPlayCount,
@@ -53,16 +55,16 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
     QString iconUrl = params.find("icon")->toString();
     QString logoUrl = params.find("logo")->toString();
 
-    if(!bannerUrl.isEmpty()) NBL_CHECK(_pushImage(bannerUrl, "banner", &bannerUrl));
-    if(!posterUrl.isEmpty()) NBL_CHECK(_pushImage(posterUrl, "poster", &posterUrl));
-    if(!iconUrl.isEmpty())   NBL_CHECK(_pushImage(iconUrl, "icon", &iconUrl));
-    if(!logoUrl.isEmpty())   NBL_CHECK(_pushImage(logoUrl, "logo", &logoUrl));
-    nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
+    i64 banner;
+    i64 poster;
+    i64 icon;
+    i64 logo;
 
-    QByteArray banner = bannerUrl.toUtf8();
-    QByteArray poster = posterUrl.toUtf8();
-    QByteArray icon = iconUrl.toUtf8();
-    QByteArray logo = logoUrl.toUtf8();
+    if(!bannerUrl.isEmpty()) NBL_CHECK(pushImage(bannerUrl, nbl::ImageClass::BANNER, &banner));
+    if(!posterUrl.isEmpty()) NBL_CHECK(pushImage(posterUrl, nbl::ImageClass::POSTER, &poster));
+    if(!iconUrl.isEmpty())   NBL_CHECK(pushImage(iconUrl, nbl::ImageClass::ICON, &icon));
+    if(!logoUrl.isEmpty())   NBL_CHECK(pushImage(logoUrl, nbl::ImageClass::LOGO, &logo));
+    nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
 
     QByteArray title = params.find("title")->toString().toUtf8();
     QByteArray description = params.find("description")->toString().toUtf8();
@@ -73,10 +75,10 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
         .id = 0,
         .title = nbl::StringView(title.constData(), title.length()),
         .description = nbl::StringView(description.constData(), description.length()),
-        .banner = nbl::StringView(banner.data(), banner.length()),
-        .poster = nbl::StringView(poster.data(), poster.length()),
-        .icon = nbl::StringView(icon.data(), icon.length()),
-        .logo = nbl::StringView(logo.data(), logo.length()),
+        .banner = banner,
+        .poster = poster,
+        .icon = icon,
+        .logo = logo,
         .logoPosition = position,
         .releaseDate = releaseDate,
         .rating = rating
@@ -188,16 +190,18 @@ int ApplicationContext::updateGame(QVariantMap params) {
     QString iconUrl = params.find("icon")->toString();
     QString logoUrl = params.find("logo")->toString();
 
-    if(!bannerUrl.isEmpty()) NBL_CHECK(_pushImage(bannerUrl, "banner", &bannerUrl));
-    if(!posterUrl.isEmpty()) NBL_CHECK(_pushImage(posterUrl, "poster", &posterUrl));
-    if(!iconUrl.isEmpty())   NBL_CHECK(_pushImage(iconUrl, "icon", &iconUrl));
-    if(!logoUrl.isEmpty())   NBL_CHECK(_pushImage(logoUrl, "logo", &logoUrl));
+    i64 banner;
+    i64 poster;
+    i64 icon;
+    i64 logo;
+
+    if(!bannerUrl.isEmpty()) NBL_CHECK(pushImage(bannerUrl, nbl::ImageClass::BANNER, &banner));
+    if(!posterUrl.isEmpty()) NBL_CHECK(pushImage(posterUrl, nbl::ImageClass::POSTER, &poster));
+    if(!iconUrl.isEmpty())   NBL_CHECK(pushImage(iconUrl, nbl::ImageClass::ICON, &icon));
+    if(!logoUrl.isEmpty())   NBL_CHECK(pushImage(logoUrl, nbl::ImageClass::LOGO, &logo));
+
     nbl::LogoPosition position = static_cast<nbl::LogoPosition>(params.find("logoPosition")->toUInt());
 
-    QByteArray banner = bannerUrl.toUtf8();
-    QByteArray poster = posterUrl.toUtf8();
-    QByteArray icon = iconUrl.toUtf8();
-    QByteArray logo = logoUrl.toUtf8();
 
     QByteArray title = params.find("title")->toString().toUtf8();
     QByteArray description = params.find("description")->toString().toUtf8();
@@ -208,10 +212,10 @@ int ApplicationContext::updateGame(QVariantMap params) {
         .id = gId,
         .title = nbl::StringView(title.constData(), title.length()),
         .description = nbl::StringView(description.constData(), description.length()),
-        .banner = nbl::StringView(banner.data(), banner.length()),
-        .poster = nbl::StringView(poster.data(), poster.length()),
-        .icon = nbl::StringView(icon.data(), icon.length()),
-        .logo = nbl::StringView(logo.data(), logo.length()),
+        .banner = banner,
+        .poster = poster,
+        .icon = icon,
+        .logo = logo,
         .logoPosition = position,
         .releaseDate = releaseDate,
         .rating = rating
@@ -333,7 +337,7 @@ int ApplicationContext::deleteGame(qint64 gameId) {
 QVariantMap ApplicationContext::gameExternalIds(qint64 gameId) {
     QVariantMap out = {};
     nbl::enumerateGameExternalIds(databaseConnection(), gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
-        out[QString(fromNbl(platformName))] = QString(fromNbl(platformId));
+        out[QString(nbl::frontend::fromNbl(platformName))] = QString(nbl::frontend::fromNbl(platformId));
         return nbl::Result::SUCCESS;
     });
 

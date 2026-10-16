@@ -44,12 +44,16 @@ public:
         };
     }
 
+    Result readAll(Reader reader) noexcept;
+
+
     inline bool is(Writer writer) {
         return writer.impl == this && writer.pfnWrite == _write;
     }
     static inline bool isLinearWriter(Writer writer) {
         return writer.pfnWrite == _write;
     }
+
 
 private:
 

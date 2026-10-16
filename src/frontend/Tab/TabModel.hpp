@@ -31,7 +31,9 @@ public:
         IdRole,
         NameRole,
         IconRole,
-        ColorizeRole
+        ColorizeRole,
+        IconIsImageRole,
+        HiddenRole
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override {

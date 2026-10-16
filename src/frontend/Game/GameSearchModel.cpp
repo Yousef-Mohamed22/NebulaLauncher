@@ -58,8 +58,8 @@ nbl::Result nbl::frontend::GameSearchModel::_fetchPageData(qsizetype limit, qsiz
         _Row ref(
                 meta.id,
                 QByteArray(meta.title.data, meta.title.length), 
-                QByteArray(meta.poster.data, meta.poster.length),
-                QByteArray(meta.icon.data, meta.icon.length)
+                meta.poster,
+                meta.icon
         );
 
         found.append(ref);

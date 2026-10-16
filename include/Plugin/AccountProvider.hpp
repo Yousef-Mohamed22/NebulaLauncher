@@ -4,6 +4,7 @@
 #include <Platform/Mutex.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Data/OnlineAccountModel.hpp>
+#include "Data/MediaManager.hpp"
 
 namespace nbl {
 
@@ -41,7 +42,7 @@ public:
     void fail(StringView message) {
         _finishTracking(false, message);
     }
-    void complete(PluginContext* context, StringView username, StringView icon, bool iconNearestScaling, Span<FieldValue> values);
+    void complete(PluginContext* context, StringView username, StringView icon, OnlineAccountFlags flags, Span<FieldValue> values);
         
     Result beginOAuthLogin(StringView url, StringView clientId, Span<StringView> claims, u16 port, OAuthResponseType type, Span<char> challengeB64, StringBuilder* responseBuilder);
 
@@ -49,6 +50,7 @@ public:
             void (*pfnFinished)(bool success, StringView message, void* userData), 
             void (*pfnStatus)(StringView message, void* userData), 
             bool (*pfnOpenUrl)(StringView url, void* userData), 
+            MediaManager* mediaManager,
             LoginTracker* outTracker) {
 
         if(pfnFinished == nullptr || pfnStatus == nullptr || pfnOpenUrl == nullptr || outTracker == nullptr) {
@@ -59,6 +61,7 @@ public:
         outTracker->_pfnFinished = pfnFinished;
         outTracker->_pfnStatus = pfnStatus;
         outTracker->_pfnOpenUrl = pfnOpenUrl;
+        outTracker->_pMediaManager = mediaManager;
         outTracker->_bIdle = true;
         outTracker->_pUserData = nullptr;
         return nbl::Result::SUCCESS;
@@ -81,6 +84,7 @@ private:
     void (*_pfnFinished)(bool, StringView, void*);
     void (*_pfnStatus)(StringView, void*);
     bool (*_pfnOpenUrl)(StringView, void*);
+    MediaManager* _pMediaManager;
     Mutex _mMutex;
 
     friend class PluginLoader;

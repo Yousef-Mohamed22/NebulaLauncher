@@ -13,12 +13,15 @@
 #include <Core/String.hpp>
 #include <Platform/Logging.hpp>
 
+#include "Media/MediaImageProvider.hpp"
 #include "ApplicationContext.hpp"
 
 int run(int argc, char** argv) {
     
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine{};
+
+    engine.addImageProvider(QLatin1String("nblmedia"), new nbl::frontend::MediaImageProvider());
 
     ApplicationContext* inst = ApplicationContext::instance();
     QQmlEngine::setObjectOwnership(inst, QQmlEngine::CppOwnership);

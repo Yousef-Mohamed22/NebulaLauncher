@@ -40,6 +40,7 @@ struct Writer {
      */
     Result writeAll(const void* data, usize length) {
         usize totalBytesWritten = 0;
+
         while (totalBytesWritten < length) {
             usize bytesWritten;
             Result result = write(static_cast<const char*>(data) + totalBytesWritten, length - totalBytesWritten, &bytesWritten);

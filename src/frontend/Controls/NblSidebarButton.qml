@@ -12,6 +12,7 @@ Item {
     required property string name
     property var alignment: Text.AlignLeft
     property bool colorize: true
+    property bool iconIsImage: false
 
     signal clicked
 
@@ -51,7 +52,8 @@ Item {
                 height: 24
                 anchors.centerIn: parent
 
-                dbIcon: root.icon
+                icon: root.icon
+                isImage: root.iconIsImage
                 color: mouseArea.containsMouse ? Theme.colors.text : Theme.colors.textDim
                 colorize: root.colorize
             }

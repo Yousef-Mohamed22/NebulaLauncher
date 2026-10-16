@@ -24,6 +24,7 @@ class FilterRef : public QObject {
     Q_PROPERTY(bool colorizeIcon READ colorizeIcon CONSTANT)
     Q_PROPERTY(bool showInstallations READ showInstallations CONSTANT)
     Q_PROPERTY(bool showFilterInfo READ showFilterInfo CONSTANT)
+    Q_PROPERTY(bool iconIsImage READ iconIsImage CONSTANT)
 
 public:
 
@@ -73,6 +74,7 @@ public:
     bool showInstallations() { return _mFlags & nbl::FilterFlag::SHOW_INSTALLATIONS; }
     bool colorizeIcon() { return _mFlags & nbl::FilterFlag::COLORIZE_ICON; }
     bool showFilterInfo() { return _mFlags & nbl::FilterFlag::SHOW_FILTER_INFO; }
+    bool iconIsImage() { return _mFlags & nbl::FilterFlag::IMAGE_ICON; }
 
 private:
     

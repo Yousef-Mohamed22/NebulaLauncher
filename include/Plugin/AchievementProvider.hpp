@@ -6,6 +6,7 @@
 #include <Plugin/PluginContext.hpp>
 #include <Data/Model.hpp>
 #include <Platform/Time.hpp>
+#include "Data/MediaManager.hpp"
 
 namespace nbl {
 
@@ -71,7 +72,9 @@ public:
     Result markAchievementsStale(i64 setId);
 
     Result addOrUpdateAchievement(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, StringView lockedIcon, AchievementFlags flags, Span<u8> providerData = {});
-    Result addOrUpdateAchievementWithProgress(Achievement ach);
+    
+    Result addOrUpdateAchievementWithProgress(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, StringView lockedIcon, f64 globalUnlockRate, u32 progressNumerator, u32 progressDenominator, u64 dateUnlocked, AchievementFlags flags, u32 borderColor, Span<u8> providerData = {});
+
     Result setAchievementProgress(i64 setId, StringView id, f64 globalUnlockRate, u32 progressNumerator, u32 progressDenominator, u64 dateUnlocked, u32 borderColor);
 
     u64 countAchievementSets();
@@ -80,6 +83,7 @@ public:
 
 private:
     DatabaseConnection* _pConnection;
+    MediaManager* _pMediaManager;
     StringView _mProvider;
     i64 _mGameId;
 };

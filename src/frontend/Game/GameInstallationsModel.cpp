@@ -20,9 +20,9 @@ QVariant nbl::frontend::GameInstallationsModel::data(const QModelIndex& index, i
         case GameTitleRole:
             return ref.gameTitle();
         case PosterRole:
-            return ref.poster();
+            return nbl::frontend::mediaUrl(ref.poster());
         case IconRole:
-            return ref.icon();
+            return nbl::frontend::mediaUrl(ref.icon());
         case LastPlayedRole:
             return static_cast<quint64>(ref.lastPlayed());
         case ResolvedTitleRole:
@@ -55,8 +55,8 @@ nbl::Result nbl::frontend::GameInstallationsModel::_fetchPageData(qsizetype limi
         InstallationRef ref(res.installationId,
             fromNbl(res.title),
             fromNbl(res.gameTitle),
-            fromNbl(res.poster),
-            fromNbl(res.icon),
+            res.poster,
+            res.icon,
             res.lastPlayed
         );
         found.append(ref);

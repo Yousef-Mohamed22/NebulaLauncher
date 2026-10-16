@@ -4,6 +4,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import Nebula
+
 SettingsTab {
 
     id: root
@@ -75,6 +77,7 @@ SettingsTab {
                                     Layout.preferredWidth: height
                                     imageRadius: 8;
                                     icon: accountItem.modelData.icon
+                                    isImage: accountItem.modelData.iconIsImage
                                     smoothImage: !accountItem.modelData.iconNearestScaling
                                     color: Theme.colors.text
                                     colorize: false

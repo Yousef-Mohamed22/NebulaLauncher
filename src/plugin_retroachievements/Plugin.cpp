@@ -42,12 +42,6 @@ nbl::Array _accountFields {
         .flags = nbl::FieldFlag::HIDDEN | 0
     },
     nbl::Field {
-        .type = nbl::FieldType::STRING,
-        .key = "pfp",
-        .name = "",
-        .flags = nbl::FieldFlag::HIDDEN | 0
-    },
-    nbl::Field {
         .type = nbl::FieldType::INTEGER,
         .key = "points",
         .name = "",
@@ -67,11 +61,10 @@ nbl::Result _login(nbl::PluginContext* context, nbl::Span<nbl::FieldValue> field
     NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, fields[1].stringValue.raw, fields[0].stringValue.raw, &_profileAlloc, &_profile));
 
     fields[2].stringValue.raw = _profile.ulid;
-    fields[3].stringValue.raw = _profile.pfp;
-    fields[4].uintegerValue = _profile.points;
-    fields[5].uintegerValue = _profile.truePoints;
+    fields[3].uintegerValue = _profile.points;
+    fields[4].uintegerValue = _profile.truePoints;
 
-    tracker->complete(context, _profile.username, _profile.pfp, false, fields);
+    tracker->complete(context, _profile.username, _profile.pfp, nbl::OnlineAccountFlag::IMAGE_ICON | 0, fields);
     return nbl::Result::SUCCESS;
 }
 
@@ -91,11 +84,10 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
     NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, values[1].stringValue.raw, values[0].stringValue.raw, &_profileAlloc, &_profile));
 
     values[2].stringValue.raw = _profile.ulid;
-    values[3].stringValue.raw = _profile.pfp;
-    values[4].uintegerValue = _profile.points;
-    values[5].uintegerValue = _profile.truePoints;
+    values[3].uintegerValue = _profile.points;
+    values[4].uintegerValue = _profile.truePoints;
 
-    tracker->complete(context, _profile.username, _profile.pfp, false, values);
+    tracker->complete(context, _profile.username, _profile.pfp, nbl::OnlineAccountFlag::IMAGE_ICON | 0, values);
     return nbl::Result::SUCCESS;
 
 }
@@ -105,7 +97,6 @@ nbl::Result _logout(nbl::PluginContext* context, i64 accountId, void* userData) 
     _profile.ulid = {};
     _profile.apiKey = {};
     _profile.username = {};
-    _profile.pfp = {};
 
     _profileAlloc.popTo(0);
 
@@ -322,26 +313,35 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
                 .append(".png")
                 .buildNullTerminated(&badgeUrl);
 
+            nbl::StringView lockedBadgeUrl{};
+            nbl::StringBuilder(&frame)
+                .append(RA_MEDIA_URL)
+                .append("/Badge/")
+                .append(ent.value.object.getString("BadgeName"))
+                .append("_lock.png")
+                .buildNullTerminated(&badgeUrl);
+
             nbl::StringView descriptionWithPoints{};
             nbl::StringBuilder(&frame)
                 .append(ent.value.object.getString("Description"))
                 .append(" (").append(ent.value.object.getNumber("Points").asInt()).append(')')
                 .buildNullTerminated(&descriptionWithPoints);
 
-            helper.addOrUpdateAchievementWithProgress({
-                .setId = set.id,
-                .number = ent.value.object.getNumber("DisplayOrder").asUint(),
-                .providerId = id,
-                .title = ent.value.object.getString("Title"),
-                .description = descriptionWithPoints,
-                .icon = badgeUrl,
-                .globalUnlockRate = 100.0 * ent.value.object.getNumber(hardcore ? "NumAwardedHardcore" : "NumAwarded").asFloat() / numPlayers,
-                .progress = {},
-                .dateUnlocked = unlockDate.length == 0 ? 0 : unlockTime, 
-                .flags = flags,
-                .borderColor = hardcore ? RA_BORDER_COLOR_HARDCORE : RA_BORDER_COLOR_CASUAL,
-                .providerData = {}
-            });
+            helper.addOrUpdateAchievementWithProgress(
+                set.id,
+                ent.value.object.getNumber("DisplayOrder").asUint(),
+                id,
+                ent.value.object.getString("Title"),
+                descriptionWithPoints,
+                badgeUrl,
+                lockedBadgeUrl,
+                100.0 * ent.value.object.getNumber(hardcore ? "NumAwardedHardcore" : "NumAwarded").asFloat() / numPlayers,
+                0, 0,
+                unlockDate.length == 0 ? 0 : unlockTime, 
+                flags,
+                hardcore ? RA_BORDER_COLOR_HARDCORE : RA_BORDER_COLOR_CASUAL,
+                {}
+            );
             updated = true;
 
         } else if(progressUpdated || ud.latestUnlock < unlockTime) { 

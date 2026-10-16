@@ -11,18 +11,34 @@
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/PluginLoader.hpp>
 
-
-
+#include "Data/MediaManager.hpp"
 #include "Installation/InstallationDetails.hpp"
 #include "Game/GameDetails.hpp"
-#include "Field/FieldList.hpp"
 #include "Tab/TabRef.hpp"
 #include "Launch/ProcessHandle.hpp"
+
+namespace nbl::frontend {
+
 
 inline QByteArray fromNbl(nbl::StringView sv) {
     return QByteArray(sv.data, sv.length);
 }
 
+inline QUrl mediaUrl(i64 refId) {
+    if(refId == 0) return {};
+    return QUrl::fromEncoded(QString("image://nblmedia/%1").arg(refId).toUtf8());
+}
+
+inline QByteArray inlineIcon(InlineIcon icon, bool isImage) {
+    if(isImage) {
+        return mediaUrl(icon.imageId).toEncoded();
+    } else {
+        return QByteArray(icon.utf.data, icon.utf.length);
+    }
+}
+
+
+}
 
 struct InstallationAddResult {
     Q_GADGET
@@ -85,7 +101,7 @@ public:
     QString pluginFolder() const;
 
     qint64 deviceId() const { 
-        return _mDeviceId; 
+        return _mContext.mediaManager()->deviceId(); 
     }
 
 
@@ -96,7 +112,9 @@ public:
     Q_INVOKABLE void pushNotification(QVariantMap details) {
         emit notification(details);
     }
-    Q_INVOKABLE QUrl mediaUrl(QString relativePath, QByteArray repo);
+    Q_INVOKABLE inline QUrl mediaUrl(qint64 refId) {
+        return nbl::frontend::mediaUrl(refId);
+    }
 
 
     // InstallationType
@@ -149,6 +167,11 @@ public:
         return &_mContext;
     }
 
+    nbl::MediaManager* mediaManager() {
+        return _mContext.mediaManager();
+    }
+
+    nbl::Result pushImage(const QString& url, nbl::ImageClass ic, i64* outId);
 
     void init() {
         if(!_bInitialized) {
@@ -163,7 +186,6 @@ signals:
 
 private:
 
-    nbl::Result _pushImage(QString url, QString repo, QString* outUrl);
 
     void _initialize();
     ApplicationContext() = default;
@@ -171,7 +193,5 @@ private:
     bool _bInitialized = false;
     nbl::PluginContext _mContext;
     QHash<i64, nbl::frontend::ProcessHandle*> _mRunningProcesses;
-
-    i64 _mDeviceId;
 
 };

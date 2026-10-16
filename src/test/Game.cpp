@@ -9,10 +9,10 @@ nbl::GameMeta _gameMeta = {
     .id = 0,
     .title = "Test Game",
     .description = "A test game",
-    .banner = "banner.jpg",
-    .poster = "poster.jpg",
-    .icon = "icon.jpg",
-    .logo = "logo.jpg",
+    .banner = 1,
+    .poster = 2,
+    .icon = 3,
+    .logo = 4,
     .releaseDate = 1600000000,
     .rating = 4.5
 };
@@ -127,10 +127,10 @@ TEST(Game, GetGameMeta) {
     ASSERT_TRUE(nbl::getGameDetails(&connection, gameId, [&](const nbl::GameDetails& details) -> nbl::Result {
         if(details.game.title == "Test Game" 
         && details.game.description == "A test game" 
-        && details.game.poster == "poster.jpg" 
-        && details.game.banner == "banner.jpg" 
-        && details.game.icon == "icon.jpg" 
-        && details.game.logo == "logo.jpg" 
+        && details.game.banner == 1
+        && details.game.poster == 2 
+        && details.game.icon == 3 
+        && details.game.logo == 4 
         && details.game.releaseDate == 1600000000 
         && details.game.rating == 4.5) {
 
@@ -159,8 +159,8 @@ TEST(Game, LookupSingleGame) {
         [&](const nbl::GameLookupResult& res) -> nbl::Result {
 
         if(res.title == "Test Game" 
-        && res.poster == "poster.jpg" 
-        && res.icon == "icon.jpg" 
+        && res.poster == 2
+        && res.icon == 3 
         && res.releaseDate == 1600000000 
         && res.rating == 4.5) {
 
@@ -196,8 +196,8 @@ TEST(Game, LookupSingleGameByName) {
         [&](const nbl::GameLookupResult& details) -> nbl::Result {
 
         if(details.title == "Test Game" 
-        && details.poster == "poster.jpg" 
-        && details.icon == "icon.jpg" 
+        && details.poster == 2
+        && details.icon == 3 
         && details.releaseDate == 1600000000 
         && details.rating == 4.5) {
 
@@ -236,8 +236,8 @@ TEST(Game, LookupSingleGameByTag) {
         [&](const nbl::GameLookupResult& res) -> nbl::Result {
 
         if(res.title == "Test Game" 
-        && res.poster == "poster.jpg" 
-        && res.icon == "icon.jpg" 
+        && res.poster == 2 
+        && res.icon == 3 
         && res.releaseDate == 1600000000 
         && res.rating == 4.5) {
 

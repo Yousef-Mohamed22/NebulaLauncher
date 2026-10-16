@@ -5,6 +5,8 @@ import QtQuick.Controls
 import QtQuick.Effects
 import QtQuick.Layouts
 
+import Nebula
+
 Item { 
 
     id: root
@@ -204,7 +206,7 @@ Item {
                                     fillMode: Image.PreserveAspectFit
                                     layer.enabled: true
                                     visible: false
-                                    source: ApplicationContext.mediaUrl(installationItem.icon, "icon")
+                                    source: installationItem.icon
                                 }
 
                                 Item {

@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import Nebula
 
 NblDialog {
 
@@ -226,10 +227,10 @@ NblDialog {
 
                     installationTags.initialTags = ApplicationContext.getInstallationTags(root.installationId)
 
-                    if(details.poster) installationPosterPicker.imageSource = ApplicationContext.mediaUrl(details.poster, "poster")
-                    if(details.icon) installationIconPicker.imageSource = ApplicationContext.mediaUrl(details.icon, "icon")
-                    if(details.logo) installationLogoPicker.imageSource = ApplicationContext.mediaUrl(details.logo, "logo") 
-                    if(details.banner) installationBannerPicker.imageSource = ApplicationContext.mediaUrl(details.banner, "banner")
+                    if(details.poster) installationPosterPicker.imageSource = ApplicationContext.mediaUrl(details.poster)
+                    if(details.icon) installationIconPicker.imageSource = ApplicationContext.mediaUrl(details.icon)
+                    if(details.logo) installationLogoPicker.imageSource = ApplicationContext.mediaUrl(details.logo) 
+                    if(details.banner) installationBannerPicker.imageSource = ApplicationContext.mediaUrl(details.banner)
 
                     installationLogoPositionBox.currentIndex = details.logoPosition
                 }

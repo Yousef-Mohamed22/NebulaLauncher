@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 
+import Nebula
+
 Item {
 
     id: root
@@ -14,6 +16,7 @@ Item {
     required property bool showTitles
     required property bool showInstallations
     required property bool showFilterInfo
+    required property bool iconIsImage
 
     property bool showRowTitle: true
 
@@ -40,7 +43,8 @@ Item {
                 width: 20
                 height: 20
                 anchors.verticalCenter: parent.verticalCenter
-                dbIcon: root.icon
+                icon: root.icon
+                isImage: root.iconIsImage
                 color: Theme.colors.text
                 colorize: root.colorizeIcon
             }

@@ -18,10 +18,10 @@ class InstallationDetails : public QObject {
     Q_PROPERTY(QVariantMap fields READ fields CONSTANT)
     Q_PROPERTY(QByteArray title READ title CONSTANT)
     Q_PROPERTY(QByteArray description READ description CONSTANT)
-    Q_PROPERTY(QByteArray poster READ poster CONSTANT)
-    Q_PROPERTY(QByteArray banner READ banner CONSTANT)
-    Q_PROPERTY(QByteArray icon READ icon CONSTANT)
-    Q_PROPERTY(QByteArray logo READ logo CONSTANT)
+    Q_PROPERTY(qint64 poster READ poster CONSTANT)
+    Q_PROPERTY(qint64 banner READ banner CONSTANT)
+    Q_PROPERTY(qint64 icon READ icon CONSTANT)
+    Q_PROPERTY(qint64 logo READ logo CONSTANT)
     Q_PROPERTY(quint64 logoPosition READ logoPosition CONSTANT)
     Q_PROPERTY(quint64 playTime READ playTime CONSTANT)
     Q_PROPERTY(quint64 playCount READ playCount CONSTANT)
@@ -31,10 +31,10 @@ class InstallationDetails : public QObject {
     Q_PROPERTY(double rating READ rating CONSTANT)
     Q_PROPERTY(QByteArray gameTitle READ gameTitle CONSTANT)
     Q_PROPERTY(QByteArray gameDescription READ gameDescription CONSTANT)
-    Q_PROPERTY(QByteArray gamePoster READ gamePoster CONSTANT)
-    Q_PROPERTY(QByteArray gameBanner READ gameBanner CONSTANT)
-    Q_PROPERTY(QByteArray gameIcon READ gameIcon CONSTANT)
-    Q_PROPERTY(QByteArray gameLogo READ gameLogo CONSTANT)
+    Q_PROPERTY(qint64 gamePoster READ gamePoster CONSTANT)
+    Q_PROPERTY(qint64 gameBanner READ gameBanner CONSTANT)
+    Q_PROPERTY(qint64 gameIcon READ gameIcon CONSTANT)
+    Q_PROPERTY(qint64 gameLogo READ gameLogo CONSTANT)
     Q_PROPERTY(quint64 gameLogoPosition READ gameLogoPosition CONSTANT)
 
     Q_PROPERTY(QByteArray resolvedTitle READ resolvedTitle CONSTANT)
@@ -81,10 +81,10 @@ public:
         QVariantMap fields,
         QByteArray title,
         QByteArray description,
-        QByteArray poster,
-        QByteArray banner,
-        QByteArray icon,
-        QByteArray logo,
+        qint64 poster,
+        qint64 banner,
+        qint64 icon,
+        qint64 logo,
         quint64 logoPosition,
         quint64 playTime,
         quint64 playCount,
@@ -94,10 +94,10 @@ public:
         f64 rating,
         QByteArray gameTitle,
         QByteArray gameDescription,
-        QByteArray gamePoster,
-        QByteArray gameBanner,
-        QByteArray gameIcon,
-        QByteArray gameLogo,
+        qint64 gamePoster,
+        qint64 gameBanner,
+        qint64 gameIcon,
+        qint64 gameLogo,
         quint64 gameLogoPosition,
         QObject* parent = nullptr
     ) : 
@@ -136,10 +136,10 @@ public:
         _mFields(std::move(other._mFields)),
         _mTitle(std::move(other._mTitle)),
         _mDescription(std::move(other._mDescription)),
-        _mPoster(std::move(other._mPoster)),
-        _mBanner(std::move(other._mBanner)),
-        _mIcon(std::move(other._mIcon)),
-        _mLogo(std::move(other._mLogo)),
+        _mPoster(other._mPoster),
+        _mBanner(other._mBanner),
+        _mIcon(other._mIcon),
+        _mLogo(other._mLogo),
         _mLogoPosition(other._mLogoPosition),
         _mPlayTime(other._mPlayTime),
         _mPlayCount(other._mPlayCount),
@@ -149,10 +149,10 @@ public:
         _mRating(other._mRating),
         _mGameTitle(std::move(other._mGameTitle)),
         _mGameDescription(std::move(other._mGameDescription)),
-        _mGamePoster(std::move(other._mGamePoster)),
-        _mGameBanner(std::move(other._mGameBanner)),
-        _mGameIcon(std::move(other._mGameIcon)),
-        _mGameLogo(std::move(other._mGameLogo)),
+        _mGamePoster(other._mGamePoster),
+        _mGameBanner(other._mGameBanner),
+        _mGameIcon(other._mGameIcon),
+        _mGameLogo(other._mGameLogo),
         _mGameLogoPosition(std::move(other._mGameLogoPosition))
     { }
 
@@ -194,10 +194,10 @@ public:
     QVariantMap fields() const { return _mFields; }
     QByteArray title() const { return _mTitle; }
     QByteArray description() const { return _mDescription; }
-    QByteArray poster() const { return _mPoster; }
-    QByteArray banner() const { return _mBanner; }
-    QByteArray icon() const { return _mIcon; }
-    QByteArray logo() const { return _mLogo; }
+    qint64 poster() const { return _mPoster; }
+    qint64 banner() const { return _mBanner; }
+    qint64 icon() const { return _mIcon; }
+    qint64 logo() const { return _mLogo; }
     quint64 logoPosition() const { return _mLogoPosition; }
     quint64 playTime() const { return _mPlayTime; }
     quint64 playCount() const { return _mPlayCount; }
@@ -208,26 +208,26 @@ public:
 
     QByteArray gameTitle() const { return _mGameTitle; }
     QByteArray gameDescription() const { return _mGameDescription; }
-    QByteArray gamePoster() const { return _mGamePoster; }
-    QByteArray gameBanner() const { return _mGameBanner; }
-    QByteArray gameIcon() const { return _mGameIcon; }
-    QByteArray gameLogo() const { return _mGameLogo; }
+    qint64 gamePoster() const { return _mGamePoster; }
+    qint64 gameBanner() const { return _mGameBanner; }
+    qint64 gameIcon() const { return _mGameIcon; }
+    qint64 gameLogo() const { return _mGameLogo; }
     quint64 gameLogoPosition() const { return _mGameLogoPosition; }
 
     QByteArray resolvedTitle() const {
         return _mTitle.length() == 0 ? _mGameTitle : _mTitle;
     }
     QUrl resolvedPosterUrl() const {
-        return _mediaUrl(_mPoster.length() == 0 ? _mGamePoster : _mPoster, "poster");
+        return _mediaUrl(_mPoster == 0 ? _mGamePoster : _mPoster);
     }
     QUrl resolvedBannerUrl() const {
-        return _mediaUrl(_mBanner.length() == 0 ? _mGameBanner : _mBanner, "banner");
+        return _mediaUrl(_mBanner == 0 ? _mGameBanner : _mBanner);
     }
     QUrl resolvedIconUrl() const {
-        return _mediaUrl(_mIcon.length() == 0 ? _mGameIcon : _mIcon, "icon");
+        return _mediaUrl(_mIcon == 0 ? _mGameIcon : _mIcon);
     }
     QUrl resolvedLogoUrl() const {
-        return _mediaUrl(_mLogo.length() == 0 ? _mGameLogo : _mLogo, "logo");
+        return _mediaUrl(_mLogo == 0 ? _mGameLogo : _mLogo);
     }
     quint64 resolvedLogoPosition() const {
         return _mLogoPosition == 4 ? _mGameLogoPosition : _mLogoPosition;
@@ -235,18 +235,18 @@ public:
 
 private:
 
-    QUrl _mediaUrl(QByteArray rel, QByteArray repo) const;
-
+    QUrl _mediaUrl(qint64 refId) const;
+    
     qint64 _mInstallationId;
     qint64 _mGameId;
     QByteArray _mType;
     QVariantMap _mFields;
     QByteArray _mTitle;
     QByteArray _mDescription;
-    QByteArray _mPoster;
-    QByteArray _mBanner;
-    QByteArray _mIcon;
-    QByteArray _mLogo;
+    qint64 _mPoster;
+    qint64 _mBanner;
+    qint64 _mIcon;
+    qint64 _mLogo;
     quint64 _mLogoPosition;
     quint64 _mPlayTime;
     quint64 _mPlayCount;
@@ -256,10 +256,10 @@ private:
     f64 _mRating;
     QByteArray _mGameTitle;
     QByteArray _mGameDescription;
-    QByteArray _mGamePoster;
-    QByteArray _mGameBanner;
-    QByteArray _mGameIcon;
-    QByteArray _mGameLogo;
+    qint64 _mGamePoster;
+    qint64 _mGameBanner;
+    qint64 _mGameIcon;
+    qint64 _mGameLogo;
     quint64 _mGameLogoPosition;
 
 };

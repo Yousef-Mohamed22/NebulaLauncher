@@ -142,7 +142,7 @@ Column {
 
                         AchievementIcon {
                             title: achievementItem.modelData.title
-                            icon: achievementItem.modelData.icon
+                            icon: achievementItem.modelData.dateUnlocked > 0 ? achievementItem.modelData.icon : achievementItem.modelData.lockedIcon
                             borderColor: achievementItem.modelData.borderColor
                             unlocked: achievementItem.modelData.dateUnlocked > 0
                             hidden: !unlocked && (achievementItem.modelData.flags & 4)

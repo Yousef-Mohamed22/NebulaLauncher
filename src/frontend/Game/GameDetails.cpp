@@ -2,14 +2,14 @@
 #include "ApplicationContext.hpp"
 
 QUrl nbl::frontend::GameDetails::posterUrl() {
-    return ApplicationContext::instance()->mediaUrl(poster(), "poster");
+    return nbl::frontend::mediaUrl(poster());
 }
 QUrl nbl::frontend::GameDetails::bannerUrl() {
-    return ApplicationContext::instance()->mediaUrl(banner(), "banner");
+    return nbl::frontend::mediaUrl(banner());
 }
 QUrl nbl::frontend::GameDetails::iconUrl() {
-    return ApplicationContext::instance()->mediaUrl(icon(), "icon");
+    return nbl::frontend::mediaUrl(icon());
 }
 QUrl nbl::frontend::GameDetails::logoUrl() {
-    return ApplicationContext::instance()->mediaUrl(logo(), "logo");
+    return nbl::frontend::mediaUrl(logo());
 }

@@ -15,8 +15,8 @@ class InstallationRef : public QObject {
     Q_PROPERTY(int64_t installationId READ installationId CONSTANT)
     Q_PROPERTY(QByteArray title READ title CONSTANT)
     Q_PROPERTY(QByteArray gameTitle READ title CONSTANT)
-    Q_PROPERTY(QByteArray poster READ poster CONSTANT)
-    Q_PROPERTY(QByteArray icon READ icon CONSTANT)
+    Q_PROPERTY(qint64 poster READ poster CONSTANT)
+    Q_PROPERTY(qint64 icon READ icon CONSTANT)
     Q_PROPERTY(quint64 lastPlayed READ lastPlayed CONSTANT)
 
     Q_PROPERTY(QByteArray resolvedTitle READ resolvedTitle CONSTANT)
@@ -32,7 +32,7 @@ public:
         _mLastPlayed(0)
     {}
     
-    InstallationRef(i64 id, QByteArray title, QByteArray gameTitle, QByteArray poster, QByteArray icon, u64 lastPlayed, QObject* parent = nullptr) :
+    InstallationRef(i64 id, QByteArray title, QByteArray gameTitle, qint64 poster, qint64 icon, u64 lastPlayed, QObject* parent = nullptr) :
         QObject(parent),
         _mInstallationId(id),
         _mTitle(title),
@@ -68,8 +68,8 @@ public:
     i64 installationId() const { return _mInstallationId; }
     QByteArray title() const { return _mTitle; }
     QByteArray gameTitle() const { return _mGameTitle; }
-    QByteArray poster() const { return _mPoster; }
-    QByteArray icon() const { return _mIcon; }
+    qint64 poster() const { return _mPoster; }
+    qint64 icon() const { return _mIcon; }
     u64 lastPlayed() const { return _mLastPlayed; }
 
     QByteArray resolvedTitle() const {
@@ -81,8 +81,8 @@ private:
     i64 _mInstallationId;
     QByteArray _mTitle;
     QByteArray _mGameTitle;
-    QByteArray _mPoster;
-    QByteArray _mIcon;
+    qint64 _mPoster;
+    qint64 _mIcon;
     u64 _mLastPlayed;
 
 };

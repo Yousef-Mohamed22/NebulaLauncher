@@ -10,10 +10,10 @@ nbl::GameMeta _gameMeta = {
     .id = 0,
     .title = "Test Game",
     .description = "A test game",
-    .banner = "banner.jpg",
-    .poster = "poster.jpg",
-    .icon = "icon.jpg",
-    .logo = "logo.jpg",
+    .banner = 1,
+    .poster = 2,
+    .icon = 3,
+    .logo = 4,
     .releaseDate = 1600000000,
     .rating = 4.5
 };

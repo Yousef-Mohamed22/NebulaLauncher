@@ -49,3 +49,67 @@ nbl::Result nbl::writeCodePoint(nbl::Writer writer, u32 codePoint) {
     }
     
 }
+
+
+nbl::Result nbl::readCodePoint(Reader reader, u32* outCodePoint) {
+
+    u8 c = 0;
+    NBL_CHECK(reader.readAll(&c, 1));
+
+    if(c <= 0x7F) {
+        *outCodePoint = c;
+        return nbl::Result::SUCCESS;
+    }
+
+    if((c & ~_MASK_CONTINUATION) == _PFX_CONTINUATION) {
+        return nbl::Result::FORMAT_ERROR;
+    }
+
+    if((c & ~_MASK_TWO_BYTE) == _PFX_TWO_BYTE) {
+        u8 next = 0;
+        NBL_CHECK(reader.readAll(&next, 1));
+
+        if((next & ~_MASK_CONTINUATION) != _PFX_CONTINUATION) {
+            return nbl::Result::FORMAT_ERROR;
+        }
+
+        *outCodePoint = 
+            (c & _MASK_TWO_BYTE) << 6 |
+            (next & _MASK_CONTINUATION);
+
+    }
+
+    if((c & ~_MASK_THREE_BYTE) == _PFX_THREE_BYTE) {
+        u8 next[2]{};
+        NBL_CHECK(reader.readAll(&next, 2));
+
+        if((next[0] & ~_MASK_CONTINUATION) != _PFX_CONTINUATION
+        || (next[1] & ~_MASK_CONTINUATION) != _PFX_CONTINUATION) {
+            return nbl::Result::FORMAT_ERROR;
+        }
+
+        *outCodePoint = 
+            (c & _MASK_TWO_BYTE) << 12 |
+            (next[0] & _MASK_CONTINUATION) << 6 |
+            (next[1] & _MASK_CONTINUATION);
+    }
+
+    if((c & ~_MASK_FOUR_BYTE) == _PFX_FOUR_BYTE) {
+        u8 next[3];
+        NBL_CHECK(reader.readAll(&next, 3));
+
+        if((next[0] & ~_MASK_CONTINUATION) != _PFX_CONTINUATION
+        || (next[1] & ~_MASK_CONTINUATION) != _PFX_CONTINUATION
+        || (next[2] & ~_MASK_CONTINUATION) != _PFX_CONTINUATION) {
+            return nbl::Result::FORMAT_ERROR;
+        }
+
+        *outCodePoint = 
+            (c & _MASK_TWO_BYTE) << 18 |
+            (next[0] & _MASK_CONTINUATION) << 12 |
+            (next[1] & _MASK_CONTINUATION) << 6 |
+            (next[2] & _MASK_CONTINUATION);
+    }
+
+    return nbl::Result::SUCCESS;
+}

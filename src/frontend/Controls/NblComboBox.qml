@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Window
 
 import Nebula
 
@@ -54,7 +53,7 @@ ComboBox {
         y: root.height - 1
         z: 1000
         width: root.width
-        height: Math.min(contentItem.implicitHeight + 2, Window.height - topMargin - bottomMargin)
+        height: Math.min(contentItem.implicitHeight + 2, root.Window.height - topMargin - bottomMargin)
         padding: 1
 
         contentItem: ListView {

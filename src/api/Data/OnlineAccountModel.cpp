@@ -1,6 +1,6 @@
 #include <Data/OnlineAccountModel.hpp>
 #include <Data/Database.hpp>
-#include "Core/Result.hpp"
+#include <Core/Result.hpp>
 
 namespace {
 
@@ -11,8 +11,8 @@ nbl::Result _processAccount(nbl::OnlineAccountCallback callback, i32 columns, nb
         .provider = values[2].textValue,
         .updatedAt = values[3].uintValue(),
         .username = values[4].textValue,
-        .icon = values[5].textValue,
-        .iconNearestScaling = values[6].intValue != 0,
+        .icon = values[5].intValue,
+        .flags = values[6].uintValue(),
         .status = static_cast<nbl::OnlineAccountStatus>(values[7].uintValue())
     });
 }
@@ -25,12 +25,12 @@ nbl::Result nbl::OnlineAccount::create(DatabaseConnection *connection, const Onl
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 INSERT INTO online_account
-(fields, provider, updatedAt, username, icon, iconNearestScaling, status)
+(fields, provider, updatedAt, username, icon, flags, status)
 VALUES
 (?1, ?2, ?3, ?4, ?5, ?6, ?7);)", &_stmt));
     }
 
-    NBL_CHECK(_stmt.bindAll(1, account.fields, account.provider, account.updatedAt, account.username, account.icon, account.iconNearestScaling, static_cast<u32>(account.status)));
+    NBL_CHECK(_stmt.bindAll(1, account.fields, account.provider, account.updatedAt, account.username, account.icon, account.flags, static_cast<u32>(account.status)));
 
     return connection->execute(&_stmt, outAccountId);
 }
@@ -40,11 +40,11 @@ nbl::Result nbl::OnlineAccount::update(DatabaseConnection *connection, const Onl
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 UPDATE online_account SET 
-fields = ?2, provider = ?3, updatedAt = ?4, username = ?5, icon = ?6, iconNearestScaling = ?7, status = ?8
+fields = ?2, provider = ?3, updatedAt = ?4, username = ?5, icon = ?6, flags = ?7, status = ?8
 WHERE oaId = ?1;)", &_stmt));
     }
 
-    NBL_CHECK(_stmt.bindAll(1, account.id, account.fields, account.provider, account.updatedAt, account.username, account.icon, account.iconNearestScaling, static_cast<u32>(account.status)));
+    NBL_CHECK(_stmt.bindAll(1, account.id, account.fields, account.provider, account.updatedAt, account.username, account.icon, account.flags, static_cast<u32>(account.status)));
 
     return connection->execute(&_stmt);
 }
@@ -78,7 +78,7 @@ nbl::Result nbl::OnlineAccount::get(DatabaseConnection* connection, i64 accountI
     PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT oaId, fields, provider, updatedAt, username, icon, iconNearestScaling, status
+SELECT oaId, fields, provider, updatedAt, username, icon, flags, status
 FROM online_account
 WHERE oaId = ?1;)", &_stmt));
     }
@@ -94,7 +94,7 @@ nbl::Result nbl::OnlineAccount::getFirst(DatabaseConnection* connection, StringV
     PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT oaId, fields, provider, updatedAt, username, icon, iconNearestScaling, status
+SELECT oaId, fields, provider, updatedAt, username, icon, flags, status
 FROM online_account
 WHERE provider = ?1
 LIMIT 1;)", &_stmt));
@@ -110,7 +110,7 @@ nbl::Result nbl::OnlineAccount::enumerate(DatabaseConnection* connection, Online
     PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT oaId, fields, provider, updatedAt, username, icon, iconNearestScaling, status
+SELECT oaId, fields, provider, updatedAt, username, icon, flags, status
 FROM online_account;)", &_stmt));
     }
 
@@ -123,7 +123,7 @@ nbl::Result nbl::OnlineAccount::enumerateForProvider(DatabaseConnection* connect
     PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-SELECT oaId, fields, provider, updatedAt, username, icon, iconNearestScaling, status
+SELECT oaId, fields, provider, updatedAt, username, icon, flags, status
 FROM online_account
 WHERE provider = ?1;)", &_stmt));
     }

@@ -26,7 +26,10 @@ nbl::Result nbl::Arena::push(usize amount, void** outPtr) noexcept {
     void* out = end();
     usize remaining = _mCommitted - _mIndex;
     if(remaining < amount) {
-        if(_mCommitted >= _mCapacity) return nbl::Result::OUT_OF_MEMORY;
+        if(_mCommitted >= _mCapacity) {
+            NBL_ERROR("Out of memory! ", amount, " > ", remaining);
+            return nbl::Result::OUT_OF_MEMORY;
+        }
 
         u8* allocatedEnd = static_cast<u8*>(_pHead) + _mCommitted;
         usize needed = amount - remaining;

@@ -19,9 +19,9 @@ QVariant nbl::frontend::FilterModel::data(const QModelIndex& index, int role) co
         case TitleRole:
             return item.title;
         case PosterRole:
-            return item.poster;
+            return nbl::frontend::mediaUrl(item.poster);
         case IconRole:
-            return item.icon;
+            return nbl::frontend::mediaUrl(item.icon);
         case FilterInfoRole:
             return item.filterInfo;
         case FilterInfoIconRole:
@@ -138,8 +138,8 @@ nbl::Result nbl::frontend::FilterModel::_fetchPageData(qsizetype limit, qsizetyp
             _Item item(
                 res.installationId,
                 fromNbl(res.title),
-                fromNbl(res.poster),
-                fromNbl(res.icon),
+                res.poster,
+                res.icon,
                 filterInfo,
                 filterInfoIcon
             );
@@ -239,8 +239,8 @@ nbl::Result nbl::frontend::FilterModel::_fetchPageData(qsizetype limit, qsizetyp
             _Item item(
                 res.id,
                 fromNbl(res.title),
-                fromNbl(res.poster),
-                fromNbl(res.icon),
+                res.poster,
+                res.icon,
                 filterInfo,
                 filterInfoIcon
             );

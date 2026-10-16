@@ -17,6 +17,7 @@
 #include <Codec/Json.hpp>
 #include <Data/Model.hpp>
 #include <Data/Database.hpp>
+#include <Data/MediaManager.hpp>
 #include <Plugin/AccountProvider.hpp>
 #include <Plugin/Field.hpp>
 #include <Utility/Placeholder.hpp>
@@ -27,91 +28,23 @@
 #include <QHash>
 #include <QJSEngine>
 
-#include <openssl/evp.h>
 
+nbl::Result ApplicationContext::pushImage(const QString& url, nbl::ImageClass ic, i64* outId) {
 
-nbl::Result ApplicationContext::_pushImage(QString url, QString repo, QString* outPath) {
-
-    if(url.isEmpty()) {
-        *outPath = url;
+    if(url.startsWith("image://nblmedia/")) {
+        bool ok;
+        qint64 existingId = url.sliced(17).toInt(&ok);
+        if(!ok) {
+            return nbl::Result::INVALID_ARGUMENT;
+        }
+        *outId = existingId;
         return nbl::Result::SUCCESS;
+
+    } else {
+
+        QByteArray utf8 = url.toUtf8();
+        return mediaManager()->reserveReference(nbl::StringView(utf8.data(), utf8.length()), ic, outId);
     }
-
-    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
-    if(ctx == nullptr) {
-        nbl::log(nbl::LogLevel::ERROR, "Unable to initialize EVP_MD_CTX");
-        return nbl::Result::IO_ERROR;
-    }
-
-    if(EVP_DigestInit_ex(ctx, EVP_md5(), NULL) != 1) {
-        EVP_MD_CTX_free(ctx);
-        nbl::log(nbl::LogLevel::ERROR, "Unable to initialize MD5 digest!");
-        return nbl::Result::IO_ERROR;
-    }
-
-
-    QUrl realUrl(url);
-
-    QNetworkAccessManager manager{};
-    QNetworkRequest request(realUrl);
-    QNetworkReply* reply = manager.get(request);
-
-    u8 hash[16] = {};
-
-    QEventLoop loop{};
-
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-
-    QByteArray response = reply->readAll();
-    reply->deleteLater();
-
-    if(EVP_DigestUpdate(ctx, response.data(), response.length()) != 1) {
-        EVP_MD_CTX_free(ctx);
-        nbl::log(nbl::LogLevel::ERROR, "Unable to update MD5 digest!");
-        return nbl::Result::IO_ERROR;
-    }
-
-    u32 outputLen = 16;
-    if(EVP_DigestFinal_ex(ctx, hash, &outputLen) != 1) {
-        EVP_MD_CTX_free(ctx);
-        nbl::log(nbl::LogLevel::ERROR, "Unable to compute MD5 digest!");
-        return nbl::Result::IO_ERROR;
-    }
-
-    QString extension = url.sliced(url.lastIndexOf(".") - 1);
-    QString fileName = {};
-    fileName.reserve(32 + 1 + extension.length());
-
-    for(usize i = 0 ; i < 16 ; i++) {
-        if(i == 1) fileName += "/";
-        fileName += QString::asprintf("%02x", hash[i]);
-    }
-    fileName += extension;
-
-    EVP_MD_CTX_free(ctx);
-
-    QString dataFolder = ApplicationContext::instance()->dataFolder();
-    QString outputFile = dataFolder + "/media/" + repo + "/" + fileName;
-
-    *outPath = fileName;
-
-    QFile output(outputFile);
-    if(output.exists()) return nbl::Result::SUCCESS;
-
-
-    QDir dir(QFileInfo(outputFile).absolutePath());
-    if (!dir.exists()) {
-        dir.mkpath(dir.absolutePath());
-    }
-
-    if(!output.open(QIODevice::WriteOnly)) {
-        return nbl::Result::IO_ERROR;
-    }
-    output.write(response);
-    output.close();
-
-    return nbl::Result::SUCCESS;
 }
 
 
@@ -129,6 +62,11 @@ void ApplicationContext::_initialize() {
     nbl::StringView path;
     NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/nebula.db").build(&path).success());
 
+
+    nbl::StringView mediaPath;
+    NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/media.db").build(&mediaPath).success());
+
+
     nbl::StringView applicationPath = nbl::getBinaryPath();
     usize lastSlash = 0;
     NBL_ASSERT(applicationPath.findLast('/', &lastSlash).success());
@@ -140,7 +78,10 @@ void ApplicationContext::_initialize() {
     nbl::StringView pluginDataPath;
     NBL_ASSERT(nbl::StringBuilder(&frame).append(nblDataDir).append("/plugindata").build(&pluginDataPath).success());
 
-    NBL_ASSERT(nbl::PluginContext::create(path, pluginFolder, pluginDataPath, {
+
+    nbl::StringView hostname = nbl::getHostName();
+
+    NBL_ASSERT(nbl::PluginContext::create(hostname, path, mediaPath, pluginFolder, pluginDataPath, {
         .pfnNotify = [](void* userData, nbl::NotificationType type, nbl::StringView title, nbl::StringView message, nbl::Optional<nbl::StringView> icon, nbl::Optional<u32> duration) {
         
             ApplicationContext* ctx = static_cast<ApplicationContext*>(userData);
@@ -159,7 +100,7 @@ void ApplicationContext::_initialize() {
 
             map["title"] = QString::fromUtf8(title.data, title.length);
             map["message"] = QString::fromUtf8(message.data, message.length);
-            if(icon.hasValue()) map["icon"] = fromNbl(*icon);
+            if(icon.hasValue()) map["icon"] = nbl::frontend::fromNbl(*icon);
             if(duration.hasValue()) map["duration"] = *duration;
             
             ctx->pushNotification(map);
@@ -167,11 +108,6 @@ void ApplicationContext::_initialize() {
         },
         .userData = this
     }, &_mContext).success());
-
-
-    nbl::StringView hostname = nbl::getHostName();
-    NBL_ASSERT(nbl::getOrAddDevice(databaseConnection(), hostname, &_mDeviceId).success()); 
-    nbl::log(nbl::LogLevel::DEBUG, "Device ID: ", _mDeviceId);
 
     NBL_ASSERT(_mContext.beginLoad().success());
 }
@@ -242,11 +178,3 @@ QVariantMap ApplicationContext::loadSettings() {
 
     return doc.object().toVariantMap();
 }
-
-
-QUrl ApplicationContext::mediaUrl(QString relativePath, QByteArray repo) {
-    if(relativePath.length() == 0) return {};
-    return QUrl::fromEncoded(("file://" + dataFolder() + "/media/" + repo + "/" + relativePath).toUtf8());
-}
-
-

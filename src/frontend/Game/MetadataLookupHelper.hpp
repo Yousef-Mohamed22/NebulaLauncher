@@ -15,7 +15,7 @@ namespace nbl::frontend {
 class MetadataLookupHelper : public QObject {
 
     Q_OBJECT
-    QML_ELEMENT
+    QML_NAMED_ELEMENT(MetadataLookupHelper)
 
     Q_PROPERTY(Status status READ status NOTIFY statusUpdated);
 

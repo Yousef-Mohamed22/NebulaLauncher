@@ -80,6 +80,29 @@ enum class AchievementProviderStatus : u32 {
     REMOVED_BY_USER      // The user manually removed information for this achievement provider and game. Providers should not attempt to re-add achievement sets for states with this status.
 };
 
+union InlineIcon {
+    i64 encoded;
+    i64 imageId;
+    struct {
+        char data[4];
+        u8 length;
+    } utf;
+
+    static InlineIcon fromDataValue(DataValue value) {
+        if(value.type == DataType::INTEGER) {
+            return { .encoded = value.intValue };
+        } else if(value.type == DataType::TEXT) {
+            usize length = min(value.textValue.length, static_cast<usize>(4));
+            InlineIcon out{};
+            memcpy(out.utf.data, value.textValue.data, length);
+            out.utf.length = length;
+            return out;
+        } else {
+            return { .encoded = 0 };
+        }
+    }
+};
+
 
 struct SearchCriteria {
     ConstSpan<ConstSpan<i64>> tags;
@@ -157,7 +180,8 @@ enum class FilterFlag : u64 {
     ONLY_INSTALLED = 0x8,
     SHOW_INSTALLATIONS = 0x10,
     COLORIZE_ICON = 0x20,
-    SHOW_FILTER_INFO = 0x40
+    SHOW_FILTER_INFO = 0x40,
+    IMAGE_ICON = 0x80
 };
 typedef u64 FilterFlags;
 
@@ -179,7 +203,7 @@ struct FilterMeta {
     i64 tabId;
     i64 priority;
     StringView name;
-    StringView icon;
+    InlineIcon icon;
     FilterFlags flags;
     SearchCriteria criteria;
 };
@@ -230,10 +254,10 @@ struct GameMeta {
     i64 id;
     StringView title;
     StringView description;
-    StringView banner;
-    StringView poster;
-    StringView icon;
-    StringView logo;
+    i64 banner;
+    i64 poster;
+    i64 icon;
+    i64 logo;
     LogoPosition logoPosition;
     u64 releaseDate;
     f64 rating;
@@ -256,8 +280,8 @@ struct GameLookupResult {
     StringView title;
     u64 releaseDate;
     f64 rating;
-    StringView poster;
-    StringView icon;
+    i64 poster;
+    i64 icon;
 
     union {
         struct {
@@ -382,10 +406,10 @@ struct InstallationMeta {
     i64 deviceId;
     StringView title;
     StringView description;
-    StringView banner;
-    StringView poster;
-    StringView icon;
-    StringView logo;
+    i64 banner;
+    i64 poster;
+    i64 icon;
+    i64 logo;
     LogoPosition logoPosition;
     StringView type;
     StringView command;
@@ -407,8 +431,8 @@ struct InstallationLookupResult {
     u64 lastPlayed;
     u64 added;
 
-    StringView poster;
-    StringView icon;
+    i64 poster;
+    i64 icon;
 
     u64 releaseDate;
     f64 rating;
@@ -520,7 +544,8 @@ Result lookupGamesForFilter(DatabaseConnection* connection, i64 filterId, i64 de
 
 enum class TabFlag : u64 {
     COLORIZE_ICON = 0x1,
-    HIDDEN = 0x2
+    HIDDEN = 0x2,
+    IMAGE_ICON = 0x4,
 };
 
 typedef u64 TabFlags;
@@ -540,7 +565,7 @@ inline TabFlags& operator&=(TabFlags& flags, TabFlag other) { flags = flags | ot
 struct TabMeta {
     i64 tabId;
     StringView name;
-    StringView icon;
+    InlineIcon icon;
     TabFlags flags;
 };
 
@@ -609,8 +634,8 @@ struct Achievement {
     StringView providerId;
     StringView title;
     StringView description;
-    StringView icon;
-    StringView lockedIcon;
+    i64 icon;
+    i64 lockedIcon;
     f64 globalUnlockRate;
     struct {
         u32 numerator;

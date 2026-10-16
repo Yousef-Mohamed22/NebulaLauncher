@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 
-import Nebula.Controls
+import Nebula
 
 NblDialog {
     
@@ -20,7 +20,8 @@ NblDialog {
         let ref = ApplicationContext.getTabMeta(tabId)
 
         nameInput.text = ref.name
-        iconPicker.dbIcon = ref.icon
+        iconPicker.icon = ref.icon
+        iconPicker.isImage = ref.iconIsImage
         iconPicker.colorize = ref.colorizeIcon
         hiddenBox.checked = ref.hidden
         filterList.initialItems = ref.encodeFilters()
@@ -38,6 +39,7 @@ NblDialog {
             id: tabId,
             name: nameInput.text,
             icon: iconPicker.icon,
+            iconIsImage: iconPicker.isImage,
             colorizeIcon: iconPicker.colorize,
             hidden: hiddenBox.checked,
             filters: filters,
@@ -108,6 +110,7 @@ NblDialog {
                         showInstallations: false,
                         onlyInstalled: false,
                         showFilterInfo: false,
+                        iconIsImage: false,
                         sortBy: 0,
                         sortOrder: 0,
                         tags: [],
@@ -160,6 +163,7 @@ NblDialog {
                             onlyInstalled: onlyInstalledBox.checked,
                             showInstallations: searchBox.currentIndex == 1,
                             showFilterInfo: showFilterInfoBox.checked,
+                            iconIsImage: filterIconPicker.isImage,
                             sortBy: sortByBox.currentIndex,
                             sortOrder: sortOrderBox.currentIndex,
                             tags: tagSetsList.encode(),
@@ -194,7 +198,9 @@ NblDialog {
 
                         NblIconPicker {
                             id: filterIconPicker
-                            dbIcon: dropdown.modelData.icon
+                            //dbIcon: dropdown.modelData.icon
+                            icon: dropdown.modelData.icon
+                            isImage: dropdown.modelData.iconIsImage
                             colorize: dropdown.modelData.colorizeIcon
                         }
 

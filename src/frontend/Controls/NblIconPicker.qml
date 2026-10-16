@@ -19,16 +19,6 @@ Item {
     property bool isImage: false
     property bool colorize: true
 
-    property string dbIcon: ""
-    onDbIconChanged: {
-        if(dbIcon.endsWith(".png") || dbIcon.endsWith(".svg")) {
-            icon = iconDisplay.getDbIconImage(dbIcon)
-            isImage = true
-        } else {
-            isImage = false
-            icon = dbIcon
-        }
-    }
 
     property list<string> presetIcons: [
         "", "", "", "", "", "", "", "", "", "", "", "󰊗", "", "", "", "", "", "󰀄",
@@ -82,6 +72,7 @@ Item {
             anchors.fill: parent
             anchors.margins: 12
             icon: root.icon
+            isImage: root.isImage
             colorize: root.colorize
         }
 
@@ -255,13 +246,8 @@ Item {
 
         onAccepted: {
             let icon = fileDialog.selectedFile.toString()
-            if(icon.endsWith(".png") || icon.endsWith(".svg")) {
-                root.icon = icon
-                root.isImage = true
-            } else {
-                root.icon = [...icon][0]
-                root.isImage = false
-            }
+            root.icon = icon
+            root.isImage = true
         }
 
         onRejected: {
@@ -269,3 +255,4 @@ Item {
         }
     }
 }
+

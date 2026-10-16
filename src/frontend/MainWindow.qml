@@ -5,7 +5,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
 
-import Nebula.Pages
+import Nebula
 
 ApplicationWindow {
     visible: true
@@ -37,7 +37,7 @@ ApplicationWindow {
             spacing: 8
 
             Header {
-                sidebar: sidebar
+                sidebar: sidebarItem
                 Layout.fillWidth: true
                 Layout.preferredHeight: 64
             }
@@ -63,7 +63,7 @@ ApplicationWindow {
                     replaceExit: null
                 }
                 Sidebar {
-                    id: sidebar
+                    id: sidebarItem
                     Layout.fillHeight: true
 
                     onTabClicked: (tabId) => {
@@ -86,6 +86,13 @@ ApplicationWindow {
         layer.effect: MultiEffect {
             blurEnabled: dialogParent.children.length > 0
             blur: 1.0
+        }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+H"
+        onActivated: {
+            sidebarItem.showHidden = !sidebarItem.showHidden
         }
     }
 

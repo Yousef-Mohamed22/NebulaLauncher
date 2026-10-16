@@ -3,16 +3,16 @@
 
 nbl::Result nbl::getPluginFields(DatabaseConnection* connection, StringView pluginId, PluginFieldsCallback callback) {
 
-    static nbl::PreparedStatement _getFieldsStmt;
-    if(!_getFieldsStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT pluginId, fields, version FROM plugin_fields WHERE pluginId = ?;
-        )", &_getFieldsStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_getFieldsStmt.bindString(1, pluginId));
+    NBL_CHECK(_stmt.bindString(1, pluginId));
 
-    return connection->execute(&_getFieldsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_stmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
         if(argc != 3) {
             return nbl::Result::INVALID_STATE;
         }
@@ -27,16 +27,16 @@ SELECT pluginId, fields, version FROM plugin_fields WHERE pluginId = ?;
 
 nbl::Result nbl::getPluginFieldsVersion(DatabaseConnection* connection, StringView pluginId, PluginFieldsCallback callback) {
 
-    static nbl::PreparedStatement _getFieldsStmt;
-    if(!_getFieldsStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT pluginId, version FROM plugin_fields WHERE pluginId = ?;
-        )", &_getFieldsStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_getFieldsStmt.bindString(1, pluginId));
+    NBL_CHECK(_stmt.bindString(1, pluginId));
 
-    return connection->execute(&_getFieldsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_stmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
         if(argc != 2) {
             return nbl::Result::INVALID_STATE;
         }
@@ -49,35 +49,35 @@ SELECT pluginId, version FROM plugin_fields WHERE pluginId = ?;
 
 nbl::Result nbl::setPluginFields(DatabaseConnection* connection, StringView pluginId, StringView fieldsJson, StringView version) {
 
-    static nbl::PreparedStatement _setFieldsStmt;
-    if(!_setFieldsStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 INSERT INTO plugin_fields (pluginId, fields, version) VALUES (?1, ?2, ?3) ON CONFLICT(pluginId) DO UPDATE SET fields = ?2, version = ?3;
-        )", &_setFieldsStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_setFieldsStmt.bindString(1, pluginId));
-    NBL_CHECK(_setFieldsStmt.bindString(2, fieldsJson));
-    NBL_CHECK(_setFieldsStmt.bindString(3, version));
+    NBL_CHECK(_stmt.bindString(1, pluginId));
+    NBL_CHECK(_stmt.bindString(2, fieldsJson));
+    NBL_CHECK(_stmt.bindString(3, version));
 
-    return connection->execute(&_setFieldsStmt);
+    return connection->execute(&_stmt);
 }
 
 nbl::Result nbl::prunePluginFields(DatabaseConnection* connection, JsonArray ids) {
 
-    static nbl::PreparedStatement _pruneFieldsStmt;
-    if(!_pruneFieldsStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 DELETE FROM plugin_fields WHERE pluginId NOT IN (SELECT value FROM json_each(?1));
-        )", &_pruneFieldsStmt));
+        )", &_stmt));
     }
 
     ArenaFrame frame(Arena::threadLocal());
     StringView json{};
     NBL_CHECK(StringBuilder(&frame).append(ids).buildNullTerminated(&json));
 
-    NBL_CHECK(_pruneFieldsStmt.bindString(1, json));
+    NBL_CHECK(_stmt.bindString(1, json));
 
-    return connection->execute(&_pruneFieldsStmt);
+    return connection->execute(&_stmt);
 }
 

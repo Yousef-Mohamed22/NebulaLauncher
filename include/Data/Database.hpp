@@ -144,9 +144,9 @@ public:
      * \param value Tbe string value to bind
      * \return Whether the result of the binding operation was successful
      */
-    Result bindString(i32 index, StringView value);
+    Result bindString(i32 index, StringView value, bool transient = false);
 
-    Result bindBlob(i32 index, ConstSpan<u8> value);
+    Result bindBlob(i32 index, ConstSpan<u8> value, bool transient = false);
 
     /**
      * \brief Binds a string value or null to the given index of the prepared statement, depending on whether the string is empty
@@ -341,7 +341,7 @@ private:
     Arena _mArena;
     void* _pHandle;
 
-    bool _bInTransaction;
+    u32 _mTransactionDepth;
 
     friend class PreparedStatement;
 

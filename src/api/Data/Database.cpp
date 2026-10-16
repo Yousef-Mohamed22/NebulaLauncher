@@ -99,7 +99,7 @@ nbl::Result nbl::PreparedStatement::bindFloat(i32 index, f64 value) {
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::PreparedStatement::bindString(i32 index, nbl::StringView value) {
+nbl::Result nbl::PreparedStatement::bindString(i32 index, nbl::StringView value, bool transient) {
 
     NBL_ASSERT(value.length <= static_cast<usize>(INT_MAX));
 
@@ -108,7 +108,7 @@ nbl::Result nbl::PreparedStatement::bindString(i32 index, nbl::StringView value)
         index, 
         value.data, 
         static_cast<int>(value.length), 
-        SQLITE_TRANSIENT);
+        transient ? SQLITE_TRANSIENT : SQLITE_STATIC);
 
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::DEBUG, "Failed to bind string parameter at index ", index, ": ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
@@ -116,7 +116,7 @@ nbl::Result nbl::PreparedStatement::bindString(i32 index, nbl::StringView value)
     }
     return nbl::Result::SUCCESS;
 }
-nbl::Result nbl::PreparedStatement::bindBlob(i32 index, ConstSpan<u8> value) {
+nbl::Result nbl::PreparedStatement::bindBlob(i32 index, ConstSpan<u8> value, bool transient) {
 
     NBL_ASSERT(value.length <= static_cast<usize>(INT_MAX));
 
@@ -125,7 +125,7 @@ nbl::Result nbl::PreparedStatement::bindBlob(i32 index, ConstSpan<u8> value) {
         index, 
         value.data, 
         value.length,
-        SQLITE_TRANSIENT);
+        transient ? SQLITE_TRANSIENT : SQLITE_STATIC);
 
     if(rc != SQLITE_OK) {
         nbl::log(nbl::LogLevel::DEBUG, "Failed to bind string parameter at index ", index, ": ", sqlite3_errmsg(reinterpret_cast<sqlite3*>(_pHandle)));
@@ -347,40 +347,48 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
 
 nbl::Result nbl::DatabaseConnection::beginTransaction() {
 
-    if(_bInTransaction) return nbl::Result::SUCCESS;
+    if(_mTransactionDepth++ > 0) {
+
+        ArenaFrame frame(Arena::threadLocal());
+        StringView sql{};
+        NBL_CHECK(StringBuilder(&frame).append("SAVEPOINT sp").append(_mTransactionDepth).append(";").build(&sql));
+
+        return execute(sql);
+    }
 
     static nbl::PreparedStatement stmt;
     if(!stmt.isValid(this)) {
         NBL_CHECK(prepare("BEGIN TRANSACTION;", &stmt));
     }
     NBL_CHECK(execute(&stmt));
-    _bInTransaction = true;
     return nbl::Result::SUCCESS;
 }
 nbl::Result nbl::DatabaseConnection::commitTransaction() {
 
-    if(!_bInTransaction) return nbl::Result::SUCCESS;
+    if(--_mTransactionDepth > 0) return nbl::Result::SUCCESS;
 
     static nbl::PreparedStatement stmt;
     if(!stmt.isValid(this)) {
         NBL_CHECK(prepare("COMMIT;", &stmt));
     }
     NBL_CHECK(execute(&stmt));
-    _bInTransaction = false;
     return nbl::Result::SUCCESS;
 }
 
 nbl::Result nbl::DatabaseConnection::rollbackTransaction() {
 
-    if(!_bInTransaction) return nbl::Result::SUCCESS;
+    if(--_mTransactionDepth > 0) {
+        ArenaFrame frame(Arena::threadLocal());
+        StringView sql{};
+        NBL_CHECK(StringBuilder(&frame).append("ROLLBACK TO SAVEPOINT sp").append(_mTransactionDepth + 1).append(";").build(&sql));
+        return execute(sql);
+    }
 
     static nbl::PreparedStatement stmt;
     if(!stmt.isValid(this)) {
         NBL_CHECK(prepare("ROLLBACK;", &stmt));
     }
     return execute(&stmt);
-    _bInTransaction = false;
-    return nbl::Result::SUCCESS;
 }
 
 nbl::Result nbl::DatabaseConnection::doTransaction(nbl::Span<PreparedStatement*> statements, i64* lastInsertRowId) {

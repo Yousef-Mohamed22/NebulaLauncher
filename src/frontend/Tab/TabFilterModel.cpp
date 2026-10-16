@@ -30,6 +30,8 @@ QVariant nbl::frontend::TabFilterModel::data(const QModelIndex& index, int role)
             return ref.showInstallations();
         case ShowFilterInfoRole:
             return ref.showFilterInfo();
+        case IconIsImageRole:
+            return ref.iconIsImage();
         default:
             return QVariant();
     }
@@ -46,6 +48,7 @@ QHash<int, QByteArray> nbl::frontend::TabFilterModel::roleNames() const {
     roles[UseIconsRole] = "useIcons";
     roles[ShowInstallationsRole] = "showInstallations";
     roles[ShowFilterInfoRole] = "showFilterInfo";
+    roles[IconIsImageRole] = "iconIsImage";
     return roles;
 }
 
@@ -60,7 +63,7 @@ nbl::Result nbl::frontend::TabFilterModel::_fetchPageData(qsizetype limit, qsize
         FilterRef ref(
             meta.filterId, 
             QByteArray(meta.name.data, meta.name.length), 
-            QByteArray(meta.icon.data, meta.icon.length),
+            inlineIcon(meta.icon, meta.flags & FilterFlag::IMAGE_ICON),
             meta.flags
         );
         found.append(ref);

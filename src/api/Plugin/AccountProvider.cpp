@@ -9,9 +9,11 @@
 #include <Utility/Hash.hpp>
 #include <Core/Result.hpp>
 #include <Plugin/Field.hpp>
+#include <Data/Model.hpp>
+#include "Data/MediaManager.hpp"
 
 
-void nbl::LoginTracker::complete(PluginContext* context, StringView username, StringView icon, bool iconNearestScaling, Span<FieldValue> values) {
+void nbl::LoginTracker::complete(PluginContext* context, StringView username, StringView icon, OnlineAccountFlags flags, Span<FieldValue> values) {
 
     ArenaFrame frame(Arena::threadLocal());
     StringBuilder builder(&frame);
@@ -29,14 +31,26 @@ void nbl::LoginTracker::complete(PluginContext* context, StringView username, St
         return;
     }
 
+    InlineIcon iconId;
+    if(flags & OnlineAccountFlag::IMAGE_ICON) {
+        if((res = _pMediaManager->reserveReference(icon, ImageClass::INLINE_ICON, &iconId.imageId)).error()) {
+            NBL_ERROR("Failed to save icon for online account: ", res.value);
+            _finishTracking(false, "Failed to save account icon.");
+            return;
+        }
+    } else {
+        iconId.utf.length = min(static_cast<usize>(4), icon.length);
+        memcpy(iconId.utf.data, icon.data, iconId.utf.length);
+    }
+
     nbl::OnlineAccount account={
         .id = _mAccount,
         .fields = fieldsStr,
         .provider = _pActive->id,
         .updatedAt = nbl::getCurrentTime(),
         .username = username,
-        .icon = icon,
-        .iconNearestScaling = iconNearestScaling,
+        .icon = iconId.encoded,
+        .flags = flags,
         .status = OnlineAccountStatus::LOGGED_IN
     };
 

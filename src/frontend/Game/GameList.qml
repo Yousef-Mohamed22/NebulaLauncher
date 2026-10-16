@@ -158,10 +158,10 @@ Item {
 
         if(root.useIcons) {
             if(modelData.icon.byteLength == 0) return null
-            return ApplicationContext.mediaUrl(modelData.icon, "icon") 
+            return modelData.icon 
         }
         if(modelData.poster.byteLength == 0) return null
-        return ApplicationContext.mediaUrl(modelData.poster, "poster") 
+        return modelData.poster 
 
     }
 }

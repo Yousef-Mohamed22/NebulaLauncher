@@ -22,5 +22,9 @@ namespace nbl {
  */
 nbl::Result writeCodePoint(Writer writer, u32 codePoint);
 
+
+nbl::Result readCodePoint(Reader reader, u32* outCodePoint);
+
+
 }
 

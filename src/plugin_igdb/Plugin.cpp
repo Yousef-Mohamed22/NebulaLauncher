@@ -237,14 +237,16 @@ nbl::Result _doLogin(nbl::StringView clientId, nbl::StringView clientSecret) {
     nbl::StringView token = response.object.getString("access_token");
     if(token.length > 256) return nbl::Result::FORMAT_ERROR;
 
-    u64 expiresIn = response.object.getNumber("expires_in").asUint();
+    u64 expiresIn = response.object.getNumber("expires_in").asUint() * 1000;
+
+    NBL_DEBUG(response.object);
 
     memcpy(_accessTokenBuffer, token.data, token.length);
     memcpy(_clientIdBuffer, clientId.data, clientId.length);
 
     _accessToken = nbl::StringView(_accessTokenBuffer, token.length);
     _clientId = nbl::StringView(_clientIdBuffer, clientId.length);
-    _expiry = preRequestTime;
+    _expiry = preRequestTime + expiresIn;
 
     return nbl::Result::SUCCESS;
 }

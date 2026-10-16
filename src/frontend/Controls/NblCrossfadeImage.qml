@@ -8,7 +8,7 @@ Item {
 
     property string source: ""
     property int duration: 200
-    property int initialDuration: 100
+    property int initialDuration: 50
     property var fillMode: Image.PreserveAspectFit
 
     onSourceChanged: {

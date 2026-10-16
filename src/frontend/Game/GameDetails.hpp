@@ -15,10 +15,10 @@ class GameDetails : public QObject {
     Q_PROPERTY(qint64 gameId READ gameId CONSTANT)
     Q_PROPERTY(QString title READ title CONSTANT)
     Q_PROPERTY(QString description READ description CONSTANT)
-    Q_PROPERTY(QString poster READ poster CONSTANT)
-    Q_PROPERTY(QString banner READ banner CONSTANT)
-    Q_PROPERTY(QString icon READ icon CONSTANT)
-    Q_PROPERTY(QString logo READ logo CONSTANT)
+    Q_PROPERTY(qint64 poster READ poster CONSTANT)
+    Q_PROPERTY(qint64 banner READ banner CONSTANT)
+    Q_PROPERTY(qint64 icon READ icon CONSTANT)
+    Q_PROPERTY(qint64 logo READ logo CONSTANT)
     Q_PROPERTY(quint64 logoPosition READ logoPosition CONSTANT)
     Q_PROPERTY(quint64 playTime READ playTime CONSTANT)
     Q_PROPERTY(quint64 playCount READ playCount CONSTANT)
@@ -53,10 +53,10 @@ public:
         qint64 gameId,
         QString title,
         QString description,
-        QString poster,
-        QString banner,
-        QString icon,
-        QString logo,
+        qint64 poster,
+        qint64 banner,
+        qint64 icon,
+        qint64 logo,
         quint64 logoPosition,
         quint64 playTime,
         quint64 playCount,
@@ -129,10 +129,10 @@ public:
     qint64 gameId() const { return _mGameId; }
     QString title() const { return _mTitle; }
     QString description() const { return _mDescription; }
-    QString poster() const { return _mPoster; }
-    QString banner() const { return _mBanner; }
-    QString icon() const { return _mIcon; }
-    QString logo() const { return _mLogo; }
+    qint64 poster() const { return _mPoster; }
+    qint64 banner() const { return _mBanner; }
+    qint64 icon() const { return _mIcon; }
+    qint64 logo() const { return _mLogo; }
     quint64 logoPosition() const { return _mLogoPosition; }
     quint64 playTime() const { return _mPlayTime; }
     quint64 playCount() const { return _mPlayCount; }
@@ -152,10 +152,10 @@ private:
     qint64 _mGameId;
     QString _mTitle;
     QString _mDescription;
-    QString _mPoster;
-    QString _mBanner;
-    QString _mIcon;
-    QString _mLogo;
+    qint64 _mPoster;
+    qint64 _mBanner;
+    qint64 _mIcon;
+    qint64 _mLogo;
     quint64 _mLogoPosition;
     quint64 _mPlayTime;
     quint64 _mPlayCount;

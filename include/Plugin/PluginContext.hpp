@@ -8,6 +8,7 @@
 #include <Data/Database.hpp>
 #include <Plugin/Registry.hpp>
 #include <Plugin/PluginLoader.hpp>
+#include "Data/MediaManager.hpp"
 
 namespace nbl {
 
@@ -58,6 +59,10 @@ public:
     }
 
     inline DatabaseConnection* databaseConnection() { return &_mConnection; }
+    
+    inline MediaManager* mediaManager() { return &_mMediaManager; }
+    inline const MediaManager* mediaManager() const { return &_mMediaManager; }
+
     inline StringView databasePath() const { return _mDatabasePath; }
     inline StringView pluginDataPath() const { return _mPluginDataPath; }
 
@@ -69,7 +74,7 @@ public:
         return _mLoader.beginLoadAsync();
     }
 
-    static Result create(StringView databasePath, StringView pluginFolder, StringView pluginDataPath, NotificationConsumer notificationConsumer, PluginContext* ctx);
+    static Result create(StringView deviceName, StringView databasePath, StringView mediaDbPath, StringView pluginFolder, StringView pluginDataPath, NotificationConsumer notificationConsumer, PluginContext* ctx);
 
 private:
     Arena _mArena;
@@ -80,6 +85,7 @@ private:
     StringView _mWrapperPath;
 
     PluginLoader _mLoader;
+    MediaManager _mMediaManager;
 
     NotificationConsumer _mNotificationConsumer;
     DatabaseConnection _mConnection;
