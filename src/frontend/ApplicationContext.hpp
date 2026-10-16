@@ -126,6 +126,7 @@ public:
     Q_INVOKABLE qint64 addGame(QVariantMap details);
     Q_INVOKABLE int updateGame(QVariantMap details);
     Q_INVOKABLE int deleteGame(qint64 gameId);
+    Q_INVOKABLE qint64 getRandomGameId();
     Q_INVOKABLE nbl::frontend::GameDetails* getGameDetails(qint64 gameId);
 
     // Installation

@@ -37,9 +37,27 @@ ApplicationWindow {
             spacing: 8
 
             Header {
+                id: header
                 sidebar: sidebarItem
                 Layout.fillWidth: true
                 Layout.preferredHeight: 64
+
+                onSearchRequested: (query) => {
+                    root.openPage("Game/GameSearchPage.qml", {
+                        query: query,
+                    })
+                }
+                onRandomRequested: {
+                    let gameId = ApplicationContext.getRandomGameId()
+                    if(gameId == 0) {
+                        ApplicationContext.pushNotification({
+                            type: "error",
+                            title: "Shuffle Failed",
+                            message: "Do you have any installed games?"
+                        })
+                    }
+                    root.openGameDetails(gameId)
+                }
             }
 
             RowLayout {
@@ -91,11 +109,18 @@ ApplicationWindow {
 
     Shortcut {
         sequence: "Ctrl+H"
+        context: Qt.ApplicationShortcut
         onActivated: {
             sidebarItem.showHidden = !sidebarItem.showHidden
         }
     }
-
+    Shortcut {
+        sequence: "/"
+        context: Qt.ApplicationShortcut
+        onActivated: {
+            header.focusSearchBar()
+        }
+    }
 
     Item {
         id: dialogParent

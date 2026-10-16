@@ -18,9 +18,9 @@ QVariant nbl::frontend::GameSearchModel::data(const QModelIndex& index, int role
         case TitleRole:
             return row.title;
         case PosterRole:
-            return row.poster;
+            return nbl::frontend::mediaUrl(row.poster);
         case IconRole:
-            return row.icon;
+            return nbl::frontend::mediaUrl(row.icon);
         default:
             return QVariant();
     }

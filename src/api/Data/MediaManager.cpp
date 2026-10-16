@@ -177,13 +177,12 @@ nbl::Result nbl::MediaManager::pruneUnreferencedImages() {
 }
 
 
-nbl::Result nbl::MediaManager::create(StringView dbPath, i64 deviceId, SaveCallback saveCallback, MediaManager* outManager) {
+nbl::Result nbl::MediaManager::create(StringView dbPath, i64 deviceId, MediaManager* outManager) {
 
     DatabaseConnection* connection = &outManager->_mConnection;
     NBL_CHECK(DatabaseConnection::open(dbPath, connection));
 
     outManager->_mDeviceId = deviceId;
-    outManager->_mSaveNow = saveCallback;
 
     i32 userVersion = 0;
 

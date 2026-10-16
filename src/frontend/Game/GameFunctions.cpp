@@ -5,7 +5,10 @@
  */
 
 
+#include <qtypes.h>
 #include "ApplicationContext.hpp"
+#include "Core/Result.hpp"
+#include "Data/Database.hpp"
 #include "Data/MediaManager.hpp"
 #include "Field/FieldRef.hpp"
 
@@ -331,6 +334,28 @@ int ApplicationContext::updateGame(QVariantMap params) {
 
 int ApplicationContext::deleteGame(qint64 gameId) {
     return nbl::removeGame(databaseConnection(), gameId);
+}
+
+
+qint64 ApplicationContext::getRandomGameId() {
+
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(databaseConnection())) {
+        if(databaseConnection()->prepare("SELECT gId FROM game WHERE EXISTS (SELECT 1 FROM installation WHERE installation.gId = game.gId) ORDER BY RANDOM() LIMIT 1;", &_stmt).error()) {
+            return 0;
+        }
+    }
+
+    qint64 out = 0;
+    if(databaseConnection()->execute(&_stmt, [&](i32 num,nbl::DataValue* values,const char**,i64) -> nbl::Result {
+        NBL_ASSERT(num == 1);
+        out = values[0].intValue;
+        return nbl::Result::SUCCESS;
+    }).error()) {
+        return 0;
+    }
+
+    return out;
 }
 
 
