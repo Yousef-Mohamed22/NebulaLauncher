@@ -106,9 +106,9 @@ CREATE TABLE IF NOT EXISTS game (
     logoPosition INTEGER NOT NULL DEFAULT 0,
     releaseDate INTEGER,
     rating REAL,
-    previousPlayTime INTEGER,
-    previousPlayCount INTEGER,
-    lastPlayedDeleted INTEGER,
+    previousPlayTime INTEGER NOT NULL DEFAULT 0,
+    previousPlayCount INTEGER NOT NULL DEFAULT 0,
+    lastPlayedDeleted INTEGER NOT NULL DEFAULT 0,
     added INTEGER
 );
 CREATE TABLE IF NOT EXISTS game_external_id (

@@ -101,9 +101,15 @@ LIMIT 1;)", &_stmt));
     }
 
     NBL_CHECK(_stmt.bind(1, provider));
-    return connection->execute(&_stmt, [&](i32 columns, nbl::DataValue* values, const char** names, i32 lastInsertRowId) {
+    bool found = false;
+    NBL_CHECK(connection->execute(&_stmt, [&](i32 columns, nbl::DataValue* values, const char** names, i32 lastInsertRowId) {
+        NBL_ASSERT(!found);
+        found = true;
         return _processAccount(callback, columns, values, names, lastInsertRowId);
-    });
+    }));
+
+    if(!found) return Result::NOT_FOUND;
+    return Result::SUCCESS;
 }
 
 nbl::Result nbl::OnlineAccount::enumerate(DatabaseConnection* connection, OnlineAccountCallback callback) {

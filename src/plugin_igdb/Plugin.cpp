@@ -321,6 +321,10 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
     if(now + (1000 * 60 * 60 * 24 * 3) < _expiry) {
         memcpy(_accessTokenBuffer, accessToken.data, accessToken.length);
         _accessToken = nbl::StringView(_accessTokenBuffer, accessToken.length);
+
+        memcpy(_clientIdBuffer, clientId.data, clientId.length);
+        _clientId = nbl::StringView(_clientIdBuffer, clientId.length);
+
         return nbl::Result::NO_CHANGE;
     }
 

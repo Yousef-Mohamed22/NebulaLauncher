@@ -163,7 +163,7 @@ NblDialog {
 
                 onApplied: {
 
-                    if(root.gameId == 0) return
+                    if(root.gameId == 0 || !modified) return
 
                     let settings = gameSettings.encode()
                     let rc = ApplicationContext.updateGame(settings)
@@ -237,7 +237,7 @@ NblDialog {
 
                 onApplied: {
 
-                    if(root.installationId == 0) return
+                    if(root.installationId == 0 || !modified) return
 
                     let params = {
                         game: root.gameId,
@@ -299,7 +299,7 @@ NblDialog {
 
                                 onActivated: {
                                     installationSettingsTab.modified = true
-                                    fieldList.fields = typeModel.fields(typeModel.currentIndex)
+                                    fieldList.fields = typeModel.fields(commandTypeBox.currentIndex)
                                 }
 
                                 tooltip: "The type of installation. This determines how the installation is launched."
@@ -308,7 +308,7 @@ NblDialog {
                             FieldInputRepeater { 
                                 id: fieldList
                                 width: parent.width
-                                fields: typeModel.fields(typeModel.currentIndex)
+                                fields: typeModel.fields(commandTypeBox.currentIndex)
                                 onModified: {
                                     installationSettingsTab.modified = true
                                 }

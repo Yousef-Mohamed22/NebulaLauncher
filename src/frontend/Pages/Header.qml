@@ -34,6 +34,7 @@ Item {
 
         Row {
 
+            id: leftItem
             Layout.fillHeight: true
             spacing: 8
 
@@ -87,6 +88,7 @@ Item {
             Label {
                 text: "Nebula"
                 height: parent.height
+                width: 96
                 visible: root.width > 600
                 verticalAlignment: Qt.AlignVCenter
                 font.family: Theme.font
@@ -94,22 +96,17 @@ Item {
                 font.pixelSize: 24
                 color: Theme.colors.text
             }
-
-        }
-
-        GameSearchBar {
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-            Layout.maximumWidth: 420
-
-            id: searchBar
-
-            onSearchRequested: (query) => {
-                root.searchRequested(query)
-            }
         }
 
         Item {
+            id: centerPlaceholder
+            Layout.fillWidth: true
+        }
+
+        Item {
+
+            id: rightItem
+
             Layout.fillHeight: true
             Layout.alignment: Qt.AlignRight
 
@@ -156,4 +153,25 @@ Item {
             }
         }
     }
+
+    
+    GameSearchBar {
+        id: searchBar
+
+        property real availableWidth: centerPlaceholder.width
+
+        width: Math.min(420, availableWidth)
+        height: parent.height - 16
+
+        y: 8
+        x: Math.max(
+            centerPlaceholder.x,
+            (root.width - width) / 2,
+        )
+
+        onSearchRequested: (query) => {
+            root.searchRequested(query)
+        }
+    }
+
 }

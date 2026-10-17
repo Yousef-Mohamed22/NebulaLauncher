@@ -4,7 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import Nebula.Controls
+import Nebula
 
 Item {
 
@@ -22,6 +22,7 @@ Item {
     property string selectedName: showDefaultOption ? "Default" : "No Registered Accounts"
     property string selectedIcon: ""
     property bool selectedSmooth: false
+    property bool selectedIsImage: false
 
     implicitHeight: 48 + 30
 
@@ -152,6 +153,7 @@ Item {
                     Layout.margins: 8
                     imageRadius: 8;
                     icon: root.selectedIcon
+                    isImage: root.selectedIsImage
                     smoothImage: root.selectedSmooth
                     color: Theme.colors.text
                     colorize: false
@@ -199,7 +201,7 @@ Item {
 
         y: root.height
 
-        property int rowCount: root.model.rowCount() + (root.showDefaultOption ? 1 : 0)
+        property int rowCount: root.model.count + (root.showDefaultOption ? 1 : 0)
 
         width: root.width
         height: Math.min(rowCount * 48, 48 * 3) + 16
@@ -263,6 +265,7 @@ Item {
                             root.selectedId = -1
                             root.selectedName = "Default"
                             root.selectedIcon = ""
+                            root.selectedIsImage = false
                             popup.close()
                         }
                     }
@@ -297,6 +300,7 @@ Item {
                                 Layout.margins: 8
                                 imageRadius: 8;
                                 icon: accountItem.modelData.icon
+                                isImage: accountItem.modelData.iconIsImage
                                 smoothImage: !accountItem.modelData.iconNearestScaling
                                 color: Theme.colors.text
                                 colorize: false
@@ -307,7 +311,7 @@ Item {
                                 Layout.fillWidth: true
                                 font.pixelSize: 16
                                 font.weight: 500
-                                text: accountItem.modelData.name
+                                text: accountItem.modelData.username
                                 color: Theme.colors.text
                                 verticalAlignment: Qt.AlignVCenter
                             }
@@ -320,8 +324,9 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.selectedId = accountItem.modelData.id
-                                root.selectedName = accountItem.modelData.name
+                                root.selectedName = accountItem.modelData.username
                                 root.selectedIcon = accountItem.modelData.icon
+                                root.selectedIsImage = accountItem.modelData.iconIsImage
                                 root.selectedSmooth = !accountItem.modelData.iconNearestScaling
                                 popup.close()
                             }

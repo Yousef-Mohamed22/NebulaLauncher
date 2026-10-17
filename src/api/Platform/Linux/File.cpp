@@ -7,6 +7,7 @@
  */
 
 
+#include <linux/limits.h>
 #include <Platform/PlatformDefines.hpp>
 #include <cerrno>
 #include "Core/Math.hpp"
@@ -36,6 +37,7 @@ namespace {
 
 char gCwd[PATH_MAX];
 char gDataDir[PATH_MAX];
+char gTempDir[PATH_MAX];
 
 
 int gGetFd(void* handle) {
@@ -193,6 +195,20 @@ nbl::StringView nbl::getDataDirectory() {
     }
     return StringView(gDataDir);
 }
+
+
+nbl::StringView nbl::getTempDirectory() { 
+    if(gTempDir[0] == '\0') {
+        const char* tempEnv = getenv("TMPDIR");
+        if(tempEnv && tempEnv[0] != '\0') {
+            strlcpy(gTempDir, tempEnv, PATH_MAX);
+        } else {
+            strlcpy(gTempDir, "/tmp", PATH_MAX);
+        }
+    }
+    return StringView(gTempDir);
+}
+
 
 bool nbl::FolderIterator::next(StringView* name) {
 

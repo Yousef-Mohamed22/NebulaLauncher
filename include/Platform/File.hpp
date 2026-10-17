@@ -200,5 +200,6 @@ Result setOpenFileLimit(u64 limit);
 
 StringView getWorkingDirectory();
 StringView getDataDirectory();
+StringView getTempDirectory();
 
 }
