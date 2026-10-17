@@ -20,11 +20,11 @@ nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& me
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO game (title, description, banner, poster, icon, logo, logoPosition, releaseDate, rating, added) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);
+INSERT INTO game (title, description, banner, poster, icon, logo, logoPosition, releaseDate, rating, added, colorOverride) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);
         )", &_stmt));
     }
 
-    NBL_CHECK(_stmt.bindAll(1, meta.title, meta.description, meta.banner, meta.poster, meta.icon, meta.logo, static_cast<u32>(meta.logoPosition), meta.releaseDate, meta.rating, nbl::getCurrentTime()));
+    NBL_CHECK(_stmt.bindAll(1, meta.title, meta.description, meta.banner, meta.poster, meta.icon, meta.logo, static_cast<u32>(meta.logoPosition), meta.releaseDate, meta.rating, nbl::getCurrentTime(), meta.colorOverride));
 
     return connection->execute(&_stmt, outGameId); 
 }
@@ -48,11 +48,11 @@ nbl::Result nbl::updateGame(DatabaseConnection* connection, const GameMeta& meta
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-UPDATE game SET title=?1, description=?2, banner=?3, poster=?4, icon=?5, logo=?6, logoPosition=?7, releaseDate=?8, rating=?9 WHERE gId=?10;
+UPDATE game SET title=?1, description=?2, banner=?3, poster=?4, icon=?5, logo=?6, logoPosition=?7, releaseDate=?8, rating=?9, colorOverride = ?10 WHERE gId=?11;
         )", &_stmt));
     }
 
-    NBL_CHECK(_stmt.bindAll(1, meta.title, meta.description, meta.banner, meta.poster, meta.icon, meta.logo, static_cast<u32>(meta.logoPosition), meta.releaseDate, meta.rating, meta.id));
+    NBL_CHECK(_stmt.bindAll(1, meta.title, meta.description, meta.banner, meta.poster, meta.icon, meta.logo, static_cast<u32>(meta.logoPosition), meta.releaseDate, meta.rating, meta.colorOverride, meta.id));
 
     return connection->execute(&_stmt); 
 
@@ -124,7 +124,7 @@ nbl::Result nbl::getGameMeta(DatabaseConnection* connection, i64 gameId, GameMet
     if(!_getGameMetaStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT 
-game.gId, game.title, game.description, game.banner, game.poster, game.icon, game.logo, game.logoPosition, game.releaseDate, game.rating, game.previousPlayTime, game.previousPlayCount, game.lastPlayedDeleted, game.added 
+game.gId, game.title, game.description, game.banner, game.poster, game.icon, game.logo, game.logoPosition, game.releaseDate, game.rating, game.previousPlayTime, game.previousPlayCount, game.lastPlayedDeleted, game.added, game.colorOverride 
 FROM game
 WHERE game.gId = ?1;
         )", &_getGameMetaStmt));
@@ -150,7 +150,8 @@ WHERE game.gId = ?1;
             .previousPlayTime = values[10].uintValue(),
             .previousPlayCount = values[11].uintValue(),
             .lastPlayedDeleted = values[12].uintValue(),
-            .added = values[13].uintValue()
+            .added = values[13].uintValue(),
+            .colorOverride = values[14].uintValueOrNull().cast<u32>()
         };
         return callback(meta);
 
@@ -163,7 +164,7 @@ nbl::Result nbl::getGameDetails(DatabaseConnection* connection, i64 gameId, Game
     if(!_getGameDetailsStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT
-game.gId, game.title, game.description, game.banner, game.poster, game.icon, game.logo, game.logoPosition, game.releaseDate, game.rating, game.previousPlayTime, game.previousPlayCount, game.lastPlayedDeleted, game.added,
+game.gId, game.title, game.description, game.banner, game.poster, game.icon, game.logo, game.logoPosition, game.releaseDate, game.rating, game.previousPlayTime, game.previousPlayCount, game.lastPlayedDeleted, game.added, game.colorOverride,
 sum(installation.playTime) + game.previousPlayTime, sum(installation.playCount) + game.previousPlayCount, max(max(installation.lastPlayed), game.lastPlayedDeleted), count(installation.iId)
 FROM game
 FULL OUTER JOIN installation ON installation.gId = game.gId
@@ -190,12 +191,13 @@ WHERE game.gId = ?1;
                 .previousPlayTime = values[10].uintValue(),
                 .previousPlayCount = values[11].uintValue(),
                 .lastPlayedDeleted = values[12].uintValue(),
-                .added = values[13].uintValue()
+                .added = values[13].uintValue(),
+                .colorOverride = values[14].uintValueOrNull().cast<u32>()
             },
-            .totalPlayTime = values[14].uintValue(),
-            .totalPlayCount = values[15].uintValue(),
-            .lastPlayed = values[16].uintValue(),
-            .installationCount = values[17].uintValue()
+            .totalPlayTime = values[15].uintValue(),
+            .totalPlayCount = values[16].uintValue(),
+            .lastPlayed = values[17].uintValue(),
+            .installationCount = values[18].uintValue()
         };
         return callback(details);
 

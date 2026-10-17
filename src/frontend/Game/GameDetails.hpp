@@ -2,8 +2,10 @@
 
 #include <QObject>
 #include <QtQml>
+#include <QColor>
 
 #include <Core/Types.hpp>
+#include <Core/Optional.hpp>
 
 namespace nbl::frontend {
 
@@ -27,6 +29,7 @@ class GameDetails : public QObject {
     Q_PROPERTY(quint64 installationCount READ installationCount CONSTANT)
     Q_PROPERTY(quint64 releaseDate READ releaseDate CONSTANT)
     Q_PROPERTY(double rating READ rating CONSTANT)
+    Q_PROPERTY(QVariant colorOverride READ colorOverride CONSTANT)
 
 public:
 
@@ -46,7 +49,8 @@ public:
         _mAdded(0),
         _mInstallationCount(0),
         _mReleaseDate(0),
-        _mRating(0.0)
+        _mRating(0.0),
+        _mColorOverride{}
     {}
 
     GameDetails(
@@ -65,6 +69,7 @@ public:
         quint64 installationCount,
         quint64 releaseDate,
         f64 rating,
+        Optional<QColor> colorOverride,
         QObject* parent = nullptr
     ) : 
         QObject(parent),
@@ -82,7 +87,8 @@ public:
         _mAdded(added),
         _mInstallationCount(installationCount),
         _mReleaseDate(releaseDate),
-        _mRating(rating)
+        _mRating(rating),
+        _mColorOverride(colorOverride)
     {}
 
     GameDetails(const GameDetails& other) :
@@ -100,7 +106,8 @@ public:
         _mAdded(other._mAdded),
         _mInstallationCount(other._mInstallationCount),
         _mReleaseDate(other._mReleaseDate),
-        _mRating(other._mRating)
+        _mRating(other._mRating),
+        _mColorOverride(other._mColorOverride)
     {}
 
     GameDetails& operator=(const GameDetails& other) {
@@ -122,6 +129,7 @@ public:
         _mInstallationCount = other._mInstallationCount;
         _mReleaseDate = other._mReleaseDate;
         _mRating = other._mRating;
+        _mColorOverride = other._mColorOverride;
 
         return *this;
     }
@@ -141,6 +149,7 @@ public:
     quint64 installationCount() const { return _mInstallationCount; }
     quint64 releaseDate() const { return _mReleaseDate; }
     f64 rating() const { return _mRating; }
+    QVariant colorOverride() const { return _mColorOverride.hasValue() ? *_mColorOverride : QVariant(); }
 
     Q_INVOKABLE QUrl posterUrl();
     Q_INVOKABLE QUrl bannerUrl();
@@ -164,6 +173,7 @@ private:
     quint64 _mInstallationCount;
     quint64 _mReleaseDate;
     f64 _mRating;
+    Optional<QColor> _mColorOverride;
 
 };
 

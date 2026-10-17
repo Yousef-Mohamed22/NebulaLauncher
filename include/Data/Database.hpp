@@ -65,6 +65,31 @@ struct DataValue {
         }
         return static_cast<u64>(intValue);
     }
+
+    inline Optional<i64> intValueOrNull() {
+        if(type != DataType::INTEGER) return Optional<i64>();
+        return Optional(intValue);
+    }
+ 
+    inline Optional<u64> uintValueOrNull() {
+        if(type != DataType::INTEGER) return Optional<u64>();
+        return Optional(static_cast<u64>(intValue));
+    }
+
+    inline Optional<f64> floatValueOrNull() {
+        if(type != DataType::FLOAT) return Optional<f64>();
+        return Optional(floatValue);
+    }
+
+    inline Optional<StringView> textValueOrNull() {
+        if(type != DataType::TEXT) return Optional<StringView>();
+        return Optional(textValue);
+    }
+
+    inline Optional<ConstSpan<u8>> blobValueOrNull() {
+        if(type != DataType::BLOB) return Optional<ConstSpan<u8>>();
+        return Optional(blobValue);
+    }
 };
 
 inline Result toString(DataValue value, Writer writer) {
@@ -197,7 +222,7 @@ public:
     template<typename T>
     inline Result bind(i32 index, Optional<T> value) { 
         if(value.hasValue()) {
-            return bind<T>(*value);
+            return bind<T>(index, *value);
         }
         return bindNull(index); 
     }

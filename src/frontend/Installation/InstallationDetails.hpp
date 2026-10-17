@@ -2,8 +2,10 @@
 
 #include <QObject>
 #include <QtQml>
+#include <QColor>
 
 #include <Core/Types.hpp>
+#include <Core/Optional.hpp>
 
 namespace nbl::frontend {
 
@@ -29,6 +31,7 @@ class InstallationDetails : public QObject {
     Q_PROPERTY(quint64 added READ added CONSTANT)
     Q_PROPERTY(quint64 releaseDate READ releaseDate CONSTANT)
     Q_PROPERTY(double rating READ rating CONSTANT)
+    Q_PROPERTY(QVariant colorOverride READ colorOverride CONSTANT)
     Q_PROPERTY(QByteArray gameTitle READ gameTitle CONSTANT)
     Q_PROPERTY(QByteArray gameDescription READ gameDescription CONSTANT)
     Q_PROPERTY(qint64 gamePoster READ gamePoster CONSTANT)
@@ -65,6 +68,7 @@ public:
         _mAdded(0),
         _mReleaseDate(0),
         _mRating(0.0),
+        _mColorOverride{},
         _mGameTitle{},
         _mGameDescription{},
         _mGamePoster{},
@@ -92,6 +96,7 @@ public:
         quint64 added,
         quint64 releaseDate,
         f64 rating,
+        Optional<QColor> colorOverride,
         QByteArray gameTitle,
         QByteArray gameDescription,
         qint64 gamePoster,
@@ -119,6 +124,7 @@ public:
         _mAdded(added),
         _mReleaseDate(releaseDate),
         _mRating(rating),
+        _mColorOverride(colorOverride),
         _mGameTitle(gameTitle),
         _mGameDescription(gameDescription),
         _mGamePoster(gamePoster),
@@ -147,6 +153,7 @@ public:
         _mAdded(other._mAdded),
         _mReleaseDate(other._mReleaseDate),
         _mRating(other._mRating),
+        _mColorOverride(other._mColorOverride),
         _mGameTitle(std::move(other._mGameTitle)),
         _mGameDescription(std::move(other._mGameDescription)),
         _mGamePoster(other._mGamePoster),
@@ -177,6 +184,7 @@ public:
         _mAdded = other._mAdded;
         _mReleaseDate = other._mReleaseDate;
         _mRating = other._mRating;
+        _mColorOverride = other._mColorOverride;
         _mGameTitle = other._mGameTitle;
         _mGameDescription = other._mGameDescription;
         _mGamePoster = other._mGamePoster;
@@ -205,6 +213,7 @@ public:
     quint64 added() const { return _mAdded; }
     quint64 releaseDate() const { return _mReleaseDate; }
     f64 rating() const { return _mRating; }
+    QVariant colorOverride() const { return _mColorOverride.hasValue() ? *_mColorOverride : QVariant(); }
 
     QByteArray gameTitle() const { return _mGameTitle; }
     QByteArray gameDescription() const { return _mGameDescription; }
@@ -254,6 +263,7 @@ private:
     quint64 _mAdded;
     quint64 _mReleaseDate;
     f64 _mRating;
+    nbl::Optional<QColor> _mColorOverride;
     QByteArray _mGameTitle;
     QByteArray _mGameDescription;
     qint64 _mGamePoster;

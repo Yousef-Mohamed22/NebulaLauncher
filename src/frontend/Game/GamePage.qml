@@ -15,9 +15,6 @@ Item {
     property int selectedInstallation: installationPicker.selectedInstallationId
     property InstallationDetails installationDetails
 
-    onInstallationDetailsChanged: {
-        installationPicker.selectedInstallation = installationDetails
-    }
 
     property int logoPosition: installationDetails == null ? details.logoPosition : installationDetails.resolvedLogoPosition
     property string logo: installationDetails == null ? details.logoUrl() : installationDetails.resolvedLogoUrl
@@ -34,6 +31,28 @@ Item {
         installationPicker.refresh()
         achievementsSection.refresh()
         achievementUpdateRunner.update(root.details.gameId)
+    }
+
+    onDetailsChanged: {
+        if(installationDetails != null && installationDetails.colorOverride != null) {
+            Theme.colors.accentOverride = installationDetails.colorOverride 
+        } else if(details != null && details.colorOverride != null) {
+            Theme.colors.accentOverride = details.colorOverride
+        } else {
+            Theme.colors.accentOverride = null
+        }
+    }
+
+    onInstallationDetailsChanged: {
+        installationPicker.selectedInstallation = installationDetails
+
+        if(installationDetails != null && installationDetails.colorOverride != null) {
+            Theme.colors.accentOverride = installationDetails.colorOverride 
+        } else if(details != null && details.colorOverride != null) {
+            Theme.colors.accentOverride = details.colorOverride
+        } else {
+            Theme.colors.accentOverride = null
+        }
     }
 
     Component.onCompleted: {

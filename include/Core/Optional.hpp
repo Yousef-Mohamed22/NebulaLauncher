@@ -170,6 +170,20 @@ public:
         return reinterpret_cast<const T*>(_mValue);
     }
 
+
+
+    template<typename O>
+    inline Optional<O> map(O(*pfnMapper)(T)) const {
+        if(!_mHasValue) return Optional<O>();
+        return Optional<O>(pfnMapper(**this));
+    }
+
+    template<typename O>
+    inline Optional<O> cast() const {
+        if(!_mHasValue) return Optional<O>();
+        return Optional<O>(static_cast<O>(**this));
+    }
+
 private:
     alignas(T) u8 _mValue[sizeof(T)];
     bool _mHasValue;

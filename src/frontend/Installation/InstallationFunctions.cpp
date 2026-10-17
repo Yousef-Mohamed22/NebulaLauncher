@@ -135,6 +135,7 @@ nbl::frontend::InstallationDetails* ApplicationContext::getInstallationDetails(q
             details.installation.added,
             details.game.releaseDate,
             details.game.rating,
+            details.installation.colorOverride.map<QColor>([](u32 u) { return QColor::fromRgba(u); }),
             nbl::frontend::fromNbl(details.game.title),
             nbl::frontend::fromNbl(details.game.description),
             details.game.poster,

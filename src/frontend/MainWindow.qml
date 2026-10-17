@@ -192,6 +192,7 @@ ApplicationWindow {
 
     function openTab(id) {
 
+        Theme.colors.accentOverride = null
         let initDepth = pageLoader.depth
         while(pageLoader.depth > 1) {
             pageLoader.pop()
@@ -211,6 +212,7 @@ ApplicationWindow {
     }
 
     function openPage(name, opts) {
+        Theme.colors.accentOverride = null
         while(pageLoader.depth > 1) {
             pageLoader.pop()
         }
@@ -219,6 +221,7 @@ ApplicationWindow {
 
     function openInstallationDetails(installationId) {
 
+        Theme.colors.accentOverride = null
         while (pageLoader.depth > 1) {
             pageLoader.pop()
         }
@@ -233,6 +236,7 @@ ApplicationWindow {
  
     function openGameDetails(gameId) {
 
+        Theme.colors.accentOverride = null
         while (pageLoader.depth > 1) {
             pageLoader.pop()
         }
@@ -244,6 +248,7 @@ ApplicationWindow {
     }
 
     function closeInstallationDetails() {
+        Theme.colors.accentOverride = null
         while (pageLoader.depth > 1) {
             pageLoader.pop()
         }

@@ -265,6 +265,7 @@ struct GameMeta {
     u64 previousPlayCount;
     u64 lastPlayedDeleted;
     u64 added;
+    Optional<u32> colorOverride;
 };
 
 struct GameDetails {
@@ -417,6 +418,7 @@ struct InstallationMeta {
     u64 playCount;
     u64 lastPlayed;
     u64 added;
+    Optional<u32> colorOverride;
 };
 
 struct InstallationLookupResult {

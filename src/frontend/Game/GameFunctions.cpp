@@ -39,7 +39,8 @@ nbl::frontend::GameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
             details.game.added,
             details.installationCount,
             details.game.releaseDate,
-            details.game.rating
+            details.game.rating,
+            details.game.colorOverride.map<QColor>([](u32 u) { return QColor::fromRgba(u); })
         );
 
         return nbl::Result::SUCCESS;

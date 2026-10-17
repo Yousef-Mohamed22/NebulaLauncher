@@ -109,7 +109,8 @@ CREATE TABLE IF NOT EXISTS game (
     previousPlayTime INTEGER NOT NULL DEFAULT 0,
     previousPlayCount INTEGER NOT NULL DEFAULT 0,
     lastPlayedDeleted INTEGER NOT NULL DEFAULT 0,
-    added INTEGER
+    added INTEGER NOT NULL DEFAULT 0,
+    colorOverride INTEGER
 );
 CREATE TABLE IF NOT EXISTS game_external_id (
     gId INTEGER,
@@ -139,6 +140,7 @@ CREATE TABLE IF NOT EXISTS installation (
     playCount INTEGER NOT NULL DEFAULT 0,
     added INTEGER NOT NULL,
     lastPlayed INTEGER,
+    colorOverride INTEGER,
     FOREIGN KEY(gId) REFERENCES game(gId),
     FOREIGN KEY(deviceId) REFERENCES device(deviceId)
 );

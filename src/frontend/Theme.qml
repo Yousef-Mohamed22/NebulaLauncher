@@ -86,14 +86,14 @@ QtObject {
         property bool lightMode: false
         property bool tintUi: true
         property color activeColor: "#d658fc"
+        property var accentOverride: null
+        property color accent: accentOverride ?? activeColor
 
-        property color accent: activeColor
-
-        property color layer0: Qt.hsla(activeColor.hslHue, tintUi ? 0.3 : 0, lightMode ? 0.95 : 0.125, 1.0)
-        property color layer1: Qt.hsla(activeColor.hslHue, tintUi ? 0.3 : 0, lightMode ? 0.9 : 0.169, 1.0)
-        property color border: Qt.hsla(activeColor.hslHue, tintUi ? 0.3 : 0, lightMode ? 0.8 : 0.228, 1.0)
+        property color layer0: Qt.hsla(accent.hslHue, tintUi ? 0.3 : 0, lightMode ? 0.95 : 0.125, 1.0)
+        property color layer1: Qt.hsla(accent.hslHue, tintUi ? 0.3 : 0, lightMode ? 0.9 : 0.169, 1.0)
+        property color border: Qt.hsla(accent.hslHue, tintUi ? 0.3 : 0, lightMode ? 0.8 : 0.228, 1.0)
         property color text: lightMode ? "#000000" : "#ffffff"
-        property color textDim: Qt.hsla(activeColor.hslHue, tintUi ? 0.3 : 0, lightMode ? 0.2 : 0.75, 1.0)
+        property color textDim: Qt.hsla(accent.hslHue, tintUi ? 0.3 : 0, lightMode ? 0.2 : 0.75, 1.0)
         property color textOnAccent: blackOrWhite(accent)
 
         property color shadow: lightMode ? "#99000000" : "#FF000000"
