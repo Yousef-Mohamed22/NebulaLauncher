@@ -37,6 +37,8 @@ QVariant _fieldToQt(const nbl::Field* field, nbl::FieldValue value) {
         case nbl::FieldType::ACCOUNT:
             if(value.accountValue.isDefault) return -1;
             return static_cast<quint32>(value.accountValue.id);
+        case nbl::FieldType::COLOR:
+            return static_cast<quint32>(value.colorValue.rgba);
         case nbl::FieldType::LIST: {
             QVariantList out;
             for(nbl::FieldValue& value : value.compositeValue) {
@@ -44,8 +46,7 @@ QVariant _fieldToQt(const nbl::Field* field, nbl::FieldValue value) {
             }
             return out;
         }
-        case nbl::FieldType::STRUCT:
-        case nbl::FieldType::CUSTOM: {
+        case nbl::FieldType::STRUCT: {
             QVariantMap out;
             for(auto i = 0 ; i < nbl::min(field->structData.fields.length, value.compositeValue.length) ; i++) {
                 QString key = QString::fromUtf8(field->structData.fields[i].key.data, field->structData.fields[i].key.length);
@@ -97,6 +98,9 @@ nbl::FieldValue _qtToField(const nbl::Field* field, QVariant value, nbl::LinearA
             .id = value.toUInt(),
             .isDefault = value.toInt() == -1
         }};
+        case nbl::FieldType::COLOR: return { .colorValue = {
+            .rgba = value.toUInt()
+        }};
         case nbl::FieldType::LIST: {
             QVariantList values = value.toList();
             nbl::Span<nbl::FieldValue> fieldValues{};
@@ -112,8 +116,7 @@ nbl::FieldValue _qtToField(const nbl::Field* field, QVariant value, nbl::LinearA
             }
             return { .compositeValue = fieldValues };
         };
-        case nbl::FieldType::STRUCT:
-        case nbl::FieldType::CUSTOM: {
+        case nbl::FieldType::STRUCT: {
 
             QVariantMap values = value.toMap();
             nbl::Span<nbl::FieldValue> fieldValues{};
@@ -222,10 +225,6 @@ bool nbl::frontend::FieldRef::password() {
     return _pField->flags & nbl::FieldFlag::PASSWORD; 
 }
 
-QString nbl::frontend::FieldRef::document() {
-    if(_pField->type != nbl::FieldType::CUSTOM) return {};
-    return QString::fromUtf8(_pField->customData.document.data, _pField->customData.document.length);
-}
 
 
 

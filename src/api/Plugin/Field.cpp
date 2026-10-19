@@ -1,8 +1,9 @@
 #include <Plugin/Field.hpp>
-#include <Codec/Json.hpp>
+
+#include <Core/Span.hpp>
 #include <Platform/Allocator.hpp>
-#include "Core/Span.hpp"
-#include "Utility/Placeholder.hpp"
+#include <Codec/Json.hpp>
+#include <Utility/Placeholder.hpp>
 
 
 namespace {
@@ -59,6 +60,12 @@ nbl::Result _decodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
                 .isDefault = (element.number.asInt() == -1)
             };
             break;
+        case nbl::FieldType::COLOR:
+            if(element.type != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
+            outValue->colorValue = {
+                .rgba = static_cast<u32>(element.number.asUint())
+            };
+            break;
         case nbl::FieldType::LIST: {
             if(!nbl::shouldEncodeField(*field.listData.templateField)) {
                 return nbl::Result::INVALID_ARGUMENT;
@@ -76,7 +83,6 @@ nbl::Result _decodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
             break;
         }
         case nbl::FieldType::STRUCT:
-        case nbl::FieldType::CUSTOM:
             if(element.type != nbl::JsonType::OBJECT) return nbl::Result::INVALID_ARGUMENT;
             NBL_CHECK(nbl::decodeFieldValues(context, field.structData.fields, element.object, &outValue->compositeValue, allocator));
             break;
@@ -119,6 +125,9 @@ nbl::Result _encodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
             }
             break;
         }
+        case nbl::FieldType::COLOR: {
+            return nbl::writeJson(writer, value.colorValue.rgba);
+        }
         case nbl::FieldType::LIST: {
             return nbl::JsonWriter(writer).writeArray([&](auto& arr) {
                 for(nbl::FieldValue& listValue : value.compositeValue) {
@@ -135,8 +144,7 @@ nbl::Result _encodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
             });
             break;
         }
-        case nbl::FieldType::STRUCT: 
-        case nbl::FieldType::CUSTOM: {
+        case nbl::FieldType::STRUCT: {
             return encodeFieldValues(context, field.structData.fields, value.compositeValue, writer);
         }
         case nbl::FieldType::ACTION:

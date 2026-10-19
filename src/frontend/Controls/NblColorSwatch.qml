@@ -12,6 +12,8 @@ Item {
 
     signal accepted
 
+    implicitWidth: Math.max(72, labelText.width + 8)
+
     Rectangle {
         anchors.fill: parent
         anchors.margins: 4
@@ -20,6 +22,7 @@ Item {
     }
 
     Label {
+        id: labelText
         text: root.label
         font.family: Theme.font
         font.pixelSize: 14

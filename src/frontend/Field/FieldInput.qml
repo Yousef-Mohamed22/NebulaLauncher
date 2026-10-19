@@ -68,19 +68,19 @@ Item {
                 source = "Delegate/AccountFieldInput.qml"
                 break
             case 7:
-                source = "Delegate/ListFieldInput.qml"
+                source = "Delegate/ColorFieldInput.qml"
                 break
             case 8:
-                source = "Delegate/StructFieldInput.qml"
+                source = "Delegate/ListFieldInput.qml"
                 break
             case 9:
-                source = "Delegate/Action.qml"
+                source = "Delegate/StructFieldInput.qml"
                 break
             case 10:
-                source = "Delegate/ActionFieldInput.qml"
+                source = "Delegate/Action.qml"
                 break
             case 11:
-                source = "Delegate/CustomFieldInput.qml"
+                source = "Delegate/ActionFieldInput.qml"
                 break
         }
 

@@ -31,7 +31,6 @@ class FieldRef : public QObject {
     Q_PROPERTY(FieldList* structFields READ structFields CONSTANT)
     Q_PROPERTY(bool horizontal READ horizontal CONSTANT)
     Q_PROPERTY(bool password READ password CONSTANT)
-    Q_PROPERTY(QString document READ document CONSTANT)
 
 public:
     
@@ -53,7 +52,6 @@ public:
     FieldList* structFields();
     bool horizontal();
     bool password();
-    QString document();
 
     Q_INVOKABLE void suggest(QString current, QJSValue callback);
 

@@ -19,32 +19,30 @@ enum class FieldType : u8 {
     ENUM          = 4,  // A combobox that displays certain values. Stored as a string key.
     DATE          = 5,  // A text box that only allows dates. Stored as a timestamp
     ACCOUNT       = 6,  // A combobox that displays accounts from a certain provider
-    LIST          = 7,  // Zero or more fields of the same type. Stored as a list of values
-    STRUCT        = 8,  // A group of other fields. Stored as a list of key-value pairs
-    ACTION        = 9,  // A button. Does not store any value, but triggers a callback when clicked
-    FIELD_ACTION  = 10, // Another field. Does not store any value, but triggers a callback when edited
-    CUSTOM        = 11, // Loads a custom qml document from the plugin folder. Stored as a list of key-value pairs
+    COLOR         = 7,  // A color picker. Stored as a u32 in RGBA format
+    LIST          = 8,  // Zero or more fields of the same type. Stored as a list of values
+    STRUCT        = 9,  // A group of other fields. Stored as a list of key-value pairs
+    ACTION        = 10, // A button. Does not store any value, but triggers a callback when clicked
+    FIELD_ACTION  = 11, // Another field. Does not store any value, but triggers a callback when edited
 };
-
-#define _NBL_FIELD_FLAG(type, v) (static_cast<u64>(v) << 16) << (static_cast<u8>(type) * 4)
 
 // Affects how fields are saved, loaded, and displayed
 enum class FieldFlag : u64 {
 
-    HIDDEN = 0x1, // This field will not be visible in the UI
-    SECRET = 0x2, // TODO: This field's value will be encrypted. The key should be placed in secret storage. Unimplemented because it breaks portability, and I'd need a way to let users import keys. (Just make them input a password? PBES2?)
-    EPHEMERAL = 0x4, // Not stored
+    HIDDEN = 0x1,                   // This field will not be visible in the UI
+    SECRET = 0x2,                   // TODO: This field's value will be encrypted. The key should be placed in secret storage. Unimplemented because it breaks portability, and I'd need a way to let users import keys. (Just make them input a password? PBES2?)
+    EPHEMERAL = 0x4,                // Not stored
     
-    STRICT_PLACEHOLDERS = _NBL_FIELD_FLAG(FieldType::STRING, 0x1), // Unmatched placeholders will cause an error to be thrown during serialization
-    APPLY_GAME_PLACEHOLDERS = _NBL_FIELD_FLAG(FieldType::STRING, 0x2), // If this field belongs to an installation type, game-specific placeholders will be applied
-    PASSWORD = _NBL_FIELD_FLAG(FieldType::STRING, 0x4), // The field should echo dots instead of characters
+    STRICT_PLACEHOLDERS = 0x10,     // Unmatched placeholders will cause an error to be thrown during serialization
+    APPLY_GAME_PLACEHOLDERS = 0x20, // If this field belongs to an installation type, game-specific placeholders will be applied
+    PASSWORD = 0x40,                // The field should echo dots instead of characters
 
-    SHOW_DEFAULT_OPTION = _NBL_FIELD_FLAG(FieldType::ACCOUNT, 0x1), // The "default" account option will be selectable
+    SHOW_DEFAULT_OPTION = 0x80,     // The "default" account option will be selectable
+    ALLOW_TRANSPARENCY = 0x100,     // The alpha slider will be available in the color picker
 
-    HORIZONTAL = _NBL_FIELD_FLAG(FieldType::STRUCT, 0x1) // Struct field inputs will be placed left-to-right instead of top-to-bottom
+    HORIZONTAL = 0x200              // Struct field inputs will be placed left-to-right instead of top-to-bottom
 };
 
-#undef _NBL_FIELD_FLAG
 
 typedef u64 FieldFlags;
 
@@ -79,12 +77,22 @@ struct FieldValue {
         u64 uintegerValue; // for DATE
         f64 floatValue; // for FLOAT
         bool booleanValue; // for BOOLEAN
-        u32 enumValue; // for ENUM 
+        u32 enumValue; // for ENUM
+        union {
+            u32 rgba;
+            u8 channels[4];
+            struct {
+                u8 r;
+                u8 g;
+                u8 b;
+                u8 a;
+            };
+        } colorValue; // for COLOR
         struct {
             i64 id;
             bool isDefault;
         } accountValue; // for ACCOUNT
-        Span<FieldValue> compositeValue; // for LIST, STRUCT, and CUSTOM
+        Span<FieldValue> compositeValue; // for LIST and STRUCT
     };
 };
 
@@ -149,7 +157,7 @@ struct Field {
             Span<Field> fields;
         } structData;
         struct {
-            void (*pfnActivate)(PluginContext* pluginContext, void* userData);
+            void (*pfnActivate)(PluginContext* pluginContext, void* userData); // TODO: Add a handle back into the UI which allows the plugin to get/set other field values
             void* userData;
 
             void activate(PluginContext* pluginContext) const {
@@ -159,7 +167,7 @@ struct Field {
         } actionData;
         struct {
             Field* templateField;
-            void (*pfnActivate)(PluginContext* pluginContext, FieldValue value, void* userData);
+            void (*pfnActivate)(PluginContext* pluginContext, FieldValue value, void* userData); // TODO: Add a handle back into the UI which allows the plugin to get/set other field values
             void* userData;
 
             void activate(PluginContext* pluginContext, FieldValue value) const {
@@ -167,9 +175,6 @@ struct Field {
                 return pfnActivate(pluginContext, value, userData);
             }
         } fieldActionData;
-        struct {
-            StringView document;
-        } customData;
     };
     FieldValue defaultValue;
     FieldFlags flags;
