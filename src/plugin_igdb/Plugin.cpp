@@ -1,10 +1,33 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file Plugin.cpp
+ * \author jwall64
+ * \brief IGDB plugin
+ */
+
 #include <Plugin/PluginInitializer.hpp>
 #include <Plugin/GameProvider.hpp>
 #include <Plugin/AccountProvider.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/File.hpp>
 #include <Platform/Logging.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Network/HttpClient.hpp>
 #include <Codec/Json.hpp>
@@ -207,7 +230,7 @@ u64 _expiry;
 
 nbl::Result _doLogin(nbl::StringView clientId, nbl::StringView clientSecret) {
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::StringView url;
 
     NBL_CHECK(nbl::StringBuilder(&frame)
@@ -284,7 +307,7 @@ nbl::Result _login(nbl::PluginContext* context, nbl::Span<nbl::FieldValue> field
     nbl::StringView clientId = fields[0].stringValue.raw;
     nbl::StringView clientSecret = fields[1].stringValue.raw;
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
     NBL_CHECK(_doLogin(clientId, clientSecret));
 
@@ -299,7 +322,7 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 
     nbl::StringView fields = account.fields;
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::JsonElement element{};
     NBL_CHECK(nbl::parseJson(nbl::StringReader(account.fields), &frame, &element));
 
@@ -352,7 +375,7 @@ bool _canProvide(nbl::PluginContext* context, const nbl::OnlineGameLookupInfo& i
 
 nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInfo& info, nbl::OnlineGameCallback callback, void* userData) {
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::StringView fields = "fields aggregated_rating,artworks.image_id,artworks.image_type,cover.image_id,cover.image_type,first_release_date,name,summary,external_games.uid,external_games.external_game_source";
 
     nbl::StringBuilder builder(&frame);
@@ -415,7 +438,7 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
 
     for(nbl::JsonElement ele : response.array) {
 
-        nbl::ArenaFrame subFrame(nbl::Arena::threadLocal());
+        nbl::AllocationFrame subFrame(nbl::Arena::threadLocal());
 
         if(ele.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
         nbl::JsonObject obj = ele.object;
@@ -655,7 +678,7 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
     }, nullptr);
 
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
     NBL_CHECK(nbl::HttpClient::create(4, 4, 0, 0, &_client));
 

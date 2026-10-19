@@ -1,3 +1,18 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include "Plugin/PluginModel.hpp"
 #include "ApplicationContext.hpp"
 
@@ -6,7 +21,7 @@
 #include <Plugin/Field.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/PluginLoader.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 
 int nbl::frontend::PluginModel::rowCount(const QModelIndex& parent) const {
     ApplicationContext* ctx = ApplicationContext::instance();
@@ -42,7 +57,7 @@ QVariant nbl::frontend::PluginModel::data(const QModelIndex& index, int role) co
 
             if(nbl::getPluginFields(ctx->databaseConnection(), plugin.meta.id, [&](const nbl::PluginFields& fields) -> nbl::Result {
 
-                nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+                nbl::AllocationFrame frame(nbl::Arena::threadLocal());
                 nbl::Span<nbl::FieldValue> values;
                 NBL_CHECK(frame.allocate(&values.data, plugin.fields.length));
 
@@ -94,7 +109,7 @@ void nbl::frontend::PluginModel::saveFields(QVariantMap fields, int row) {
         .structData = { .fields = plugin.fields }
     };
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::FieldValue value = nbl::frontend::FieldRef(&dummy).toNbl(fields, &frame);
 
     nbl::Span<nbl::Placeholder> placeholders = {};

@@ -1,11 +1,35 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file JsonParser.cpp
+ * \author jwall64
+ * \brief Partial implementation of Codec/Json.hpp
+ */
+
+#include <Codec/Json.hpp>
+
 #include <Core/Span.hpp>
 #include <Core/Result.hpp>
 #include <Core/Stream.hpp>
 #include <Core/Math.hpp>
 #include <Platform/Logging.hpp>
 #include <Codec/Utf8.hpp>
-#include <Codec/Json.hpp>
-#include "Platform/Allocator.hpp"
+#include <Platform/Allocator.hpp>
 
 namespace {
 
@@ -14,7 +38,67 @@ struct _ParseContext {
     nbl::LinearAllocator* storage;
     nbl::LinearAllocator* tempStorage;
     nbl::JsonElement outElement;
-    char lastRead;
+    usize bufferIndex;
+    usize bufferLength;
+    usize bufferCapacity;
+    char* buffer;
+
+    char lastRead() { 
+        return buffer[bufferIndex];
+    }
+
+    nbl::Result nextChar() {
+        if(bufferIndex >= bufferLength) [[unlikely]] {
+            if(reader.pfnRead == nullptr) return nbl::Result::UNEXPECTED_END_OF_STREAM;
+            usize bytesRead = 0;
+            while(bytesRead == 0) {
+                nbl::Result res = reader.read(buffer, bufferCapacity, &bytesRead);
+                if(res.error()) return res;
+                if(res == nbl::Result::END_OF_STREAM && bytesRead == 0) {
+                    return nbl::Result::UNEXPECTED_END_OF_STREAM;
+                }
+            }
+            bufferLength = bytesRead;
+            bufferIndex = 0;
+        } else {
+            bufferIndex++;
+        }
+        return nbl::Result::SUCCESS;
+    }
+
+    nbl::Result nextChars(usize count, const char** read) {
+        NBL_ASSERT(count <= bufferCapacity);
+        if(bufferIndex + count >= bufferLength) [[unlikely]] {
+            if(reader.pfnRead == nullptr) return nbl::Result::UNEXPECTED_END_OF_STREAM;
+
+            usize toSave = bufferLength - bufferIndex;
+            if(toSave > 0) {
+                memmove(buffer, buffer + bufferIndex, toSave);
+            }
+
+            bufferLength = 0;
+
+            usize bytesRead = 0;
+            while(bufferLength < count) {
+                nbl::Result res = reader.read(buffer + toSave, 4096 - toSave, &bytesRead);
+                if(res.error()) return res;
+                bufferLength += bytesRead;
+
+                if(res == nbl::Result::END_OF_STREAM && bufferLength < count) {
+                    return nbl::Result::UNEXPECTED_END_OF_STREAM;
+                }
+            }
+
+            *read = buffer;
+            bufferIndex = count - 1;
+        } else {
+            *read = buffer + bufferIndex + 1;
+            bufferIndex += count;
+        }
+            
+
+        return nbl::Result::SUCCESS;
+    }
 };
 
 i32 _hexDigit(char c) {
@@ -30,98 +114,78 @@ bool _isWhitespace(char c) {
 
 nbl::Result _nextToken(_ParseContext* context) {
     do {
-        nbl::Result res = context->reader.readAll(&context->lastRead, 1);
+        nbl::Result res = context->nextChar();
         if(res.error()) return res;
-    } while(_isWhitespace(context->lastRead));
+    } while(_isWhitespace(context->lastRead()));
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator* storage, nbl::StringView* out) {
+nbl::Result _readString(_ParseContext* context, nbl::LinearAllocator* storage, nbl::StringView* out) {
 
-    if(*lastRead != '"') return nbl::Result::UNEXPECTED_TOKEN;
+    if(context->lastRead() != '"') return nbl::Result::UNEXPECTED_TOKEN;
     char* begin = static_cast<char*>(storage->end());
 
-    char buffer[1024];
-    usize bufferLength = 0;
-
-    auto _append = [&](char c) -> nbl::Result {
-        buffer[bufferLength++] = c;
-        if(bufferLength == 1024) {
-            NBL_CHECK(storage->write(buffer, 1024));
-            bufferLength = 0;
-        }
-        return nbl::Result::SUCCESS;
-    };
-
     while(true) {
-        NBL_CHECK(reader.readAll(lastRead, 1));
-        if(*lastRead >= 0 && *lastRead < 0x20) {
-            nbl::log(nbl::LogLevel::DEBUG, "Found control character: ", static_cast<i32>(*lastRead));
+        if(context->lastRead() < 0x20) {
             return nbl::Result::PARSE_ERROR;
         }
 
-        char c = *lastRead;
+        NBL_CHECK(context->nextChar());
+        char c = context->lastRead();
+
         if(c == '\\') {
-            NBL_CHECK(reader.readAll(lastRead, 1));
-            char next = *lastRead;
+            NBL_CHECK(context->nextChar());
+            char next = context->lastRead();
 
             switch(next) {
                 case '"': {
-                    NBL_CHECK(_append('"'));
+                    NBL_CHECK(storage->write("\"", 1));
                     break;
                 }
                 case '\\': {
-                    NBL_CHECK(_append('\\'));
+                    NBL_CHECK(storage->write("\\", 1));
                     break;
                 }
                 case '/': {
-                    NBL_CHECK(_append('/'));
+                    NBL_CHECK(storage->write("/", 1));
                     break;
                 }
                 case 'b': {
-                    NBL_CHECK(_append('\b'));
+                    NBL_CHECK(storage->write("\b", 1));
                     break;
                 }
                 case 'f': {
-                    NBL_CHECK(_append('\f'));
+                    NBL_CHECK(storage->write("\f", 1));
                     break;
                 }
                 case 'n': {
-                    NBL_CHECK(_append('\n'));
+                    NBL_CHECK(storage->write("\n", 1));
                     break;
                 }
                 case 'r': {
-                    NBL_CHECK(_append('\r'));
+                    NBL_CHECK(storage->write("\r", 1));
                     break;
                 }
                 case 't': {
-                    NBL_CHECK(_append('\t'));
+                    NBL_CHECK(storage->write("\t", 1));
                     break;
                 }
                 case 'u': {
-                    char codePointHex[4]{};
-                    NBL_CHECK(reader.readAll(codePointHex, 4));
+                    const char* codePointHex;
+                    NBL_CHECK(context->nextChars(4, &codePointHex));
 
-                    i32 codePoint = 0;
-                    for(i32 i = 0 ; i < 4 ; i++) {
+                    u32 codePoint = 0;
+                    for(auto i = 0 ; i < 4 ; i++) {
                         i32 val = _hexDigit(codePointHex[i]);
-                        if(val == -1) {
-                            nbl::log(nbl::LogLevel::DEBUG, "Invalid hex digit: ", static_cast<i32>(codePointHex[i]));
-                            return nbl::Result::PARSE_ERROR;
-                        }
+                        if(val == -1) return nbl::Result::PARSE_ERROR;
                         codePoint |= (val & 0xF) << ((3 - i) * 4);
                     }
 
-                    nbl::BufferStream buf(codePointHex, 4);
+                    char unicode[4]{};
+                    nbl::BufferStream buf(unicode, 4);
                     nbl::writeCodePoint(buf, codePoint);
 
-                    if(bufferLength > 1024 - buf.writerIndex() - 1) {
-                        NBL_CHECK(storage->write(buffer, 1024));
-                        bufferLength = 0;
-                    }
-
-                    memcpy(buffer + bufferLength, codePointHex, buf.writerIndex());
-                    bufferLength += buf.writerIndex();
+                    storage->write(unicode, buf.writerIndex());
                     break;
                 }
             }
@@ -130,16 +194,8 @@ nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator
             break;
         } 
         else {
-            buffer[bufferLength++] = c;
-            if(bufferLength == 1024) {
-                NBL_CHECK(storage->write(buffer, 1024));
-                bufferLength = 0;
-            }
+            storage->write(&c, 1);
         }
-    }
-
-    if(bufferLength > 0) {
-        NBL_CHECK(storage->write(buffer, bufferLength));
     }
 
     char nt = 0;
@@ -153,7 +209,7 @@ nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator
 
     if(padding > 0) {
         void* paddingData = nullptr;
-        NBL_CHECK(storage->push(padding, &paddingData));
+    NBL_CHECK(storage->push(padding, &paddingData));
         memset(paddingData, 0, padding);
     }
 
@@ -165,7 +221,7 @@ nbl::Result _readString(nbl::Reader reader, char* lastRead, nbl::LinearAllocator
 }
 
 nbl::Result _parseString(_ParseContext* context) {
-    NBL_CHECK(_readString(context->reader, &context->lastRead, context->storage, &context->outElement.string));
+    NBL_CHECK(_readString(context, context->storage, &context->outElement.string));
 
     nbl::Result res = _nextToken(context);
     if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
@@ -189,7 +245,7 @@ nbl::Result _parseArrayInPlace(_ParseContext* context, usize depth = 0) {
 
         elements[elementCount++] = context->outElement;
 
-        if(context->lastRead == ']') {
+        if(context->lastRead() == ']') {
 
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
@@ -197,7 +253,7 @@ nbl::Result _parseArrayInPlace(_ParseContext* context, usize depth = 0) {
             done = true;
             break;
         }
-        if(context->lastRead != ',') {
+        if(context->lastRead() != ',') {
             return nbl::Result::UNEXPECTED_TOKEN;
         }
 
@@ -226,10 +282,10 @@ nbl::Result _parseArrayInPlace(_ParseContext* context, usize depth = 0) {
 
 nbl::Result _parseArray(_ParseContext* context) {
 
-    if(context->lastRead != '[') return nbl::Result::UNEXPECTED_TOKEN;
+    if(context->lastRead() != '[') return nbl::Result::UNEXPECTED_TOKEN;
 
     NBL_CHECK(_nextToken(context));
-    if(context->lastRead == ']') {
+    if(context->lastRead() == ']') {
         context->outElement = nbl::JsonArray{
             .elements = nullptr,
             .count = 0
@@ -241,7 +297,7 @@ nbl::Result _parseArray(_ParseContext* context) {
 
     if(context->tempStorage == nullptr) return _parseArrayInPlace(context);
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
     void* firstElement = context->tempStorage->end();
     usize elements = 0;
@@ -252,7 +308,7 @@ nbl::Result _parseArray(_ParseContext* context) {
 
         elements++;
 
-        if(context->lastRead == ']') {
+        if(context->lastRead() == ']') {
 
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
@@ -270,7 +326,7 @@ nbl::Result _parseArray(_ParseContext* context) {
 
             return nbl::Result::SUCCESS;
         }
-        if(context->lastRead != ',') {
+        if(context->lastRead() != ',') {
             return nbl::Result::UNEXPECTED_TOKEN;
         }
         NBL_CHECK(_nextToken(context));
@@ -314,7 +370,7 @@ nbl::Result _parseObjectInPlace(_ParseContext* context, usize depth = 0) {
         nbl::JsonObject::Entry nextEntry = {};
         
         NBL_CHECK(_parseString(context));
-        if(context->lastRead != ':') {
+        if(context->lastRead() != ':') {
             return nbl::Result::UNEXPECTED_TOKEN;
         }
 
@@ -326,7 +382,7 @@ nbl::Result _parseObjectInPlace(_ParseContext* context, usize depth = 0) {
         nextEntry.value = context->outElement;
         entries[entryCount++] = nextEntry;
 
-        if(context->lastRead == '}') {
+        if(context->lastRead() == '}') {
 
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
@@ -334,7 +390,7 @@ nbl::Result _parseObjectInPlace(_ParseContext* context, usize depth = 0) {
             done = true;
             break;
         }
-        if(context->lastRead != ',') {
+        if(context->lastRead() != ',') {
             return nbl::Result::UNEXPECTED_TOKEN;
         }
 
@@ -384,10 +440,10 @@ nbl::Result _parseObjectInPlace(_ParseContext* context, usize depth = 0) {
 
 nbl::Result _parseObject(_ParseContext* context) {
 
-    if(context->lastRead != '{') return nbl::Result::UNEXPECTED_TOKEN;
+    if(context->lastRead() != '{') return nbl::Result::UNEXPECTED_TOKEN;
 
     NBL_CHECK(_nextToken(context));
-    if(context->lastRead == '}') {
+    if(context->lastRead() == '}') {
         context->outElement = nbl::JsonObject {
             .entries = nullptr,
             .entryCount = 0,
@@ -414,7 +470,7 @@ nbl::Result _parseObject(_ParseContext* context) {
         
         NBL_CHECK(_parseString(context));
 
-        if(context->lastRead != ':') {
+        if(context->lastRead() != ':') {
             return nbl::Result::UNEXPECTED_TOKEN;
         }
 
@@ -429,7 +485,7 @@ nbl::Result _parseObject(_ParseContext* context) {
 
         entries++;
 
-        if(context->lastRead == '}') {
+        if(context->lastRead() == '}') {
 
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
@@ -447,7 +503,7 @@ nbl::Result _parseObject(_ParseContext* context) {
 
             return nbl::Result::SUCCESS;
         }
-        if(context->lastRead != ',') {
+        if(context->lastRead() != ',') {
             return nbl::Result::UNEXPECTED_TOKEN;
         }
         NBL_CHECK(_nextToken(context));
@@ -455,29 +511,30 @@ nbl::Result _parseObject(_ParseContext* context) {
 }
 
 
+
 nbl::Result _parseExponentPart(_ParseContext* context, u64 wholePart, f64 decimalPart, bool negative) {
 
     bool expNegative = false;
-    NBL_CHECK(context->reader.readAll(&context->lastRead, 1));
-    if(context->lastRead == '-') {
+    NBL_CHECK(context->nextChar());
+    if(context->lastRead() == '-') {
         expNegative = true;
-    } else if(context->lastRead != '+' && context->lastRead < '0' || context->lastRead > '9') {
+    } else if(context->lastRead() != '+' && context->lastRead() < '0' || context->lastRead() > '9') {
         return nbl::Result::PARSE_ERROR;
     }
 
     u64 exponent = 0;
     while(true) {
 
-        nbl::Result res = context->reader.readAll(&context->lastRead, 1);
+        nbl::Result res = context->nextChar();
         if(res.error()) {
             if(res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
         } else {
-            if(context->lastRead >= '0' && context->lastRead <= '9') {
+            if(context->lastRead() >= '0' && context->lastRead() <= '9') {
                 exponent *= 10;
-                exponent += context->lastRead - '0';
+                exponent += context->lastRead() - '0';
                 continue;
             }
-            else if(_isWhitespace(context->lastRead)) {
+            else if(_isWhitespace(context->lastRead())) {
                 res = _nextToken(context);
                 if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
             }
@@ -491,8 +548,10 @@ nbl::Result _parseExponentPart(_ParseContext* context, u64 wholePart, f64 decima
                 final *= 10.0;
             }
 
-            context->outElement = final;
-
+            context->outElement = nbl::JsonNumber {
+                .type = nbl::JsonNumberType::FLOAT,
+                .floatValue = final
+            };
         } else {
 
             for(usize i = 0 ; i < exponent ; i++) {
@@ -500,9 +559,15 @@ nbl::Result _parseExponentPart(_ParseContext* context, u64 wholePart, f64 decima
             }
 
             if(negative) {
-                context->outElement = -static_cast<i64>(wholePart);
+                context->outElement = nbl::JsonNumber {
+                    .type = nbl::JsonNumberType::SIGNED,
+                    .intValue = -static_cast<i64>(wholePart)
+                };
             } else {
-                context->outElement = wholePart;
+                context->outElement = nbl::JsonNumber {
+                    .type = nbl::JsonNumberType::UNSIGNED,
+                    .uintValue = wholePart
+                };
             }
         }
 
@@ -513,29 +578,29 @@ nbl::Result _parseExponentPart(_ParseContext* context, u64 wholePart, f64 decima
 
 nbl::Result _parseDecimalPart(_ParseContext* context, u64 wholePart, bool negative) {
 
-    NBL_CHECK(context->reader.readAll(&context->lastRead, 1));
-    if(context->lastRead < '0' || context->lastRead > '9') {
+    NBL_CHECK(context->nextChar());
+    if(context->lastRead() < '0' || context->lastRead() > '9') {
         return nbl::Result::PARSE_ERROR;
     }
 
     usize digits = 1;
-    u64 decimalPart = context->lastRead - '0';
+    u64 decimalPart = context->lastRead() - '0';
     
     while(true) {
-        nbl::Result res = context->reader.readAll(&context->lastRead, 1);
+        nbl::Result res = context->nextChar();
         if(res.error()) {
             if(res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
         } else {
-            if(context->lastRead == 'e' || context->lastRead == 'E') {
+            if(context->lastRead() == 'e' || context->lastRead() == 'E') {
                 return _parseExponentPart(context, wholePart, static_cast<f64>(decimalPart) / (digits * 10), negative);
             }
-            else if(context->lastRead >= '0' && context->lastRead <= '9') {
+            else if(context->lastRead() >= '0' && context->lastRead() <= '9') {
                 decimalPart *= 10;
-                decimalPart += context->lastRead - '0';
+                decimalPart += context->lastRead() - '0';
                 digits++;
                 continue;
             }
-            else if(_isWhitespace(context->lastRead)) {
+            else if(_isWhitespace(context->lastRead())) {
                 res = _nextToken(context);
                 if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
             }
@@ -547,7 +612,10 @@ nbl::Result _parseDecimalPart(_ParseContext* context, u64 wholePart, bool negati
         }
         f64 final = static_cast<f64>(wholePart) + after;
         if(negative) final = -final;
-        context->outElement = final;
+        context->outElement = nbl::JsonNumber{
+            .type = nbl::JsonNumberType::FLOAT,
+            .floatValue = final
+        };
 
         return nbl::Result::SUCCESS;
     }
@@ -557,101 +625,113 @@ nbl::Result _parseDecimalPart(_ParseContext* context, u64 wholePart, bool negati
 nbl::Result _parseNumber(_ParseContext* context) {
 
     bool negative = false;
-    if(context->lastRead == '-') {
+    if(context->lastRead() == '-') {
         negative = true;
-        NBL_CHECK(context->reader.readAll(&context->lastRead, 1));
+        NBL_CHECK(context->nextChar());
     }
 
-    if(context->lastRead == '0') {
+    if(context->lastRead() == '0') {
         // Zero or decimal
 
-        nbl::Result res = context->reader.readAll(&context->lastRead, 1);
+        nbl::Result res = context->nextChar();
         if(res.error()) {
             if(res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
         } else {
-            if(context->lastRead == '.') {
+            if(context->lastRead() == '.') {
                 return _parseDecimalPart(context, 0, negative);
             }
-            else if(context->lastRead == 'e' || context->lastRead == 'E') {
+            else if(context->lastRead() == 'e' || context->lastRead() == 'E') {
                 return _parseExponentPart(context, 0, 0.0, negative);
             }
-            else if(_isWhitespace(context->lastRead)) {
+            else if(_isWhitespace(context->lastRead())) {
                 res = _nextToken(context);
                 if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
             }
         }
-        context->outElement = nbl::JsonElement(0);
+        context->outElement = nbl::JsonNumber{
+            .type = nbl::JsonNumberType::SIGNED,
+            .intValue = 0
+        };
         return nbl::Result::SUCCESS;
     }
 
-    if(context->lastRead < '1' || context->lastRead > '9') {
+    if(context->lastRead() < '1' || context->lastRead() > '9') {
         return nbl::Result::PARSE_ERROR;
     }
 
-    u64 wholePart = context->lastRead - '0';
+    u64 wholePart = context->lastRead() - '0';
 
     while(true) {
-        nbl::Result res = context->reader.readAll(&context->lastRead, 1);
+        nbl::Result res = context->nextChar();
 
         if(res.error()) {
             if(res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
         } else {
-            if(context->lastRead == '.') {
+            if(context->lastRead() == '.') {
                 return _parseDecimalPart(context, wholePart, negative);
             }
-            else if(context->lastRead == 'e' || context->lastRead == 'E') {
+            else if(context->lastRead() == 'e' || context->lastRead() == 'E') {
                 return _parseExponentPart(context, wholePart, 0.0, negative);
             }
-            else if(context->lastRead >= '0' && context->lastRead <= '9') {
+            else if(context->lastRead() >= '0' && context->lastRead() <= '9') {
                 wholePart *= 10;
-                wholePart += context->lastRead - '0';
+                wholePart += context->lastRead() - '0';
                 continue;
             }
-            else if(_isWhitespace(context->lastRead)) {
+            else if(_isWhitespace(context->lastRead())) {
                 res = _nextToken(context);
                 if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
             }
         }
 
         if(negative) {
-            context->outElement = -static_cast<i64>(wholePart);
+            context->outElement = nbl::JsonNumber {
+                .type = nbl::JsonNumberType::SIGNED,
+                .intValue = -static_cast<i64>(wholePart)
+            };
         } else {
-            context->outElement = wholePart;
+            context->outElement = nbl::JsonNumber {
+                .type = nbl::JsonNumberType::UNSIGNED,
+                .uintValue = static_cast<u64>(wholePart)
+            };
         }
 
         return nbl::Result::SUCCESS;
     }
 }
 
+
 nbl::Result _parseElement(_ParseContext* context) {
 
-    char c = context->lastRead;
+    char c = context->lastRead();
     switch(c) {
         case 'n': { // null
-            u8 remaining[3];
-            NBL_CHECK(context->reader.readAll(remaining, 3));
+            const char* remaining = nullptr;
+            NBL_CHECK(context->nextChars(3, &remaining));
             if(memcmp(remaining, "ull", 3) == 0) {
-                context->outElement = {};
+                context->outElement.type = nbl::JsonType::NONE;
             }
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
             return nbl::Result::SUCCESS;
         }
         case 't': { // true
-            u8 remaining[3];
-            NBL_CHECK(context->reader.readAll(remaining, 3));
+            const char* remaining = nullptr;
+            NBL_CHECK(context->nextChars(3, &remaining));
             if(memcmp(remaining, "rue", 3) == 0) {
-                context->outElement = true;
+                context->outElement.type = nbl::JsonType::BOOLEAN;
+                context->outElement.boolean = true;
             }
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
             return nbl::Result::SUCCESS;
         }
         case 'f': { // false
-            u8 remaining[4];
-            NBL_CHECK(context->reader.readAll(remaining, 4));
+            const char* remaining = nullptr;
+            NBL_CHECK(context->nextChars(4, &remaining));
             if(memcmp(remaining, "alse", 4) == 0) {
-                context->outElement = false;
+                context->outElement.type = nbl::JsonType::BOOLEAN;
+                context->outElement.boolean = false;
             }
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
@@ -673,15 +753,26 @@ nbl::Result nbl::parseJson(nbl::Reader reader, nbl::LinearAllocator* storage, nb
 
     if(tempStorage == storage || storage == nullptr) return nbl::Result::INVALID_ARGUMENT;
 
+    char buffer[4096]{};
+
     _ParseContext ctx = {
         .reader = reader,
         .storage = storage,
         .tempStorage = tempStorage,
         .outElement = {},
-        .lastRead = 0
+        .bufferIndex = 0,
+        .bufferLength = 0,
+        .bufferCapacity = 4096,
+        .buffer = buffer
     };
 
-    NBL_CHECK(_nextToken(&ctx));
+
+    nbl::Result res = reader.read(buffer, 4096, &ctx.bufferLength);
+    if(res.error()) return res;
+    if(res == nbl::Result::END_OF_STREAM && ctx.bufferLength == 0) {
+        return nbl::Result::UNEXPECTED_END_OF_STREAM;
+    }
+
     NBL_CHECK(_parseElement(&ctx));
 
     if(outElement) *outElement = ctx.outElement;
@@ -689,18 +780,52 @@ nbl::Result nbl::parseJson(nbl::Reader reader, nbl::LinearAllocator* storage, nb
 
 }
 
+nbl::Result nbl::parseJson(nbl::StringView str, nbl::LinearAllocator* storage, nbl::JsonElement* outElement, nbl::LinearAllocator* tempStorage) {
+
+    if(tempStorage == storage || storage == nullptr) return nbl::Result::INVALID_ARGUMENT;
+    if(str.length == 0) return Result::UNEXPECTED_END_OF_STREAM;
+
+    _ParseContext ctx = {
+        .reader = {},
+        .storage = storage,
+        .tempStorage = tempStorage,
+        .outElement = {},
+        .bufferIndex = 0,
+        .bufferLength = str.length,
+        .bufferCapacity = str.length,
+        .buffer = const_cast<char*>(str.data)
+    };
+
+    NBL_CHECK(_parseElement(&ctx));
+
+    if(outElement) *outElement = ctx.outElement;
+    return nbl::Result::SUCCESS;
+
+}
+
+
 nbl::Result nbl::parseJsonNumber(Reader reader, JsonNumber* outNumber) {
+
+    char buffer[256]{};
 
     _ParseContext ctx = {
         .reader = reader,
         .storage = nullptr,
         .tempStorage = nullptr,
         .outElement = {},
-        .lastRead = 0
+        .bufferIndex = 0,
+        .bufferLength = 0,
+        .bufferCapacity = 256,
+        .buffer = buffer
     };
 
-    NBL_CHECK(_nextToken(&ctx));
-    if(ctx.lastRead >= '0' && ctx.lastRead <= '9' || ctx.lastRead == '-') {
+    nbl::Result res = reader.read(buffer, 256, &ctx.bufferLength);
+    if(res.error()) return res;
+    if(res == nbl::Result::END_OF_STREAM && ctx.bufferLength == 0) {
+        return nbl::Result::UNEXPECTED_END_OF_STREAM;
+    }
+
+    if(ctx.lastRead() >= '0' && ctx.lastRead() <= '9' || ctx.lastRead() == '-') {
         NBL_CHECK(_parseNumber(&ctx));
 
         if(outNumber) *outNumber = ctx.outElement.number;

@@ -1,7 +1,22 @@
-// Copyright (c) jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file DynamicLibrary.cpp
+ * \file Platform/Linux/DynamicLibrary.cpp
  * \author jwall64
  * \brief Implementation of Platform/DynamicLibrary.hpp for Linux
  */
@@ -14,7 +29,7 @@
 #include <Core/Result.hpp>
 #include <Platform/Logging.hpp>
 #include <Platform/Arena.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 
 #include <dlfcn.h>
 
@@ -38,7 +53,7 @@ nbl::DynamicLibrary::~DynamicLibrary() {
 
 nbl::Result nbl::DynamicLibrary::_findSymbol(StringView name, void** outSym) {
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::StringView zName;
     NBL_CHECK(nbl::StringBuilder::nullTerminate(name, &zName, &frame));
 
@@ -62,7 +77,7 @@ nbl::Result nbl::DynamicLibrary::load(StringView path, DynamicLibrary* outLibrar
     }
 
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::StringView zPath;
     NBL_CHECK(nbl::StringBuilder::nullTerminate(path, &zPath, &frame));
 

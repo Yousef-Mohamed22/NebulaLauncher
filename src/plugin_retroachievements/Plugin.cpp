@@ -1,3 +1,26 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file Plugin.cpp
+ * \author jwall64
+ * \brief RetroAchievements plugin entrypoint
+ */
+
 #include <Plugin/PluginInitializer.hpp>
 #include <Plugin/AchievementProvider.hpp>
 #include <Plugin/AccountProvider.hpp>
@@ -7,7 +30,7 @@
 #include <Data/Model.hpp>
 #include <Data/OnlineAccountModel.hpp>
 #include <Platform/Allocator.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 #include <Plugin/Field.hpp>
 
 #include "Constants.hpp"
@@ -72,7 +95,7 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 
     nbl::StringView fields = account.fields;
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::JsonElement element{};
     NBL_CHECK(nbl::parseJson(nbl::StringReader(account.fields), &frame, &element));
 
@@ -163,7 +186,7 @@ nbl::Result _updateAchievementState(nbl::PluginContext* context, const nbl::Game
         NBL_CHECK(helper.getSetProviderData(setNames[index], &data));
         if(!data.foundRealName && _profile.isValid()) {
 
-            nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+            nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
             nbl::StringView url;
             NBL_CHECK(nbl::StringBuilder(&frame)
@@ -211,7 +234,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
     _ProviderData ud{};
     set.getProviderData(&ud);
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
     nbl::StringView url;
     NBL_CHECK(nbl::StringBuilder(&frame)
@@ -303,7 +326,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
             } else if(type == "missable") {
                 flags |= nbl::AchievementFlag::MISSABLE;
             }
-            nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+            nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
             nbl::StringView badgeUrl{};
             nbl::StringBuilder(&frame)

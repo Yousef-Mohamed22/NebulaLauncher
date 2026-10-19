@@ -1,10 +1,33 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file Plugin.cpp
+ * \author jwall64
+ * \brief SteamGridDB plugin
+ */
+
 #include <Plugin/PluginInitializer.hpp>
 #include <Plugin/MetadataProvider.hpp>
 #include <Plugin/AccountProvider.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/File.hpp>
 #include <Platform/Logging.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Network/HttpClient.hpp>
 #include <Codec/Json.hpp>
@@ -60,7 +83,7 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 
     nbl::StringView fields = account.fields;
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::JsonElement element{};
     NBL_CHECK(nbl::parseJson(nbl::StringReader(account.fields), &frame, &element));
 
@@ -95,7 +118,7 @@ bool _canProvide(nbl::PluginContext* context, const nbl::MetadataLookupInfo& inf
 
 nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo& info, nbl::MetadataCallback callback, void* userData) {
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::StringView authHeader;
     nbl::StringBuilder(&frame).append("Bearer ").append(nbl::StringView(_tokenBuffer, _tokenLength)).buildNullTerminated(&authHeader);
 
@@ -445,7 +468,7 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
     }, nullptr);
 
     {
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::AllocationFrame frame(nbl::Arena::threadLocal());
         nbl::Span<nbl::FieldValue> values{};
         NBL_CHECK(context->getStoredFieldValues(_pluginFields, &values, &frame));
         _filters.allowNsfw = values[0].enumValue;
@@ -453,7 +476,7 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
         _filters.allowFlash = values[2].enumValue;
     }
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::StringView pluginFolder;
     nbl::StringView apiKeyPath;
 

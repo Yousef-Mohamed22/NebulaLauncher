@@ -1,14 +1,30 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file InstallationModel.cpp
+ * \file Data/InstallationModel.cpp
  * \author jwall64
- * \brief Partial implementation of Data/Model.hpp. Functions related to installation management.
+ * \brief Partial implementation of Data/Model.hpp
  */
+
 
 #include <Core/Result.hpp>
 #include <Core/Array.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 #include <Platform/Time.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
@@ -278,7 +294,7 @@ LIMIT ?11
 OFFSET ?10;
         )";
 
-        ArenaFrame frame(Arena::threadLocal());
+        AllocationFrame frame(Arena::threadLocal());
 
         StringBuilder stmtBuilder(&frame);
         stmtBuilder.append(_stmtBegin);
@@ -331,7 +347,7 @@ OFFSET ?10;
 
 
 
-    ArenaFrame frame(Arena::threadLocal());
+    AllocationFrame frame(Arena::threadLocal());
 
     if(criteria.tags.length == 0) {
         NBL_CHECK(lookupInstallationsStmt.bindNull(1));

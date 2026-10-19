@@ -1,3 +1,18 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include "Field/FieldRef.hpp"
 #include "Field/FieldList.hpp"
 #include "Field/EnumFieldModel.hpp"
@@ -8,7 +23,7 @@
 #include <Plugin/Field.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Platform/Allocator.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 
 namespace {
 
@@ -253,7 +268,7 @@ void nbl::frontend::FieldRef::action() {
 
 void nbl::frontend::FieldRef::fieldAction(QVariant variant) {
     nbl::PluginContext* context = ApplicationContext::instance()->pluginContext();
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     _pField->fieldActionData.activate(context, toNbl(variant, &frame));
 }
 
@@ -277,7 +292,7 @@ QVariant nbl::frontend::FieldRef::parse(QByteArray encodedFields, nbl::Span<nbl:
     };
 
     QVariant qtFields = QVariantMap();
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::Span<nbl::FieldValue> values;
     if(frame.allocate(&values.data, fields.length).error()) return QVariant();
 

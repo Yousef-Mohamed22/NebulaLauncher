@@ -1,3 +1,20 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 #include <Codec/Json.hpp>
 #include <gtest/gtest.h>
 
@@ -237,11 +254,10 @@ TEST(Json, ParseFilter) {
     nbl::JsonElement element = {};
     
     nbl::StringView json = "{\"maxRating\":0.0,\"minPlayTime\":0,\"sortBy\":\"last_played\",\"excludedTags\":[],\"minRating\":0.0,\"offset\":0,\"limit\":0,\"sortOrder\":\"descending\",\"minReleaseDate\":0,\"maxReleaseDate\":0,\"maxPlayTime\":0,\"titleFilter\":\"\",\"tags\":[]}";
-    nbl::BufferStream stream(const_cast<char*>(json.data), json.length);
 
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
-    EXPECT_EQ(nbl::parseJson(stream, &storage, &element), nbl::Result::SUCCESS);
+    EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
 
     EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
     EXPECT_EQ(element.object.entryCount, 13);
@@ -253,11 +269,10 @@ TEST(Json, ParseCommand) {
     nbl::JsonElement element = {};
     
     nbl::StringView json = "{\"command\":\"\\\"/mnt/Games/Game/launch.sh\\\"\",\"working_dir\":\"/mnt/Games/Game\"}";
-    nbl::BufferStream stream(const_cast<char*>(json.data), json.length);
 
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
-    EXPECT_EQ(nbl::parseJson(stream, &storage, &element), nbl::Result::SUCCESS);
+    EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
 
     EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
     EXPECT_EQ(element.object.entryCount, 2);
@@ -280,11 +295,10 @@ TEST(Json, ParseUnicode) {
     nbl::JsonElement element = {};
 
     nbl::StringView json = "\"\\u0027\"";
-    nbl::BufferStream stream(const_cast<char*>(json.data), json.length);
 
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
-    EXPECT_EQ(nbl::parseJson(stream, &storage, &element), nbl::Result::SUCCESS);
+    EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
 
     EXPECT_EQ(element.type, nbl::JsonType::STRING);
     EXPECT_EQ(element.string, "'");

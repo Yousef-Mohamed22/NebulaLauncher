@@ -1,55 +1,49 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file Span.hpp
+ * \file Core/Span.hpp
  * \author jwall64
- * \brief A simple implementation of a span type
+ * \brief Contains Span and ConstSpan types, representing non-owning views into contiguous memory.
  */
 
 #pragma once
 
 #include <Core/Types.hpp>
-#include <Platform/Assert.hpp>
+#include <Core/Assert.hpp>
 
 namespace nbl {
 
-/**
- * \brief A simple implementation of a span type that represents a contiguous sequence of elements.
- * \tparam T The type of the elements in the span.
- */
+
 template<typename T>
 struct ConstSpan {
     
-    /**
-     * \brief Pointer to the first element in the span.
-     */
-    const T* data;
 
-    /**
-     * \brief The number of elements in the span.
-     */
+    const T* data;
     usize length;
 
-    /**
-     * \brief Index operator to access elements in the span.
-     * \param index The index of the element to access.
-     * \return A reference to the element at the specified index.
-     */
+
     constexpr const T& operator[](usize index) const { 
         NBL_ASSERT(index < length);
         return data[index]; 
     }
 
-    /**
-     * \brief Returns an iterator to the first element in the span.
-     * \return A pointer to the first element in the span.
-     */
-    constexpr const T* begin() const { return data; }
 
-    /**
-     * \brief Returns an iterator to one past the last element in the span.
-     * \return A pointer to one past the last element in the span.
-     */
+    constexpr const T* begin() const { return data; }
     constexpr const T* end() const { return data + length; }
 
     constexpr bool contains(const T& value) const {
@@ -73,65 +67,29 @@ struct ConstSpan {
 
 
 
-/**
- * \brief A simple implementation of a span type that represents a contiguous sequence of elements.
- * \tparam T The type of the elements in the span.
- */
 template<typename T>
 struct Span {
     
-    /**
-     * \brief Pointer to the first element in the span.
-     */
-    T* data;
 
-    /**
-     * \brief The number of elements in the span.
-     */
+    T* data;
     usize length;
 
-    /**
-     * \brief Index operator to access elements in the span.
-     * \param index The index of the element to access.
-     * \return A reference to the element at the specified index.
-     */
+
     constexpr const T& operator[](usize index) const { 
         NBL_ASSERT(index < length);
         return data[index]; 
     }
 
-    /**
-     * \brief Index operator to access elements in the span.
-     * \param index The index of the element to access.
-     * \return A reference to the element at the specified index.
-     */
     constexpr T& operator[](usize index) { 
         NBL_ASSERT(index < length);
         return data[index]; 
     }
 
-    /**
-     * \brief Returns an iterator to the first element in the span.
-     * \return A pointer to the first element in the span.
-     */
-    constexpr T* begin() { return data; }
 
-    /**
-     * \brief Returns an iterator to one past the last element in the span.
-     * \return A pointer to one past the last element in the span.
-     */
+    constexpr T* begin() { return data; }
     constexpr T* end() { return data + length; }
 
-    /**
-     * \brief Returns a const iterator to the first element in the span.
-     * \return A pointer to the first element in the span.
-     */
     constexpr const T* begin() const { return data; }
-
-    /**
-     * \brief Returns a const iterator to one past the last element in the span.
-     * \return A pointer to one past the last element in the span.
-     */
     constexpr const T* end() const { return data + length; }
 
     constexpr operator ConstSpan<T>() const {

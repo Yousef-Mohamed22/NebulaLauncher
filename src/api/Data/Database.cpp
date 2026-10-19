@@ -1,4 +1,19 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
  * \file Database.cpp
@@ -10,7 +25,7 @@
 #include <Platform/Arena.hpp>
 #include <Codec/Json.hpp>
 #include <Platform/Logging.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 #include <Data/Database.hpp>
 
 #include <climits>
@@ -272,7 +287,7 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
         const char** columnNames = nullptr;
         DataValue* columnValues = nullptr;
 
-        nbl::ArenaFrame frame(&_mArena);
+        nbl::AllocationFrame frame(&_mArena);
         int columns = sqlite3_column_count(stmt);
 
         if(columns > 0) {
@@ -349,7 +364,7 @@ nbl::Result nbl::DatabaseConnection::beginTransaction() {
 
     if(_mTransactionDepth++ > 0) {
 
-        ArenaFrame frame(Arena::threadLocal());
+        AllocationFrame frame(Arena::threadLocal());
         StringView sql{};
         NBL_CHECK(StringBuilder(&frame).append("SAVEPOINT sp").append(_mTransactionDepth).append(";").build(&sql));
 
@@ -378,7 +393,7 @@ nbl::Result nbl::DatabaseConnection::commitTransaction() {
 nbl::Result nbl::DatabaseConnection::rollbackTransaction() {
 
     if(--_mTransactionDepth > 0) {
-        ArenaFrame frame(Arena::threadLocal());
+        AllocationFrame frame(Arena::threadLocal());
         StringView sql{};
         NBL_CHECK(StringBuilder(&frame).append("ROLLBACK TO SAVEPOINT sp").append(_mTransactionDepth + 1).append(";").build(&sql));
         return execute(sql);
@@ -404,7 +419,7 @@ nbl::Result nbl::DatabaseConnection::open(nbl::StringView path, DatabaseConnecti
 
     nbl::Arena::create(1024 * 1024, &outConnection->_mArena);
 
-    nbl::ArenaFrame frame(&outConnection->_mArena);
+    nbl::AllocationFrame frame(&outConnection->_mArena);
     nbl::StringView nullTerminatedPath;
     NBL_CHECK(nbl::StringBuilder::nullTerminate(path, &nullTerminatedPath, &frame));
 

@@ -1,10 +1,26 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file Process.cpp
+ * \file Platform/Linux/Process.cpp
  * \author jwall64
- * \brief Partial implementation of Platform/Process.hpp for Linux. Includes process creation and management functions.
+ * \brief Partial implementation of Platform/Process.hpp for Linux.
  */
+
 
 #include <Platform/PlatformDefines.hpp>
 #ifdef NBL_PLATFORM_LINUX
@@ -14,7 +30,7 @@
 #include <Core/String.hpp>
 #include <Platform/Arena.hpp>
 #include <Platform/Process.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 
 #include "LinuxUtil.hpp"
 
@@ -66,7 +82,7 @@ nbl::StringView nbl::getEnv(nbl::StringView name) {
         value = ::getenv(name.data);
     } else {
         nbl::StringView data;
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::AllocationFrame frame(nbl::Arena::threadLocal());
         if(nbl::StringBuilder::nullTerminate(name, &data, &frame).error()) return "";
         value = ::getenv(data.data);
     }
@@ -77,7 +93,7 @@ nbl::StringView nbl::getEnv(nbl::StringView name) {
 
 void nbl::setEnv(StringView name, StringView value, bool overwrite) {
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     if(!name.nullTerminated) {
         StringBuilder(&frame).append(name).buildNullTerminated(&name);
     } 
@@ -219,7 +235,7 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
 
         if(!options.workingDir.empty()) {
 
-            nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+            nbl::AllocationFrame frame(nbl::Arena::threadLocal());
             nbl::StringView path;
             if(nbl::StringBuilder::nullTerminate(options.workingDir, &path, &frame).error()) {
                 exit(1);
@@ -283,7 +299,7 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
         close(nullfd);
 
         // Start the process
-        nbl::ArenaFrame frame = nbl::ArenaFrame(nbl::Arena::threadLocal());
+        nbl::AllocationFrame frame = nbl::AllocationFrame(nbl::Arena::threadLocal());
 
         char** argv;
         if(frame.allocate(&argv, sizeof(const char**) * (args.length + 2)).error()) {

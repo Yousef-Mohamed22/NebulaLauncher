@@ -1,3 +1,20 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 #include "ApplicationContext.hpp"
 
 #include <Core/Result.hpp>
@@ -7,10 +24,10 @@
 #include <Platform/Logging.hpp>
 #include <Platform/Time.hpp>
 #include <Platform/Arena.hpp>
-#include <Platform/Assert.hpp>
+#include <Core/Assert.hpp>
 #include <Platform/File.hpp>
 #include <Platform/Process.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 #include <Plugin/InstallationType.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/AchievementProvider.hpp>
@@ -52,7 +69,7 @@ nbl::Result ApplicationContext::pushImage(const QString& url, nbl::ImageClass ic
 
 void ApplicationContext::_initialize() {
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
     QByteArray qDataDir = dataFolder().toUtf8();
     nbl::StringView nblDataDir = nbl::StringView(qDataDir.data(), qDataDir.length());

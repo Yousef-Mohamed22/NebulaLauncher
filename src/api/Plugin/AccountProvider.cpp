@@ -1,21 +1,45 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file Plugin/AccountProvider.cpp
+ * \author jwall64
+ * \brief Implementation of Plugin/AccountProvider.hpp
+ */
+
 #include <Plugin/AccountProvider.hpp>
-#include <Data/OnlineAccountModel.hpp>
-#include <Platform/Time.hpp>
-#include <Codec/Base64.hpp>
+
 #include <Core/Random.hpp>
+#include <Core/Result.hpp>
+#include <Codec/Base64.hpp>
+#include <Platform/Time.hpp>
+#include <Platform/Random.hpp>
 #include <Network/HttpClient.hpp>
 #include <Network/HttpServer.hpp>
-#include <Platform/Random.hpp>
-#include <Utility/Hash.hpp>
-#include <Core/Result.hpp>
 #include <Plugin/Field.hpp>
 #include <Data/Model.hpp>
-#include "Data/MediaManager.hpp"
+#include <Data/MediaManager.hpp>
+#include <Data/OnlineAccountModel.hpp>
+#include <Utility/Hash.hpp>
 
 
 void nbl::LoginTracker::complete(PluginContext* context, StringView username, StringView icon, OnlineAccountFlags flags, Span<FieldValue> values) {
 
-    ArenaFrame frame(Arena::threadLocal());
+    AllocationFrame frame(Arena::threadLocal());
     StringBuilder builder(&frame);
     nbl::Result res;
     if((res = nbl::encodeFieldValues(context, _pActive->fields, values, builder)).error()) {
@@ -107,7 +131,7 @@ nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView client
                 break;
         }
 
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::AllocationFrame frame(nbl::Arena::threadLocal());
         StringView finalUrl;
         nbl::StringBuilder builder(&frame);
         builder

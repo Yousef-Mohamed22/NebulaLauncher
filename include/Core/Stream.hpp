@@ -1,9 +1,24 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file Stream.hpp
+ * \file Core/Stream.hpp
  * \author jwall64
- * \brief A simple implementation of stream reader and writer interfaces.
+ * \brief Contains Reader and Writer interfaces for dealing with byte streams.
  */
 
 #pragma once
@@ -127,6 +142,7 @@ struct Reader {
     Result (*pfnRead)(void* impl, void* data, usize length, usize* bytesRead);
 };
 
+
 /**
  * \brief A simple stream implementation for reading and writing from a known buffer.
  */
@@ -155,11 +171,9 @@ public:
     }
 
     usize writerIndex() const { return _mWriterIndex; }
-
     usize readerIndex() const { return _mReaderIndex; }
 
     void resetWriterIndex() { _mWriterIndex = 0; }
-
     void resetReaderIndex() { _mReaderIndex = 0; }
 
 private:
@@ -203,6 +217,7 @@ private:
         return nbl::Result::END_OF_STREAM;
     }
 };
+
 
 /**
  * \brief A writer which first writes to a buffer in memory, then flushes data to the underlying writer in batches

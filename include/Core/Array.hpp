@@ -1,9 +1,24 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file Array.hpp
+ * \file Core/Array.hpp
  * \author jwall64
- * \brief Fixed length array class.
+ * \brief Contains a fixed-size array type
  */
 
 #pragma once
@@ -14,7 +29,7 @@
 namespace nbl {
 
 /**
- * \brief A simple implementation of a fixed-size array type that can be initialized with a list of values.
+ * \brief A simple implementation of a fixed-size array.
  * \tparam T The type of the elements in the array.
  * \tparam Length The number of elements in the array.
  */
@@ -23,34 +38,16 @@ struct Array {
 
     T data[Length];
 
-    /**
-     * \brief Returns the size (length) of the array
-     * \return The length of the array
-     */
+
     constexpr usize size() const { return Length; }
 
-    /**
-     * \brief Index operator to access elements in the array.
-     * \param index The index of the element to access.
-     * \return A reference to the element at the specified index.
-     */
     constexpr const T& operator[](usize index) const { return data[index]; }
-
-    /**
-     * \brief Index operator to access elements in the array.
-     * \param index The index of the element to access.
-     * \return A reference to the element at the specified index.
-     */
     constexpr T& operator[](usize index) { return data[index]; }
 
-    /** 
-     * \brief Implicit conversion operator that allows an Array to be used as a Span. This operator constructs a Span struct with the appropriate data pointer and length for the array.
-     * \return A Span representing the elements in the array.
-     */
+
     constexpr operator Span<T>() {
         return Span<T> { data, Length };
     }
-
     constexpr operator ConstSpan<T>() const {
         return ConstSpan<T> { data, Length };
     }
@@ -68,34 +65,14 @@ struct Array {
     }
 
 
-    /** 
-     * \brief Returns an iterator to the first element in the array.
-     * \return A pointer to the first element in the array.
-     */
     constexpr T* begin() { return data; }
-
-    /** 
-     * \brief Returns an iterator to one past the last element in the array.
-     * \return A pointer to one past the last element in the array.
-     */
     constexpr T* end() { return data + Length; }
 
-    /** 
-     * \brief Returns a const iterator to the first element in the array.
-     * \return A pointer to the first element in the array.
-     */
-    constexpr const T* begin() const { return data; }
 
-    /** 
-     * \brief Returns a const iterator to one past the last element in the array.
-     * \return A pointer to one past the last element in the array.
-     */
+    constexpr const T* begin() const { return data; }
     constexpr const T* end() const { return data + Length; }
 
-    /**
-     * \brief Determines if the given value is present in the array.
-     * \return True if the given value is present in the array.
-     */
+
     constexpr bool contains(const T& value) const { 
         return span().contains(value); 
     }

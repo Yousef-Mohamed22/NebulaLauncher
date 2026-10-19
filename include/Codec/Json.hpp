@@ -1,9 +1,32 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file Codec/Json.hpp
+ * \author jwall64
+ * \brief Interface for reading and writing JSON data
+ */
+
 #pragma once
 
 #include <Core/Types.hpp>
 #include <Core/String.hpp>
 #include <Platform/Arena.hpp>
-#include <Platform/Assert.hpp>
+#include <Core/Assert.hpp>
 #include <Platform/Allocator.hpp>
 
 #include <functional>
@@ -134,6 +157,11 @@ struct JsonElement {
         type(JsonType::NONE)
     {} 
 
+    JsonElement(JsonNumber number) :
+        type(JsonType::NUMBER),
+        number(number)
+    {}
+
     JsonElement(u64 uint) :
         type(JsonType::NUMBER),
         number{ .type = JsonNumberType::UNSIGNED, .uintValue = uint }
@@ -257,6 +285,7 @@ inline const JsonObject::Entry* JsonObject::end() const {
 }
 
 Result parseJson(Reader reader, LinearAllocator* storage, JsonElement* outElement, LinearAllocator* tempStorage = nullptr);
+Result parseJson(StringView string, LinearAllocator* storage, JsonElement* outElement, LinearAllocator* tempStorage = nullptr);
 Result parseJsonNumber(Reader reader, JsonNumber* outNumber);
 Result writeJson(Writer writer, JsonElement element);
 

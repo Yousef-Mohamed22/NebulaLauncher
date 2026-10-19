@@ -1,24 +1,38 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file File.cpp
+ * \file Platform/Linux/File.cpp
  * \author jwall64
  * \brief Implementation of Platform/File.hpp for Linux.
  */
 
 
-#include <linux/limits.h>
 #include <Platform/PlatformDefines.hpp>
-#include <cerrno>
-#include "Core/Math.hpp"
 #ifdef NBL_PLATFORM_LINUX
 
 #include <Core/Result.hpp>
-#include <Platform/Assert.hpp>
+#include <Core/Math.hpp>
+#include <Core/Assert.hpp>
 #include <Platform/File.hpp>
 #include <Platform/Socket.hpp>
 #include <Platform/Arena.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Platform/Logging.hpp>
+#include <Utility/StringBuilder.hpp>
 
 #include "LinuxUtil.hpp"
 
@@ -141,14 +155,14 @@ nbl::Result nbl::FileChannel::open(StringView path, FileChannel* outChannel, Fil
         fd = ::open(path.data, openFlags, 0644);
     } else {
 
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::AllocationFrame frame(nbl::Arena::threadLocal());
         StringView nullTerminatedPath{};
         NBL_CHECK(nbl::StringBuilder::nullTerminate(path, &nullTerminatedPath, &frame));
         fd = ::open(nullTerminatedPath.data, openFlags, 0644);
     }   
 
     if(fd < 0) {
-        nbl::log(nbl::LogLevel::DEBUG, "Failed to open file: ", path, " (", errno, ")");
+        NBL_DEBUG("Failed to open file: ", path, " (", errno, ")");
 
         switch(errno) {
             case ENOENT: return nbl::Result::NOT_FOUND;
@@ -221,7 +235,7 @@ bool nbl::FolderIterator::next(StringView* name) {
 
 nbl::Result nbl::FolderIterator::create(StringView path, FolderIterator* outIterator) {
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::StringView nullPath;
     NBL_CHECK(nbl::StringBuilder(&frame).append(path).buildNullTerminated(&nullPath));
 
@@ -355,7 +369,7 @@ nbl::Result nbl::setExecutable(StringView path) {
 
 nbl::Result nbl::createLink(StringView target, StringView path) {
 
-    ArenaFrame frame(nbl::Arena::threadLocal());
+    AllocationFrame frame(nbl::Arena::threadLocal());
 
     if(!target.nullTerminated) {
         NBL_CHECK(StringBuilder::nullTerminate(target, &target, &frame));

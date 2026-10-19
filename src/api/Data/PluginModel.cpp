@@ -1,5 +1,28 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file Data/PluginModel.cpp
+ * \author jwall64
+ * \brief Partial implementation of Data/Model.hpp
+ */
+
 #include <Data/Model.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 
 nbl::Result nbl::getPluginFields(DatabaseConnection* connection, StringView pluginId, PluginFieldsCallback callback) {
 
@@ -72,7 +95,7 @@ DELETE FROM plugin_fields WHERE pluginId NOT IN (SELECT value FROM json_each(?1)
         )", &_stmt));
     }
 
-    ArenaFrame frame(Arena::threadLocal());
+    AllocationFrame frame(Arena::threadLocal());
     StringView json{};
     NBL_CHECK(StringBuilder(&frame).append(ids).buildNullTerminated(&json));
 

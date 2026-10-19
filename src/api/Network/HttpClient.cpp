@@ -1,9 +1,32 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file Network/HttpClient.cpp
+ * \author jwall64
+ * \brief Implementation of Network/HttpClient.hpp
+ */
+
 #include <Network/HttpClient.hpp>
-#include <Platform/StringBuilder.hpp>
-#include "Core/Result.hpp"
-#include "Core/String.hpp"
-#include "Platform/File.hpp"
-#include "Platform/Logging.hpp"
+#include <Utility/StringBuilder.hpp>
+#include <Core/Result.hpp>
+#include <Core/String.hpp>
+#include <Platform/File.hpp>
+#include <Platform/Logging.hpp>
 
 #include <curl/multi.h>
 #include <curl/curl.h>
@@ -166,7 +189,7 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
         return nbl::Result::IO_ERROR;
     }
 
-    ArenaFrame frame(Arena::threadLocal());
+    AllocationFrame frame(Arena::threadLocal());
 
     if(!url.nullTerminated) {
         NBL_CHECK(StringBuilder::nullTerminate(url, &url, &frame));

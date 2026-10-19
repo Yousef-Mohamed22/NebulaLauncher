@@ -1,16 +1,32 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file Arena.cpp
+ * \file Platform/Arena.cpp
  * \author jwall64
  * \brief Implementation of Platform/Arena.hpp
  */
 
 #include <Platform/Arena.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Platform/Allocator.hpp>
+#include <Platform/Logging.hpp>
+#include <Utility/StringBuilder.hpp>
 
 #include "Memory.hpp"
-#include "Platform/Allocator.hpp"
 
 
 namespace {
@@ -105,8 +121,8 @@ bool nbl::Arena::isThreadLocalWriter(Writer writer) noexcept {
     if(const Arena* arena = dynamic_cast<const nbl::Arena*>(alloc)) {
         return arena == threadLocal();
     }
-    if(const ArenaFrame* frame = dynamic_cast<const nbl::ArenaFrame*>(alloc)) {
-        return frame->_pArena == threadLocal();
+    if(const AllocationFrame* frame = dynamic_cast<const nbl::AllocationFrame*>(alloc)) {
+        return frame->_pParent == threadLocal();
     }
 
     return false;

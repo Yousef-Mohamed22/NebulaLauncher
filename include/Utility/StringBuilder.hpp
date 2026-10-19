@@ -1,19 +1,35 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file StringBuilder.hpp
+ * \file Utility/StringBuilder.hpp
  * \author jwall64
- * \brief A simple implementation of a string builder that allows for efficient construction of strings using a memory arena for temporary storage.
+ * \brief Utility for dynamically creating strings using a linear allocator
  */
+
 
 #pragma once
 
 #include <Core/Result.hpp>
 #include <Core/String.hpp>
 #include <Core/Stream.hpp>
-#include <Platform/Logging.hpp>
-#include <Platform/Arena.hpp>
-#include "Platform/Allocator.hpp"
+#include <Platform/Allocator.hpp>
+
+#include <utility>
 
 namespace nbl {
 
@@ -153,7 +169,7 @@ public:
      * \param string The StringView representing the string to be converted into a null-terminated string view. 
      * \return A Result indicating success or failure of creating the null-terminated string view. If any step of the process fails, it returns the error result. 
      */
-    static inline Result nullTerminate(StringView string, StringView* outString, ArenaFrame* arena) noexcept {
+    static inline Result nullTerminate(StringView string, StringView* outString, AllocationFrame* arena) noexcept {
         return StringBuilder(arena).append(string).append('\0').build(outString);
     }
 

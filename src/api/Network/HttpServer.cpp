@@ -1,9 +1,32 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file Network/HttpServer.cpp
+ * \author jwall64
+ * \brief Implementation of Network/HttpServer.hpp
+ */
+
 #include <Network/HttpServer.hpp>
 #include <Platform/Socket.hpp>
 #include <Platform/Logging.hpp>
 #include <Core/Stream.hpp>
 #include <Platform/Arena.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 
 void nbl::OAuthCallbackListener::close() {
     _mListenThread.join(nullptr);
@@ -15,7 +38,7 @@ i32 nbl::OAuthCallbackListener::_threadProc(void* userData) {
 
     OAuthCallbackListener* self = static_cast<OAuthCallbackListener*>(userData);
 
-    ArenaFrame frame(Arena::threadLocal());
+    AllocationFrame frame(Arena::threadLocal());
     StringBuilder builder(&frame);
 
     NBL_CHECK(OAuthCallbackListener::listen(self->_mPort, &builder));

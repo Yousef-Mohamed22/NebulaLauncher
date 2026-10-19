@@ -1,4 +1,28 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * \file Plugin/PluginContext.cpp
+ * \author jwall64
+ * \brief Implementation of Plugin/PluginContext.hpp
+ */
+
 #include <Plugin/PluginContext.hpp>
+
 #include <Plugin/InstallationType.hpp>
 #include <Plugin/AccountProvider.hpp>
 #include <Plugin/MetadataProvider.hpp>
@@ -8,10 +32,10 @@
 #include <Core/Math.hpp>
 #include <Platform/Process.hpp>
 #include <Platform/Arena.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
-#include "Data/MediaManager.hpp"
+#include <Data/MediaManager.hpp>
 
 
 nbl::Result nbl::PluginContext::create(StringView deviceName, StringView databasePath, StringView mediaDbPath, StringView pluginFolder, StringView pluginDataPath, NotificationConsumer consumer, PluginContext* ctx) {
@@ -19,7 +43,7 @@ nbl::Result nbl::PluginContext::create(StringView deviceName, StringView databas
     NBL_CHECK(nbl::Arena::create(1024 * 1024 * 16, &ctx->_mArena));
 
     {
-        nbl::ArenaFrame frame(&ctx->_mArena);
+        nbl::AllocationFrame frame(&ctx->_mArena);
         NBL_CHECK(nbl::StringBuilder(&frame)
                 .append(databasePath)
                 .buildNullTerminated(&ctx->_mDatabasePath));
@@ -66,7 +90,7 @@ nbl::Result nbl::PluginContext::create(StringView deviceName, StringView databas
 
 nbl::Result nbl::PluginContext::runCommand(i64 installationId, StringView command, StringView workingDir, ProcessHandle* handle) {
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::StringView idString;
     NBL_CHECK(nbl::StringBuilder(&frame).append(installationId).buildNullTerminated(&idString));
 

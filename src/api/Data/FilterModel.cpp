@@ -1,17 +1,33 @@
-// Copyright (c) 2026 jwall64. All rights reserved.
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 /**
- * \file FilterModel.cpp
+ * \file Data/FilterModel.cpp
  * \author jwall64
- * \brief Partial implementation of Data/Model.hpp. Functions related to filters for installation tabs.
+ * \brief Partial implementation of Data/Model.hpp
  */
+
 
 #include <Data/Model.hpp>
 
 #include <Core/Math.hpp>
 #include <Core/Result.hpp>
 #include <Core/Stream.hpp>
-#include <Platform/StringBuilder.hpp>
+#include <Utility/StringBuilder.hpp>
 #include <Codec/Json.hpp>
 #include <Data/Database.hpp>
 
@@ -58,7 +74,7 @@ nbl::Result _serializeCriteria(const nbl::SearchCriteria& criteria, nbl::Writer 
         });
 }
 
-nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::ArenaFrame* frame, nbl::SearchCriteria* outCriteria) {
+nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::AllocationFrame* frame, nbl::SearchCriteria* outCriteria) {
     
     nbl::JsonElement criteriaValue = {};
     nbl::log(nbl::LogLevel::DEBUG, "Parsing: ", criteriaJson, " as filter criteria");
@@ -188,7 +204,7 @@ INSERT INTO filter (name, tabId, icon, criteria, flags, priority) VALUES (?1, ?2
         )", &_stmt));
     }
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     StringView criteriaJson;
     auto builder = nbl::StringBuilder(&frame);
     NBL_CHECK(_serializeCriteria(meta.criteria, builder));
@@ -233,7 +249,7 @@ SELECT fId, name, icon, criteria, flags FROM filter WHERE fId = ?1;
             return nbl::Result::IO_ERROR;
         }
 
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::AllocationFrame frame(nbl::Arena::threadLocal());
         FilterMeta meta = {
             .filterId = columnValues[0].intValue,
             .name = columnValues[1].textValue,
@@ -259,7 +275,7 @@ UPDATE filter SET criteria = ?1 WHERE fId = ?2;
     }
 
     {
-        nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+        nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
         StringView criteriaJson;
         auto builder = nbl::StringBuilder(&frame);
@@ -284,7 +300,7 @@ UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, criteria = ?4, flags = ?5, p
         )", &_stmt));
     }
 
-    nbl::ArenaFrame frame(nbl::Arena::threadLocal());
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     StringView criteriaJson;
     auto builder = nbl::StringBuilder(&frame);
     NBL_CHECK(_serializeCriteria(meta.criteria, builder));
