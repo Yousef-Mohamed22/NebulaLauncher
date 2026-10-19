@@ -4,7 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import Nebula.Controls
+import Nebula
 
 SettingsTab {
 
@@ -97,6 +97,8 @@ SettingsTab {
 
                     Item {
 
+                        Layout.preferredWidth: 1
+
                         id: swatch
 
                         required property color modelData
@@ -136,6 +138,7 @@ SettingsTab {
 
                 NblColorSwatch {
 
+                    Layout.preferredWidth: 1
                     id: customColor
                     label: "Custom"
 

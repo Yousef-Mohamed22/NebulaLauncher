@@ -87,6 +87,10 @@ private:
 class ServerSocket {
 public:
 
+    ~ServerSocket() {
+        close();
+    }
+
     Result accept(Socket* client);
 
     bool isClosed();

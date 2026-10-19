@@ -12,7 +12,7 @@ Item {
 
     signal accepted
 
-    implicitWidth: Math.max(72, labelText.width + 8)
+    implicitWidth: Math.max(72, labelText.implicitWidth + 8)
 
     Rectangle {
         anchors.fill: parent
