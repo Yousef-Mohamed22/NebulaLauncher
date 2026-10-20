@@ -22,7 +22,7 @@
 #include <QColor>
 #include <QtQml>
 
-#include "Tag/TagRef.hpp"
+#include "Tag/TagMeta.hpp"
 #include "PagedListModel.hpp"
 
 namespace nbl::frontend {
@@ -81,7 +81,7 @@ protected:
 private:
 
     qint64 _mGameId;
-    QList<TagRef> _mData;
+    QList<TagMeta> _mData;
 
 };
 

@@ -26,6 +26,7 @@
 #include <Core/String.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Data/Model.hpp>
+#include <Data/GameModel.hpp>
 
 #include <functional>
 

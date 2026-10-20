@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include "Filter/FilterModel.hpp"
 #include "ApplicationContext.hpp"
 
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Data/FilterModel.hpp>
+#include <Data/AchievementModel.hpp>
 #include <Core/Result.hpp>
 #include <Platform/Time.hpp>
 
@@ -67,7 +70,7 @@ nbl::Result nbl::frontend::FilterModel::_fetchPageData(qsizetype limit, qsizetyp
     found.reserve(limit);
     
     if(_mSearchInstallations) {
-        NBL_CHECK(nbl::lookupInstallationsForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
+        NBL_CHECK(nbl::Installation::lookupForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
 
             QString filterInfoIcon{};
             QString filterInfo{};
@@ -135,9 +138,9 @@ nbl::Result nbl::frontend::FilterModel::_fetchPageData(qsizetype limit, qsizetyp
                     case nbl::SortBy::ACHIEVEMENT_PROGRESS: {
 
                         u64 unlocked;
-                        nbl::countUnlockedGameAchievements(db, res.gameId, &unlocked);
+                        nbl::Achievement::countUnlockedForGame(db, res.gameId, &unlocked);
                         u64 total;
-                        nbl::countGameAchievements(db, res.gameId, &total);
+                        nbl::Achievement::countForGame(db, res.gameId, &total);
                         
                         f64 percent = total == 0 ? 0.0 : unlocked / static_cast<f64>(total);
 
@@ -162,7 +165,7 @@ nbl::Result nbl::frontend::FilterModel::_fetchPageData(qsizetype limit, qsizetyp
             return nbl::Result::SUCCESS;
         }));    
     } else {
-        NBL_CHECK(nbl::lookupGamesForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::GameLookupResult& res) -> nbl::Result {
+        NBL_CHECK(nbl::Game::lookupForFilter(db, _mFilterId, ApplicationContext::instance()->deviceId(), offset, limit, [&](const nbl::GameLookupResult& res) -> nbl::Result {
 
             QString filterInfoIcon{};
             QString filterInfo{};

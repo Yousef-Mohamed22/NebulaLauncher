@@ -18,14 +18,15 @@
 /**
  * \file Data/AchievementModel.cpp
  * \author jwall64
- * \brief Partial implementation of Data/Model.hpp
+ * \brief Implementation of Data/AchievementModel.hpp
  */
 
 #include <Data/Model.hpp>
+#include <Data/AchievementModel.hpp>
 #include <Core/Math.hpp>
-#include "Utility/StringBuilder.hpp"
+#include <Utility/StringBuilder.hpp>
 
-nbl::Result nbl::addAchievement(DatabaseConnection* connection, const Achievement& achievement, i64* outId) {
+nbl::Result nbl::Achievement::add(DatabaseConnection* connection, const Achievement& achievement, i64* outId) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -54,7 +55,7 @@ VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13);
 }
 
 
-nbl::Result nbl::upsertAchievement(DatabaseConnection* connection, const Achievement& achievement, i64* outId) {
+nbl::Result nbl::Achievement::upsert(DatabaseConnection* connection, const Achievement& achievement, i64* outId) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -85,7 +86,7 @@ UPDATE SET title=?3, description=?4, icon=?5, lockedIcon=?6, globalUnlockRate=?7
 
 }
 
-nbl::Result nbl::upsertAchievementMeta(DatabaseConnection* connection, const Achievement& achievement, i64* outId) {
+nbl::Result nbl::Achievement::upsertMeta(DatabaseConnection* connection, const Achievement& achievement, i64* outId) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -114,7 +115,7 @@ UPDATE SET number=?3, title=?4, description=?5, icon=?6, lockedIcon=?7, flags=?8
 
 
 
-nbl::Result nbl::updateAchievement(DatabaseConnection* connection, const Achievement& achievement) {
+nbl::Result nbl::Achievement::update(DatabaseConnection* connection, const Achievement& achievement) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -143,7 +144,7 @@ WHERE aId=?13;
     return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::updateAchievementProgress(DatabaseConnection* connection, const Achievement& achievement) {
+nbl::Result nbl::Achievement::updateProgress(DatabaseConnection* connection, const Achievement& achievement) {
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare(R"(
@@ -165,7 +166,7 @@ WHERE aId=?7;
 
 }
 
-nbl::Result nbl::deleteAchievement(DatabaseConnection* connection, i64 id) {
+nbl::Result nbl::Achievement::remove(DatabaseConnection* connection, i64 id) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -179,7 +180,7 @@ DELETE FROM achievement WHERE aId=?1;
     return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::getAchievement(DatabaseConnection* connection, i64 id, AchievementCallback callback) {
+nbl::Result nbl::Achievement::get(DatabaseConnection* connection, i64 id, AchievementCallback callback) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -212,7 +213,7 @@ WHERE aId=?1;
     });
 }
 
-nbl::Result nbl::enumerateSetAchievements(DatabaseConnection* connection, i64 limit, i64 offset, AchievementSortBy sortBy, SortOrder order, i64 setId, AchievementCallback callback) {
+nbl::Result nbl::Achievement::enumerateInSet(DatabaseConnection* connection, i64 limit, i64 offset, AchievementSortBy sortBy, SortOrder order, i64 setId, AchievementCallback callback) {
 
     static PreparedStatement _stmts[10]{};
 
@@ -306,7 +307,7 @@ OFFSET ?3;
     });
 }
 
-nbl::Result nbl::enumerateGameAchievements(DatabaseConnection* connection, i64 limit, i64 offset, AchievementSortBy sortBy, SortOrder order, i64 gameId, AchievementCallback callback) {
+nbl::Result nbl::Achievement::enumerateForGame(DatabaseConnection* connection, i64 limit, i64 offset, AchievementSortBy sortBy, SortOrder order, i64 gameId, AchievementCallback callback) {
 
     static PreparedStatement _stmts[10]{};
 
@@ -400,7 +401,7 @@ OFFSET ?3;
 }
 
 
-nbl::Result nbl::countSetAchievements(DatabaseConnection* connection, i64 setId, u64* outNumAchievements) {
+nbl::Result nbl::Achievement::countInSet(DatabaseConnection* connection, i64 setId, u64* outNumAchievements) {
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare("SELECT COUNT(*) FROM achievement WHERE asId=?1;", &_stmt);
@@ -413,7 +414,7 @@ nbl::Result nbl::countSetAchievements(DatabaseConnection* connection, i64 setId,
     });
 }
 
-nbl::Result nbl::countUnlockedSetAchievements(DatabaseConnection* connection, i64 setId, u64* outNumAchievements) {
+nbl::Result nbl::Achievement::countUnlockedInSet(DatabaseConnection* connection, i64 setId, u64* outNumAchievements) {
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare("SELECT COUNT(*) FROM achievement WHERE asId=?1 AND dateUnlocked > 0;", &_stmt);
@@ -426,7 +427,7 @@ nbl::Result nbl::countUnlockedSetAchievements(DatabaseConnection* connection, i6
     });
 }
 
-nbl::Result nbl::countGameAchievements(DatabaseConnection* connection, i64 gameId, u64* outNumAchievements, bool includeHidden) {
+nbl::Result nbl::Achievement::countForGame(DatabaseConnection* connection, i64 gameId, u64* outNumAchievements, bool includeHidden) {
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare("SELECT COUNT(*) FROM achievement JOIN achievement_set ON achievement_set.asId = achievement.asId WHERE achievement_set.gId=?1 AND (?2 = 1 OR achievement_set.hidden = 0);", &_stmt);
@@ -439,7 +440,7 @@ nbl::Result nbl::countGameAchievements(DatabaseConnection* connection, i64 gameI
     });
 }
 
-nbl::Result nbl::countUnlockedGameAchievements(DatabaseConnection* connection, i64 gameId, u64* outNumAchievements, bool includeHidden) {
+nbl::Result nbl::Achievement::countUnlockedForGame(DatabaseConnection* connection, i64 gameId, u64* outNumAchievements, bool includeHidden) {
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare("SELECT COUNT(*) FROM achievement JOIN achievement_set ON achievement_set.asId = achievement.asId WHERE achievement_set.gId=?1 AND dateUnlocked > 0 AND (?2 = 1 OR achievement_set.hidden = 0);", &_stmt);
@@ -452,7 +453,7 @@ nbl::Result nbl::countUnlockedGameAchievements(DatabaseConnection* connection, i
     });
 }
 
-nbl::Result nbl::addAchievementSet(DatabaseConnection* connection, const AchievementSet& achievementSet, i64* outId) {
+nbl::Result nbl::AchievementSet::add(DatabaseConnection* connection, const AchievementSet& achievementSet, i64* outId) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -477,7 +478,7 @@ VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);
 
 }
 
-nbl::Result nbl::upsertAchievementSet(DatabaseConnection* connection, const AchievementSet& achievementSet, i64* outId) {
+nbl::Result nbl::AchievementSet::upsert(DatabaseConnection* connection, const AchievementSet& achievementSet, i64* outId) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -504,7 +505,7 @@ UPDATE SET lastUpdated=?2, awardColor=?4, name=?5, providerData=?8;
 
 }
 
-nbl::Result nbl::updateAchivementSet(DatabaseConnection* connection, const AchievementSet& achievementSet) {
+nbl::Result nbl::AchievementSet::update(DatabaseConnection* connection, const AchievementSet& achievementSet) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -529,7 +530,7 @@ WHERE asId=?9;
     return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::updateAchivementSetHidden(DatabaseConnection* connection, i64 id, bool hidden) {
+nbl::Result nbl::AchievementSet::setHidden(DatabaseConnection* connection, i64 id, bool hidden) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -545,7 +546,7 @@ WHERE asId=?2;
 
 
 
-nbl::Result nbl::deleteAchievementSet(DatabaseConnection* connection, i64 id) {
+nbl::Result nbl::AchievementSet::remove(DatabaseConnection* connection, i64 id) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -560,7 +561,7 @@ DELETE FROM achievement_set WHERE asId=?1;
 }
 
 
-nbl::Result nbl::deleteAchievementSetsForProvider(DatabaseConnection* connection, i64 gameId, StringView provider) {
+nbl::Result nbl::AchievementSet::removeAllForProvider(DatabaseConnection* connection, i64 gameId, StringView provider) {
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare(R"(
@@ -573,7 +574,7 @@ DELETE FROM achievement_set WHERE provider=?1 AND gId=?2;
     return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::getAchievementSet(DatabaseConnection* connection, i64 id, AchievementSetCallback callback) {
+nbl::Result nbl::AchievementSet::get(DatabaseConnection* connection, i64 id, AchievementSetCallback callback) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -601,7 +602,7 @@ WHERE asId=?1;
     });
 }
 
-nbl::Result nbl::enumerateGameAchievementSets(DatabaseConnection* connection, i64 limit, i64 offset, i64 gameId, AchievementSetCallback callback) {
+nbl::Result nbl::AchievementSet::enumerateForGame(DatabaseConnection* connection, i64 limit, i64 offset, i64 gameId, AchievementSetCallback callback) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -633,7 +634,7 @@ OFFSET ?3;
 }
 
 
-nbl::Result nbl::countGameAchivementSetsWithProvider(DatabaseConnection* connection, i64 gameId, StringView providerId, u64* outNumSets) {
+nbl::Result nbl::AchievementSet::countForGameAndProvider(DatabaseConnection* connection, i64 gameId, StringView providerId, u64* outNumSets) {
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare(R"(
@@ -654,7 +655,7 @@ WHERE gId=?1
 }
 
 
-nbl::Result nbl::enumerateAchievementStates(DatabaseConnection* connection, i64 gameId, AchievementStateCallback callback) {
+nbl::Result nbl::AchievementState::enumerate(DatabaseConnection* connection, i64 gameId, AchievementStateCallback callback) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
@@ -679,7 +680,7 @@ WHERE gId = ?1;
 }
 
 
-nbl::Result nbl::upsertAchievementState(DatabaseConnection* connection, i64 gameId, const AchievementState& state) {
+nbl::Result nbl::AchievementState::upsert(DatabaseConnection* connection, i64 gameId, const AchievementState& state) {
 
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {

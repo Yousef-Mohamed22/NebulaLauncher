@@ -18,8 +18,9 @@
 
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Data/FilterModel.hpp>
 
-nbl::frontend::TabRef::TabRef(const nbl::TabMeta& meta, QObject* parent) :
+nbl::frontend::TabRef::TabRef(const nbl::Tab& meta, QObject* parent) :
     QObject(parent),
     _mName(fromNbl(meta.name)),
     _mIcon(meta.icon),
@@ -38,7 +39,7 @@ QVariantList nbl::frontend::TabRef::encodeFilters() {
     nbl::DatabaseConnection* conn = ApplicationContext::instance()->databaseConnection();
     QVariantList out = {};
 
-    nbl::getFiltersForTab(conn, _mTabId, 0, INT32_MAX, [&](const nbl::FilterMeta& meta) -> nbl::Result {
+    nbl::Filter::enumerateForTab(conn, _mTabId, 0, INT32_MAX, [&](const nbl::Filter& meta) -> nbl::Result {
 
         QVariantMap filter = {};
 
@@ -57,7 +58,7 @@ QVariantList nbl::frontend::TabRef::encodeFilters() {
         filter["iconIsImage"] = (meta.flags & FilterFlag::IMAGE_ICON) != 0;
         
         // Criteria
-        nbl::getFilterCriteria(conn, meta.filterId, [&](const nbl::SearchCriteria& criteria) -> nbl::Result {
+        nbl::Filter::getCriteria(conn, meta.filterId, [&](const nbl::SearchCriteria& criteria) -> nbl::Result {
 
             filter["sortBy"] = static_cast<qint32>(criteria.sortBy);
             filter["sortOrder"] = static_cast<qint32>(criteria.sortOrder);
@@ -102,7 +103,7 @@ QVariantList nbl::frontend::TabRef::encodeFilters() {
 nbl::frontend::TabRef* nbl::frontend::TabRef::lookup(qint64 id) {
 
     nbl::frontend::TabRef* out = nullptr;
-    if(nbl::getTabMeta(ApplicationContext::instance()->databaseConnection(), static_cast<i64>(id), [&](const nbl::TabMeta& meta) -> nbl::Result {
+    if(nbl::Tab::get(ApplicationContext::instance()->databaseConnection(), static_cast<i64>(id), [&](const nbl::Tab& meta) -> nbl::Result {
         out = new nbl::frontend::TabRef(meta);
         return nbl::Result::SUCCESS;
     }).error()) {

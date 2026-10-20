@@ -81,7 +81,7 @@ nbl::Result nbl::frontend::AchievementModel::_fetchPageData(qsizetype limit, qsi
     
     QList<_Item> found = {};
     found.reserve(limit);
-    NBL_CHECK(nbl::enumerateSetAchievements(db, limit, offset, _mSortBy, _mSortOrder, _mSetId, [&](const nbl::Achievement& a) -> nbl::Result {
+    NBL_CHECK(nbl::Achievement::enumerateInSet(db, limit, offset, _mSortBy, _mSortOrder, _mSetId, [&](const nbl::Achievement& a) -> nbl::Result {
         _Item item {
             .id = a.id,
             .number = a.number,

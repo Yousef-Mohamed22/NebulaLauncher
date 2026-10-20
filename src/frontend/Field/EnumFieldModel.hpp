@@ -22,8 +22,6 @@
 #include <QObject>
 #include <QtQml>
 
-#include "Filter/FilterRef.hpp"
-
 namespace nbl::frontend {
 
 class EnumFieldModel : public QAbstractListModel {

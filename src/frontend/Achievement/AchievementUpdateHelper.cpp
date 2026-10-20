@@ -47,12 +47,12 @@ void nbl::frontend::AchievementUpdateWorker::run() {
     };
 
     if(_mSetId != 0) {
-        if(nbl::getAchievementSet(ctx->databaseConnection(), _mSetId, _handle).error()) {
+        if(nbl::AchievementSet::get(ctx->databaseConnection(), _mSetId, _handle).error()) {
             ctx->pluginContext()->pushNotification(nbl::NotificationType::ERROR, "An error occurred", "An error occurred while updating achievements!");
             emit done(false);
         }
     } else {
-        if(nbl::enumerateGameAchievementSets(ctx->databaseConnection(), UINT64_MAX, 0, _mGameId, _handle).error()) {
+        if(nbl::AchievementSet::enumerateForGame(ctx->databaseConnection(), UINT64_MAX, 0, _mGameId, _handle).error()) {
             ctx->pluginContext()->pushNotification(nbl::NotificationType::ERROR, "An error occurred", "An error occurred while updating achievements!");
             emit done(false);
         };

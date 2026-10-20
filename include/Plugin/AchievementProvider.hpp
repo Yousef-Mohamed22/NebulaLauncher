@@ -25,11 +25,12 @@
 
 #include <Core/Types.hpp>
 #include <Core/String.hpp>
-#include <Data/Database.hpp>
 #include <Plugin/PluginContext.hpp>
-#include <Data/Model.hpp>
 #include <Platform/Time.hpp>
-#include "Data/MediaManager.hpp"
+#include <Data/Database.hpp>
+#include <Data/Model.hpp>
+#include <Data/AchievementModel.hpp>
+#include <Data/MediaManager.hpp>
 
 namespace nbl {
 
@@ -127,7 +128,7 @@ struct AchievementProvider {
      * \param userData The same as the userData pointer in this struct
      * \return The result of the operation.
      */
-    Result(*pfnUpdateAchievementState)(PluginContext* context, const GameMeta& game, AchievementProviderStatus status, Span<FieldValue> fieldValues, AchievementHelper& helper, StringView externalId, void* userData);
+    Result(*pfnUpdateAchievementState)(PluginContext* context, const Game& game, AchievementProviderStatus status, Span<FieldValue> fieldValues, AchievementHelper& helper, StringView externalId, void* userData);
 
     /**
      * \brief Called asynchronously whenever a game is clicked in the UI, for each achievement set corresponding to this provider.
@@ -145,7 +146,7 @@ struct AchievementProvider {
      */
     void* userData;
 
-    Result updateAchievementState(PluginContext* context, const GameMeta& game, AchievementProviderStatus status, Span<FieldValue> fieldValues, AchievementHelper& helper, StringView externalId) const {
+    Result updateAchievementState(PluginContext* context, const Game& game, AchievementProviderStatus status, Span<FieldValue> fieldValues, AchievementHelper& helper, StringView externalId) const {
         if(!pfnUpdateAchievementState) return nbl::Result::PLUGIN_ERROR;
         return pfnUpdateAchievementState(context, game, status, fieldValues, helper, externalId, userData);
     }

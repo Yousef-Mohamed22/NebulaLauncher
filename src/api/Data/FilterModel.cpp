@@ -18,11 +18,11 @@
 /**
  * \file Data/FilterModel.cpp
  * \author jwall64
- * \brief Partial implementation of Data/Model.hpp
+ * \brief Implementation of Data/FilterModel.hpp
  */
 
 
-#include <Data/Model.hpp>
+#include <Data/FilterModel.hpp>
 
 #include <Core/Math.hpp>
 #include <Core/Result.hpp>
@@ -178,7 +178,7 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::AllocationFr
 }
 
 
-nbl::Result nbl::countFilters(DatabaseConnection* connection, u64* numFilters) {
+nbl::Result nbl::Filter::count(DatabaseConnection* connection, u64* numFilters) {
 
     static nbl::PreparedStatement _countFiltersStmt;
     if(!_countFiltersStmt.isValid(connection)) {
@@ -195,7 +195,7 @@ SELECT COUNT(fId) FROM filter;
 
 }
 
-nbl::Result nbl::addFilter(DatabaseConnection* connection, const FilterMeta& meta, i64* outFilterId) {
+nbl::Result nbl::Filter::add(DatabaseConnection* connection, const Filter& meta, i64* outFilterId) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -217,7 +217,7 @@ INSERT INTO filter (name, tabId, icon, criteria, flags, priority) VALUES (?1, ?2
 }
 
 
-nbl::Result nbl::removeFilter(DatabaseConnection* connection, i64 filterId) {
+nbl::Result nbl::Filter::remove(DatabaseConnection* connection, i64 filterId) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -231,7 +231,7 @@ DELETE FROM filter WHERE fId = ?1;
     return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::getFilter(DatabaseConnection* connection, i64 filterId, FilterCallback callback) {
+nbl::Result nbl::Filter::get(DatabaseConnection* connection, i64 filterId, FilterCallback callback) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -250,7 +250,7 @@ SELECT fId, name, icon, criteria, flags FROM filter WHERE fId = ?1;
         }
 
         nbl::AllocationFrame frame(nbl::Arena::threadLocal());
-        FilterMeta meta = {
+        Filter meta = {
             .filterId = columnValues[0].intValue,
             .name = columnValues[1].textValue,
             .icon = InlineIcon::fromDataValue(columnValues[2]),
@@ -264,7 +264,15 @@ SELECT fId, name, icon, criteria, flags FROM filter WHERE fId = ?1;
     });
 }
 
-nbl::Result nbl::setFilterCriteria(DatabaseConnection* connection, i64 filterId, const SearchCriteria& criteria) {
+nbl::Result nbl::Filter::getCriteria(DatabaseConnection *connection, i64 filterId, FilterCriteriaCallback callback) {
+
+    return get(connection, filterId, [&](const Filter& filter) {
+        return callback(filter.criteria);
+    });
+
+}
+
+nbl::Result nbl::Filter::setCriteria(DatabaseConnection* connection, i64 filterId, const SearchCriteria& criteria) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -290,7 +298,7 @@ UPDATE filter SET criteria = ?1 WHERE fId = ?2;
     return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::updateFilter(DatabaseConnection* connection, const FilterMeta& meta) {
+nbl::Result nbl::Filter::update(DatabaseConnection* connection, const Filter& meta) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -310,60 +318,39 @@ UPDATE filter SET name = ?1, tabId = ?2, icon = ?3, criteria = ?4, flags = ?5, p
     return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::lookupInstallationsForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, InstallationLookupCallback callback) {
 
-    NBL_CHECK(getFilter(connection, filterId, [&](const nbl::FilterMeta& meta) -> nbl::Result {
+nbl::Result nbl::Filter::enumerateForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback) {
 
-        FilterMeta updated = meta;
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
+        NBL_CHECK(connection->prepare(R"(
+SELECT filter.fId, filter.name, filter.icon, filter.flags
+FROM filter
+WHERE filter.tabId = ?1
+ORDER BY filter.priority DESC, filter.fId ASC
+LIMIT ?2
+OFFSET ?3;
+        )", &_stmt));
+    }
 
-        updated.criteria.offset = offset;
-        updated.criteria.deviceId = deviceId;
+    NBL_CHECK(_stmt.bindAll(1, tabId, limit, offset));
 
-        if(limit > 0) {
-            updated.criteria.limit = updated.criteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
+    return connection->execute(&_stmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+
+        if(columnCount != 4) {
+            nbl::log(nbl::LogLevel::ERROR, "Expected 4 columns in get filters for tab query result, but got ", columnCount);
+            return nbl::Result::IO_ERROR;
         }
 
-        return lookupInstallations(
-            connection,
-            updated,
-            callback
-        );
+        nbl::Filter meta = {
+            .filterId = columnValues[0].intValue, 
+            .name = columnValues[1].textValue, 
+            .icon = InlineIcon::fromDataValue(columnValues[2]),
+            .flags = columnValues[3].uintValue(),
+            .criteria = {}
+        };
 
-     }));
-
-     return nbl::Result::SUCCESS;
-}
-
-
-nbl::Result nbl::lookupGamesForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, GameLookupCallback callback) {
-
-    NBL_CHECK(getFilter(connection, filterId, [&](const nbl::FilterMeta& meta) -> nbl::Result {
-
-        FilterMeta updated = meta;
-
-        updated.criteria.offset = offset;
-        updated.criteria.deviceId = (meta.flags & FilterFlag::ONLY_INSTALLED) ? deviceId : 0;
-
-        if(limit > 0) {
-            updated.criteria.limit = updated.criteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
-        }
-
-        return lookupGames(
-            connection,
-            updated,
-            callback
-        );
-
-     }));
-
-     return nbl::Result::SUCCESS;
-
-}
-
-
-nbl::Result nbl::getFilterCriteria(DatabaseConnection* connection, i64 filterId, FilterCriteriaCallback callback) {
-
-    return getFilter(connection, filterId, [&](const FilterMeta& meta) {
-        return callback(meta.criteria);
+        return callback(meta);
     });
+
 }

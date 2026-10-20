@@ -17,13 +17,14 @@
 
 #include <Core/Types.hpp>
 #include <Data/Model.hpp>
+#include <Data/FilterModel.hpp>
 
 #include <QObject>
 #include <QtQml>
 
 namespace nbl::frontend {
 
-class FilterRef : public QObject { 
+class FilterMeta : public QObject { 
 
     Q_OBJECT
     QML_ELEMENT
@@ -43,7 +44,7 @@ class FilterRef : public QObject {
 
 public:
 
-    FilterRef(QObject* parent = nullptr) : 
+    FilterMeta(QObject* parent = nullptr) : 
         QObject(parent),
         _mFilterId(0),
         _mName{},
@@ -51,7 +52,7 @@ public:
         _mFlags(0)
     {}
 
-    FilterRef(i64 id, QByteArray name, QByteArray icon, nbl::FilterFlags flags, QObject* parent = nullptr) :
+    FilterMeta(i64 id, QByteArray name, QByteArray icon, nbl::FilterFlags flags, QObject* parent = nullptr) :
         QObject(parent),
         _mFilterId(id),
         _mName(name),
@@ -59,7 +60,7 @@ public:
         _mFlags(flags)
     { }
 
-    FilterRef(const FilterRef& other) :
+    FilterMeta(const FilterMeta& other) :
         QObject(other.parent()),
         _mFilterId(other._mFilterId),
         _mName(other._mName),
@@ -67,7 +68,7 @@ public:
         _mFlags(other._mFlags)
     { }
 
-    FilterRef& operator=(const FilterRef& other) {
+    FilterMeta& operator=(const FilterMeta& other) {
         if(&other == this) return *this;
         _mFilterId = other._mFilterId;
         _mName = other._mName;

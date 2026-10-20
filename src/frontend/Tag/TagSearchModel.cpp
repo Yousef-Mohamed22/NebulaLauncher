@@ -15,17 +15,18 @@
  */
 #include "Tag/TagSearchModel.hpp"
 #include "ApplicationContext.hpp"
-#include "Core/Result.hpp"
 
+#include <Core/Result.hpp>
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Data/TagModel.hpp>
 
 QVariant nbl::frontend::TagSearchModel::data(const QModelIndex& index, int role) const {
 
     if(!index.isValid() || index.row() >= _mData.size()) return QVariant();
 
-    TagRef ref = _mData.at(index.row());
+    TagMeta ref = _mData.at(index.row());
 
     switch(role) {
         case IdRole:
@@ -54,26 +55,26 @@ nbl::Result nbl::frontend::TagSearchModel::_fetchPageData(qsizetype limit, qsize
     
     nbl::StringView query = nbl::StringView(_mSearchQuery.data(), _mSearchQuery.length());
 
-    QList<TagRef> found;
+    QList<TagMeta> found;
     bool exactMatch;
     found.reserve(limit);
 
     if(query.empty()) {
-        NBL_CHECK(nbl::enumerateTags(db, limit, offset, [&](nbl::TagMeta tag) -> nbl::Result {
+        NBL_CHECK(nbl::Tag::enumerate(db, limit, offset, [&](const nbl::Tag& tag) -> nbl::Result {
 
-            TagRef ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
+            TagMeta ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
             found.append(ref);
             return nbl::Result::SUCCESS;
 
         }));
     } else {
-        NBL_CHECK(nbl::searchTags(db, query, limit, offset, [&](nbl::TagMeta tag) -> nbl::Result {
+        NBL_CHECK(nbl::Tag::search(db, query, limit, offset, [&](const nbl::Tag& tag) -> nbl::Result {
 
             if(query == tag.name) {
                 exactMatch = true;
             }
 
-            TagRef ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
+            TagMeta ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
             found.append(ref);
             return nbl::Result::SUCCESS;
 

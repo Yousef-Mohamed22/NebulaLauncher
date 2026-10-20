@@ -18,20 +18,23 @@
 /**
  * \file Data/GameModel.cpp
  * \author jwall64
- * \brief Partial implementation of Data/Model.hpp
+ * \brief Implementation of Data/GameModel.hpp
  */
 
 
 
 #include <Core/Array.hpp>
+#include <Core/Math.hpp>
 #include <Platform/Arena.hpp>
 #include <Utility/StringBuilder.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Data/GameModel.hpp>
+#include <Data/FilterModel.hpp>
 #include <Platform/Time.hpp>
 
 
-nbl::Result nbl::addGame(DatabaseConnection* connection, const nbl::GameMeta& meta, i64* outGameId) {
+nbl::Result nbl::Game::add(DatabaseConnection* connection, const nbl::Game& meta, i64* outGameId) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -45,7 +48,7 @@ INSERT INTO game (title, description, banner, poster, icon, logo, logoPosition, 
     return connection->execute(&_stmt, outGameId); 
 }
 
-nbl::Result nbl::removeGame(DatabaseConnection* connection, i64 gameId) {
+nbl::Result nbl::Game::remove(DatabaseConnection* connection, i64 gameId) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -59,7 +62,7 @@ DELETE FROM game WHERE gId = ?1;
 }
 
 
-nbl::Result nbl::updateGame(DatabaseConnection* connection, const GameMeta& meta) {
+nbl::Result nbl::Game::update(DatabaseConnection* connection, const Game& meta) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -75,84 +78,25 @@ UPDATE game SET title=?1, description=?2, banner=?3, poster=?4, icon=?5, logo=?6
 }
 
 
-nbl::Result nbl::addGameTag(DatabaseConnection* connection, i64 gameId, i64 tag) {
+nbl::Result nbl::Game::get(DatabaseConnection* connection, i64 gameId, GameCallback callback) {
 
-    static nbl::PreparedStatement _stmt;
+ static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-INSERT INTO game_tag (gId, tId) VALUES (?1, ?2);
-        )", &_stmt));
-    }
-
-    NBL_CHECK(_stmt.bindAll(1, gameId, tag));
-    return connection->execute(&_stmt);
-}
-
-nbl::Result nbl::removeGameTag(DatabaseConnection* connection, i64 gameId, i64 tag) {
-
-    static nbl::PreparedStatement _stmt;
-    if(!_stmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-DELETE FROM game_tag WHERE gId = ?1 AND tId = ?2;
-        )", &_stmt));
-    }
-    
-    NBL_CHECK(_stmt.bindAll(1, gameId, tag));
-    return connection->execute(&_stmt);
-}
-
-
-nbl::Result nbl::getGameTags(DatabaseConnection* connection, i64 gameId, TagCallback callback) {
-
-    static nbl::PreparedStatement _stmt;
-    if(!_stmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-SELECT tag.tId, tag.name, tag.color
-FROM tag
-JOIN game_tag ON game_tag.tId = tag.tId
-WHERE game_tag.gId = ?1
-ORDER BY tag.name ASC;
-        )", &_stmt));
-    }
-
-    NBL_CHECK(_stmt.bindInt(1, gameId));
-
-    return connection->execute(&_stmt, [&](i32 argc, nbl::DataValue* values, const char** columnName, i64 lastInsertRowId) -> nbl::Result {
-
-        if(argc != 3) {
-            return nbl::Result::INVALID_STATE;
-        }
-        return callback({
-            .id = values[0].intValue, 
-            .name = values[1].textValue, 
-            .color = static_cast<u32>(values[2].intValue)
-        });
-
-    });
-
-}
-
-
-
-nbl::Result nbl::getGameMeta(DatabaseConnection* connection, i64 gameId, GameMetaCallback callback) {
-
- static nbl::PreparedStatement _getGameMetaStmt;
-    if(!_getGameMetaStmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT 
 game.gId, game.title, game.description, game.banner, game.poster, game.icon, game.logo, game.logoPosition, game.releaseDate, game.rating, game.previousPlayTime, game.previousPlayCount, game.lastPlayedDeleted, game.added, game.colorOverride 
 FROM game
 WHERE game.gId = ?1;
-        )", &_getGameMetaStmt));
+        )", &_stmt));
     }
 
-    NBL_CHECK(_getGameMetaStmt.bindInt(1, gameId));
+    NBL_CHECK(_stmt.bindInt(1, gameId));
 
-    return connection->execute(&_getGameMetaStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    return connection->execute(&_stmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        if(argc != 14) return nbl::Result::IO_ERROR;
+        if(argc != 15) return nbl::Result::IO_ERROR;
 
-        GameMeta meta = {
+        Game meta = {
             .id = values[0].intValue,
             .title = values[1].textValue,
             .description = values[2].textValue,
@@ -174,7 +118,7 @@ WHERE game.gId = ?1;
     });
 }
 
-nbl::Result nbl::getGameDetails(DatabaseConnection* connection, i64 gameId, GameDetailsCallback callback) {
+nbl::Result nbl::Game::getExtended(DatabaseConnection* connection, i64 gameId, GameCallback callback) {
 
     static nbl::PreparedStatement _getGameDetailsStmt;
     if(!_getGameDetailsStmt.isValid(connection)) {
@@ -192,24 +136,22 @@ WHERE game.gId = ?1;
 
     return connection->execute(&_getGameDetailsStmt, [&](i32 argc, nbl::DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
 
-        GameDetails details = {
-            .game = {
-                .id = values[0].intValue,
-                .title = values[1].textValue,
-                .description = values[2].textValue,
-                .banner = values[3].intValue,
-                .poster = values[4].intValue,
-                .icon = values[5].intValue,
-                .logo = values[6].intValue,
-                .logoPosition = static_cast<LogoPosition>(values[7].intValue),
-                .releaseDate = values[8].uintValue(),
-                .rating = values[9].floatValue,
-                .previousPlayTime = values[10].uintValue(),
-                .previousPlayCount = values[11].uintValue(),
-                .lastPlayedDeleted = values[12].uintValue(),
-                .added = values[13].uintValue(),
-                .colorOverride = values[14].uintValueOrNull().cast<u32>()
-            },
+        Game details = {
+            .id = values[0].intValue,
+            .title = values[1].textValue,
+            .description = values[2].textValue,
+            .banner = values[3].intValue,
+            .poster = values[4].intValue,
+            .icon = values[5].intValue,
+            .logo = values[6].intValue,
+            .logoPosition = static_cast<LogoPosition>(values[7].intValue),
+            .releaseDate = values[8].uintValue(),
+            .rating = values[9].floatValue,
+            .previousPlayTime = values[10].uintValue(),
+            .previousPlayCount = values[11].uintValue(),
+            .lastPlayedDeleted = values[12].uintValue(),
+            .added = values[13].uintValue(),
+            .colorOverride = values[14].uintValueOrNull().cast<u32>(),
             .totalPlayTime = values[15].uintValue(),
             .totalPlayCount = values[16].uintValue(),
             .lastPlayed = values[17].uintValue(),
@@ -223,7 +165,7 @@ WHERE game.gId = ?1;
 
 
 
-nbl::Result nbl::lookupGames(DatabaseConnection *connection, const FilterMeta& meta, GameLookupCallback callback) {
+nbl::Result nbl::Game::lookup(DatabaseConnection *connection, const Filter& meta, GameLookupCallback callback) {
 
     const SearchCriteria& criteria = meta.criteria;
 
@@ -547,7 +489,7 @@ LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId)");
 }
 
 
-nbl::Result nbl::enumerateGameExternalIds(DatabaseConnection* connection, i64 gameId, GameExternalIdCallback callback) {
+nbl::Result nbl::Game::enumerateExternalIds(DatabaseConnection* connection, i64 gameId, GameExternalIdCallback callback) {
  
     static nbl::PreparedStatement _enumerateExternalIdsStmt;
     if(!_enumerateExternalIdsStmt.isValid(connection)) {
@@ -574,7 +516,7 @@ WHERE gId = ?1;
     });
 }
 
-nbl::Result nbl::getGameExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName, GameExternalIdCallback callback) {
+nbl::Result nbl::Game::getExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName, GameExternalIdCallback callback) {
 
     static nbl::PreparedStatement _getExternalIdStmt;
 if(!_getExternalIdStmt.isValid(connection)) {
@@ -602,7 +544,7 @@ WHERE gId = ?1 AND platformName = ?2;
     });
 }
 
-nbl::Result nbl::setGameExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName, StringView platformId) {
+nbl::Result nbl::Game::setExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName, StringView platformId) {
 
     static nbl::PreparedStatement _setExternalIdStmt;
     if(!_setExternalIdStmt.isValid(connection)) {
@@ -622,7 +564,7 @@ UPDATE SET platformId = ?3;
 
 }
 
-nbl::Result nbl::removeGameExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName) {
+nbl::Result nbl::Game::removeExternalId(DatabaseConnection* connection, i64 gameId, StringView platformName) {
     
     static nbl::PreparedStatement _removeExternalIdStmt;
     if(!_removeExternalIdStmt.isValid(connection)) {
@@ -639,7 +581,7 @@ WHERE gId = ?1 AND platformName = ?2;
 
 }
 
-nbl::Result nbl::clearGameExternalIds(DatabaseConnection* connection, i64 gameId) {
+nbl::Result nbl::Game::clearExternalIds(DatabaseConnection* connection, i64 gameId) {
     
     static nbl::PreparedStatement _clearExternalIdsStmt;
     if(!_clearExternalIdsStmt.isValid(connection)) {
@@ -655,7 +597,7 @@ WHERE gId = ?1;
 }
 
 
-nbl::Result nbl::getGameLastPlayed(DatabaseConnection* connection, i64 gameId, u64* outTime) {
+nbl::Result nbl::Game::getLastPlayed(DatabaseConnection* connection, i64 gameId, u64* outTime) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -670,7 +612,7 @@ SELECT max(max(installation.lastPlayed), game.lastPlayedDeleted) FROM installati
         return nbl::Result::SUCCESS;
     });
 }
-nbl::Result nbl::getGameFirstAdded(DatabaseConnection* connection, i64 gameId, u64* outTime) {
+nbl::Result nbl::Game::getFirstAdded(DatabaseConnection* connection, i64 gameId, u64* outTime) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -686,7 +628,7 @@ SELECT min(added) FROM installation WHERE gId=?1;
     });
 
 }
-nbl::Result nbl::getGamePlayCount(DatabaseConnection* connection, i64 gameId, u64* outCount) {
+nbl::Result nbl::Game::getPlayCount(DatabaseConnection* connection, i64 gameId, u64* outCount) {
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
@@ -700,7 +642,7 @@ SELECT sum(installation.playCount) + game.previousPlayCount FROM installation JO
         return nbl::Result::SUCCESS;
     });
 }
-nbl::Result nbl::getGamePlayTime(DatabaseConnection* connection, i64 gameId, u64* outTime) {
+nbl::Result nbl::Game::getPlayTime(DatabaseConnection* connection, i64 gameId, u64* outTime) {
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
@@ -713,4 +655,30 @@ SELECT sum(installation.playTime) + game.previousPlayTime FROM installation JOIN
         *outTime = values[0].uintValue();
         return nbl::Result::SUCCESS;
     });
+}
+
+
+nbl::Result nbl::Game::lookupForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, GameLookupCallback callback) {
+
+    NBL_CHECK(Filter::get(connection, filterId, [&](const nbl::Filter& meta) -> nbl::Result {
+
+        Filter updated = meta;
+
+        updated.criteria.offset = offset;
+        updated.criteria.deviceId = (meta.flags & FilterFlag::ONLY_INSTALLED) ? deviceId : 0;
+
+        if(limit > 0) {
+            updated.criteria.limit = updated.criteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
+        }
+
+        return lookup(
+            connection,
+            updated,
+            callback
+        );
+
+     }));
+
+     return nbl::Result::SUCCESS;
+
 }

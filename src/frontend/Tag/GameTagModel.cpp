@@ -20,12 +20,13 @@
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Data/TagModel.hpp>
 
 QVariant nbl::frontend::GameTagModel::data(const QModelIndex& index, int role) const {
 
     if(!index.isValid() || index.row() >= _mData.size()) return QVariant();
 
-    TagRef ref = _mData.at(index.row());
+    TagMeta ref = _mData.at(index.row());
 
     switch(role) {
         case IdRole:
@@ -52,10 +53,10 @@ nbl::Result nbl::frontend::GameTagModel::_fetchPageData(qsizetype limit, qsizety
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->databaseConnection();
     
-    QList<TagRef> found = {};
+    QList<TagMeta> found = {};
     found.reserve(limit);
-    NBL_CHECK(nbl::getGameTags(db, _mGameId, [&](const nbl::TagMeta& tag) -> nbl::Result {
-        TagRef ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
+    NBL_CHECK(nbl::Tag::enumerateGameTags(db, _mGameId, [&](const nbl::Tag& tag) -> nbl::Result {
+        TagMeta ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
         found.append(ref);
         return nbl::Result::SUCCESS;
     }))

@@ -18,15 +18,17 @@
 /**
  * \file Data/TabModel.cpp
  * \author jwall64
- * \brief Partial implementation of Data/Model.hpp
+ * \brief Implementation of Data/TabModel.hpp
  */
 
 
+#include <Data/TabModel.hpp>
 #include <Data/Model.hpp>
-#include "Core/Result.hpp"
+#include <Data/FilterModel.hpp>
+#include <Core/Result.hpp>
 
 
-nbl::Result nbl::countTabs(DatabaseConnection* connection, u64* numTabs) {
+nbl::Result nbl::Tab::count(DatabaseConnection* connection, u64* numTabs) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -46,7 +48,7 @@ SELECT COUNT(tId) FROM tab;
 
 }
 
-nbl::Result nbl::addTab(DatabaseConnection* connection, const TabMeta& meta, i64* outTabId) {
+nbl::Result nbl::Tab::add(DatabaseConnection* connection, const Tab& meta, i64* outTabId) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -59,7 +61,7 @@ INSERT INTO tab (name, icon, flags) VALUES (?1, ?2, ?3);
     return connection->execute(&_stmt, outTabId);
 }
 
-nbl::Result nbl::updateTab(DatabaseConnection* connection, const TabMeta& meta) {
+nbl::Result nbl::Tab::update(DatabaseConnection* connection, const Tab& meta) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -74,7 +76,7 @@ UPDATE tab SET name=?1, icon=?2, flags=?3  WHERE tabId=?4;
 
 
 
-nbl::Result nbl::removeTab(DatabaseConnection* connection, i64 tabId) {
+nbl::Result nbl::Tab::remove(DatabaseConnection* connection, i64 tabId) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -87,7 +89,7 @@ DELETE FROM tab WHERE tabId = ?1;
     return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::enumerateTabs(DatabaseConnection* connection, u64 offset, u64 limit, TabCallback callback) {
+nbl::Result nbl::Tab::enumerate(DatabaseConnection* connection, u64 offset, u64 limit, TabCallback callback) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -107,7 +109,7 @@ SELECT tabId, name, icon, flags FROM tab LIMIT ?1 OFFSET ?2;
         }
 
         return callback(
-            TabMeta {
+            Tab {
                 .tabId = columnValues[0].intValue,
                 .name = columnValues[1].textValue,
                 .icon = InlineIcon::fromDataValue(columnValues[2]),
@@ -118,7 +120,7 @@ SELECT tabId, name, icon, flags FROM tab LIMIT ?1 OFFSET ?2;
 
 }
 
-nbl::Result nbl::getTabMeta(DatabaseConnection* connection, i64 tabId, TabCallback callback) {
+nbl::Result nbl::Tab::get(DatabaseConnection* connection, i64 tabId, TabCallback callback) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -137,7 +139,7 @@ SELECT tabId, name, icon, flags FROM tab WHERE tabId=?1;
         }
 
         return callback( 
-            TabMeta {
+            Tab {
                 .tabId = columnValues[0].intValue,
                 .name = columnValues[1].textValue,
                 .icon = InlineIcon::fromDataValue(columnValues[2]),
@@ -145,40 +147,4 @@ SELECT tabId, name, icon, flags FROM tab WHERE tabId=?1;
             }
         );
     });
-}
-
-nbl::Result nbl::getFiltersForTab(DatabaseConnection* connection, i64 tabId, u64 offset, u64 limit, FilterCallback callback) {
-
-    static nbl::PreparedStatement _stmt;
-    if(!_stmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-SELECT filter.fId, filter.name, filter.icon, filter.flags
-FROM filter
-WHERE filter.tabId = ?1
-ORDER BY filter.priority DESC, filter.fId ASC
-LIMIT ?2
-OFFSET ?3;
-        )", &_stmt));
-    }
-
-    NBL_CHECK(_stmt.bindAll(1, tabId, limit, offset));
-
-    return connection->execute(&_stmt, [&](i32 columnCount, nbl::DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        if(columnCount != 4) {
-            nbl::log(nbl::LogLevel::ERROR, "Expected 4 columns in get filters for tab query result, but got ", columnCount);
-            return nbl::Result::IO_ERROR;
-        }
-
-        nbl::FilterMeta meta = {
-            .filterId = columnValues[0].intValue, 
-            .name = columnValues[1].textValue, 
-            .icon = InlineIcon::fromDataValue(columnValues[2]),
-            .flags = columnValues[3].uintValue(),
-            .criteria = {}
-        };
-
-        return callback(meta);
-    });
-
 }

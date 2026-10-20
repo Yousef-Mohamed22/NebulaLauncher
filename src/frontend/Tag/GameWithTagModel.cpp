@@ -62,7 +62,7 @@ nbl::Result nbl::frontend::GameWithTagModel::_fetchPageData(qsizetype limit, qsi
     _mCriteria.offset = offset;
     _mCriteria.limit = limit;
 
-    NBL_CHECK(nbl::lookupGames(db, { .criteria = _mCriteria }, [&](const nbl::GameLookupResult& res) -> nbl::Result {
+    NBL_CHECK(nbl::Game::lookup(db, { .criteria = _mCriteria }, [&](const nbl::GameLookupResult& res) -> nbl::Result {
         _Row ref{
             res.id,
             fromNbl(res.title),

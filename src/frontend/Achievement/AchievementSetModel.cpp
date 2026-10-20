@@ -16,6 +16,7 @@
 
 #include "Achievement/AchievementSetModel.hpp"
 #include "ApplicationContext.hpp"
+#include "Data/AchievementModel.hpp"
 
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
@@ -70,7 +71,7 @@ nbl::Result nbl::frontend::AchievementSetModel::_fetchPageData(qsizetype limit, 
     
     QList<_Item> found = {};
     found.reserve(limit);
-    NBL_CHECK(nbl::enumerateGameAchievementSets(db, limit, offset, _mGameId, [&](const nbl::AchievementSet& set) -> nbl::Result {
+    NBL_CHECK(nbl::AchievementSet::enumerateForGame(db, limit, offset, _mGameId, [&](const nbl::AchievementSet& set) -> nbl::Result {
         if(!_bIncludeHidden && set.hidden) return nbl::Result::SUCCESS;
         _Item item {
             .id = set.id,
@@ -100,14 +101,14 @@ nbl::Result nbl::frontend::AchievementSetModel::_fetchPageData(qsizetype limit, 
 
 quint64 nbl::frontend::AchievementSetModel::getTotalAchievementCount() {
     u64 out = 0;
-    if(nbl::countGameAchievements(ApplicationContext::instance()->databaseConnection(), _mGameId, &out).error()) {
+    if(nbl::Achievement::countForGame(ApplicationContext::instance()->databaseConnection(), _mGameId, &out).error()) {
         return 0;
     }
     return static_cast<quint64>(out);
 }
 quint64 nbl::frontend::AchievementSetModel::getTotalUnlockedAchievementCount() {
     u64 out = 0;
-    if(nbl::countUnlockedGameAchievements(ApplicationContext::instance()->databaseConnection(), _mGameId, &out).error()) {
+    if(nbl::Achievement::countUnlockedForGame(ApplicationContext::instance()->databaseConnection(), _mGameId, &out).error()) {
         return 0;
     }
     return static_cast<quint64>(out);
@@ -115,7 +116,7 @@ quint64 nbl::frontend::AchievementSetModel::getTotalUnlockedAchievementCount() {
 }
 quint64 nbl::frontend::AchievementSetModel::getSetAchievementCount(qint64 setId) {
     u64 out = 0;
-    if(nbl::countSetAchievements(ApplicationContext::instance()->databaseConnection(), setId, &out).error()) {
+    if(nbl::Achievement::countInSet(ApplicationContext::instance()->databaseConnection(), setId, &out).error()) {
         return 0;
     }
     return static_cast<quint64>(out);
@@ -123,7 +124,7 @@ quint64 nbl::frontend::AchievementSetModel::getSetAchievementCount(qint64 setId)
 }
 quint64 nbl::frontend::AchievementSetModel::getSetUnlockedAchievementCount(qint64 setId) {
     u64 out = 0;
-    if(nbl::countUnlockedSetAchievements(ApplicationContext::instance()->databaseConnection(), setId, &out).error()) {
+    if(nbl::Achievement::countUnlockedInSet(ApplicationContext::instance()->databaseConnection(), setId, &out).error()) {
         return 0;
     }
     return static_cast<quint64>(out);

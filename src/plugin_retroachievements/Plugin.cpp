@@ -162,7 +162,7 @@ struct _ProviderData {
     }
 };
 
-nbl::Result _updateAchievementState(nbl::PluginContext* context, const nbl::GameMeta& game, nbl::AchievementProviderStatus status, nbl::Span<nbl::FieldValue> values, nbl::AchievementHelper& helper, nbl::StringView externalId, void* userData) {
+nbl::Result _updateAchievementState(nbl::PluginContext* context, const nbl::Game& game, nbl::AchievementProviderStatus status, nbl::Span<nbl::FieldValue> values, nbl::AchievementHelper& helper, nbl::StringView externalId, void* userData) {
 
     if(status == nbl::AchievementProviderStatus::NOT_ADDED) {
         // TODO: Try to find the achievement set for this game. This will likely require obtaining an offline version of the database

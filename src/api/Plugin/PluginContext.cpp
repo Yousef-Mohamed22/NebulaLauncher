@@ -35,6 +35,7 @@
 #include <Utility/StringBuilder.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Data/DeviceModel.hpp>
 #include <Data/MediaManager.hpp>
 
 
@@ -76,7 +77,7 @@ nbl::Result nbl::PluginContext::create(StringView deviceName, StringView databas
     NBL_CHECK(nbl::initDatabase(&ctx->_mConnection));
 
     i64 deviceId;
-    NBL_ASSERT(nbl::getOrAddDevice(&ctx->_mConnection, deviceName, &deviceId).success()); 
+    NBL_ASSERT(nbl::HostDevice::upsert(&ctx->_mConnection, deviceName, &deviceId).success()); 
     nbl::log(nbl::LogLevel::DEBUG, "Device ID: ", deviceId);
 
     NBL_CHECK(nbl::MediaManager::create(mediaDbPath, deviceId, &ctx->_mMediaManager));

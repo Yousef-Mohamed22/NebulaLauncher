@@ -29,7 +29,7 @@
 namespace {
 
 
-nbl::Result _applyInstallationCommand(nbl::PluginContext* context, nbl::InstallationMeta meta, const nbl::InstallationType* type, QVariantMap fields, QVariantList externalIds) {
+nbl::Result _applyInstallationCommand(nbl::PluginContext* context, nbl::Installation meta, const nbl::InstallationType* type, QVariantMap fields, QVariantList externalIds) {
 
     nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
@@ -92,7 +92,7 @@ nbl::Result _applyInstallationCommand(nbl::PluginContext* context, nbl::Installa
     NBL_CHECK(builder.buildNullTerminated(&cmd));
 
     meta.command = cmd;
-    return nbl::updateInstallation(context->databaseConnection(), meta);
+    return nbl::Installation::update(context->databaseConnection(), meta);
 }
 
 
@@ -108,11 +108,11 @@ nbl::frontend::InstallationDetails* ApplicationContext::getInstallationDetails(q
 
     nbl::frontend::InstallationDetails* out;
 
-    if(nbl::getInstallationDetails(databaseConnection(), installationId, [&](const nbl::InstallationDetails& details) -> nbl::Result {
+    if(nbl::Installation::getExtended(databaseConnection(), installationId, [&](const nbl::Installation& installation, const nbl::Game& game) -> nbl::Result {
 
         nbl::AllocationFrame frame(nbl::Arena::threadLocal());
 
-        const nbl::InstallationType* type = _mContext.get<nbl::InstallationType>(details.installation.type);
+        const nbl::InstallationType* type = _mContext.get<nbl::InstallationType>(installation.type);
         QVariant qtFields{};
         if(type != nullptr) {
             nbl::Span<nbl::Field> fields = type->fields;
@@ -121,7 +121,7 @@ nbl::frontend::InstallationDetails* ApplicationContext::getInstallationDetails(q
             nbl::Span<nbl::FieldValue> values;
 
             nbl::JsonElement value = {};
-            NBL_CHECK(nbl::parseJson(nbl::StringReader(details.installation.command), &frame, &value));
+            NBL_CHECK(nbl::parseJson(nbl::StringReader(installation.command), &frame, &value));
             NBL_CHECK(nbl::decodeFieldValues(&_mContext, type->fields, value.object, &values, &frame));
 
             nbl::Field dummy {
@@ -133,31 +133,31 @@ nbl::frontend::InstallationDetails* ApplicationContext::getInstallationDetails(q
         }
 
         out = new nbl::frontend::InstallationDetails(
-            details.installation.id,
-            details.game.id,
-            nbl::frontend::fromNbl(details.installation.type),
+            installation.id,
+            game.id,
+            nbl::frontend::fromNbl(installation.type),
             qtFields.toMap(),
-            nbl::frontend::fromNbl(details.installation.title),
-            nbl::frontend::fromNbl(details.installation.description),
-            details.installation.poster,
-            details.installation.banner,
-            details.installation.icon,
-            details.installation.logo,
-            static_cast<u64>(details.installation.logoPosition),
-            details.installation.playTime,
-            details.installation.playCount,
-            details.installation.lastPlayed,
-            details.installation.added,
-            details.game.releaseDate,
-            details.game.rating,
-            details.installation.colorOverride.map<QColor>([](u32 u) { return QColor::fromRgba(u); }),
-            nbl::frontend::fromNbl(details.game.title),
-            nbl::frontend::fromNbl(details.game.description),
-            details.game.poster,
-            details.game.banner,
-            details.game.icon,
-            details.game.logo,
-            static_cast<u64>(details.game.logoPosition)
+            nbl::frontend::fromNbl(installation.title),
+            nbl::frontend::fromNbl(installation.description),
+            installation.poster,
+            installation.banner,
+            installation.icon,
+            installation.logo,
+            static_cast<u64>(installation.logoPosition),
+            installation.playTime,
+            installation.playCount,
+            installation.lastPlayed,
+            installation.added,
+            game.releaseDate,
+            game.rating,
+            installation.colorOverride.map<QColor>([](u32 u) { return QColor::fromRgba(u); }),
+            nbl::frontend::fromNbl(game.title),
+            nbl::frontend::fromNbl(game.description),
+            game.poster,
+            game.banner,
+            game.icon,
+            game.logo,
+            static_cast<u64>(game.logoPosition)
         );
 
         return nbl::Result::SUCCESS;
@@ -197,7 +197,7 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
 
     // Add a new installation
     QByteArray type = params.find("type")->toString().toUtf8();
-    nbl::InstallationMeta meta = {
+    nbl::Installation meta = {
         .id = 0,
         .gameId = gId,
         .deviceId = deviceId(),
@@ -220,7 +220,7 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
         meta.logoPosition = position;
     }
 
-    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::addInstallation(databaseConnection(), meta, &meta.id));
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::Installation::add(databaseConnection(), meta, &meta.id));
 
     for(QVariant tag : params.find("addedInstallationTags")->toList()) {
         tagInstallation(meta.id, tag.toLongLong());
@@ -243,10 +243,10 @@ InstallationAddResult ApplicationContext::addInstallation(const QVariantMap& par
             QByteArray id = qs.toMap().find("id")->toString().toUtf8();
             nbl::StringView nblName(name.data(), name.length());
             nbl::StringView nblId(id.data(), id.length());
-            NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::setGameExternalId(databaseConnection(), gId, nblName, nblId));
+            NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::Game::setExternalId(databaseConnection(), gId, nblName, nblId));
         }
     } else {
-        nbl::enumerateGameExternalIds(databaseConnection(), gId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
+        nbl::Game::enumerateExternalIds(databaseConnection(), gId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
             QVariantMap out{};
             out["platform"] = QString(nbl::frontend::fromNbl(platformName));
             out["id"] = QString(nbl::frontend::fromNbl(platformId));
@@ -297,7 +297,7 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
     QByteArray installationTitle = params.find("title")->toString().toUtf8();
     QByteArray installationDesc = params.find("description")->toString().toUtf8();
 
-    nbl::InstallationMeta meta = {
+    nbl::Installation meta = {
         .id = installationId,
         .gameId = gId,
         .deviceId = deviceId(),
@@ -314,7 +314,7 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
 
     QVariantList externalIds{};
     NBL_CHECK(databaseConnection()->beginTransaction());
-    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::enumerateGameExternalIds(databaseConnection(), meta.gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::Game::enumerateExternalIds(databaseConnection(), meta.gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
         QVariantMap out{};
         out["platform"] = QString(nbl::frontend::fromNbl(platformName));
         out["id"] = QString(nbl::frontend::fromNbl(platformId));
@@ -342,6 +342,6 @@ int ApplicationContext::updateInstallation(qint64 installationId, const QVariant
 }
 
 int ApplicationContext::deleteInstallation(qint64 installationId) {
-    return nbl::removeInstallation(databaseConnection(), installationId);
+    return nbl::Installation::remove(databaseConnection(), installationId);
 }
 

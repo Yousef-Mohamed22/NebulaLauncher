@@ -87,7 +87,7 @@ nbl::frontend::ProcessHandle* ApplicationContext::launchInstallation(qint64 inst
         nbl::frontend::ProcessHandle* handle = ctx->_mRunningProcesses[installationId];
         if(handle == nullptr) return -1;
 
-        nbl::Result res = nbl::getInstallationMeta(ctx->databaseConnection(), installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
+        nbl::Result res = nbl::Installation::get(ctx->databaseConnection(), installationId, [&](const nbl::Installation& meta) -> nbl::Result {
 
             if(meta.deviceId != ctx->deviceId()) {
                 nbl::log(nbl::LogLevel::ERROR, "Attempt to launch an installation from another device! (", meta.deviceId, " != ", ctx->deviceId(), ")");
@@ -148,7 +148,7 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
 
     nbl::frontend::ProcessHandle* handle = new nbl::frontend::ProcessHandle();
 
-    nbl::Result res = nbl::getInstallationMeta(databaseConnection(), installationId, [&](const nbl::InstallationMeta& meta) -> nbl::Result {
+    nbl::Result res = nbl::Installation::get(databaseConnection(), installationId, [&](const nbl::Installation& meta) -> nbl::Result {
 
         if(meta.deviceId != deviceId()) {
             nbl::log(nbl::LogLevel::ERROR, "Attempt to open an installation folder for another device!");

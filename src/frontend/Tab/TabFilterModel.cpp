@@ -20,12 +20,13 @@
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Data/FilterModel.hpp>
 
 QVariant nbl::frontend::TabFilterModel::data(const QModelIndex& index, int role) const {
 
     if(!index.isValid() || index.row() >= _mData.size()) return QVariant();
 
-    FilterRef ref = _mData.at(index.row());
+    FilterMeta ref = _mData.at(index.row());
 
     switch(role) {
         case IdRole:
@@ -73,16 +74,15 @@ nbl::Result nbl::frontend::TabFilterModel::_fetchPageData(qsizetype limit, qsize
 
     nbl::DatabaseConnection* db = ApplicationContext::instance()->databaseConnection();
     
-    QList<FilterRef> found = {};
+    QList<FilterMeta> found = {};
     found.reserve(limit);
-    NBL_CHECK(nbl::getFiltersForTab(db, _mTabId, offset, limit, [&](const nbl::FilterMeta& meta) -> nbl::Result {
-        FilterRef ref(
+    NBL_CHECK(nbl::Filter::enumerateForTab(db, _mTabId, offset, limit, [&](const nbl::Filter& meta) -> nbl::Result {
+        found.append(FilterMeta(
             meta.filterId, 
             QByteArray(meta.name.data, meta.name.length), 
             inlineIcon(meta.icon, meta.flags & FilterFlag::IMAGE_ICON),
             meta.flags
-        );
-        found.append(ref);
+        ));
         return nbl::Result::SUCCESS;
     }));
 

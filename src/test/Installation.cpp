@@ -18,12 +18,15 @@
 #include <gtest/gtest.h>
 
 #include <Data/Model.hpp>
+#include <Data/DeviceModel.hpp>
+#include <Data/GameModel.hpp>
+#include <Data/InstallationModel.hpp>
 #include <Data/Database.hpp>
 
 
 namespace {
 
-nbl::GameMeta _gameMeta = {
+nbl::Game _gameMeta = {
     .id = 0,
     .title = "Test Game",
     .description = "A test game",
@@ -35,7 +38,7 @@ nbl::GameMeta _gameMeta = {
     .rating = 4.5
 };
 
-nbl::InstallationMeta _installMeta = {
+nbl::Installation _installMeta = {
     .gameId = 0,
     .type = "dummy",
     .command = "C:/Games/Test Game"
@@ -50,10 +53,10 @@ TEST(Installation, AddInstallation) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDevice(&connection, { .name = "test" }, &_installMeta.deviceId).success());
+    ASSERT_TRUE(nbl::HostDevice::add(&connection, { .name = "test" }, &_installMeta.deviceId).success());
 
-    ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
-    ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
+    ASSERT_TRUE(nbl::Game::add(&connection, _gameMeta, &_installMeta.gameId).success());
+    ASSERT_TRUE(nbl::Installation::add(&connection, _installMeta, &_installMeta.id).success());
 }
 
 TEST(Installation, RemoveInstallation) {
@@ -62,11 +65,11 @@ TEST(Installation, RemoveInstallation) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDevice(&connection, { .name = "test" }, &_installMeta.deviceId).success());
+    ASSERT_TRUE(nbl::HostDevice::add(&connection, { .name = "test" }, &_installMeta.deviceId).success());
 
-    ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
-    ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
-    ASSERT_TRUE(nbl::removeInstallation(&connection, _installMeta.id).success());
+    ASSERT_TRUE(nbl::Game::add(&connection, _gameMeta, &_installMeta.gameId).success());
+    ASSERT_TRUE(nbl::Installation::add(&connection, _installMeta, &_installMeta.id).success());
+    ASSERT_TRUE(nbl::Installation::remove(&connection, _installMeta.id).success());
 }
 
 TEST(Installation, GetInstallationMeta) {
@@ -75,14 +78,14 @@ TEST(Installation, GetInstallationMeta) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
-    ASSERT_TRUE(nbl::addDevice(&connection, { .name = "test" }, &_installMeta.deviceId).success());
+    ASSERT_TRUE(nbl::HostDevice::add(&connection, { .name = "test" }, &_installMeta.deviceId).success());
 
-    ASSERT_TRUE(nbl::addGame(&connection, _gameMeta, &_installMeta.gameId).success());
-    ASSERT_TRUE(nbl::addInstallation(&connection, _installMeta, &_installMeta.id).success());
+    ASSERT_TRUE(nbl::Game::add(&connection, _gameMeta, &_installMeta.gameId).success());
+    ASSERT_TRUE(nbl::Installation::add(&connection, _installMeta, &_installMeta.id).success());
 
     bool found = false;
-    ASSERT_TRUE(nbl::getInstallationDetails(&connection, _installMeta.id, [&](const nbl::InstallationDetails& details) -> nbl::Result {
-        if(details.installation.command == "C:/Games/Test Game" && details.game.title == "Test Game") {
+    ASSERT_TRUE(nbl::Installation::getExtended(&connection, _installMeta.id, [&](const nbl::Installation& installation, const nbl::Game& game) -> nbl::Result {
+        if(installation.command == "C:/Games/Test Game" && game.title == "Test Game") {
             found = true;
         }
         return nbl::Result::SUCCESS;

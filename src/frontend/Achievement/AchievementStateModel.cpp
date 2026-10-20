@@ -101,7 +101,7 @@ void nbl::frontend::AchievementStateModel::_refresh() {
         };
     }
 
-    nbl::enumerateAchievementStates(ctx->databaseConnection(), _mGameId, [&](auto& state) -> nbl::Result {
+    nbl::AchievementState::enumerate(ctx->databaseConnection(), _mGameId, [&](auto& state) -> nbl::Result {
         for(_Item& item : _mData) {
             if(item.provider->id == state.provider) {
                 item.encodedFields = QByteArray(state.fields.data, state.fields.length);

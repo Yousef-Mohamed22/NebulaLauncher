@@ -272,7 +272,7 @@ nbl::Result nbl::AchievementHelper::addOrUpdateAchievement(i64 setId, u64 number
         .flags = flags,
         .providerData = providerData,
     };
-    return nbl::upsertAchievementMeta(_pConnection, ach, &ach.id);
+    return nbl::Achievement::upsertMeta(_pConnection, ach, &ach.id);
 }
 
 nbl::Result nbl::AchievementHelper::addOrUpdateAchievementWithProgress(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, StringView lockedIcon, f64 globalUnlockRate, u32 progressNumerator, u32 progressDenominator, u64 dateUnlocked, AchievementFlags flags, u32 borderColor, Span<u8> providerData) {
@@ -301,7 +301,7 @@ nbl::Result nbl::AchievementHelper::addOrUpdateAchievementWithProgress(i64 setId
         .providerData = providerData
     };
 
-    return nbl::upsertAchievement(_pConnection, ach, nullptr);
+    return nbl::Achievement::upsert(_pConnection, ach, nullptr);
 }
 
 
@@ -329,7 +329,7 @@ WHERE asId=?6 AND providerId=?7;
 
 u64 nbl::AchievementHelper::countAchievementSets() {
     u64 out = 0;
-    nbl::countGameAchivementSetsWithProvider(_pConnection, _mGameId, _mProvider, &out);
+    nbl::AchievementSet::countForGameAndProvider(_pConnection, _mGameId, _mProvider, &out);
     return out;
 }
 

@@ -18,10 +18,10 @@
 /**
  * \file Data/PluginModel.cpp
  * \author jwall64
- * \brief Partial implementation of Data/Model.hpp
+ * \brief Implementation of Data/PluginModel.hpp
  */
 
-#include <Data/Model.hpp>
+#include <Data/PluginModel.hpp>
 #include <Utility/StringBuilder.hpp>
 
 nbl::Result nbl::getPluginFields(DatabaseConnection* connection, StringView pluginId, PluginFieldsCallback callback) {

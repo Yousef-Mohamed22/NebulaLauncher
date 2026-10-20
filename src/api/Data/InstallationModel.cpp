@@ -18,19 +18,22 @@
 /**
  * \file Data/InstallationModel.cpp
  * \author jwall64
- * \brief Partial implementation of Data/Model.hpp
+ * \brief Implementation of Data/InstallationModel.hpp
  */
 
 
 #include <Core/Result.hpp>
 #include <Core/Array.hpp>
+#include <Core/Math.hpp>
 #include <Utility/StringBuilder.hpp>
 #include <Platform/Time.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Data/FilterModel.hpp>
+#include <Data/InstallationModel.hpp>
 
 
-nbl::Result nbl::addInstallation(DatabaseConnection* connection, const InstallationMeta& meta, i64* outInstallationId) {
+nbl::Result nbl::Installation::add(DatabaseConnection* connection, const Installation& meta, i64* outInstallationId) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -47,7 +50,7 @@ VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 0, 0, 0, ?12, ?13);
 }
 
 
-nbl::Result nbl::removeInstallation(DatabaseConnection* connection, i64 installationId) {
+nbl::Result nbl::Installation::remove(DatabaseConnection* connection, i64 installationId) {
 
     static nbl::PreparedStatement _updateGameStmt;
     if(!_updateGameStmt.isValid(connection)) {
@@ -76,7 +79,7 @@ DELETE FROM installation WHERE iId = ?1;
     return connection->doTransaction(nbl::Array{&_updateGameStmt,&_removeInstallationStmt});
 }
 
-nbl::Result nbl::updateInstallation(DatabaseConnection* connection, const InstallationMeta& meta) {
+nbl::Result nbl::Installation::update(DatabaseConnection* connection, const Installation& meta) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -92,7 +95,7 @@ UPDATE installation SET gId=?1, deviceId=?2, title=?3, description=?4, banner=?5
 }
 
 
-nbl::Result nbl::getInstallationMeta(DatabaseConnection* connection, i64 installationid, InstallationMetaCallback callback) {
+nbl::Result nbl::Installation::get(DatabaseConnection* connection, i64 installationid, InstallationMetaCallback callback) {
 
     static PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -110,7 +113,7 @@ WHERE iId = ?1;
 
         NBL_ASSERT(columnCount == 17);
 
-        InstallationMeta meta = {
+        Installation meta = {
             .id = columnValues[0].intValue,
             .gameId = columnValues[1].intValue,
             .deviceId = columnValues[2].intValue,
@@ -137,7 +140,7 @@ WHERE iId = ?1;
 }
 
 
-nbl::Result nbl::getInstallationDetails(DatabaseConnection* connection, i64 installationId, InstallationDetailsCallback callback) {
+nbl::Result nbl::Installation::getExtended(DatabaseConnection* connection, i64 installationId, InstallationExtendedCallback callback) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -157,8 +160,7 @@ WHERE installation.iId = ?1;
 
         NBL_ASSERT(columnCount == 28);
 
-        InstallationDetails details = {
-            .installation = {
+        return callback({
                 .id = columnValues[0].intValue,
                 .gameId = columnValues[1].intValue,
                 .deviceId = columnValues[2].intValue,
@@ -177,7 +179,7 @@ WHERE installation.iId = ?1;
                 .added = columnValues[15].uintValue(),
                 .colorOverride = columnValues[16].uintValueOrNull().cast<u32>()
             },
-            .game = {
+            {
                 .id = columnValues[17].intValue,
                 .title = columnValues[18].textValue,
                 .description = columnValues[19].textValue,
@@ -189,16 +191,13 @@ WHERE installation.iId = ?1;
                 .releaseDate = columnValues[25].uintValue(),
                 .rating = columnValues[26].floatValue,
                 .colorOverride = columnValues[27].uintValueOrNull().cast<u32>()
-            }
-        };
-        return callback(details);
-
+            });
     });
 }
 
-nbl::Result nbl::lookupInstallations(
+nbl::Result nbl::Installation::lookup(
         DatabaseConnection* connection, 
-        const FilterMeta& meta,
+        const Filter& meta,
         InstallationLookupCallback callback) {
 
 
@@ -439,7 +438,7 @@ OFFSET ?10;
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::getInstallationsOfGame(DatabaseConnection* connection, i64 gameId, i64 deviceId, u64 limit, u64 offset, InstallationLookupCallback callback) {
+nbl::Result nbl::Installation::lookupForGame(DatabaseConnection* connection, i64 gameId, i64 deviceId, u64 limit, u64 offset, InstallationLookupCallback callback) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -500,140 +499,7 @@ OFFSET ?4;
 }
 
 
-nbl::Result nbl::addInstallationTag(DatabaseConnection* connection, i64 installationId, i64 tag) {
-
-    static nbl::PreparedStatement _stmt;
-    if(!_stmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-INSERT INTO installation_tag (iId, tId) VALUES (?1, ?2);
-        )", &_stmt));
-    }
-
-    NBL_CHECK(_stmt.bindInt(1, installationId));
-    NBL_CHECK(_stmt.bindInt(2, tag));
-
-    return connection->execute(&_stmt);
-}
-
-nbl::Result nbl::removeInstallationTag(DatabaseConnection* connection, i64 installationId, i64 tag) {
-
-    static nbl::PreparedStatement _stmt;
-    if(!_stmt.isValid(connection)) {
-        NBL_CHECK(connection->prepare(R"(
-DELETE FROM installation_tag WHERE iId = ?1 AND tId = ?2;
-        )", &_stmt));
-    }
-
-    NBL_CHECK(_stmt.bindInt(1, installationId));
-    NBL_CHECK(_stmt.bindInt(2, tag));
-
-    return connection->execute(&_stmt);
-
-}
-
-
-nbl::Result nbl::countInstallationTags(nbl::DatabaseConnection* connection, i64 installationId, u64* outCount) {
-
-    static nbl::PreparedStatement _stmt;
-    if(!_stmt.isValid(connection)) {
-
-        NBL_CHECK(connection->prepare(R"(
-WITH 
-	parentGame AS (
-		SELECT gId FROM installation WHERE iId = ?1
-	)
-SELECT COUNT(DISTINCT tag.tId)
-FROM tag
-JOIN tag_closure ON tag_closure.ancestorId = tag.tId
-WHERE descendantId IN (SELECT tId FROM installation_tag WHERE iId = ?1)
-   OR descendantId IN (SELECT tId FROM game_tag WHERE game_tag.gId = (SELECT gId FROM parentGame));
-        )", &_stmt));
-    }
-
-    NBL_CHECK(_stmt.bindInt(1, installationId));
-
-    return connection->execute(&_stmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        if(columnCount == 0) return nbl::Result::IO_ERROR;
-
-        *outCount = columnValues[0].uintValue();
-        return nbl::Result::SUCCESS;
-    });
-
-
-}
-
-
-nbl::Result nbl::getInstallationTags(DatabaseConnection* connection, i64 installationId, u64 offset, u64 limit, TagCallback callback) {
-
-    static nbl::PreparedStatement _stmt;
-    if(!_stmt.isValid(connection)) {
-
-        NBL_CHECK(connection->prepare(R"(
-WITH 
-	parentGame AS (
-		SELECT gId FROM installation WHERE iId = ?1
-	)
-SELECT tag.tId, tag.name, tag.color
-FROM tag
-JOIN tag_closure ON tag_closure.ancestorId = tag.tId
-WHERE descendantId IN (SELECT tId FROM installation_tag WHERE iId = ?1)
-   OR descendantId IN (SELECT tId FROM game_tag WHERE game_tag.gId = (SELECT gId FROM parentGame)) 
-GROUP BY tag.tId
-ORDER BY tag.name ASC
-LIMIT ?2 OFFSET ?3;
-        )", &_stmt));
-    }
-
-    NBL_CHECK(_stmt.bindInt(1, installationId));
-    NBL_CHECK(_stmt.bindUint(2, limit));
-    NBL_CHECK(_stmt.bindUint(3, offset));
-
-    return connection->execute(&_stmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        if(columnCount != 3) {
-            return nbl::Result::IO_ERROR;
-        }
-        return callback({
-            .id = columnValues[0].intValue,
-            .name = columnValues[1].textValue, 
-            .color = static_cast<u32>(columnValues[2].intValue)
-        });
-    });
-}
-
-nbl::Result nbl::getDirectInstallationTags(DatabaseConnection* connection, i64 installationId, TagCallback callback) {
-
-    static nbl::PreparedStatement _stmt;
-    if(!_stmt.isValid(connection)) {
-
-        NBL_CHECK(connection->prepare(R"(
-SELECT tag.tId, tag.name, tag.color
-FROM tag
-JOIN installation_tag ON installation_tag.tId = tag.tId
-WHERE installation_tag.iId = ?1
-ORDER BY tag.name ASC;
-        )", &_stmt));
-    }
-
-    NBL_CHECK(_stmt.bindInt(1, installationId));
-
-    return connection->execute(&_stmt, [&](i32 columnCount, DataValue* columnValues, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
-
-        if(columnCount != 3) {
-            return nbl::Result::IO_ERROR;
-        }
-        return callback({
-            .id = columnValues[0].intValue,
-            .name = columnValues[1].textValue, 
-            .color = static_cast<u32>(columnValues[2].intValue)
-        });
-    });
-
-}
-
-
-nbl::Result nbl::markInstallationJustPlayed(DatabaseConnection* connection, i64 installationId) {
+nbl::Result nbl::Installation::markJustPlayed(DatabaseConnection* connection, i64 installationId) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -651,7 +517,7 @@ WHERE iId = ?2;
     return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::bumpInstallationPlayTime(DatabaseConnection* connection, i64 installationId, u64 playTime) {
+nbl::Result nbl::Installation::bumpPlayTime(DatabaseConnection* connection, i64 installationId, u64 playTime) {
 
     static nbl::PreparedStatement _stmt;
     if(!_stmt.isValid(connection)) {
@@ -667,5 +533,30 @@ WHERE iId = ?2;
 
     return connection->execute(&_stmt);
 
+}
+
+
+nbl::Result nbl::Installation::lookupForFilter(DatabaseConnection* connection, i64 filterId, i64 deviceId, u64 offset, u64 limit, InstallationLookupCallback callback) {
+
+    NBL_CHECK(Filter::get(connection, filterId, [&](const nbl::Filter& meta) -> nbl::Result {
+
+        Filter updated = meta;
+
+        updated.criteria.offset = offset;
+        updated.criteria.deviceId = deviceId;
+
+        if(limit > 0) {
+            updated.criteria.limit = updated.criteria.limit > 0 ? nbl::min(limit, meta.criteria.limit) : limit;
+        }
+
+        return lookup(
+            connection,
+            updated,
+            callback
+        );
+
+     }));
+
+     return nbl::Result::SUCCESS;
 }
 

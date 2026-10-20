@@ -66,7 +66,7 @@ nbl::Result nbl::frontend::GameInstallationsModel::_fetchPageData(qsizetype limi
     QList<InstallationRef> found = {};
     found.reserve(limit);
 
-    NBL_CHECK(nbl::getInstallationsOfGame(db, _mGameId, ApplicationContext::instance()->deviceId(), limit, offset, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
+    NBL_CHECK(nbl::Installation::lookupForGame(db, _mGameId, ApplicationContext::instance()->deviceId(), limit, offset, [&](const nbl::InstallationLookupResult& res) -> nbl::Result {
         InstallationRef ref(res.installationId,
             fromNbl(res.title),
             fromNbl(res.gameTitle),

@@ -18,6 +18,8 @@
 #include <QObject>
 #include <QtQml>
 
+#include <Data/AchievementModel.hpp>
+
 #include "Field/FieldList.hpp"
 
 namespace nbl::frontend {

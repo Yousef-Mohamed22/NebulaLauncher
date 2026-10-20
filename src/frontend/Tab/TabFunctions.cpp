@@ -22,8 +22,10 @@
 #include <QObject>
 
 #include "ApplicationContext.hpp"
-#include "Data/MediaManager.hpp"
-#include "Data/Model.hpp"
+
+#include <Data/MediaManager.hpp>
+#include <Data/Model.hpp>
+#include <Data/FilterModel.hpp>
 
 namespace {
 
@@ -116,7 +118,7 @@ nbl::Result _pushFilters(ApplicationContext* context, nbl::DatabaseConnection* c
         if(iconIsImage) flags |= nbl::FilterFlag::IMAGE_ICON;
 
 
-        nbl::FilterMeta meta = {
+        nbl::Filter meta = {
             .filterId = filterId,
             .tabId = tabId,
             .priority = priority,
@@ -142,9 +144,9 @@ nbl::Result _pushFilters(ApplicationContext* context, nbl::DatabaseConnection* c
         };
 
         if(meta.filterId == 0) {
-            NBL_CHECK(nbl::addFilter(connection, meta, &meta.filterId));
+            NBL_CHECK(nbl::Filter::add(connection, meta, &meta.filterId));
         } else {
-            NBL_CHECK(nbl::updateFilter(connection, meta));
+            NBL_CHECK(nbl::Filter::update(connection, meta));
         }
     }
 
@@ -180,7 +182,7 @@ int ApplicationContext::addTab(const QVariantMap& params) {
     if(hidden) flags |= nbl::TabFlag::HIDDEN;
     if(iconIsImage) flags |= nbl::TabFlag::IMAGE_ICON;
 
-    nbl::TabMeta meta = {
+    nbl::Tab meta = {
         .name = nbl::StringView(name.data(), name.length()),
         .icon = iconId,
         .flags = flags
@@ -189,7 +191,7 @@ int ApplicationContext::addTab(const QVariantMap& params) {
     nbl::DatabaseConnection* c = databaseConnection();
     NBL_CHECK(c->beginTransaction());
 
-    NBL_CHECK_OR_ROLLBACK(c, nbl::addTab(c, meta, &meta.tabId));
+    NBL_CHECK_OR_ROLLBACK(c, nbl::Tab::add(c, meta, &meta.tabId));
     NBL_CHECK_OR_ROLLBACK(c, _pushFilters(this, c, meta.tabId, params["filters"].toList()));
 
     NBL_CHECK(c->commitTransaction());
@@ -223,7 +225,7 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
 
     QByteArray realIcon = icon.toUtf8();
 
-    nbl::TabMeta meta = {
+    nbl::Tab meta = {
         .tabId = static_cast<i64>(id),
         .name = nbl::StringView(name.data(), name.length()),
         .icon = iconId,
@@ -232,12 +234,12 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
 
     nbl::DatabaseConnection* c = databaseConnection();
     NBL_CHECK(c->beginTransaction());
-    NBL_CHECK_OR_ROLLBACK(c, nbl::updateTab(c, meta));
+    NBL_CHECK_OR_ROLLBACK(c, nbl::Tab::update(c, meta));
 
     NBL_CHECK_OR_ROLLBACK(c, _pushFilters(this, c, meta.tabId, params["filters"].toList()));
 
     for(const QVariant& removed : params["removedFilters"].toList()) {
-        NBL_CHECK_OR_ROLLBACK(c, nbl::removeFilter(c, removed.toLongLong()));
+        NBL_CHECK_OR_ROLLBACK(c, nbl::Filter::remove(c, removed.toLongLong()));
     }
 
     NBL_CHECK(c->commitTransaction());
@@ -245,7 +247,7 @@ int ApplicationContext::updateTab(qint64 id, const QVariantMap& params) {
 }
 
 int ApplicationContext::deleteTab(qint64 id) { 
-    return nbl::removeTab(databaseConnection(), id);
+    return nbl::Tab::remove(databaseConnection(), id);
 }
 
 nbl::frontend::TabRef* ApplicationContext::getTabMeta(qint64 id) {

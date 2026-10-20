@@ -18,74 +18,75 @@
 /**
  * \file Data/DeviceModel.cpp
  * \author jwall64
- * \brief Partial implementation of Data/Model.hpp
+ * \brief Implementation of Data/DeviceModel.hpp
  */
 
 #include <Data/Model.hpp>
+#include <Data/DeviceModel.hpp>
 
-nbl::Result nbl::addDevice(DatabaseConnection* connection, DeviceMeta meta, i64* outId) {
+nbl::Result nbl::HostDevice::add(DatabaseConnection* connection, HostDevice meta, i64* outId) {
 
-    static nbl::PreparedStatement _addDeviceStmt;
-    if(!_addDeviceStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 INSERT INTO device (name) VALUES (?1);
-        )", &_addDeviceStmt));
+        )", &_stmt));
     }
-    _addDeviceStmt.bindString(1, meta.name);
-    return connection->execute(&_addDeviceStmt, outId);
+    _stmt.bindString(1, meta.name);
+    return connection->execute(&_stmt, outId);
 }
 
-nbl::Result nbl::getDevice(DatabaseConnection* connection, i64 id, DeviceCallback callback) {
+nbl::Result nbl::HostDevice::get(DatabaseConnection* connection, i64 id, DeviceCallback callback) {
 
-    static nbl::PreparedStatement _getDeviceStmt;
-    if(!_getDeviceStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 SELECT deviceId, name FROM device WHERE deviceId = ?1;
-        )", &_getDeviceStmt));
+        )", &_stmt));
     }
-    _getDeviceStmt.bindInt(1, id);
-    return connection->execute(&_getDeviceStmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    _stmt.bindInt(1, id);
+    return connection->execute(&_stmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
         if(columnCount != 2) return nbl::Result::IO_ERROR;
-        return callback(DeviceMeta { .id = values[0].intValue, .name = values[1].textValue });
+        return callback(HostDevice { .id = values[0].intValue, .name = values[1].textValue });
     });
 }
 
-nbl::Result nbl::removeDevice(DatabaseConnection* connection, i64 id) {
+nbl::Result nbl::HostDevice::remove(DatabaseConnection* connection, i64 id) {
 
-    static nbl::PreparedStatement _removeDeviceStmt;
-    if(!_removeDeviceStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 DELETE FROM device WHERE deviceId = ?1;
-        )", &_removeDeviceStmt));
+        )", &_stmt));
     }
-    _removeDeviceStmt.bindInt(1, id);
-    return connection->execute(&_removeDeviceStmt);
+    _stmt.bindInt(1, id);
+    return connection->execute(&_stmt);
 }
 
-nbl::Result nbl::updateDevice(DatabaseConnection* connection, DeviceMeta meta) {
+nbl::Result nbl::HostDevice::update(DatabaseConnection* connection, HostDevice meta) {
 
-    static nbl::PreparedStatement _updateDeviceStmt;
-    if(!_updateDeviceStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
 UPDATE device SET name = ?1 WHERE deviceId = ?2;
-        )", &_updateDeviceStmt));
+        )", &_stmt));
     }
-    _updateDeviceStmt.bindString(1, meta.name);
-    _updateDeviceStmt.bindInt(2, meta.id);
-    return connection->execute(&_updateDeviceStmt);
+    _stmt.bindString(1, meta.name);
+    _stmt.bindInt(2, meta.id);
+    return connection->execute(&_stmt);
 }
 
 
-nbl::Result nbl::getOrAddDevice(DatabaseConnection* connection, StringView hostname, i64* outId) {
+nbl::Result nbl::HostDevice::upsert(DatabaseConnection* connection, StringView hostname, i64* outId) {
 
-    static nbl::PreparedStatement _addOrUpdateDeviceStmt;
-    if(!_addOrUpdateDeviceStmt.isValid(connection)) {
+    static nbl::PreparedStatement _stmt;
+    if(!_stmt.isValid(connection)) {
         NBL_CHECK(connection->prepare(R"(
-INSERT INTO device (name) VALUES (?1) ON CONFLICT(name) DO UPDATE SET name = excluded.name RETURNING deviceId;
-        )", &_addOrUpdateDeviceStmt));
+INSERT INTO device (name) VALUES (?1) ON CONFLICT(name) DO UPDATE SET name = name RETURNING deviceId;
+        )", &_stmt));
     }
-    _addOrUpdateDeviceStmt.bindString(1, hostname);
-    return connection->execute(&_addOrUpdateDeviceStmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
+    _stmt.bindString(1, hostname);
+    return connection->execute(&_stmt, [&](i32 columnCount, DataValue* values, const char** columnNames, i64 lastInsertRowId) -> nbl::Result {
         if(columnCount != 1) return nbl::Result::IO_ERROR;
         *outId = values[0].intValue;
         return nbl::Result::SUCCESS;

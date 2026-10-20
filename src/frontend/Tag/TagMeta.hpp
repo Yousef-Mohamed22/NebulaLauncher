@@ -21,7 +21,7 @@
 
 namespace nbl::frontend {
 
-struct TagRef {
+struct TagMeta {
     qint64 id;
     QString name;
     QColor color;

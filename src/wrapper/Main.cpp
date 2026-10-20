@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
         if(res.error()) {
             nbl::log(nbl::LogLevel::WARN, "Unable to open the database!");
         } else {
-            nbl::markInstallationJustPlayed(&conn, iId);
+            nbl::Installation::markJustPlayed(&conn, iId);
         }
     }
 
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
         if(res.error()) {
             nbl::log(nbl::LogLevel::WARN, "Unable to open the database!");
         } else {
-            nbl::bumpInstallationPlayTime(&conn, iId, endTime - startTime);
+            nbl::Installation::bumpPlayTime(&conn, iId, endTime - startTime);
         }
     }
 

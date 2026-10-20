@@ -16,6 +16,7 @@
 
 
 #include <Data/Model.hpp>
+#include <Data/TagModel.hpp>
 
 #include <gtest/gtest.h>
 
@@ -26,10 +27,10 @@ TEST(Tag, AddTag) {
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
     i64 tId = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &tId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Action", 0xFF0000, &tId).success());
 
     bool found = false;
-    ASSERT_TRUE(nbl::descendants(&connection, tId, [&](nbl::TagMeta meta) -> nbl::Result {
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, tId, [&](nbl::Tag meta) -> nbl::Result {
         if(meta.name == "Action" && meta.color == 0xFF0000) {
             found = true;
         }
@@ -46,12 +47,12 @@ TEST(Tag, RemoveTag) {
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
     i64 tId = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &tId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Action", 0xFF0000, &tId).success());
 
-    ASSERT_TRUE(nbl::removeTag(&connection, tId).success());
+    ASSERT_TRUE(nbl::Tag::remove(&connection, tId).success());
 
     bool found = false;
-    ASSERT_TRUE(nbl::descendants(&connection, tId, [&](nbl::TagMeta meta) -> nbl::Result {
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, tId, [&](nbl::Tag meta) -> nbl::Result {
         if(meta.name == "Action" && meta.color == 0xFF0000) {
             found = true;
         }
@@ -68,11 +69,11 @@ TEST(Tag, AddParent) {
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
     i64 tId1 = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &tId1).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Action", 0xFF0000, &tId1).success());
     i64 tId2 = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Adventure", 0x00FF00, &tId2).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Adventure", 0x00FF00, &tId2).success());
 
-    ASSERT_TRUE(nbl::addParentTag(&connection, tId1, tId2).success());
+    ASSERT_TRUE(nbl::Tag::addParent(&connection, tId1, tId2).success());
 
     struct _FoundData {
         bool foundAction = false;
@@ -80,7 +81,7 @@ TEST(Tag, AddParent) {
         void reset() { foundAction = foundAdventure = false; }
     } found;
 
-    auto func = [&](nbl::TagMeta tag) -> nbl::Result {
+    auto func = [&](nbl::Tag tag) -> nbl::Result {
         if(tag.name == "Adventure" && tag.color == 0x00FF00) {
             found.foundAdventure = true;
         }
@@ -91,28 +92,28 @@ TEST(Tag, AddParent) {
     };
 
 
-    ASSERT_TRUE(nbl::descendants(&connection, tId1, func).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, tId1, func).success());
 
     ASSERT_TRUE(found.foundAction);
     ASSERT_TRUE(found.foundAdventure);
 
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, tId2, func).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, tId2, func).success());
 
     ASSERT_TRUE(found.foundAction);
     ASSERT_TRUE(found.foundAdventure);
 
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, tId2, func).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, tId2, func).success());
 
     ASSERT_FALSE(found.foundAction);
     ASSERT_TRUE(found.foundAdventure);
 
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, tId1, func).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, tId1, func).success());
 
     ASSERT_TRUE(found.foundAction);
     ASSERT_FALSE(found.foundAdventure);
@@ -126,19 +127,19 @@ TEST(Tag, RemoveParent) {
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
     i64 tId1 = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &tId1).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Action", 0xFF0000, &tId1).success());
     i64 tId2 = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Adventure", 0x00FF00, &tId2).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Adventure", 0x00FF00, &tId2).success());
 
-    ASSERT_TRUE(nbl::addParentTag(&connection, tId1, tId2).success());
-    ASSERT_TRUE(nbl::removeParentTag(&connection, tId1, tId2).success());
+    ASSERT_TRUE(nbl::Tag::addParent(&connection, tId1, tId2).success());
+    ASSERT_TRUE(nbl::Tag::removeParent(&connection, tId1, tId2).success());
 
     struct _FoundData {
         bool foundAction = false;
         bool foundAdventure = false;
     } found;
 
-    ASSERT_TRUE(nbl::descendants(&connection, tId1, [&](const nbl::TagMeta& tag) -> nbl::Result {
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, tId1, [&](const nbl::Tag& tag) -> nbl::Result {
         if(tag.name == "Adventure" && tag.color == 0x00FF00) {
             found.foundAdventure = true;
         }
@@ -154,7 +155,7 @@ TEST(Tag, RemoveParent) {
 
     found.foundAction = false;
     found.foundAdventure = false;
-    ASSERT_TRUE(nbl::ancestors(&connection, tId2, [&](const nbl::TagMeta& tag) -> nbl::Result {
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, tId2, [&](const nbl::Tag& tag) -> nbl::Result {
         if(tag.name == "Adventure" && tag.color == 0x00FF00) {
             found.foundAdventure = true;
         }
@@ -175,12 +176,12 @@ TEST(Tag, BlockCycles) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
     i64 actId = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &actId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Action", 0xFF0000, &actId).success());
     i64 advId = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Adventure", 0x00FF00, &advId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Adventure", 0x00FF00, &advId).success());
 
-    ASSERT_TRUE(nbl::addParentTag(&connection, actId, advId).success());
-    ASSERT_FALSE(nbl::addParentTag(&connection, advId, actId).success());
+    ASSERT_TRUE(nbl::Tag::addParent(&connection, actId, advId).success());
+    ASSERT_FALSE(nbl::Tag::addParent(&connection, advId, actId).success());
 }
 
 
@@ -190,19 +191,19 @@ TEST(Tag, DeleteParent) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
     i64 actId = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &actId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Action", 0xFF0000, &actId).success());
     i64 advId = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Adventure", 0x00FF00, &advId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Adventure", 0x00FF00, &advId).success());
 
-    ASSERT_TRUE(nbl::addParentTag(&connection, actId, advId).success());
-    ASSERT_TRUE(nbl::removeTag(&connection, actId).success());
+    ASSERT_TRUE(nbl::Tag::addParent(&connection, actId, advId).success());
+    ASSERT_TRUE(nbl::Tag::remove(&connection, actId).success());
 
     struct _FoundData {
         bool foundAction = false;
         bool foundAdventure = false;
     } found;
 
-    ASSERT_TRUE(nbl::descendants(&connection, actId, [&](const nbl::TagMeta& tag) -> nbl::Result {
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, actId, [&](const nbl::Tag& tag) -> nbl::Result {
         if(tag.name == "Adventure" && tag.color == 0x00FF00) {
             found.foundAdventure = true;
         }
@@ -217,7 +218,7 @@ TEST(Tag, DeleteParent) {
 
     found.foundAction = false;
     found.foundAdventure = false;
-    ASSERT_TRUE(nbl::ancestors(&connection, advId, [&](const nbl::TagMeta& tag) -> nbl::Result {
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, advId, [&](const nbl::Tag& tag) -> nbl::Result {
         if(tag.name == "Adventure" && tag.color == 0x00FF00) {
             found.foundAdventure = true;
         }
@@ -241,15 +242,15 @@ TEST(Tag, MultipleInheritance) {
     i64 bId;
     i64 cId;
     i64 dId;
-    ASSERT_TRUE(nbl::addTag(&connection, "a", 0xFF0000, &aId).success());
-    ASSERT_TRUE(nbl::addTag(&connection, "b", 0x00FF00, &bId).success());
-    ASSERT_TRUE(nbl::addTag(&connection, "c", 0x0000FF, &cId).success());
-    ASSERT_TRUE(nbl::addTag(&connection, "d", 0xFFFFFF, &dId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "a", 0xFF0000, &aId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "b", 0x00FF00, &bId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "c", 0x0000FF, &cId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "d", 0xFFFFFF, &dId).success());
     
-    ASSERT_TRUE(nbl::addParentTag(&connection, bId, aId).success());
-    ASSERT_TRUE(nbl::addParentTag(&connection, cId, aId).success());
-    ASSERT_TRUE(nbl::addParentTag(&connection, dId, bId).success());
-    ASSERT_TRUE(nbl::addParentTag(&connection, dId, cId).success());
+    ASSERT_TRUE(nbl::Tag::addParent(&connection, bId, aId).success());
+    ASSERT_TRUE(nbl::Tag::addParent(&connection, cId, aId).success());
+    ASSERT_TRUE(nbl::Tag::addParent(&connection, dId, bId).success());
+    ASSERT_TRUE(nbl::Tag::addParent(&connection, dId, cId).success());
  
     struct _FoundData {
         bool foundA = false;
@@ -259,7 +260,7 @@ TEST(Tag, MultipleInheritance) {
         void reset() { foundA = foundB = foundC = foundD = false; }
     } found;
 
-    nbl::TagCallback findFunc = [&](const nbl::TagMeta& tag) -> nbl::Result {
+    nbl::TagCallback findFunc = [&](const nbl::Tag& tag) -> nbl::Result {
         if(tag.name == "a" && tag.color == 0xFF0000) { found.foundA = true; }
         if(tag.name == "b" && tag.color == 0x00FF00) { found.foundB = true; }
         if(tag.name == "c" && tag.color == 0x0000FF) { found.foundC = true; }
@@ -268,28 +269,28 @@ TEST(Tag, MultipleInheritance) {
     };
     
     // Descendants
-    ASSERT_TRUE(nbl::descendants(&connection, aId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, aId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, bId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, bId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, cId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, cId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_TRUE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, dId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, dId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_TRUE(found.foundC);
@@ -297,28 +298,28 @@ TEST(Tag, MultipleInheritance) {
 
     // Ancestors
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, aId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, aId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_TRUE(found.foundC);
     ASSERT_TRUE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, bId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, bId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_TRUE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, cId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, cId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_TRUE(found.foundC);
     ASSERT_TRUE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, dId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, dId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_FALSE(found.foundC);
@@ -326,32 +327,32 @@ TEST(Tag, MultipleInheritance) {
 
     
     // Remove parent and check again
-    ASSERT_TRUE(nbl::removeParentTag(&connection, dId, bId).success());
+    ASSERT_TRUE(nbl::Tag::removeParent(&connection, dId, bId).success());
 
     // Descendants
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, aId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, aId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, bId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, bId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, cId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, cId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_TRUE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, dId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, dId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_TRUE(found.foundC);
@@ -359,62 +360,62 @@ TEST(Tag, MultipleInheritance) {
 
     // Ancestors
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, aId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, aId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_TRUE(found.foundC);
     ASSERT_TRUE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, bId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, bId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, cId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, cId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_TRUE(found.foundC);
     ASSERT_TRUE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, dId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, dId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_TRUE(found.foundD);
 
 
-    ASSERT_TRUE(nbl::addParentTag(&connection, dId, bId).success());
-    ASSERT_TRUE(nbl::removeTag(&connection, cId).success());
+    ASSERT_TRUE(nbl::Tag::addParent(&connection, dId, bId).success());
+    ASSERT_TRUE(nbl::Tag::remove(&connection, cId).success());
 
 
     // Descendants
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, aId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, aId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, bId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, bId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, cId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, cId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::descendants(&connection, dId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, dId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_FALSE(found.foundC);
@@ -422,28 +423,28 @@ TEST(Tag, MultipleInheritance) {
 
     // Ancestors
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, aId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, aId, findFunc).success());
     ASSERT_TRUE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_TRUE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, bId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, bId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_TRUE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_TRUE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, cId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, cId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_FALSE(found.foundC);
     ASSERT_FALSE(found.foundD);
 
     found.reset();
-    ASSERT_TRUE(nbl::ancestors(&connection, dId, findFunc).success());
+    ASSERT_TRUE(nbl::Tag::ancestors(&connection, dId, findFunc).success());
     ASSERT_FALSE(found.foundA);
     ASSERT_FALSE(found.foundB);
     ASSERT_FALSE(found.foundC);
@@ -456,11 +457,11 @@ TEST(Tag, RenameTag) {
     ASSERT_TRUE(nbl::DatabaseConnection::openInMemory(&connection).success());
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
     i64 tId = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &tId).success());
-    ASSERT_TRUE(nbl::renameTag(&connection, tId, "Adventure").success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Action", 0xFF0000, &tId).success());
+    ASSERT_TRUE(nbl::Tag::rename(&connection, tId, "Adventure").success());
 
     bool found = false;
-    ASSERT_TRUE(nbl::descendants(&connection, tId, [&](const nbl::TagMeta& tag) -> nbl::Result {
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, tId, [&](const nbl::Tag& tag) -> nbl::Result {
         if(tag.name == "Adventure" && tag.color == 0xFF0000) {
             found = true;
         }
@@ -478,12 +479,12 @@ TEST(Tag, SetTagColor) {
     ASSERT_TRUE(nbl::initDatabase(&connection).success());
 
     i64 tId = 0;
-    ASSERT_TRUE(nbl::addTag(&connection, "Action", 0xFF0000, &tId).success());
+    ASSERT_TRUE(nbl::Tag::add(&connection, "Action", 0xFF0000, &tId).success());
 
-    ASSERT_TRUE(nbl::setTagColor(&connection, tId, 0x00FF00).success());
+    ASSERT_TRUE(nbl::Tag::setColor(&connection, tId, 0x00FF00).success());
 
     bool found = false;
-    ASSERT_TRUE(nbl::descendants(&connection, tId, [&](const nbl::TagMeta& tag) -> nbl::Result {
+    ASSERT_TRUE(nbl::Tag::descendants(&connection, tId, [&](const nbl::Tag& tag) -> nbl::Result {
         if(tag.name == "Action" && tag.color == 0x00FF00) {
             found = true;
         }
@@ -492,3 +493,5 @@ TEST(Tag, SetTagColor) {
 
     ASSERT_TRUE(found);
 }
+
+

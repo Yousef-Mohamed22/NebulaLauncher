@@ -21,12 +21,13 @@
  */
 
 #include "ApplicationContext.hpp"
+#include <Data/TagModel.hpp>
 
 qint64 ApplicationContext::addTag(QString name, QColor color) {
     QByteArray arr = name.toUtf8();
     nbl::StringView nblName = nbl::StringView(arr.data(), arr.length());
     i64 id = 0;
-    if(nbl::addTag(databaseConnection(), nblName, color.rgba(), &id).error()) {
+    if(nbl::Tag::add(databaseConnection(), nblName, color.rgba(), &id).error()) {
         return 0;
     }
     return static_cast<qint64>(id);
@@ -37,7 +38,7 @@ qint64 ApplicationContext::findTagId(QString name) {
     qint64 out;
     
     QByteArray utf = name.toUtf8();
-    nbl::Result rc = nbl::findTag(databaseConnection(), nbl::StringView(utf.data(), utf.length()), [&](const nbl::TagMeta& meta) {
+    nbl::Result rc = nbl::Tag::find(databaseConnection(), nbl::StringView(utf.data(), utf.length()), [&](const nbl::Tag& meta) {
         out = meta.id;
         return nbl::Result::SUCCESS;
     });
@@ -47,37 +48,37 @@ qint64 ApplicationContext::findTagId(QString name) {
 }
 
 int ApplicationContext::removeTag(qint64 tag) {
-    return nbl::removeTag(databaseConnection(), tag);
+    return nbl::Tag::remove(databaseConnection(), tag);
 }
 
 int ApplicationContext::renameTag(qint64 tag, QStringView newName) {
     QByteArray newArr = newName.toUtf8();
     nbl::StringView nblNewName = nbl::StringView(newArr.data(), newArr.length());
-    return nbl::renameTag(databaseConnection(), tag, nblNewName);
+    return nbl::Tag::rename(databaseConnection(), tag, nblNewName);
 }
 
 int ApplicationContext::recolorTag(qint64 tag, QColor color) {
-    return nbl::setTagColor(databaseConnection(), tag, color.rgba());
+    return nbl::Tag::setColor(databaseConnection(), tag, color.rgba());
 }
 
 int ApplicationContext::addTagParent(qint64 tag, qint64 parent) {
-    return nbl::addParentTag(databaseConnection(), parent, tag);
+    return nbl::Tag::addParent(databaseConnection(), parent, tag);
 }
 
 int ApplicationContext::tagGame(qint64 gameId, qint64 tag) {
-    return nbl::addGameTag(databaseConnection(), gameId, tag);
+    return nbl::Tag::tagGame(databaseConnection(), gameId, tag);
 }
 
 int ApplicationContext::untagGame(qint64 gameId, qint64 tag) {
-    return nbl::removeGameTag(databaseConnection(), gameId, tag);
+    return nbl::Tag::untagGame(databaseConnection(), gameId, tag);
 }
 
 int ApplicationContext::tagInstallation(qint64 installationId, qint64 tag) {
-    return nbl::addInstallationTag(databaseConnection(), installationId, tag);
+    return nbl::Tag::tagInstallation(databaseConnection(), installationId, tag);
 }
 
 int ApplicationContext::untagInstallation(qint64 installationId, qint64 tag) {
-    return nbl::removeInstallationTag(databaseConnection(), installationId, tag);
+    return nbl::Tag::untagInstallation(databaseConnection(), installationId, tag);
 }
 
 int ApplicationContext::updateTags(QVariantList modifiedTags) {
@@ -102,10 +103,10 @@ int ApplicationContext::updateTags(QVariantList modifiedTags) {
         recolorTag(id, color);
 
         for(QVariant parent : newParents) {
-            nbl::addParentTag(databaseConnection(), parent.toLongLong(), id);
+            nbl::Tag::addParent(databaseConnection(), parent.toLongLong(), id);
         }
         for(QVariant parent : removedParents) {
-            nbl::removeParentTag(databaseConnection(), parent.toLongLong(), id);
+            nbl::Tag::removeParent(databaseConnection(), parent.toLongLong(), id);
         }
 
         NBL_CHECK(databaseConnection()->commitTransaction());
@@ -120,7 +121,7 @@ QVariantList ApplicationContext::getTagsFromIds(QVariantList ids) {
 
     QByteArray namesJson = QJsonDocument(QJsonArray::fromVariantList(ids)).toJson(QJsonDocument::JsonFormat::Compact);
 
-    nbl::getTagsFromIds(databaseConnection(), nbl::StringView(namesJson.data(), namesJson.length()), [&](const nbl::TagMeta& meta) {
+    nbl::Tag::lookupByIds(databaseConnection(), nbl::StringView(namesJson.data(), namesJson.length()), [&](const nbl::Tag& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
         tag["name"] = nbl::frontend::fromNbl(meta.name);
@@ -134,7 +135,7 @@ QVariantList ApplicationContext::getTagsFromIds(QVariantList ids) {
 
 QList<QVariant> ApplicationContext::getGameTags(qint64 gameId) {
     QList<QVariant> out = {};
-    nbl::getGameTags(databaseConnection(), gameId, [&](const nbl::TagMeta& meta) {
+    nbl::Tag::enumerateGameTags(databaseConnection(), gameId, [&](const nbl::Tag& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
         tag["name"] = nbl::frontend::fromNbl(meta.name);
@@ -148,7 +149,7 @@ QList<QVariant> ApplicationContext::getGameTags(qint64 gameId) {
 
 QList<QVariant> ApplicationContext::getInstallationTags(qint64 installationId) {
     QList<QVariant> out = {};
-    nbl::getDirectInstallationTags(databaseConnection(), installationId, [&](const nbl::TagMeta& meta) {
+    nbl::Tag::enumerateDirectInstallationTags(databaseConnection(), installationId, [&](const nbl::Tag& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
         tag["name"] = nbl::frontend::fromNbl(meta.name);
@@ -164,7 +165,7 @@ QList<QVariant> ApplicationContext::getInstallationTags(qint64 installationId) {
 QList<QVariant> ApplicationContext::getTagParents(qint64 tag) {
     QList<QVariant> out = {};
 
-    nbl::parents(databaseConnection(), tag, [&](const nbl::TagMeta& meta) {
+    nbl::Tag::parents(databaseConnection(), tag, [&](const nbl::Tag& meta) {
         QMap<QString, QVariant> tag = {};
         tag["id"] = static_cast<qint64>(meta.id);
         tag["name"] = nbl::frontend::fromNbl(meta.name);

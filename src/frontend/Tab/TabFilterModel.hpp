@@ -21,7 +21,7 @@
 #include <QObject>
 #include <QtQml>
 
-#include "Filter/FilterRef.hpp"
+#include "Filter/FilterMeta.hpp"
 #include "PagedListModel.hpp"
 
 
@@ -91,7 +91,7 @@ private:
 
     qint64 _mTabId;
 
-    QList<FilterRef> _mData;
+    QList<FilterMeta> _mData;
 
 };
 

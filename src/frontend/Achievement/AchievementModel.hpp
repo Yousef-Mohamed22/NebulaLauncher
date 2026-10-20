@@ -20,6 +20,7 @@
 #include <Core/Math.hpp>
 #include <Platform/Logging.hpp>
 #include <Data/Model.hpp>
+#include <Data/AchievementModel.hpp>
 
 #include <QObject>
 #include <QtQml>

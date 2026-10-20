@@ -67,7 +67,7 @@ public:
 
 
 
-    explicit TabRef(const nbl::TabMeta& meta, QObject* parent = nullptr);
+    explicit TabRef(const nbl::Tab& meta, QObject* parent = nullptr);
 
     qint64 tabId() const { return _mTabId; }
     QString name() const { return _mName; }

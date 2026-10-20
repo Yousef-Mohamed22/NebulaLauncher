@@ -318,7 +318,7 @@ nbl::Result _launch(
         const nbl::InstallationType* type, 
         nbl::PluginContext* ctx, 
         nbl::Span<nbl::FieldValue> fields, 
-        const nbl::InstallationMeta& meta, 
+        const nbl::Installation& meta, 
         nbl::ProcessTracker* handle, 
         void* userData) {
 

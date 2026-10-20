@@ -20,6 +20,7 @@
 #include <Platform/Logging.hpp>
 #include <Data/Database.hpp>
 #include <Data/Model.hpp>
+#include <Data/FilterModel.hpp>
 
 QVariant nbl::frontend::GameSearchModel::data(const QModelIndex& index, int role) const {
 
@@ -68,7 +69,7 @@ nbl::Result nbl::frontend::GameSearchModel::_fetchPageData(qsizetype limit, qsiz
         .titleFilter = query
     };
 
-    NBL_CHECK(nbl::lookupGames(db, { .criteria = criteria }, [&](const nbl::GameLookupResult& meta) -> nbl::Result {
+    NBL_CHECK(nbl::Game::lookup(db, { .criteria = criteria }, [&](const nbl::GameLookupResult& meta) -> nbl::Result {
 
         _Row ref(
                 meta.id,

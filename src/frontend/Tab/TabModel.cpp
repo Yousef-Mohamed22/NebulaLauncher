@@ -67,7 +67,7 @@ nbl::Result nbl::frontend::TabModel::_fetchPageData(qsizetype limit, qsizetype o
     
     QList<TabRef> found = {};
     found.reserve(_mPageSize);
-    NBL_CHECK(nbl::enumerateTabs(db, offset, limit, [&](const nbl::TabMeta& tab) -> nbl::Result {
+    NBL_CHECK(nbl::Tab::enumerate(db, offset, limit, [&](const nbl::Tab& tab) -> nbl::Result {
         found.emplace_back(tab);
         return nbl::Result::SUCCESS;
     }));

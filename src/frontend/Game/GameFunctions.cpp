@@ -21,12 +21,12 @@
 
 
 #include "ApplicationContext.hpp"
-#include "Data/Model.hpp"
 #include "Field/FieldRef.hpp"
 
 #include <Core/Result.hpp>
 #include <Data/Database.hpp>
 #include <Data/MediaManager.hpp>
+#include <Data/Model.hpp>
 #include <Plugin/AchievementProvider.hpp>
 
 nbl::frontend::GameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
@@ -37,25 +37,25 @@ nbl::frontend::GameDetails* ApplicationContext::getGameDetails(qint64 gameId) {
     }
 
     nbl::frontend::GameDetails* out = nullptr;
-    if(nbl::getGameDetails(databaseConnection(), gameId, [&](const nbl::GameDetails& details) {
+    if(nbl::Game::getExtended(databaseConnection(), gameId, [&](const nbl::Game& details) {
 
         out = new nbl::frontend::GameDetails(
-            details.game.id,
-            nbl::frontend::fromNbl(details.game.title),
-            nbl::frontend::fromNbl(details.game.description),
-            details.game.poster,
-            details.game.banner,
-            details.game.icon,
-            details.game.logo,
-            static_cast<u64>(details.game.logoPosition),
+            details.id,
+            nbl::frontend::fromNbl(details.title),
+            nbl::frontend::fromNbl(details.description),
+            details.poster,
+            details.banner,
+            details.icon,
+            details.logo,
+            static_cast<u64>(details.logoPosition),
             details.totalPlayTime,
             details.totalPlayCount,
             details.lastPlayed,
-            details.game.added,
+            details.added,
             details.installationCount,
-            details.game.releaseDate,
-            details.game.rating,
-            details.game.colorOverride.map<QColor>([](u32 u) { return QColor::fromRgba(u); })
+            details.releaseDate,
+            details.rating,
+            details.colorOverride.map<QColor>([](u32 u) { return QColor::fromRgba(u); })
         );
 
         return nbl::Result::SUCCESS;
@@ -90,7 +90,7 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
     u64 releaseDate = params.find("releaseDate")->toULongLong();
     f64 rating = params.find("rating")->toDouble();
 
-    nbl::GameMeta gameMeta = {
+    nbl::Game gameMeta = {
         .id = 0,
         .title = nbl::StringView(title.constData(), title.length()),
         .description = nbl::StringView(description.constData(), description.length()),
@@ -104,7 +104,7 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
     };
 
     NBL_CHECK(databaseConnection()->beginTransaction());
-    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::addGame(databaseConnection(), gameMeta, &gameMeta.id));
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::Game::add(databaseConnection(), gameMeta, &gameMeta.id));
 
     for(QVariant qs : params.find("tags")->toList()) {
         NBL_CHECK_OR_ROLLBACK(databaseConnection(), tagGame(gameMeta.id, qs.toLongLong()));
@@ -119,7 +119,7 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
         QByteArray id = qs.toMap().find("id")->toString().toUtf8();
         nbl::StringView nblName(name.data(), name.length());
         nbl::StringView nblId(id.data(), id.length());
-        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::setGameExternalId(databaseConnection(), gameMeta.id, nblName, nblId));
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::Game::setExternalId(databaseConnection(), gameMeta.id, nblName, nblId));
 
         idMap[name] = id;
     }
@@ -156,7 +156,7 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
                 nbl::StringView fieldsJson;
                 NBL_CHECK(builder.buildNullTerminated(&fieldsJson));
 
-                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
+                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::AchievementState::upsert(databaseConnection(), gameMeta.id, {
                     .gameId = gameMeta.id,
                     .provider = ap->id,
                     .fields = fieldsJson,
@@ -231,7 +231,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
     u64 releaseDate = params.find("releaseDate")->toULongLong();
     f64 rating = params.find("rating")->toDouble();
 
-    nbl::GameMeta gameMeta = {
+    nbl::Game gameMeta = {
         .id = gId,
         .title = nbl::StringView(title.constData(), title.length()),
         .description = nbl::StringView(description.constData(), description.length()),
@@ -245,7 +245,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
     };
 
     NBL_CHECK(databaseConnection()->beginTransaction());
-    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::updateGame(databaseConnection(), gameMeta));
+    NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::Game::update(databaseConnection(), gameMeta));
 
     for(QVariant qs : params.find("tags")->toList()) {
         NBL_CHECK_OR_ROLLBACK(databaseConnection(), tagGame(gId, qs.toLongLong()));
@@ -254,7 +254,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
         NBL_CHECK_OR_ROLLBACK(databaseConnection(), untagGame(gId, qs.toLongLong()));
     }
 
-    nbl::clearGameExternalIds(databaseConnection(), gId);
+    nbl::Game::clearExternalIds(databaseConnection(), gId);
     QVariantList externalIds = params.find("externalIds")->toList();
     QHash<QByteArray, QByteArray> idMap{};
     idMap.reserve(externalIds.length());
@@ -264,7 +264,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
         QByteArray id = qs.toMap().find("id")->toString().toUtf8();
         nbl::StringView nblName(name.data(), name.length());
         nbl::StringView nblId(id.data(), id.length());
-        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::setGameExternalId(databaseConnection(), gId, nblName, nblId));
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::Game::setExternalId(databaseConnection(), gId, nblName, nblId));
 
         idMap[name] = id;
     }
@@ -282,13 +282,13 @@ int ApplicationContext::updateGame(QVariantMap params) {
         || status == nbl::AchievementProviderStatus::REMOVED_BY_PROVIDER) {
 
             if(originalStatus != status) {
-                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
+                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::AchievementState::upsert(databaseConnection(), gameMeta.id, {
                     .gameId = gameMeta.id,
                     .provider = ap->id,
                     .fields = {},
                     .status = status
                 }));
-                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::deleteAchievementSetsForProvider(databaseConnection(), gameMeta.id, ap->id));
+                NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::AchievementSet::removeAllForProvider(databaseConnection(), gameMeta.id, ap->id));
             }
             continue;
         }
@@ -311,7 +311,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
         NBL_CHECK_OR_ROLLBACK(databaseConnection(), builder.buildNullTerminated(&fieldsJson));
 
         if(status == nbl::AchievementProviderStatus::ADDED_BY_USER && status != originalStatus) {
-            NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::upsertAchievementState(databaseConnection(), gameMeta.id, {
+            NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::AchievementState::upsert(databaseConnection(), gameMeta.id, {
                 .gameId = gameMeta.id,
                 .provider = ap->id,
                 .fields = fieldsJson,
@@ -347,7 +347,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
         i64 id = qs.toMap().find("id")->toLongLong();
         bool hidden = qs.toMap().find("hidden")->toBool();
 
-        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::updateAchivementSetHidden(databaseConnection(), id, hidden));
+        NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::AchievementSet::setHidden(databaseConnection(), id, hidden));
     }
 
     NBL_CHECK(databaseConnection()->commitTransaction());
@@ -356,7 +356,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
 }
 
 int ApplicationContext::deleteGame(qint64 gameId) {
-    return nbl::removeGame(databaseConnection(), gameId);
+    return nbl::Game::remove(databaseConnection(), gameId);
 }
 
 
@@ -384,7 +384,7 @@ qint64 ApplicationContext::getRandomGameId() {
 
 QVariantMap ApplicationContext::gameExternalIds(qint64 gameId) {
     QVariantMap out = {};
-    nbl::enumerateGameExternalIds(databaseConnection(), gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
+    nbl::Game::enumerateExternalIds(databaseConnection(), gameId, [&](i64 gameId, nbl::StringView platformName, nbl::StringView platformId) -> nbl::Result {
         out[QString(nbl::frontend::fromNbl(platformName))] = QString(nbl::frontend::fromNbl(platformId));
         return nbl::Result::SUCCESS;
     });
