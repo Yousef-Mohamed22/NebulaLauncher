@@ -42,6 +42,7 @@ struct _ParseContext {
     usize bufferLength;
     usize bufferCapacity;
     char* buffer;
+    bool retainOrder;
 
     char lastRead() { 
         return buffer[bufferIndex];
@@ -451,7 +452,7 @@ nbl::Result _parseObjectInPlace(_ParseContext* context, usize depth = 0) {
     if(done) {
 
         usize totalEntries = entryCount + (depth * 128);
-        usize bucketCount = totalEntries == 1 ? 1 : totalEntries * 2;
+        usize bucketCount = context->retainOrder || (totalEntries == 1) ? 1 : totalEntries * 2;
         usize startIndex = context->storage->index();
 
         context->outElement.type = nbl::JsonType::OBJECT;
@@ -541,8 +542,7 @@ nbl::Result _parseObject(_ParseContext* context) {
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
 
-            // bucketCount is only known now that all entries have been counted.
-            usize bucketCount = entries * 2;
+            usize bucketCount = context->retainOrder ? 1 : entries * 2;
 
             NBL_CHECK(context->storage->push(entries * sizeof(nbl::JsonObject::Entry), reinterpret_cast<void**>(&outElements)));
             NBL_CHECK(context->storage->push(bucketCount * sizeof(nbl::JsonObject::Bucket), reinterpret_cast<void**>(&outBuckets)));
@@ -836,7 +836,7 @@ nbl::Result _parseElement(_ParseContext* context) {
 }
 
 
-nbl::Result nbl::parseJson(nbl::Reader reader, nbl::LinearAllocator* storage, nbl::JsonElement* outElement, nbl::LinearAllocator* tempStorage) {
+nbl::Result nbl::parseJson(nbl::Reader reader, nbl::LinearAllocator* storage, nbl::JsonElement* outElement, nbl::LinearAllocator* tempStorage, bool retainOrder) {
 
     if(tempStorage == storage || storage == nullptr) return nbl::Result::INVALID_ARGUMENT;
 
@@ -850,7 +850,8 @@ nbl::Result nbl::parseJson(nbl::Reader reader, nbl::LinearAllocator* storage, nb
         .bufferIndex = 0,
         .bufferLength = 0,
         .bufferCapacity = 4096,
-        .buffer = buffer
+        .buffer = buffer,
+        .retainOrder = retainOrder
     };
 
 
@@ -870,7 +871,7 @@ nbl::Result nbl::parseJson(nbl::Reader reader, nbl::LinearAllocator* storage, nb
 
 }
 
-nbl::Result nbl::parseJson(nbl::StringView str, nbl::LinearAllocator* storage, nbl::JsonElement* outElement, nbl::LinearAllocator* tempStorage) {
+nbl::Result nbl::parseJson(nbl::StringView str, nbl::LinearAllocator* storage, nbl::JsonElement* outElement, nbl::LinearAllocator* tempStorage, bool retainOrder) {
 
     if(tempStorage == storage || storage == nullptr) return nbl::Result::INVALID_ARGUMENT;
     if(str.length == 0) return Result::UNEXPECTED_END_OF_STREAM;
@@ -883,7 +884,8 @@ nbl::Result nbl::parseJson(nbl::StringView str, nbl::LinearAllocator* storage, n
         .bufferIndex = 0,
         .bufferLength = str.length,
         .bufferCapacity = str.length,
-        .buffer = const_cast<char*>(str.data)
+        .buffer = const_cast<char*>(str.data),
+        .retainOrder = retainOrder
     };
 
     while(_isWhitespace(ctx.lastRead())) {

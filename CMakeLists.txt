@@ -167,7 +167,10 @@ if(${NBL_BUILD_RA_PLUGIN})
     add_custom_command(
         TARGET Nebula_RaPlugin
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy "${NBL_SRC_DIR}/plugin_retroachievements/plugin.json" "${CMAKE_BINARY_DIR}/bin/plugins/retroachievements"
+        COMMAND ${CMAKE_COMMAND} -E copy 
+            "${NBL_SRC_DIR}/plugin_retroachievements/plugin.json" 
+            "${NBL_SRC_DIR}/plugin_retroachievements/ra.db" 
+            "${CMAKE_BINARY_DIR}/bin/plugins/retroachievements"
         VERBATIM
     )
 endif()

@@ -177,7 +177,7 @@ NblDialog {
 
                 onApplied: {
 
-                    if(root.gameId == 0 || !modified) return
+                    if(root.gameId == 0 || !gameSettings.modified) return
 
                     let settings = gameSettings.encode()
                     let rc = ApplicationContext.updateGame(settings)
@@ -225,6 +225,7 @@ NblDialog {
 
                 onRefreshed: {
 
+                    if(root.installationId == 0) return
                     let details = ApplicationContext.getInstallationDetails(root.installationId)
 
                     root.gameId = details.gameId

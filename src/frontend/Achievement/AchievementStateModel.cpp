@@ -94,7 +94,7 @@ void nbl::frontend::AchievementStateModel::_refresh() {
     _mData.resizeForOverwrite(providers.length);
     qsizetype index = 0;
     for(const nbl::AchievementProvider* provider : providers) {
-        _mData[index++] =_Item{
+        _mData[index++] = _Item{
             .provider = provider,
             .status = nbl::AchievementProviderStatus::NOT_ADDED,
             .encodedFields = {}

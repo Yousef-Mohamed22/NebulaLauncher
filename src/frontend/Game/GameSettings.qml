@@ -105,6 +105,8 @@ Column {
             dialog.apply.connect(function() {
 
                 let meta = dialog.collect()
+                if(Object.keys(meta).length == 0) return
+
                 if("poster" in meta) { posterPicker.imageSource = meta.poster }
                 if("icon" in meta) { iconPicker.imageSource = meta.icon }
                 if("banner" in meta) { bannerPicker.imageSource = meta.banner }
@@ -133,7 +135,8 @@ Column {
                 if("description" in meta) { gameDescriptionField.text = meta.description }
                 if("releaseDate" in meta) { releaseDateField.setTime(meta.releaseDate) }
                 if("rating" in meta) { ratingField.value = meta.rating }
-
+                
+                root.modified = true
             })
             dialog.open()
         }
@@ -318,6 +321,9 @@ Column {
                     id: fieldList
                     width: parent.width
                     fields: providerColumn.added ? achievementsModel.fields(parent.index) : null
+                    onModified: {
+                        root.modified = true
+                    }
                 }
             }
         }
@@ -360,6 +366,9 @@ Column {
                 elide: Text.ElideRight
                 text: modelData.name
                 checked: !modelData.hidden
+                onToggled: {
+                    root.modified = true
+                }
             }
         }
     }
@@ -379,6 +388,7 @@ Column {
         }
 
         createNew: function() {
+            root.modified = true
             return { platform: "", id: "" }
         }
         delegate: RowLayout {
@@ -393,6 +403,7 @@ Column {
                 text: parent.modelData.platform
                 onTextEdited: {
                     parent.modelData.platform = text
+                    root.modified = true
                 }
             }
 
@@ -404,6 +415,7 @@ Column {
                 text: parent.modelData.id
                 onTextEdited: {
                     parent.modelData.id = text
+                    root.modified = true
                 }
             }
         }

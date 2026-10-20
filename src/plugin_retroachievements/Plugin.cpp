@@ -21,17 +21,20 @@
  * \brief RetroAchievements plugin entrypoint
  */
 
-#include <Plugin/PluginInitializer.hpp>
-#include <Plugin/AchievementProvider.hpp>
-#include <Plugin/AccountProvider.hpp>
-#include <Network/HttpClient.hpp>
 #include <Codec/Json.hpp>
 #include <Core/String.hpp>
+#include <Core/Result.hpp>
 #include <Data/Model.hpp>
 #include <Data/OnlineAccountModel.hpp>
+#include <Data/AchievementModel.hpp>
+#include <Data/Database.hpp>
+#include <Network/HttpClient.hpp>
 #include <Platform/Allocator.hpp>
 #include <Utility/StringBuilder.hpp>
 #include <Plugin/Field.hpp>
+#include <Plugin/PluginInitializer.hpp>
+#include <Plugin/AchievementProvider.hpp>
+#include <Plugin/AccountProvider.hpp>
 
 #include "Constants.hpp"
 #include "Utility.hpp"
@@ -39,11 +42,14 @@
 
 namespace {
 
+
 nbl::HttpClient _httpClient;
 nbl::ra::UserProfile _profile;
 
-u8 _profileBuffer[4096];
-nbl::InPlaceAllocator _profileAlloc(_profileBuffer, 4096);
+u8 _localBuffer[4096];
+nbl::InPlaceAllocator _localAlloc(_localBuffer, 4096);
+
+nbl::StringView _db_path;
 
 
 nbl::Array _accountFields {
@@ -81,7 +87,7 @@ nbl::Array _accountFields {
 
 nbl::Result _login(nbl::PluginContext* context, nbl::Span<nbl::FieldValue> fields, nbl::LoginTracker* tracker, void* userData) {
     tracker->postStatus("Downloading profile...");
-    NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, fields[1].stringValue.raw, fields[0].stringValue.raw, &_profileAlloc, &_profile));
+    NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, fields[1].stringValue.raw, fields[0].stringValue.raw, &_localAlloc, &_profile));
 
     fields[2].stringValue.raw = _profile.ulid;
     fields[3].uintegerValue = _profile.points;
@@ -103,8 +109,8 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 
     nbl::decodeFieldValues(context, _accountFields, element.object, &values, &frame);
 
-    _profileAlloc.popTo(0);
-    NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, values[1].stringValue.raw, values[0].stringValue.raw, &_profileAlloc, &_profile));
+    _localAlloc.popTo(nbl::alignUp(_db_path.length + 1, 8));
+    NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, values[1].stringValue.raw, values[0].stringValue.raw, &_localAlloc, &_profile));
 
     values[2].stringValue.raw = _profile.ulid;
     values[3].uintegerValue = _profile.points;
@@ -121,7 +127,7 @@ nbl::Result _logout(nbl::PluginContext* context, i64 accountId, void* userData) 
     _profile.apiKey = {};
     _profile.username = {};
 
-    _profileAlloc.popTo(0);
+    _localAlloc.popTo(nbl::alignUp(_db_path.length + 1, 8));
 
     return nbl::Result::SUCCESS;
 }
@@ -142,7 +148,6 @@ struct _ProviderData {
     u64 latestUnlock;
     u64 numPlayers;
     char completionPercents[16];
-    bool foundRealName;
     bool completed;
     bool hardcore;
 
@@ -164,65 +169,81 @@ struct _ProviderData {
 
 nbl::Result _updateAchievementState(nbl::PluginContext* context, const nbl::Game& game, nbl::AchievementProviderStatus status, nbl::Span<nbl::FieldValue> values, nbl::AchievementHelper& helper, nbl::StringView externalId, void* userData) {
 
+    nbl::Array<nbl::FieldValue, 1> backupValues{};
+
+    nbl::DatabaseConnection conn{};
     if(status == nbl::AchievementProviderStatus::NOT_ADDED) {
-        // TODO: Try to find the achievement set for this game. This will likely require obtaining an offline version of the database
-        return helper.setProviderStatus(nbl::AchievementProviderStatus::REMOVED_BY_PROVIDER);
-    }
 
-    if(status != nbl::AchievementProviderStatus::ADDED_BY_USER 
-    && status != nbl::AchievementProviderStatus::ADDED_BY_PROVIDER) return nbl::Result::SUCCESS;
-
-    char* buffer[128];
-    nbl::InPlaceAllocator alloc(buffer, 128);
-
-    nbl::Array<nbl::StringView, 5> setNames{};
-    usize index = 0;
-    for(auto value : values[0].compositeValue) {
-        NBL_CHECK(nbl::StringBuilder(&alloc).append(value.integerValue).buildNullTerminated(&setNames[index]));
-
-        // TODO: Get this from an offline version of the database
-
-        _ProviderData data{};
-        NBL_CHECK(helper.getSetProviderData(setNames[index], &data));
-        if(!data.foundRealName && _profile.isValid()) {
-
-            nbl::AllocationFrame frame(nbl::Arena::threadLocal());
-
-            nbl::StringView url;
-            NBL_CHECK(nbl::StringBuilder(&frame)
-                    .append(RA_API_URL)
-                    .append("/API_GetGame.php?i=")
-                    .append(setNames[index])
-                    .append("&y=")
-                    .append(_profile.apiKey)
-                    .buildNullTerminated(&url));
-
-            char* end = reinterpret_cast<char*>(frame.end());
-            NBL_CHECK(_httpClient.awaitRequest(url, frame.writer()));
-
-            nbl::StringView responseJson(end, reinterpret_cast<char*>(frame.end()) - end);
-            nbl::JsonElement response{};
-            NBL_CHECK(nbl::parseJson(nbl::StringReader(responseJson), &frame, &response));
-            if(response.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
-
-            nbl::StringView name = response.object.getString("Title");
-            nbl::StringView gameTitle{};
-            nbl::StringView subsetTitle{};
-
-            data.foundRealName = true;
-
-            NBL_CHECK(nbl::ra::parseTitle(name, [](nbl::StringView){}, &gameTitle, &subsetTitle)); 
-            NBL_CHECK(helper.addOrUpdateAchievementSet(setNames[index], subsetTitle.empty() ? "Base Set" : subsetTitle, 0, data));
-
-        } else {
-            NBL_CHECK(helper.addAchievementSet(setNames[index], "RetroAchievements", 0));
+        if(externalId.empty()) {
+            return helper.setProviderStatus(nbl::AchievementProviderStatus::REMOVED_BY_PROVIDER);
         }
 
-        index++;
+        NBL_CHECK(nbl::DatabaseConnection::open(_db_path, &conn));
+
+        nbl::PreparedStatement mapGameStmt;
+        NBL_CHECK(conn.prepare("SELECT game.id FROM game JOIN game_mapping ON game_mapping.game_id = game.id WHERE game_mapping.igdb_id = ?1;", &mapGameStmt));
+
+        mapGameStmt.bindStringOrNull(1, externalId);
+
+        nbl::Optional<i64> raId{};
+        NBL_CHECK(conn.execute(&mapGameStmt, [&](i32 columns, nbl::DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
+            if(columns != 1) return nbl::Result::UNEXPECTED_ERROR;
+            raId = values[0].intValueOrNull();
+            return nbl::Result::SUCCESS;
+        }));
+
+        if(!raId.hasValue()) {
+            return helper.setProviderStatus(nbl::AchievementProviderStatus::REMOVED_BY_PROVIDER);
+        }
+
+        values = backupValues;
+        backupValues[0].integerValue = *raId;
+        NBL_CHECK(helper.upsertProviderState(values));
+
+    } else if(status != nbl::AchievementProviderStatus::ADDED_BY_USER 
+           && status != nbl::AchievementProviderStatus::ADDED_BY_PROVIDER) {
+
+        return nbl::Result::SUCCESS;
     }
 
-    NBL_CHECK(helper.dropUnknownSets(setNames));
 
+    nbl::Array<nbl::StringView, 16> setIds{};
+    usize numSets = 0;
+
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
+    usize index = 0;
+
+
+    i64 gameId = values[0].integerValue;
+    if(gameId > 0) {
+
+        nbl::StringView idStr;
+        NBL_CHECK(nbl::StringBuilder(&frame).append(gameId).buildNullTerminated(&idStr));
+        setIds[numSets++] = idStr;
+
+        NBL_CHECK(helper.addOrUpdateAchievementSet(idStr, "Base Set", 0, false, _ProviderData{}));
+        
+        if(!conn.isValid()) {
+            NBL_CHECK(nbl::DatabaseConnection::open(_db_path, &conn));
+        }
+
+        nbl::PreparedStatement getSubsetsStmt;
+        NBL_CHECK(conn.prepare("SELECT subset.id, subset.name FROM subset_parent JOIN subset ON subset_parent.subset_id = subset.id WHERE subset_parent.game_id = ?1 LIMIT 15;", &getSubsetsStmt));
+        NBL_CHECK(getSubsetsStmt.bindInt(1, gameId));
+
+        NBL_CHECK(conn.execute(&getSubsetsStmt, [&](i32 columns, nbl::DataValue* values, const char**, i64) -> nbl::Result {
+
+            if(columns != 2) return nbl::Result::UNEXPECTED_ERROR;
+
+            nbl::StringView subsetIdStr;
+            NBL_CHECK(nbl::StringBuilder(&frame).append(values[0].intValue).buildNullTerminated(&subsetIdStr));
+            setIds[numSets++] = subsetIdStr;
+
+            return helper.addOrUpdateAchievementSet(subsetIdStr, values[1].textValue, 0, true, _ProviderData{});
+        }));
+    }
+
+    NBL_CHECK(helper.dropUnknownSets(setIds.span().slice(0, numSets)));
     return nbl::Result::SUCCESS;
 }
 
@@ -253,7 +274,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
     nbl::StringView response(end, static_cast<char*>(frame.end()) - end);
     nbl::JsonElement responseJson{};
 
-    NBL_CHECK(nbl::parseJson(nbl::StringReader(response), &frame, &responseJson));
+    NBL_CHECK(nbl::parseJson(response, &frame, &responseJson));
     if(responseJson.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
     u64 numPlayers = responseJson.object.getNumber("NumDistinctPlayers").asUint();
@@ -265,13 +286,11 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
     }
 
     bool updated = false;
-    bool progressUpdated = false;
 
     u64 totalPlayers = responseJson.object.getNumber("NumDistinctPlayers").asUint();
     if(totalPlayers != ud.numPlayers) {
 
         updated = true;
-        progressUpdated = true;
         ud.numPlayers = totalPlayers;
 
     } else {
@@ -282,7 +301,6 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
         if(userCompletion != ud.userCompletion() || hardcoreCompletion != ud.hardcoreCompletion()) {
         
             updated = true;
-            progressUpdated = true;
             ud.setUserCompletion(userCompletion);
             ud.setHardcoreCompletion(hardcoreCompletion);
         }
@@ -342,7 +360,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
                 .append("/Badge/")
                 .append(ent.value.object.getString("BadgeName"))
                 .append("_lock.png")
-                .buildNullTerminated(&badgeUrl);
+                .buildNullTerminated(&lockedBadgeUrl);
 
             nbl::StringView descriptionWithPoints{};
             nbl::StringBuilder(&frame)
@@ -367,7 +385,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
             );
             updated = true;
 
-        } else if(progressUpdated || ud.latestUnlock < unlockTime) { 
+        } else if(updated || ud.latestUnlock < unlockTime) { 
 
             ud.latestUnlock = unlockTime;
 
@@ -414,14 +432,9 @@ nbl::Field _listTemplate = {
 
 nbl::Array _fields = {
     nbl::Field {
-        .type = nbl::FieldType::LIST,
-        .key = "ids",
-        .name = "Game IDs",
-        .listData = {
-            .templateField = &_listTemplate,
-            .min = 0,
-            .max = 5
-        }
+        .type = nbl::FieldType::INTEGER,
+        .key = "id",
+        .name = "Game ID",
     }
 };
 
@@ -429,7 +442,7 @@ nbl::Array _fields = {
 nbl::AchievementProvider _achProvider {
     .id = "ra",
     .name = "RetroAchievements",
-    .requestedExternalId = "retro_achievements",
+    .requestedExternalId = "igdb",
     .fields = _fields,
     .pfnUpdateAchievementState = _updateAchievementState,
     .pfnUpdateAchievements = _updateAchievements,
@@ -447,6 +460,12 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
     NBL_CHECK(context->registerObject(&_achProvider));
 
     NBL_CHECK(nbl::HttpClient::create(1, 1, 0, 0, &_httpClient));
+
+    nbl::StringBuilder(&_localAlloc).append(context->installFolder()).append("/ra.db").buildNullTerminated(&_db_path);
+    usize padding = nbl::alignUp(_localAlloc.index(), 8);
+    if(padding > 0) {
+        _localAlloc.push(padding, nullptr);
+    }
 
     return 0; 
 }

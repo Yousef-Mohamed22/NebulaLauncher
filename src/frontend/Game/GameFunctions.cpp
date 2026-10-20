@@ -170,7 +170,7 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
             continue;
         }
 
-        nbl::AchievementHelper helper(databaseConnection(), ap->id, gameMeta.id);
+        nbl::AchievementHelper helper(pluginContext(), ap, gameMeta.id);
 
         QByteArray requested = QByteArray(ap->requestedExternalId.data, ap->requestedExternalId.length);
         QByteArray externalId = idMap.value(requested);
@@ -201,6 +201,8 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
 
 
 int ApplicationContext::updateGame(QVariantMap params) {
+
+    NBL_INFO("updateGame called")
 
     bool ok = true;
     i64 gId = params.find("id")->toLongLong(&ok);
@@ -319,7 +321,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
             }));
         }
 
-        nbl::AchievementHelper helper(databaseConnection(), ap->id, gameMeta.id);
+        nbl::AchievementHelper helper(pluginContext(), ap, gameMeta.id);
 
         QByteArray requested = QByteArray(ap->requestedExternalId.data, ap->requestedExternalId.length);
         QByteArray externalId = idMap.value(requested);
@@ -346,6 +348,8 @@ int ApplicationContext::updateGame(QVariantMap params) {
     for(QVariant qs : params.find("hiddenSets")->toList()) {
         i64 id = qs.toMap().find("id")->toLongLong();
         bool hidden = qs.toMap().find("hidden")->toBool();
+
+        qDebug() << "Set: " << id << " = " << hidden << "\n";
 
         NBL_CHECK_OR_ROLLBACK(databaseConnection(), nbl::AchievementSet::setHidden(databaseConnection(), id, hidden));
     }

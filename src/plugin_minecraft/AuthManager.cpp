@@ -155,6 +155,9 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
     }
 
     u64 expiry = (response.asObject().getNumber("expires_in").asUint() * 1000) + nbl::getCurrentTime();
+
+    NBL_INFO("Expires at ", expiry);
+
     nbl::StringView mcAccessToken = response.object.getString("access_token");
     if(mcAccessToken.length == 0) {
         NBL_WARN("Minecraft auth sent zero-length access token");
@@ -320,12 +323,12 @@ nbl::Result nbl::mc::refresh(nbl::PluginContext* context, const OnlineAccount& a
     u64 expiry = values[4].uintegerValue;
     u64 now = getCurrentTime();
 
-    if(refreshToken.length == 0 || expiry < now) return nbl::Result::EXPIRED;
+    if(refreshToken.length == 0) {
+        return nbl::Result::EXPIRED;
+    }
     if(now + (1000 * 60 * 60 * 12) < expiry) {
         return nbl::Result::NO_CHANGE;
     }
-
-    NBL_INFO("Attempting to refresh accounts...");
 
     StringView payload;
     NBL_CHECK(StringBuilder(&frame)

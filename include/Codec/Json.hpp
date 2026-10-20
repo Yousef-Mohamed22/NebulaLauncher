@@ -284,8 +284,8 @@ inline const JsonObject::Entry* JsonObject::end() const {
     return entries + entryCount;
 }
 
-Result parseJson(Reader reader, LinearAllocator* storage, JsonElement* outElement, LinearAllocator* tempStorage = nullptr);
-Result parseJson(StringView string, LinearAllocator* storage, JsonElement* outElement, LinearAllocator* tempStorage = nullptr);
+Result parseJson(Reader reader, LinearAllocator* storage, JsonElement* outElement, LinearAllocator* tempStorage = nullptr, bool retainOrder = false);
+Result parseJson(StringView string, LinearAllocator* storage, JsonElement* outElement, LinearAllocator* tempStorage = nullptr, bool retainOrder = false);
 Result parseJsonNumber(Reader reader, JsonNumber* outNumber);
 Result writeJson(Writer writer, JsonElement element);
 

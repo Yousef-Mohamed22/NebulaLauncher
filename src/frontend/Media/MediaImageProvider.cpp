@@ -157,6 +157,13 @@ void nbl::frontend::MediaImageResponse::handleNetworkReply() {
         img.convertToColorSpace(QColorSpace::SRgb);
     }
 
+    if(_mRequestedSize.isValid()) {
+        _mImage = img.scaled(_mRequestedSize, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+    } else {
+        _mImage = img;
+    }
+    emit finished();
+
     ApplicationContext* ctx = ApplicationContext::instance();
     MediaManager* manager = ctx->mediaManager();
 
@@ -169,12 +176,6 @@ void nbl::frontend::MediaImageResponse::handleNetworkReply() {
     }
  
 
-    if(_mRequestedSize.isValid()) {
-        img = img.scaled(_mRequestedSize, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-    }
-
-    _mImage = img;
-    emit finished();
 
 }
 

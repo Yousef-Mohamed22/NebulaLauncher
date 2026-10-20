@@ -16,6 +16,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
 
+import Nebula
+
 Item {
 
     id: root
@@ -29,9 +31,11 @@ Item {
 
     onInstallationIdChanged: {
         handle = ApplicationContext.getRunningInstallation(installationId)
+        processState = checkState()
     }
 
     signal installationAdded
+    signal applicationStopped
 
     implicitHeight: 72
     implicitWidth: 212
@@ -44,13 +48,22 @@ Item {
         STOPPING
     }
 
-    property int processState: getState()
+    property int processState: LaunchButton.State.NOT_INSTALLED
 
-    function getState() {
+    onHandleChanged: {
+        processState = checkState()
+    }
+
+    function checkState() {
+
+        let wasRunning = processState === LaunchButton.State.RUNNING || state === LaunchButton.State.STOPPING
 
         if(installationId == 0) return LaunchButton.State.NOT_INSTALLED
 
-        if(!handle) return LaunchButton.State.NOT_RUNNING
+        if(!handle) {
+            if(wasRunning) applicationStopped()
+            return LaunchButton.State.NOT_RUNNING
+        }
         if(handle.isRunning) {
             if(handle.isStopping) {
                 return LaunchButton.State.STOPPING 
@@ -242,13 +255,11 @@ Item {
     Timer {
         interval: 1000
         repeat: true
-        running: true
+        running: root.handle != null
 
         onTriggered: {
-
-            if(root.handle) {
-                root.handle.check()
-            }
+            root.handle.check()
+            root.processState = root.checkState()
         }
     }
 

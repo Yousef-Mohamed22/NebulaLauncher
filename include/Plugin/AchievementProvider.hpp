@@ -37,26 +37,27 @@ namespace nbl {
 class AchievementHelper {
 public:
 
-    AchievementHelper(DatabaseConnection* connection, StringView provider, i64 gameId) :
-        _pConnection(connection),
-        _mProvider(provider),
+    AchievementHelper(PluginContext* context, const AchievementProvider* provider, i64 gameId) :
+        _pContext(context),
+        _pProvider(provider),
         _mGameId(gameId)
     { }
 
+    Result upsertProviderState(Span<FieldValue> fields);
     Result setProviderStatus(AchievementProviderStatus status);
 
     Result hasAchievementSet(StringView id, bool* present);
-    Result addOrUpdateAchievementSet(StringView id, StringView name, u64 lastUpdated = nbl::getCurrentTime(), ConstSpan<u8> providerData = {});
+    Result addOrUpdateAchievementSet(StringView id, StringView name, u64 lastUpdated = nbl::getCurrentTime(), bool hidden = false, ConstSpan<u8> providerData = {});
     template<typename T>
-    Result addOrUpdateAchievementSet(StringView id, StringView name, u64 lastUpdated, const T& providerData) {
-        return addOrUpdateAchievementSet(id, name, lastUpdated, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&providerData), .length = sizeof(T) });
+    Result addOrUpdateAchievementSet(StringView id, StringView name, u64 lastUpdated, bool hidden, const T& providerData) {
+        return addOrUpdateAchievementSet(id, name, lastUpdated, hidden, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&providerData), .length = sizeof(T) });
     }
 
-    Result addAchievementSet(StringView id, StringView name, u64 lastUpdated = nbl::getCurrentTime(), ConstSpan<u8> providerData = {});
+    Result addAchievementSet(StringView id, StringView name, u64 lastUpdated = nbl::getCurrentTime(), bool hidden = false, ConstSpan<u8> providerData = {});
 
     template<typename T>
-    Result addAchievementSet(StringView id, StringView name, u64 lastUpdated, const T& providerData) {
-        return addAchievementSet(id, name, lastUpdated, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&providerData), .length = sizeof(T) });
+    Result addAchievementSet(StringView id, StringView name, u64 lastUpdated, bool hidden, const T& providerData) {
+        return addAchievementSet(id, name, lastUpdated, hidden, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&providerData), .length = sizeof(T) });
     }
 
     Result getSetProviderData(StringView id, void* dest, usize destSize);
@@ -106,9 +107,8 @@ public:
     Result bumpSetUpdateTime(i64 setId, u64 time = nbl::getCurrentTime());
 
 private:
-    DatabaseConnection* _pConnection;
-    MediaManager* _pMediaManager;
-    StringView _mProvider;
+    PluginContext* _pContext;
+    const AchievementProvider* _pProvider;
     i64 _mGameId;
 };
 

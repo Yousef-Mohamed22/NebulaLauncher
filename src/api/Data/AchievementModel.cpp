@@ -31,13 +31,14 @@ nbl::Result nbl::Achievement::add(DatabaseConnection* connection, const Achievem
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare(R"(
-INSERT INTO achievement (asId, providerId, title, description, icon, lockedIcon, globalUnlockRate, progressNumerator, progressDenominator, dateUnlocked, flags, borderColor, providerData)
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13);
+INSERT INTO achievement (asId, number, providerId, title, description, icon, lockedIcon, globalUnlockRate, progressNumerator, progressDenominator, dateUnlocked, flags, borderColor, providerData)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14);
         )", &_stmt);
     }
 
     NBL_CHECK(_stmt.bindAll(1, 
         achievement.setId, 
+        achievement.number,
         achievement.providerId, 
         achievement.title, 
         achievement.description, 
@@ -60,15 +61,16 @@ nbl::Result nbl::Achievement::upsert(DatabaseConnection* connection, const Achie
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare(R"(
-INSERT INTO achievement (asId, providerId, title, description, icon, lockedIcon, globalUnlockRate, progressNumerator, progressDenominator, dateUnlocked, flags, borderColor, providerData)
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+INSERT INTO achievement (asId, number, providerId, title, description, icon, lockedIcon, globalUnlockRate, progressNumerator, progressDenominator, dateUnlocked, flags, borderColor, providerData)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
 ON CONFLICT(providerId, asId) DO
-UPDATE SET title=?3, description=?4, icon=?5, lockedIcon=?6, globalUnlockRate=?7, progressNumerator=?8, progressDenominator=?9, dateUnlocked=?10, flags=?11, borderColor=?12, providerData=?13;
+UPDATE SET number=?2, title=?4, description=?5, icon=?6, lockedIcon=?7, globalUnlockRate=?8, progressNumerator=?9, progressDenominator=?10, dateUnlocked=?11, flags=?12, borderColor=?13, providerData=?14;
         )", &_stmt);
     }
 
     NBL_CHECK(_stmt.bindAll(1, 
         achievement.setId, 
+        achievement.number,
         achievement.providerId, 
         achievement.title, 
         achievement.description, 
@@ -91,7 +93,7 @@ nbl::Result nbl::Achievement::upsertMeta(DatabaseConnection* connection, const A
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare(R"(
-INSERT INTO achievement (asId, providerId, number, title, description, icon, lockedIcon, flags, providerData)
+INSERT INTO achievement (asId, number, providerId, title, description, icon, lockedIcon, flags, providerData)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
 ON CONFLICT(providerId, asId) DO
 UPDATE SET number=?3, title=?4, description=?5, icon=?6, lockedIcon=?7, flags=?8, providerData=?9;
@@ -100,8 +102,8 @@ UPDATE SET number=?3, title=?4, description=?5, icon=?6, lockedIcon=?7, flags=?8
 
     NBL_CHECK(_stmt.bindAll(1, 
         achievement.setId, 
-        achievement.providerId, 
         achievement.number,
+        achievement.providerId, 
         achievement.title, 
         achievement.description, 
         achievement.icon, 
@@ -120,13 +122,14 @@ nbl::Result nbl::Achievement::update(DatabaseConnection* connection, const Achie
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare(R"(
-UPDATE achievement SET asId=?1, providerId=?2, title=?3, description=?4, icon=?5, lockedIcon=?6, globalUnlockRate=?7, progressNumerator=?8, progressDenominator=?9, dateUnlocked=?10, flags=?11, borderColor=?12, providerData=?13
-WHERE aId=?13;
+UPDATE achievement SET asId=?1, number=?2, providerId=?3, title=?4, description=?5, icon=?6, lockedIcon=?7, globalUnlockRate=?8, progressNumerator=?9, progressDenominator=?10, dateUnlocked=?11, flags=?12, borderColor=?13, providerData=?14
+WHERE aId=?15;
         )", &_stmt);
     }
 
     NBL_CHECK(_stmt.bindAll(1, 
         achievement.setId, 
+        achievement.number,
         achievement.providerId, 
         achievement.title, 
         achievement.description, 
@@ -185,7 +188,7 @@ nbl::Result nbl::Achievement::get(DatabaseConnection* connection, i64 id, Achiev
     static PreparedStatement _stmt{};
     if(!_stmt.isValid(connection)) {
         connection->prepare(R"(
-SELECT aId, asId, providerId, title, description, icon, IFNULL(lockedIcon, icon) as lockedIcon, type, globalUnlockRate, progressNumerator, progressDenominator, dateUnlocked, flags, borderColor, providerData 
+SELECT aId, asId, number, providerId, title, description, icon, IFNULL(lockedIcon, icon) as lockedIcon, type, globalUnlockRate, progressNumerator, progressDenominator, dateUnlocked, flags, borderColor, providerData 
 FROM achievement 
 WHERE aId=?1;
         )", &_stmt);
@@ -196,19 +199,20 @@ WHERE aId=?1;
         return callback(Achievement{
             .id = values[0].intValue,
             .setId = values[1].intValue,
-            .providerId = values[2].textValue,
-            .title = values[3].textValue,
-            .description = values[4].textValue,
-            .icon = values[5].intValue,
-            .lockedIcon = values[6].intValue,
+            .number = values[2].uintValue(),
+            .providerId = values[3].textValue,
+            .title = values[4].textValue,
+            .description = values[5].textValue,
+            .icon = values[6].intValue,
+            .lockedIcon = values[7].intValue,
             .progress = {
-                .numerator = static_cast<u32>(values[7].uintValue()),
-                .denominator = static_cast<u32>(values[8].uintValue())
+                .numerator = static_cast<u32>(values[8].uintValue()),
+                .denominator = static_cast<u32>(values[9].uintValue())
             },
-            .dateUnlocked = values[9].uintValue(),
-            .flags = static_cast<AchievementFlags>(values[10].uintValue()),
-            .borderColor = static_cast<u32>(values[11].uintValue()),
-            .providerData = values[12].blobValue
+            .dateUnlocked = values[10].uintValue(),
+            .flags = static_cast<AchievementFlags>(values[11].uintValue()),
+            .borderColor = static_cast<u32>(values[12].uintValue()),
+            .providerData = values[13].blobValue
         });
     });
 }

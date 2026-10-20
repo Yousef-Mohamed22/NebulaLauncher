@@ -13,8 +13,9 @@
 // limitations under the License.
 
 import QtQuick
-
 import QtQuick.Layouts
+
+import Nebula
 
 NblSidebarButton {
 

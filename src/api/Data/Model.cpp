@@ -158,8 +158,8 @@ CREATE TABLE IF NOT EXISTS installation (
     added INTEGER NOT NULL,
     lastPlayed INTEGER,
     colorOverride INTEGER,
-    FOREIGN KEY(gId) REFERENCES game(gId),
-    FOREIGN KEY(deviceId) REFERENCES device(deviceId)
+    FOREIGN KEY(gId) REFERENCES game(gId) ON DELETE CASCADE,
+    FOREIGN KEY(deviceId) REFERENCES device(deviceId) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS tag (
     tId INTEGER PRIMARY KEY,

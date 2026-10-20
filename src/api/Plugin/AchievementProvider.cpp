@@ -26,67 +26,91 @@
 #include <Data/Model.hpp>
 #include <Platform/Time.hpp>
 #include <Data/MediaManager.hpp>
+#include "Data/AchievementModel.hpp"
 
+
+
+nbl::Result nbl::AchievementHelper::upsertProviderState(nbl::Span<nbl::FieldValue> values) {
+    
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
+    nbl::Field dummy {
+        .type = nbl::FieldType::STRUCT,
+        .structData = { .fields = _pProvider->fields }
+    };
+
+    nbl::StringBuilder builder(&frame);
+    NBL_CHECK(nbl::encodeFieldValues(_pContext, _pProvider->fields, values, builder, {}));
+
+    nbl::StringView fieldsJson;
+    NBL_CHECK(builder.buildNullTerminated(&fieldsJson));
+
+    return _pContext->databaseConnection(), nbl::AchievementState::upsert(_pContext->databaseConnection(), _mGameId, {
+        .gameId = _mGameId,
+        .provider = _pProvider->id,
+        .fields = fieldsJson,
+        .status = AchievementProviderStatus::ADDED_BY_PROVIDER
+    });
+}
 
 nbl::Result nbl::AchievementHelper::setProviderStatus(nbl::AchievementProviderStatus status) {
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare("INSERT INTO achievement_state (gId, provider, status) VALUES (?1, ?2, ?3) ON CONFLICT (gId, provider) DO UPDATE SET status=?3", &_stmt);
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare("INSERT INTO achievement_state (gId, provider, status) VALUES (?1, ?2, ?3) ON CONFLICT (gId, provider) DO UPDATE SET status=?3", &_stmt);
     }
     NBL_CHECK(_stmt.bindAll(1, 
         _mGameId,
-        _mProvider,
+        _pProvider->id,
         static_cast<u32>(status)
     ));
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 nbl::Result nbl::AchievementHelper::hasAchievementSet(StringView id, bool* present) {
 
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 SELECT COUNT(asId) FROM achievement_set WHERE provider=?1 AND providerId=?2 LIMIT 1;
         )", &_stmt);
     }
 
-    NBL_CHECK(_stmt.bindAll(1, _mProvider, id));
-    return _pConnection->execute(&_stmt, [&](i32 numResults, nbl::DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
+    NBL_CHECK(_stmt.bindAll(1, _pProvider->id, id));
+    return _pContext->databaseConnection()->execute(&_stmt, [&](i32 numResults, nbl::DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
         *present = true;
         return nbl::Result::SUCCESS;
     });
 
 }
 
-nbl::Result nbl::AchievementHelper::addOrUpdateAchievementSet(StringView id, StringView name, u64 lastUpdated, ConstSpan<u8> providerData) {
+nbl::Result nbl::AchievementHelper::addOrUpdateAchievementSet(StringView id, StringView name, u64 lastUpdated, bool hidden, ConstSpan<u8> providerData) {
 
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 INSERT INTO achievement_set (gId, lastUpdated, hidden, name, provider, providerId, providerData)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 ON CONFLICT(gId, providerId, provider) DO UPDATE
-SET lastUpdated=?2, name=?3, providerData=?7;
+SET lastUpdated=?2, name=?4, providerData=?7;
         )", &_stmt);
     }
 
     NBL_CHECK(_stmt.bindAll(1, 
         _mGameId,
         lastUpdated, 
-        false,
+        hidden,
         name,
-        _mProvider, 
+        _pProvider->id,
         id,
         providerData
     ));
 
-    return _pConnection->execute(&_stmt);}
+    return _pContext->databaseConnection()->execute(&_stmt);}
 
-nbl::Result nbl::AchievementHelper::addAchievementSet(StringView id, StringView name, u64 lastUpdated, ConstSpan<u8> providerData) {
+nbl::Result nbl::AchievementHelper::addAchievementSet(StringView id, StringView name, u64 lastUpdated, bool hidden, ConstSpan<u8> providerData) {
 
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 INSERT INTO achievement_set (gId, lastUpdated, hidden, name, provider, providerId, providerData)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 ON CONFLICT(gId, providerId, provider) DO NOTHING;
@@ -96,31 +120,31 @@ ON CONFLICT(gId, providerId, provider) DO NOTHING;
     NBL_CHECK(_stmt.bindAll(1, 
         _mGameId,
         lastUpdated, 
-        false,
+        hidden,
         name,
-        _mProvider, 
+        _pProvider->id,
         id,
         providerData
     ));
 
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 nbl::Result nbl::AchievementHelper::getSetProviderData(StringView id, void* dest, usize destSize) {
 
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare("SELECT providerData FROM achievement_set WHERE provider=?1 AND gId=?2 AND providerId=?3;", &_stmt);
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare("SELECT providerData FROM achievement_set WHERE provider=?1 AND gId=?2 AND providerId=?3;", &_stmt);
     }
 
     NBL_CHECK(_stmt.bindAll(1, 
         _mGameId,
-        _mProvider, 
+        _pProvider->id,
         id
     ));
 
     nbl::Result res = nbl::Result::SUCCESS;
-    NBL_CHECK(_pConnection->execute(&_stmt, [&](i32 rows, DataValue* values, const char** names, i64) -> nbl::Result {
+    NBL_CHECK(_pContext->databaseConnection()->execute(&_stmt, [&](i32 rows, DataValue* values, const char** names, i64) -> nbl::Result {
         if(values[0].blobValue.length != destSize) {
             res = nbl::Result::NO_CHANGE;
         } else {
@@ -134,8 +158,8 @@ nbl::Result nbl::AchievementHelper::getSetProviderData(StringView id, void* dest
 
 nbl::Result nbl::AchievementHelper::updateSetProviderData(StringView id, ConstSpan<u8> providerData) {
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 UPDATE achievement_set SET providerData=?1 WHERE gId=?2 AND providerId=?3;
         )", &_stmt);
     }
@@ -143,16 +167,16 @@ UPDATE achievement_set SET providerData=?1 WHERE gId=?2 AND providerId=?3;
     NBL_CHECK(_stmt.bindAll(1, 
         providerData,
         _mGameId,
-        _mProvider
+        _pProvider->id
     ));
 
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 nbl::Result nbl::AchievementHelper::updateSetProviderData(i64 setId, ConstSpan<u8> providerData) {
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 UPDATE achievement_set SET providerData=?1 WHERE asId=?2;
         )", &_stmt);
     }
@@ -162,13 +186,13 @@ UPDATE achievement_set SET providerData=?1 WHERE asId=?2;
         setId
     ));
 
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 nbl::Result nbl::AchievementHelper::setAwardColor(i64 setId, u32 awardColor) {
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 UPDATE achievement_set SET awardColor=?1 WHERE asId=?2;
         )", &_stmt);
     }
@@ -178,26 +202,26 @@ UPDATE achievement_set SET awardColor=?1 WHERE asId=?2;
         setId
     ));
 
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 nbl::Result nbl::AchievementHelper::dropAchievementSet(StringView id) {
 
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 DELETE FROM achievement_set WHERE provider=?1 AND providerId=?2;
         )", &_stmt);
     }
 
-    NBL_CHECK(_stmt.bindAll(1, _mProvider, id));
-    return _pConnection->execute(&_stmt);
+    NBL_CHECK(_stmt.bindAll(1, _pProvider->id, id));
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 nbl::Result nbl::AchievementHelper::dropUnknownSets(Span<StringView> knownSets) {
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 DELETE FROM achievement_set WHERE provider=?1 AND gId=?2 AND providerId NOT IN (SELECT value FROM json_each(?3));
         )", &_stmt);
     }
@@ -212,45 +236,45 @@ DELETE FROM achievement_set WHERE provider=?1 AND gId=?2 AND providerId NOT IN (
     nbl::StringView json{};
     NBL_CHECK(builder.buildNullTerminated(&json));
 
-    NBL_CHECK(_stmt.bindAll(1, _mProvider, _mGameId, json));
-    return _pConnection->execute(&_stmt);
+    NBL_CHECK(_stmt.bindAll(1, _pProvider->id, _mGameId, json));
+    return _pContext->databaseConnection()->execute(&_stmt);
 
 }
 
 nbl::Result nbl::AchievementHelper::dropAllAchievements(i64 setId) {
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 DELETE FROM achievement WHERE asId=?1;
         )", &_stmt);
     }
 
     NBL_CHECK(_stmt.bind(1, setId));
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 nbl::Result nbl::AchievementHelper::dropStaleAchievements(i64 setId) {
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 DELETE FROM achievement WHERE asId=?1 AND (flags & 128) != 0;
         )", &_stmt);
     }
 
     NBL_CHECK(_stmt.bind(1, setId));
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 nbl::Result nbl::AchievementHelper::markAchievementsStale(i64 setId) {
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 UPDATE achievement SET flags = (flags | 128) WHERE asId=?1;
         )", &_stmt);
     }
 
     NBL_CHECK(_stmt.bind(1, setId));
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 
@@ -258,8 +282,8 @@ nbl::Result nbl::AchievementHelper::addOrUpdateAchievement(i64 setId, u64 number
 
     i64 iconId;
     i64 lockedIconId;
-    _pMediaManager->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &iconId);
-    _pMediaManager->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &lockedIconId);
+    _pContext->mediaManager()->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &iconId);
+    _pContext->mediaManager()->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &lockedIconId);
 
     Achievement ach = {
         .setId = setId,
@@ -272,15 +296,15 @@ nbl::Result nbl::AchievementHelper::addOrUpdateAchievement(i64 setId, u64 number
         .flags = flags,
         .providerData = providerData,
     };
-    return nbl::Achievement::upsertMeta(_pConnection, ach, &ach.id);
+    return nbl::Achievement::upsertMeta(_pContext->databaseConnection(), ach, &ach.id);
 }
 
 nbl::Result nbl::AchievementHelper::addOrUpdateAchievementWithProgress(i64 setId, u64 number, StringView id, StringView name, StringView description, StringView icon, StringView lockedIcon, f64 globalUnlockRate, u32 progressNumerator, u32 progressDenominator, u64 dateUnlocked, AchievementFlags flags, u32 borderColor, Span<u8> providerData) {
 
     i64 iconId;
     i64 lockedIconId;
-    _pMediaManager->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &iconId);
-    _pMediaManager->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &lockedIconId);
+    _pContext->mediaManager()->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &iconId);
+    _pContext->mediaManager()->reserveReference(icon, nbl::ImageClass::ACHIEVEMENT_ICON, &lockedIconId);
 
     nbl::Achievement ach = {
         .setId = setId,
@@ -301,15 +325,15 @@ nbl::Result nbl::AchievementHelper::addOrUpdateAchievementWithProgress(i64 setId
         .providerData = providerData
     };
 
-    return nbl::Achievement::upsert(_pConnection, ach, nullptr);
+    return nbl::Achievement::upsert(_pContext->databaseConnection(), ach, nullptr);
 }
 
 
 nbl::Result nbl::AchievementHelper::setAchievementProgress(i64 setId, StringView id, f64 globalUnlockRate, u32 progressNumerator, u32 progressDenominator, u64 dateUnlocked, u32 borderColor) {
 
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 UPDATE achievement SET globalUnlockRate=?1, progressNumerator=?2, progressDenominator=?3, dateUnlocked=?4, borderColor=?5, flags = (flags & 127)
 WHERE asId=?6 AND providerId=?7;
         )", &_stmt);
@@ -324,23 +348,23 @@ WHERE asId=?6 AND providerId=?7;
         setId,
         id));
 
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }
 
 u64 nbl::AchievementHelper::countAchievementSets() {
     u64 out = 0;
-    nbl::AchievementSet::countForGameAndProvider(_pConnection, _mGameId, _mProvider, &out);
+    nbl::AchievementSet::countForGameAndProvider(_pContext->databaseConnection(), _mGameId, _pProvider->id, &out);
     return out;
 }
 
 nbl::Result nbl::AchievementHelper::bumpSetUpdateTime(i64 setId, u64 time) {
     static PreparedStatement _stmt{};
-    if(!_stmt.isValid(_pConnection)) {
-        _pConnection->prepare(R"(
+    if(!_stmt.isValid(_pContext->databaseConnection())) {
+        _pContext->databaseConnection()->prepare(R"(
 UPDATE achievement_set SET lastUpdated=?1 WHERE asId=?2;
         )", &_stmt);
     }
 
     NBL_CHECK(_stmt.bindAll(1, time, setId));
-    return _pConnection->execute(&_stmt);
+    return _pContext->databaseConnection()->execute(&_stmt);
 }

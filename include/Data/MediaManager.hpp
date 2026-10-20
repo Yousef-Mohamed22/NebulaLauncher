@@ -26,6 +26,7 @@
 #pragma once
 
 #include <Data/Database.hpp>
+#include <Platform/Mutex.hpp>
 
 namespace nbl {
 
@@ -113,7 +114,9 @@ public:
 private:
 
     DatabaseConnection _mConnection;
+    Mutex _mMutex;
     i64 _mDeviceId;
+    std::atomic<u32> _mCurrentlySaving;
 };
 
 

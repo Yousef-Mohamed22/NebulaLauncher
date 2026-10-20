@@ -191,7 +191,6 @@ Item {
                 color: Theme.colors.layer1
             }
 
-            // Launch Button
             Item {
                 Layout.maximumWidth: 250
                 Layout.minimumWidth: 48
@@ -216,10 +215,12 @@ Item {
                     onInstallationAdded: {
                         root.refresh()
                     }
+                    onApplicationStopped: {
+                        root.refresh()
+                    }
                 }                
             }
 
-            // Installation picker
             InstallationPicker {
                 id: installationPicker
                 gameId: root.details.gameId
@@ -417,18 +418,61 @@ Item {
                                     color: Theme.colors.textDim
                                     text: `(${achievementsSection.unlockedCount} / ${achievementsSection.totalCount}) (${(100.0 * (achievementsSection.unlockedCount / achievementsSection.totalCount)).toFixed(0)}%)`
                                 }
+                                Item {
+                                    Layout.fillHeight: true
+                                    implicitWidth: height
+                                    visible: achievementUpdateRunner.isRunning
+
+                                    NblBusyIndicator {
+                                        color: Theme.colors.textDim
+                                        icon: ""
+                                        anchors.fill: parent
+                                    }
+                                }
                             }
-                            MouseArea {
-                                anchors.fill: parent
+
+                            NblContextMenu {
+                                id: contextMenu
+                                height: 48
+                                y: 0
+
+                                contentItem: ColumnLayout {
+                                    spacing: 0
+                                    NblButton {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+
+                                        icon: ""
+                                        text: "Refresh"
+
+                                        onClicked: {
+                                            achievementUpdateRunner.update(root.details.gameId)
+                                            contextMenu.close()
+                                        }
+                                        radius: 2
+                                    }
+                                }
+                            }
+
+
+                            HoverHandler {
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    let dialog = DialogManager.create("Achievement/AchievementsDialog.qml", { 
-                                        gameId: root.details.gameId,
-                                    }) as NblDialog
-                                    dialog.closed.connect(() => {
-                                        achievementsSection.refresh()
-                                    })
-                                    dialog.open()
+                            }
+                            TapHandler {
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                onTapped: (point, btn) => {
+
+                                    if(btn == Qt.RightButton) {
+                                        contextMenu.open()
+                                    } else {
+                                        let dialog = DialogManager.create("Achievement/AchievementDialog.qml", { 
+                                            gameId: root.details.gameId,
+                                        }) as NblDialog
+                                        dialog.closed.connect(() => {
+                                            achievementsSection.refresh()
+                                        })
+                                        dialog.open()
+                                    }
                                 }
                             }
                         }

@@ -36,7 +36,9 @@
 
 nbl::Result nbl::MediaManager::reserveReference(StringView url, ImageClass ic, i64* outRefId) {
 
-    static PreparedStatement _stmt;
+    auto lock = _mMutex.frameLock();
+
+    static PreparedStatement _stmt{};
     if(!_stmt.isValid(&_mConnection)) {
         NBL_CHECK(_mConnection.prepare("INSERT INTO image_ref (url, urlDevice, imageClass) VALUES (?1, ?2, ?3) ON CONFLICT (url, urlDevice) DO UPDATE SET urlDevice=urlDevice RETURNING id;", &_stmt));
     }
@@ -93,18 +95,22 @@ nbl::Result nbl::MediaManager::saveImage(i64 refId, u32 width, u32 height, Const
     Array<u8, 16> hash{};
     NBL_CHECK(md5(data, hash));
     
+    if(_mCurrentlySaving++ == 0) {
+        NBL_CHECK(_mConnection.beginTransaction());
+    }
 
-    static PreparedStatement _stmt;
+    auto lock = _mMutex.frameLock();
+
+    static PreparedStatement _stmt{};
     if(!_stmt.isValid(&_mConnection)) {
         NBL_CHECK(_mConnection.prepare("INSERT INTO image (width, height, hash, data) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (hash) DO UPDATE set width=width RETURNING id;", &_stmt));
     }
-    static PreparedStatement _refStmt;
+    static PreparedStatement _refStmt{};
     if(!_refStmt.isValid(&_mConnection)) {
         NBL_CHECK(_mConnection.prepare("UPDATE image_ref SET imageId=?1 WHERE id=?2;", &_refStmt));
     }
 
 
-    NBL_CHECK(_mConnection.beginTransaction());
     Optional<i64> imageId{};
 
     DatabaseConnection* conn = &_mConnection;
@@ -118,7 +124,10 @@ nbl::Result nbl::MediaManager::saveImage(i64 refId, u32 width, u32 height, Const
 
     _refStmt.bindAll(1, *imageId, refId);
     NBL_CHECK_OR_ROLLBACK(conn, conn->execute(&_refStmt));
-    NBL_CHECK(_mConnection.commitTransaction());
+
+    if(--_mCurrentlySaving == 0) {
+        NBL_CHECK(_mConnection.commitTransaction());
+    }
 
     return nbl::Result::SUCCESS;
 }
@@ -191,7 +200,7 @@ nbl::Result nbl::MediaManager::loadImage(i64 refId, ImageLoadCallback callback, 
 
 nbl::Result nbl::MediaManager::pruneUnreferencedImages() {
     
-    static PreparedStatement _stmt;
+    static PreparedStatement _stmt{};
     if(!_stmt.isValid(&_mConnection)) {
         NBL_CHECK(_mConnection.prepare("DELETE FROM image WHERE NOT EXISTS (SELECT 1 FROM image_ref WHERE image_ref.imageId = image.id);", &_stmt));
     }

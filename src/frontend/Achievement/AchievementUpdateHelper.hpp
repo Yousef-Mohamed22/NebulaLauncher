@@ -47,6 +47,8 @@ class AchievementUpdateRunner : public QObject {
     Q_OBJECT
     QML_ELEMENT
 
+    Q_PROPERTY(bool isRunning READ isRunning NOTIFY isRunningUpdated)
+
 public:
 
     AchievementUpdateRunner(QObject* parent = nullptr) :
@@ -68,9 +70,11 @@ public:
             _pActiveThread->quit();
             _pActiveThread->wait();
             _pActiveThread = nullptr;
+            emit isRunningUpdated();
         }
 
         _pActiveThread = new QThread(this);
+        emit isRunningUpdated();
         AchievementUpdateWorker* worker = new AchievementUpdateWorker(gameId,setId);
 
         worker->moveToThread(_pActiveThread);
@@ -82,14 +86,20 @@ public:
         connect(worker, &AchievementUpdateWorker::done, worker, &QObject::deleteLater);
         connect(worker, &AchievementUpdateWorker::done, this, [this]() {
             _pActiveThread = nullptr;
+            emit isRunningUpdated();
         });
         connect(_pActiveThread, &QThread::finished, _pActiveThread, &QObject::deleteLater);
 
         _pActiveThread->start();
     }
 
+    bool isRunning() {
+        return _pActiveThread != nullptr;
+    }
+
 signals:
 
+    void isRunningUpdated();
     void updateComplete(bool shouldReload);
 
 private:

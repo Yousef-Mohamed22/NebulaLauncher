@@ -32,7 +32,7 @@ void nbl::frontend::AchievementUpdateWorker::run() {
             return nbl::Result::SUCCESS;
         }
 
-        nbl::AchievementHelper helper(ctx->databaseConnection(), provider->id, _mGameId);
+        nbl::AchievementHelper helper(ctx->pluginContext(), provider, _mGameId);
         nbl::Result res = provider->updateAchievements(ctx->pluginContext(), achievementSet, helper);
 
         if(res.error()) {

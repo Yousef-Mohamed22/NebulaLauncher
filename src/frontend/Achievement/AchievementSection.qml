@@ -56,12 +56,14 @@ Column {
 
             readonly property int unlockedCount: setsModel.getSetUnlockedAchievementCount(modelData.id)
             readonly property int totalCount: setsModel.getSetAchievementCount(modelData.id)
-            readonly property bool unlockedAll: totalCount == unlockedCount
+            readonly property bool unlockedAll: totalCount == unlockedCount && totalCount > 0
 
             readonly property bool unlockedOne: achievementRepeater.count > 0 && achievementRepeater.itemAt(0).fullWidth
             readonly property int maxVisibleAchievements: unlockedOne ? 6 : 5
             readonly property bool shouldOverflow: achievementsModel.count > maxVisibleAchievements
             readonly property int visibleAchievements: maxVisibleAchievements - (shouldOverflow ? 1 : 0)
+
+            visible: totalCount > 0
 
             Loader {
                 active: setsModel.count > 1
