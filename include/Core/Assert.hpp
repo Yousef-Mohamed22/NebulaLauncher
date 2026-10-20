@@ -40,7 +40,7 @@ void _assertionFailed(const char* message);
  * \brief Macro for asserting that a given expression is true. If the expression evaluates to false, an error message is logged and the program exits with exit code 255.
  * \param expression The expression to assert, which should evaluate to a boolean value. 
  */
-#define NBL_ASSERT(expression) if(expression) {} else { nbl::_assertionFailed(#expression); }
+#define NBL_ASSERT(expression) if(expression) {} else [[unlikely]] { nbl::_assertionFailed(#expression); }
 
 #else
 
@@ -58,6 +58,6 @@ void _assertionFailed(const char* message, const char* file = nullptr, int line 
  * \brief Macro for asserting that a given expression is true. If the expression evaluates to false, an error message is logged and a debug breakpoint is triggered.
  * \param expression The expression to assert, which should evaluate to a boolean value.
  */
-#define NBL_ASSERT(expression) if(expression) {} else { nbl::_assertionFailed(#expression, __FILE__, __LINE__); }
+#define NBL_ASSERT(expression) if(expression) {} else [[unlikely]] { nbl::_assertionFailed(#expression, __FILE__, __LINE__); }
 
 #endif

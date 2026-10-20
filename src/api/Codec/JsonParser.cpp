@@ -67,20 +67,21 @@ struct _ParseContext {
     }
 
     nbl::Result nextChars(usize count, const char** read) {
-        NBL_ASSERT(count <= bufferCapacity);
+        if(count > bufferCapacity) [[unlikely]] {
+            return nbl::Result::UNEXPECTED_END_OF_STREAM;
+        }
         if(bufferIndex + count >= bufferLength) [[unlikely]] {
             if(reader.pfnRead == nullptr) return nbl::Result::UNEXPECTED_END_OF_STREAM;
 
-            usize toSave = bufferLength - bufferIndex;
+            usize toSave = bufferLength - bufferIndex - 1;
             if(toSave > 0) {
-                memmove(buffer, buffer + bufferIndex, toSave);
+                memmove(buffer, buffer + bufferIndex + 1, toSave);
             }
-
-            bufferLength = 0;
+            bufferLength = toSave;
 
             usize bytesRead = 0;
             while(bufferLength < count) {
-                nbl::Result res = reader.read(buffer + bufferLength, 4096 - bufferLength, &bytesRead);
+                nbl::Result res = reader.read(buffer + bufferLength, bufferCapacity - bufferLength, &bytesRead);
                 if(res.error()) return res;
                 bufferLength += bytesRead;
 
@@ -95,7 +96,6 @@ struct _ParseContext {
             *read = buffer + bufferIndex + 1;
             bufferIndex += count;
         }
-            
 
         return nbl::Result::SUCCESS;
     }
@@ -790,9 +790,6 @@ nbl::Result _parseElement(_ParseContext* context) {
     switch(c) {
         case 'n': { // null
             const char* remaining = nullptr;
-            if(context->bufferIndex + 3 >= context->bufferLength) {
-                return nbl::Result::UNEXPECTED_END_OF_STREAM;
-            }
             NBL_CHECK(context->nextChars(3, &remaining));
             if(memcmp(remaining, "ull", 3) != 0) {
                 return nbl::Result::PARSE_ERROR;
@@ -804,9 +801,6 @@ nbl::Result _parseElement(_ParseContext* context) {
         }
         case 't': { // true
             const char* remaining = nullptr;
-            if(context->bufferIndex + 3 >= context->bufferLength) {
-                return nbl::Result::UNEXPECTED_END_OF_STREAM;
-            }
             NBL_CHECK(context->nextChars(3, &remaining));
             if(memcmp(remaining, "rue", 3) != 0) {
                 return nbl::Result::PARSE_ERROR;
@@ -819,9 +813,6 @@ nbl::Result _parseElement(_ParseContext* context) {
         }
         case 'f': { // false
             const char* remaining = nullptr;
-            if(context->bufferIndex + 4 >= context->bufferLength) {
-                return nbl::Result::UNEXPECTED_END_OF_STREAM;
-            }
             NBL_CHECK(context->nextChars(4, &remaining));
             if(memcmp(remaining, "alse", 4) != 0) {
                 return nbl::Result::PARSE_ERROR;
