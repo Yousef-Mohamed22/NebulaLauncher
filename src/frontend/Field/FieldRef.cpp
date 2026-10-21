@@ -297,7 +297,7 @@ QVariant nbl::frontend::FieldRef::parse(QByteArray encodedFields, nbl::Span<nbl:
     if(frame.allocate(&values.data, fields.length).error()) return QVariant();
 
     nbl::JsonElement element;
-    if(nbl::parseJson(nbl::StringReader(nbl::StringView(encodedFields.data(), encodedFields.length())), &frame, &element).error()) return QVariant();
+    if(nbl::parseJson(nbl::StringView(encodedFields.data(), encodedFields.length()), &frame, &element).error()) return QVariant();
     if(element.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
     if(nbl::decodeFieldValues(ApplicationContext::instance()->pluginContext(), fields, element.object, &values, &frame).error()) return QVariant();

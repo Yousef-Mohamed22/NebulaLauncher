@@ -55,7 +55,7 @@ nbl::Result nbl::PluginInitContext::create(Registry::Builder* builder, LoadedPlu
 nbl::Result nbl::PluginInitContext::getStoredFieldsObject(JsonObject* outValues, StringView* outVersion, LinearAllocator* allocator) {
     return nbl::getPluginFields(_pContext->databaseConnection(), getMeta()->id, [&](const PluginFields& fields) -> nbl::Result {
         JsonElement e;
-        NBL_CHECK(nbl::parseJson(StringReader(fields.fieldsJson), allocator, &e));
+        NBL_CHECK(nbl::parseJson(fields.fieldsJson, allocator, &e));
         if(e.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
         *outValues = e.object;
         NBL_CHECK(nbl::StringBuilder(allocator).append(fields.version).buildNullTerminated(outVersion));

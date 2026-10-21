@@ -313,7 +313,7 @@ nbl::Result nbl::mc::refresh(nbl::PluginContext* context, const OnlineAccount& a
 
     AllocationFrame frame(Arena::threadLocal());
     JsonElement element{};
-    NBL_CHECK(nbl::parseJson(StringReader(account.fields), &frame, &element));
+    NBL_CHECK(nbl::parseJson(account.fields, &frame, &element));
 
     Span<FieldValue> values{};
     NBL_CHECK(nbl::decodeFieldValues(context, MC_AUTH_FIELDS, element.asObject(), &values, &frame)); 

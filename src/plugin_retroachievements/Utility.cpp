@@ -130,22 +130,22 @@ nbl::Result nbl::ra::parseDate(StringView date, u64* outTime) {
     u8 minute;
     u8 second;
 
-    NBL_CHECK(nbl::parseJsonNumber(StringReader(date.slice(0, 4).lstrip('0', 1)), &current));
+    NBL_CHECK(nbl::parseJsonNumber(date.slice(0, 4).lstrip('0', 1), &current));
     year = current.asInt();
     
-    NBL_CHECK(nbl::parseJsonNumber(StringReader(date.slice(5, 2).lstrip('0', 1)), &current));
+    NBL_CHECK(nbl::parseJsonNumber(date.slice(5, 2).lstrip('0', 1), &current));
     month = current.asUint();
 
-    NBL_CHECK(nbl::parseJsonNumber(StringReader(date.slice(8, 2).lstrip('0', 1)), &current));
+    NBL_CHECK(nbl::parseJsonNumber(date.slice(8, 2).lstrip('0', 1), &current));
     day = current.asUint();
 
-    NBL_CHECK(nbl::parseJsonNumber(StringReader(date.slice(11, 2).lstrip('0', 1)), &current));
+    NBL_CHECK(nbl::parseJsonNumber(date.slice(11, 2).lstrip('0', 1), &current));
     hour = current.asUint();
 
-    NBL_CHECK(nbl::parseJsonNumber(StringReader(date.slice(14, 2).lstrip('0', 1)), &current));
+    NBL_CHECK(nbl::parseJsonNumber(date.slice(14, 2).lstrip('0', 1), &current));
     minute = current.asUint();
 
-    NBL_CHECK(nbl::parseJsonNumber(StringReader(date.slice(17, 2).lstrip('0', 1)), &current));
+    NBL_CHECK(nbl::parseJsonNumber(date.slice(17, 2).lstrip('0', 1), &current));
     second = current.asUint();
 
     return utcFromComponents(year, month, day, hour, minute, second, outTime);

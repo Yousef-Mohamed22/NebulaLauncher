@@ -62,7 +62,7 @@ QVariant nbl::frontend::PluginModel::data(const QModelIndex& index, int role) co
                 NBL_CHECK(frame.allocate(&values.data, plugin.fields.length));
 
                 nbl::JsonElement element;
-                NBL_CHECK(nbl::parseJson(nbl::StringReader(fields.fieldsJson), &frame, &element));
+                NBL_CHECK(nbl::parseJson(fields.fieldsJson, &frame, &element));
                 if(element.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
                 nbl::decodeFieldValues(ctx->pluginContext(), plugin.fields, element.object, &values, &frame);

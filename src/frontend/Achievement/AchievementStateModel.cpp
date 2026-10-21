@@ -58,7 +58,7 @@ QVariant nbl::frontend::AchievementStateModel::data(const QModelIndex& index, in
             if(frame.allocate(&values.data, item.provider->fields.length).error()) return QVariant();
 
             nbl::JsonElement element;
-            if(nbl::parseJson(nbl::StringReader(nbl::StringView(item.encodedFields.data(), item.encodedFields.length())), &frame, &element).error()) return QVariant();
+            if(nbl::parseJson(nbl::StringView(item.encodedFields.data(), item.encodedFields.length()), &frame, &element).error()) return QVariant();
             if(element.type != nbl::JsonType::OBJECT) return QVariant();
 
             if(nbl::decodeFieldValues(ctx->pluginContext(), item.provider->fields, element.object, &values, &frame).error()) return QVariant();

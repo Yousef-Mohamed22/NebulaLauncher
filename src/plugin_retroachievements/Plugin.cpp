@@ -103,7 +103,7 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 
     nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::JsonElement element{};
-    NBL_CHECK(nbl::parseJson(nbl::StringReader(account.fields), &frame, &element));
+    NBL_CHECK(nbl::parseJson(account.fields, &frame, &element));
 
     nbl::Span<nbl::FieldValue> values{};
 

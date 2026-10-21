@@ -121,7 +121,7 @@ nbl::frontend::InstallationDetails* ApplicationContext::getInstallationDetails(q
             nbl::Span<nbl::FieldValue> values;
 
             nbl::JsonElement value = {};
-            NBL_CHECK(nbl::parseJson(nbl::StringReader(installation.command), &frame, &value));
+            NBL_CHECK(nbl::parseJson(installation.command, &frame, &value));
             NBL_CHECK(nbl::decodeFieldValues(&_mContext, type->fields, value.object, &values, &frame));
 
             nbl::Field dummy {

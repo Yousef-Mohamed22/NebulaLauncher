@@ -49,7 +49,7 @@ nbl::Result nbl::ra::downloadProfile(HttpClient *client, StringView apiKey, Stri
     StringView responseJson(end, static_cast<char*>(frame.end()) - end);
     JsonElement response;
 
-    NBL_CHECK(nbl::parseJson(StringReader(responseJson), &frame, &response));
+    NBL_CHECK(nbl::parseJson(responseJson, &frame, &response));
 
     if(response.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
     

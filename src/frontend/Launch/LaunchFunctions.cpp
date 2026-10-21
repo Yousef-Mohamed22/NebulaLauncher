@@ -105,7 +105,7 @@ nbl::frontend::ProcessHandle* ApplicationContext::launchInstallation(qint64 inst
 
             if(installType->fields.length > 0) {
                 nbl::JsonElement value = {};
-                NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
+                NBL_CHECK(nbl::parseJson(meta.command, &frame, &value));
                 NBL_CHECK(nbl::decodeFieldValues(&ctx->_mContext, installType->fields, value.object, &values, &frame));
             }
             NBL_CHECK(installType->launch(&ctx->_mContext, values, meta, handle->tracker()));
@@ -168,7 +168,7 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
         };
 
         nbl::JsonElement value = {};
-        NBL_CHECK(nbl::parseJson(nbl::StringReader(meta.command), &frame, &value));
+        NBL_CHECK(nbl::parseJson(meta.command, &frame, &value));
         NBL_CHECK(nbl::decodeFieldValues(&_mContext, installType->fields, value.object, &values, &frame));
 
         nbl::StringView folder = {};

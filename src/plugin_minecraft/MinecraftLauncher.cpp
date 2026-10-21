@@ -1,5 +1,4 @@
 #include "MinecraftLauncher.hpp"
-#include "Codec/Json.hpp"
 #include "DownloadManager.hpp"
 #include "VersionManager.hpp"
 #include "LoggingManager.hpp"
@@ -18,6 +17,7 @@
 #include <Utility/Hash.hpp>
 #include <Utility/Placeholder.hpp>
 #include <Utility/StringBuilder.hpp>
+#include <Codec/Json.hpp>
 
 
 

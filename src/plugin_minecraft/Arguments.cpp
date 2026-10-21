@@ -73,7 +73,7 @@ nbl::Result nbl::mc::OsVersion::parse(StringView version, OsVersion* out) {
     }
 
     JsonNumber numberJson{};
-    res = nbl::parseJsonNumber(StringReader(version.slice(0, dotIndex)), &numberJson);
+    res = nbl::parseJsonNumber(version.slice(0, dotIndex), &numberJson);
     if(res.error()) {
         *out = { .major = 0, .minor = 0, .patch = 0 };
         return nbl::Result::FORMAT_ERROR;
@@ -90,7 +90,7 @@ nbl::Result nbl::mc::OsVersion::parse(StringView version, OsVersion* out) {
         return nbl::Result::SUCCESS;
     }
 
-    res = nbl::parseJsonNumber(StringReader(lastTwo.slice(0, dotIndex)), &numberJson);
+    res = nbl::parseJsonNumber(lastTwo.slice(0, dotIndex), &numberJson);
     if(res.error()) {
         out->minor = 0;
         out->patch = 0;
@@ -110,7 +110,7 @@ nbl::Result nbl::mc::OsVersion::parse(StringView version, OsVersion* out) {
         }
     }
 
-    res = nbl::parseJsonNumber(StringReader(lastOne.slice(0, dotIndex)), &numberJson);
+    res = nbl::parseJsonNumber(lastOne.slice(0, dotIndex), &numberJson);
     if(res.error()) {
         out->patch = 0;
         return nbl::Result::SUCCESS;

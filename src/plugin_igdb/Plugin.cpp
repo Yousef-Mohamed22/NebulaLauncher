@@ -324,7 +324,7 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 
     nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::JsonElement element{};
-    NBL_CHECK(nbl::parseJson(nbl::StringReader(account.fields), &frame, &element));
+    NBL_CHECK(nbl::parseJson(account.fields, &frame, &element));
 
     nbl::Span<nbl::FieldValue> values{};
     nbl::decodeFieldValues(context, _accountFields, element.object, &values, &frame);
@@ -399,7 +399,7 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
     } else {
 
         nbl::JsonNumber id;
-        NBL_CHECK(nbl::parseJsonNumber(nbl::StringReader(info.param), &id));
+        NBL_CHECK(nbl::parseJsonNumber(info.param, &id));
 
         if(id.type != nbl::JsonNumberType::UNSIGNED) return nbl::Result::FORMAT_ERROR;
 

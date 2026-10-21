@@ -928,3 +928,28 @@ nbl::Result nbl::parseJsonNumber(Reader reader, JsonNumber* outNumber) {
 
     return nbl::Result::UNEXPECTED_TOKEN;
 }
+
+nbl::Result nbl::parseJsonNumber(nbl::StringView str, JsonNumber* outNumber) {
+
+    if(str.length == 0) return Result::UNEXPECTED_END_OF_STREAM;
+
+    _ParseContext ctx = {
+        .reader = {},
+        .storage = nullptr,
+        .tempStorage = nullptr,
+        .outElement = {},
+        .bufferIndex = 0,
+        .bufferLength = str.length,
+        .bufferCapacity = str.length,
+        .buffer = const_cast<char*>(str.data)
+    };
+
+    if(ctx.lastRead() >= '0' && ctx.lastRead() <= '9' || ctx.lastRead() == '-') {
+        NBL_CHECK(_parseNumber(&ctx));
+
+        if(outNumber) *outNumber = ctx.outElement.number;
+        return nbl::Result::SUCCESS;
+    }
+
+    return nbl::Result::UNEXPECTED_TOKEN;
+}
