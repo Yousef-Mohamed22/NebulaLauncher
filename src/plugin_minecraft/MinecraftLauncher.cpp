@@ -1,4 +1,5 @@
 #include "MinecraftLauncher.hpp"
+#include "Codec/Json.hpp"
 #include "DownloadManager.hpp"
 #include "VersionManager.hpp"
 #include "LoggingManager.hpp"
@@ -19,26 +20,16 @@
 #include <Utility/StringBuilder.hpp>
 
 
+
+
 nbl::Result nbl::mc::MinecraftLauncher::launch(nbl::PluginContext* ctx, StringView version, const OnlineAccount& account, ModLoader modLoader, StringView workingDir, i64 installationId, ProcessTracker* tracker) {
 
     if(!_mVersionManifest.hasValue()) {
-        u32 failures = 0;
-        _mHttpClient.awaitAll(&failures);
-        if(failures > 0) {
-            nbl::log(nbl::LogLevel::WARN, "An error occurred while downloading the version manifest. Attempting to use cached copy. There were ", failures, " failures");
+        _mHttpClient.awaitAll(nullptr);
+        if(!_mVersionManifest.hasValue()) {
+            NBL_ERROR("The version manifest was not found!")
+            return nbl::Result::IO_ERROR;
         }
-
-        nbl::FileChannel channel;
-        AllocationFrame frame(Arena::threadLocal());
-        StringView manifestPath;
-        NBL_CHECK(StringBuilder(&frame).append(_mRootFolder).append("/version_manifest_v2.json").buildNullTerminated(&manifestPath));
-        NBL_CHECK(FileChannel::open(manifestPath, &channel, FileOpenFlag::READ));
-
-        JsonElement element{};
-        NBL_CHECK(nbl::parseJson(channel.reader(), &_mDataArena, &element));
-        if(element.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
-
-        _mVersionManifest = element.object;
     }
 
 
@@ -125,7 +116,7 @@ nbl::Result nbl::mc::MinecraftLauncher::launch(nbl::PluginContext* ctx, StringVi
     StringView accessToken{};
     {
         JsonElement fieldsElement{};
-        NBL_CHECK(nbl::parseJson(StringReader(account.fields), &frame, &fieldsElement));
+        NBL_CHECK(nbl::parseJson(account.fields, &frame, &fieldsElement));
 
         Span<FieldValue> outValues{};
         nbl::decodeFieldValues(ctx, MC_AUTH_FIELDS, fieldsElement.asObject(), &outValues, &frame);
@@ -204,18 +195,75 @@ nbl::Result nbl::mc::MinecraftLauncher::init(StringView rootFolder, MinecraftLau
 
     AllocationFrame frame(Arena::threadLocal());
     StringView manifestPath;
-    NBL_CHECK(StringBuilder(&frame).append(rootFolder).append("/version_manifest_v2.json").buildNullTerminated(&manifestPath));
+    NBL_CHECK(StringBuilder(&frame)
+            .append(rootFolder)
+            .append("/version_manifest_v2.json")
+            .buildNullTerminated(&manifestPath));
+
+    HttpRequestOptions options = {
+        .doneCallback = _manifestDownloadComplete,
+        .userData = launcher
+    };
 
     if(!nbl::fileExists(manifestPath)) {
-        NBL_CHECK(launcher->_mHttpClient.downloadFile("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json", manifestPath));
+        NBL_CHECK(launcher->_mHttpClient.downloadFile("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json", manifestPath, options));
     } else {
         u64 modifyTime = nbl::modifyTime(manifestPath);
         if(nbl::getCurrentTime() - modifyTime > 1000 * 60 * 60) {
-            NBL_CHECK(launcher->_mHttpClient.downloadFile("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json", manifestPath, {
-                .ifModifiedSince = modifyTime
-            }));
+            options.ifModifiedSince = modifyTime;
+            NBL_CHECK(launcher->_mHttpClient.downloadFile("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json", manifestPath, options));
         }
     }
 
     return nbl::Result::SUCCESS;
+}
+
+
+void nbl::mc::MinecraftLauncher::suggestVersions(PluginContext* context, StringView current, std::function_ref<void(nbl::StringView)> suggestionConsumer) {
+
+    Array<StringView, 2> hardcodedAliases = {
+        "@latest",
+        "@latest_snapshot"
+    };
+    for(StringView sv : hardcodedAliases) {
+        if(sv.startsWith(current)) {
+            suggestionConsumer(sv);
+        }
+    }
+    if(!current.startsWith("@") && _mVersionManifest.hasValue()) {
+        JsonArray versionsArr = _mVersionManifest->getArray("versions");
+        for(const JsonElement& ele : versionsArr) {
+            StringView id = ele.asObject().getString("id");
+            if(id.empty() || !id.startsWith(current)) continue;
+            suggestionConsumer(id);
+        }
+    }
+}
+
+void nbl::mc::MinecraftLauncher::_manifestDownloadComplete(void* userData, nbl::Result res, i32 responseCode) {
+
+    nbl::mc::MinecraftLauncher* launcher = static_cast<nbl::mc::MinecraftLauncher*>(userData);
+
+    if(res.error()) {
+        NBL_WARN("Manifest download failed. Attempting to use a cached version.");
+    }
+
+    nbl::FileChannel channel;
+    nbl::AllocationFrame frame(Arena::threadLocal());
+    StringView manifestPath;
+
+    if(StringBuilder(&frame).append(launcher->rootFolder()).append("/version_manifest_v2.json").buildNullTerminated(&manifestPath).error()
+    || FileChannel::open(manifestPath, &channel, FileOpenFlag::READ).error()) {
+        NBL_ERROR("No cached version manifest found!");
+        return;
+    }
+
+    JsonElement element{};
+    if(nbl::parseJson(channel.reader(), &launcher->_mDataArena, &element).error()
+    || element.type != JsonType::OBJECT) {
+        NBL_ERROR("An error occurred while attempting to parse the version manifest!");
+        return;
+    }
+
+    launcher->_mVersionManifest = element.object;
 }

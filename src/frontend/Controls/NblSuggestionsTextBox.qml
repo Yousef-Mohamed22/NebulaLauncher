@@ -42,7 +42,7 @@ NblTextBox {
 
     Keys.onReturnPressed: event => {
         if(popup.suggestionsModel.count > 0) {
-            root.text = popup.suggestionsModel.get(popup.selectedIndex).text
+            root.text = popup.suggestionsModel.get(listView.currentIndex).text
             root.textEdited()
             popup.close()
         }
@@ -55,11 +55,11 @@ NblTextBox {
     }
 
     Keys.onDownPressed: event => {
-        popup.selectedIndex = Math.min(popup.selectedIndex + 1, popup.suggestionsModel.count - 1)
+        listView.incrementCurrentIndex()
         event.accepted = true
     }
     Keys.onUpPressed: event => {
-        popup.selectedIndex = Math.max(popup.selectedIndex - 1, 0)
+        listView.decrementCurrentIndex()
         event.accepted = true
     }
 
@@ -68,7 +68,6 @@ NblTextBox {
         id: popup
 
         property ListModel suggestionsModel: ListModel {}
-        property int selectedIndex: 0
 
         y: root.height
 
@@ -84,6 +83,8 @@ NblTextBox {
             color: Theme.colors.layer0
         }
         contentItem: ListView {
+            id: listView
+            clip: true
             model: popup.suggestionsModel
             delegate: Item {
 
@@ -95,7 +96,7 @@ NblTextBox {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: popup.selectedIndex == parent.index ? Theme.colors.layer1 : "transparent"
+                    color: listView.currentIndex == parent.index ? Theme.colors.layer1 : "transparent"
                     radius: 4
                 }
                 Label {
@@ -116,7 +117,7 @@ NblTextBox {
                     hoverEnabled: true
                     onContainsMouseChanged: {
                         if(containsMouse) {
-                            popup.selectedIndex = parent.index
+                            listView.currentIndex = parent.index
                         }
                     }
                     onClicked: {

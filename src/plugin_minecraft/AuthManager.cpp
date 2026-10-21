@@ -156,8 +156,6 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
 
     u64 expiry = (response.asObject().getNumber("expires_in").asUint() * 1000) + nbl::getCurrentTime();
 
-    NBL_INFO("Expires at ", expiry);
-
     nbl::StringView mcAccessToken = response.object.getString("access_token");
     if(mcAccessToken.length == 0) {
         NBL_WARN("Minecraft auth sent zero-length access token");

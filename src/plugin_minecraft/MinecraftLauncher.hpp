@@ -25,9 +25,13 @@ public:
         return _mRootFolder;
     }
 
+    void suggestVersions(PluginContext* context, StringView current, std::function_ref<void(nbl::StringView)> suggestionConsumer);
+
     static Result init(StringView rootFolder, MinecraftLauncher* launcher);
 
 private:
+
+    static void _manifestDownloadComplete(void* userData, nbl::Result res, i32 responseCode);
 
     StringView _mRootFolder;
     HttpClient _mHttpClient;

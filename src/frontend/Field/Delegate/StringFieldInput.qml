@@ -24,7 +24,7 @@ FieldInputDelegate {
     onValueChanged: {
         textBox.text = value.raw
         textBox.clearSuggestions()
-        field.suggest(value, function(suggestion) {
+        field.suggest(textBox.text, function(suggestion) {
             textBox.pushSuggestion(suggestion)
         })
     }

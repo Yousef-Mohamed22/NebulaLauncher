@@ -121,12 +121,12 @@ struct StringView {
 
     constexpr bool startsWith(StringView other) const noexcept {
         if(length < other.length) return false;
-        return memcmp(data, other.data, other.length) == 0;
+        return other.empty() || memcmp(data, other.data, other.length) == 0;
     }
 
     constexpr bool endsWith(StringView other) const noexcept {
         if(length < other.length) return false;
-        return memcmp(other.data, data + length - other.length, other.length) == 0;
+        return other.empty() || memcmp(other.data, data + length - other.length, other.length) == 0;
     }
 
 

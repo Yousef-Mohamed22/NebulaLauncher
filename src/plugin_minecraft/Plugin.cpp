@@ -1,19 +1,20 @@
 #include <Core/Array.hpp>
 #include <Core/String.hpp>
 #include <Utility/StringBuilder.hpp>
+#include <Data/OnlineAccountModel.hpp>
 #include <Plugin/PluginContext.hpp>
 #include <Plugin/PluginInitializer.hpp>
 #include <Plugin/InstallationType.hpp>
+#include <Plugin/AccountProvider.hpp>
+#include <Plugin/Field.hpp>
 
-#include "AuthManager.hpp"
-#include "Data/OnlineAccountModel.hpp"
 #include "MinecraftLauncher.hpp"
-#include "Plugin/AccountProvider.hpp"
-#include "Plugin/Field.hpp"
+#include "AuthManager.hpp"
 
 namespace {
 
 
+nbl::mc::MinecraftLauncher _launcher{};
 
 
 // TODO: Fields custom JVM args, wrapper program, etc.
@@ -21,7 +22,19 @@ nbl::Array _fields = {
     nbl::Field {
         .type = nbl::FieldType::STRING,
         .key = "version",
-        .name = "Version"
+        .name = "Version",
+        .stringData = {
+            .pfnSuggest = [](
+                    nbl::PluginContext* context, 
+                    nbl::StringView current, 
+                    std::function_ref<void(nbl::StringView)> suggestionConsumer, 
+                    void* userData) {
+
+                nbl::mc::MinecraftLauncher* mc = static_cast<nbl::mc::MinecraftLauncher*>(userData);
+                mc->suggestVersions(context, current, suggestionConsumer);
+            },
+            .userData = &_launcher
+        }
     },
     nbl::Field {
         .type = nbl::FieldType::ACCOUNT,
@@ -56,7 +69,6 @@ nbl::Array _fields = {
     }
 };
 
-nbl::mc::MinecraftLauncher _launcher{};
 
 nbl::AccountProvider _provider {
     .id = "minecraft",

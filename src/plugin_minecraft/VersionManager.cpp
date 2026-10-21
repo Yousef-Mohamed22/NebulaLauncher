@@ -87,16 +87,22 @@ nbl::Result nbl::mc::VersionRef::enumerateLibraries(std::function_ref<Result(Jso
 
 nbl::Result nbl::mc::VersionManager::open(JsonObject manifestJson, StringView version, DownloadManager* client, LinearAllocator* allocator, VersionRef* outRef) {
 
-    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
-
-    nbl::StringView path{};
-    nbl::StringBuilder(&frame).append(_mFolderPath).append('/').append(version).append(".json").build(&path);
-
     nbl::FileChannel file{};
-    nbl::Result res = nbl::FileChannel::open(path, &file, FileOpenFlag::READ);
-    if(res == nbl::Result::NOT_FOUND) {
-        res = _download(manifestJson, version, path, client, &file);
-        if(res.error()) return res;
+    if(version.startsWith("@")) {
+        NBL_CHECK(_download(manifestJson, version, {}, client, &file));
+    } else {
+        nbl::AllocationFrame frame(nbl::Arena::threadLocal());
+
+        nbl::StringView path{};
+        nbl::StringBuilder(&frame).append(_mFolderPath).append('/').append(version).append(".json").build(&path);
+
+        nbl::Result res = nbl::FileChannel::open(path, &file, FileOpenFlag::READ);
+        if(res == nbl::Result::NOT_FOUND) {
+            res = _download(manifestJson, version, path, client, &file);
+            if(res.error()) return res;
+        } else if(res.error()) {
+            return res;
+        }
     }
 
     JsonElement ele{};
@@ -111,7 +117,7 @@ nbl::Result nbl::mc::VersionManager::open(JsonObject manifestJson, StringView ve
     }
     outRef->root = ele.object;
 
-    return res;
+    return Result::SUCCESS;
 }
 
 nbl::Result nbl::mc::VersionManager::_download(JsonObject manifestJson, StringView version, StringView path, DownloadManager* client, FileChannel* outFile) {
@@ -120,12 +126,18 @@ nbl::Result nbl::mc::VersionManager::_download(JsonObject manifestJson, StringVi
     nbl::Result res = nbl::Result::SUCCESS;
     
 
-    if(version == "latest" || version == "latest_release" || version == "latest_snapshot") {
+    if(version.startsWith("@")) {
         
+        StringView alias = version.tail(1);
+        if(alias != "latest" && alias != "latest_snapshot") {
+            NBL_ERROR("Invalid version alias: ", version);
+            return nbl::Result::INVALID_ARGUMENT;
+        }
+
         const JsonElement* latestObj = manifestJson.get("latest");
         if(latestObj == nullptr || latestObj->type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-        const JsonElement* release = latestObj->object.get(version == "latest_snapshot" ? "snapshot" : "release");
+        const JsonElement* release = latestObj->object.get(alias == "latest_snapshot" ? "snapshot" : "release");
         if(release == nullptr || release->type != JsonType::STRING) return nbl::Result::FORMAT_ERROR;
 
         version = release->string;
