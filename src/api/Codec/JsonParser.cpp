@@ -125,13 +125,13 @@ nbl::Result _nextToken(_ParseContext* context) {
 nbl::Result _readString(_ParseContext* context, nbl::LinearAllocator* storage, nbl::StringView* out) {
 
     if(context->lastRead() != '"') {
-        NBL_DEBUG("Found invalid character ", context->lastRead(), "while attempting to parse a JSON string");
         return nbl::Result::UNEXPECTED_TOKEN;
     }
     char* begin = static_cast<char*>(storage->end());
 
     while(true) {
-        if(context->lastRead() < 0x20) {
+        if(context->lastRead() < 0x20 && context->lastRead() >= 0) {
+            NBL_DEBUG("Found invalid character ", static_cast<u8>(context->lastRead()), " while attempting to parse a JSON string");
             return nbl::Result::PARSE_ERROR;
         }
 
@@ -220,6 +220,7 @@ nbl::Result _readString(_ParseContext* context, nbl::LinearAllocator* storage, n
                 }
                 default: {
                     // Only the JSON-specified escape sequences are valid; anything else is an error.
+                    NBL_DEBUG("Found invalid escape sequence \\", context->lastRead(), " while attempting to parse a JSON string");
                     return nbl::Result::PARSE_ERROR;
                 }
             }

@@ -251,10 +251,10 @@ nbl::Result _doLogin(nbl::StringView clientId, nbl::StringView clientSecret) {
         return nbl::Result::IO_ERROR;
     }
 
-    nbl::BufferStream stream(start, reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(start));
+    nbl::StringView responseStr(static_cast<char*>(start), reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(start));
     nbl::JsonElement response;
 
-    NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+    NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
     if(response.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
     nbl::StringView token = response.object.getString("access_token");
@@ -421,7 +421,7 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
         nbl::HttpHeader{ .name = "Accept", .value = "application/json" }
     };
 
-    void* start = frame.end();
+    char* start = static_cast<char*>(frame.end());
     NBL_CHECK(_client.makePostRequest("https://api.igdb.com/v4/games", body, frame.writer(), { .headers = headers } ));
 
     u32 failures = 0;
@@ -430,10 +430,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
         return nbl::Result::IO_ERROR;
     }
 
-    nbl::BufferStream stream(start, reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(start));
+    nbl::StringView responseStr(start, reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(start));
     nbl::JsonElement response;
 
-    NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+    NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
     if(response.type != nbl::JsonType::ARRAY) return nbl::Result::FORMAT_ERROR;
 
     for(nbl::JsonElement ele : response.array) {

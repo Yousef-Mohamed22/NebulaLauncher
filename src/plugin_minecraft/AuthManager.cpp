@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 jwall64
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "AuthManager.hpp"
 #include "SkinUtil.hpp"
 
@@ -56,9 +72,9 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
             return nbl::Result::IO_ERROR;
         }
         usize length = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(outputBegin);
-        nbl::BufferStream stream(outputBegin, length);
+        nbl::StringView str(static_cast<char*>(outputBegin), length);
 
-        NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+        NBL_CHECK(nbl::parseJson(str, &frame, &response));
     }
 
     nbl::StringView liveToken = response.asObject().getString("Token");
@@ -106,9 +122,9 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
             return nbl::Result::IO_ERROR;
         }
         usize length = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(outputBegin);
-        nbl::BufferStream stream(outputBegin, length);
+        nbl::StringView responseStr(static_cast<char*>(outputBegin), length);
 
-        NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+        NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
     }
 
     nbl::StringView xstsToken = response.asObject().getString("Token");
@@ -146,12 +162,12 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
         }
 
         usize length = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(outputBegin);
-        nbl::BufferStream stream(outputBegin, length);
+        nbl::StringView responseStr(static_cast<char*>(outputBegin), length);
 
         nbl::StringView res(static_cast<char*>(outputBegin), length);
         NBL_DEBUG("POST request complete: ", res);
 
-        NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+        NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
     }
 
     u64 expiry = (response.asObject().getNumber("expires_in").asUint() * 1000) + nbl::getCurrentTime();
@@ -186,9 +202,9 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
         }
 
         usize length = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(outputBegin);
-        nbl::BufferStream stream(outputBegin, length);
+        nbl::StringView responseStr(static_cast<char*>(outputBegin), length);
 
-        NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+        NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
     }
 
     nbl::StringView uuidHex = response.asObject().getString("id");
@@ -282,10 +298,10 @@ nbl::Result nbl::mc::login(nbl::PluginContext* context, Span<FieldValue> values,
     }
 
     usize length = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(outputBegin);
-    BufferStream stream(outputBegin, length);
+    StringView responseStr(static_cast<char*>(outputBegin), length);
 
     JsonElement element{};
-    NBL_CHECK(nbl::parseJson(stream, &frame, &element));
+    NBL_CHECK(nbl::parseJson(responseStr, &frame, &element));
 
     if(element.type != JsonType::OBJECT) {
         NBL_WARN("Xbox Live sent invalid response");
@@ -357,10 +373,10 @@ nbl::Result nbl::mc::refresh(nbl::PluginContext* context, const OnlineAccount& a
     if(numFailures > 0) return nbl::Result::IO_ERROR;
 
     usize length = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(outputBegin);
-    BufferStream stream(outputBegin, length);
+    StringView responseStr(static_cast<char*>(outputBegin), length);
 
     JsonElement response{};
-    NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+    NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
     if(response.type != JsonType::OBJECT) {
         NBL_WARN("Xbox Live sent invalid response");

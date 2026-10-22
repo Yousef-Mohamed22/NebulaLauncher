@@ -162,10 +162,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
             if(numFailures > 0) return nbl::Result::IO_ERROR;
 
             usize responseBytes = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(responseStart);
-            nbl::BufferStream stream(responseStart, responseBytes);
+            nbl::StringView responseStr(static_cast<char*>(responseStart), responseBytes);
 
             nbl::JsonElement response{};
-            NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+            NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
             if(response.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
             if(!response.object.getBoolean("success")) return nbl::Result::SUCCESS;
@@ -194,10 +194,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
 
 
             usize responseBytes = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(responseStart);
-            nbl::BufferStream stream(responseStart, responseBytes);
+            nbl::StringView responseStr(static_cast<char*>(responseStart), responseBytes);
 
             nbl::JsonElement response{};
-            NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+            NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
             if(response.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
             if(!response.object.getBoolean("success")) return nbl::Result::SUCCESS;
@@ -232,10 +232,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         if(numFailures > 0) return nbl::Result::IO_ERROR;
 
         usize responseBytes = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(responseStart);
-        nbl::BufferStream stream(responseStart, responseBytes);
+        nbl::StringView responseStr(static_cast<char*>(responseStart), responseBytes);
 
         nbl::JsonElement response{};
-        NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+        NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
         if(response.type == nbl::JsonType::OBJECT && response.object.getBoolean("success")) {
             for(nbl::JsonElement e : response.object.getArray("data")) {
@@ -272,10 +272,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         if(numFailures > 0) return nbl::Result::IO_ERROR;
 
         usize responseBytes = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(responseStart);
-        nbl::BufferStream stream(responseStart, responseBytes);
+        nbl::StringView responseStr(static_cast<char*>(responseStart), responseBytes);
 
         nbl::JsonElement response{};
-        NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+        NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
         if(response.type == nbl::JsonType::OBJECT && response.object.getBoolean("success")) {
             for(nbl::JsonElement e : response.object.getArray("data")) {
@@ -309,10 +309,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         if(numFailures > 0) return nbl::Result::IO_ERROR;
 
         usize responseBytes = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(responseStart);
-        nbl::BufferStream stream(responseStart, responseBytes);
+        nbl::StringView responseStr(static_cast<char*>(responseStart), responseBytes);
 
         nbl::JsonElement response{};
-        NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+        NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
         if(response.type == nbl::JsonType::OBJECT && response.object.getBoolean("success")) {
             for(nbl::JsonElement e : response.object.getArray("data")) {
@@ -348,10 +348,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         if(numFailures > 0) return nbl::Result::IO_ERROR;
 
         usize responseBytes = reinterpret_cast<usize>(frame.end()) - reinterpret_cast<usize>(responseStart);
-        nbl::BufferStream stream(responseStart, responseBytes);
+        nbl::StringView responseStr(static_cast<char*>(responseStart), responseBytes);
 
         nbl::JsonElement response{};
-        NBL_CHECK(nbl::parseJson(stream, &frame, &response));
+        NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
         if(response.type == nbl::JsonType::OBJECT && response.object.getBoolean("success")) {
             for(nbl::JsonElement e : response.object.getArray("data")) {

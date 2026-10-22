@@ -95,6 +95,9 @@ struct Span {
     constexpr operator ConstSpan<T>() const {
         return { .data = data, .length = length };
     }
+    constexpr ConstSpan<T> constSpan() const {
+        return { .data = data, .length = length };
+    }
 
     constexpr bool contains(const T& value) const {
         for(const T& v : *this) {

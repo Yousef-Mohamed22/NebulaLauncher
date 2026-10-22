@@ -111,7 +111,7 @@ nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView client
     NBL_CHECK(nbl::encodeBase64(challengeBytes.span().slice(0, nbl::b64DecodedLength(challengeB64.length)), challengeB64, nbl::Base64CharacterSet::URL_SAFE));
 
     nbl::Array<u8, 32> hash{};
-    NBL_CHECK(nbl::sha256(nbl::BufferStream(challengeB64), hash));
+    NBL_CHECK(nbl::sha256(ConstSpan<u8>(reinterpret_cast<u8*>(challengeB64.data), challengeB64.length), hash));
 
     nbl::Array<char, 43> hashB64{};
     NBL_CHECK(nbl::encodeBase64(hash, hashB64, nbl::Base64CharacterSet::URL_SAFE));
