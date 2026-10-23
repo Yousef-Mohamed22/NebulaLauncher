@@ -135,13 +135,17 @@ nbl::Result nbl::MediaManager::saveImage(i64 refId, u32 width, u32 height, Const
 
 nbl::Result nbl::MediaManager::loadImage(i64 refId, ImageLoadCallback callback, ImageAllocationCallback alloc) {
 
-    PreparedStatement stmt{}; // Frequently called from parallel threads. 
-    NBL_CHECK(_mConnection.prepare("SELECT image.width, image.height, image.data, image_ref.url, image_ref.urlDevice, image_ref.imageClass FROM image_ref LEFT JOIN image ON image_ref.imageId = image.id WHERE image_ref.id = ?1;", &stmt));
+    auto lock = _mMutex.frameLock();
 
-    NBL_CHECK(stmt.bind(1, refId));
+    static PreparedStatement _stmt{};
+    if(!_stmt.isValid(&_mConnection)) {
+        NBL_CHECK(_mConnection.prepare("SELECT image.width, image.height, image.data, image_ref.url, image_ref.urlDevice, image_ref.imageClass FROM image_ref LEFT JOIN image ON image_ref.imageId = image.id WHERE image_ref.id = ?1;", &_stmt));
+    }
+
+    NBL_CHECK(_stmt.bind(1, refId));
 
     bool found = false;
-    NBL_CHECK(_mConnection.execute(&stmt, [&](i32 columns, nbl::DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
+    NBL_CHECK(_mConnection.execute(&_stmt, [&](i32 columns, nbl::DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
         if(found) {
             NBL_WARN("Two rows were returned for a single image ref!");
             return nbl::Result::SUCCESS;

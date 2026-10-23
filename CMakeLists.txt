@@ -218,7 +218,6 @@ if(${NBL_BUILD_STEAM_PLUGIN})
     CPMAddPackage(
         NAME Steamworks
         URL "https://partner.steamgames.com/downloads/steamworks_sdk_165.zip"
-        URL_HASH SHA256=8c42792e09100988e31e3dc069de2eb1bc60702a0445bb37298ba0c54067c202
         DOWNLOAD_ONLY TRUE
     )
     add_library(Steamworks INTERFACE)
