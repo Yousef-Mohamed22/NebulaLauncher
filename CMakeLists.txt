@@ -217,7 +217,9 @@ if(${NBL_BUILD_STEAM_PLUGIN})
 
     CPMAddPackage(
         NAME Steamworks
-        URL "https://partner.steamgames.com/downloads/steamworks_sdk_165.zip"
+        GIT_REPOSITORY "https://github.com/rlabrecque/SteamworksSDK"
+        GIT_TAG df2baabf574a738ef1ea90a7e89339107fc0a279
+        #URL "https://partner.steamgames.com/downloads/steamworks_sdk_165.zip"
         DOWNLOAD_ONLY TRUE
     )
     add_library(Steamworks INTERFACE)

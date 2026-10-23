@@ -27,6 +27,7 @@
 
 #include <Data/Database.hpp>
 #include <Platform/Mutex.hpp>
+#include <Core/Array.hpp>
 
 namespace nbl {
 
@@ -113,10 +114,21 @@ public:
 
 private:
 
+    static constexpr usize _LOAD_POOL_SIZE = 8;
+
     DatabaseConnection _mConnection;
     Mutex _mMutex;
     i64 _mDeviceId;
     std::atomic<u32> _mCurrentlySaving;
+
+    Array<DatabaseConnection, _LOAD_POOL_SIZE> _mLoadConnections{};
+    Mutex _mLoadMutex;
+    Condition _mLoadCondition;
+    Array<bool, _LOAD_POOL_SIZE> _mLoadInUse{};
+    Array<PreparedStatement, _LOAD_POOL_SIZE> _mLoadStatements{};
+
+    Result _acquireLoadConnection(usize* outIndex);
+    void _releaseLoadConnection(usize index);
 };
 
 

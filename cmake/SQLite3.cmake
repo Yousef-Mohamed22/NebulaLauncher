@@ -22,7 +22,7 @@ CPMAddPackage(
 if(SQLite3_ADDED)
     add_library(sqlite3_lib STATIC ${SQLite3_SOURCE_DIR}/sqlite3.c)
     target_include_directories(sqlite3_lib INTERFACE ${SQLite3_SOURCE_DIR})
-    target_compile_definitions(sqlite3_lib PRIVATE SQLITE_THREADSAFE=1 SQLITE_ENABLE_COLUMN_METADATA)
+    target_compile_definitions(sqlite3_lib PRIVATE SQLITE_THREADSAFE=2 SQLITE_ENABLE_COLUMN_METADATA)
     set_target_properties(sqlite3_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
     add_library(SQLite3::SQLite3 ALIAS sqlite3_lib)

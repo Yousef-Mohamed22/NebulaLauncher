@@ -135,17 +135,24 @@ nbl::Result nbl::MediaManager::saveImage(i64 refId, u32 width, u32 height, Const
 
 nbl::Result nbl::MediaManager::loadImage(i64 refId, ImageLoadCallback callback, ImageAllocationCallback alloc) {
 
-    auto lock = _mMutex.frameLock();
+    usize connIndex = 0;
+    NBL_CHECK(_acquireLoadConnection(&connIndex));
 
-    static PreparedStatement _stmt{};
-    if(!_stmt.isValid(&_mConnection)) {
-        NBL_CHECK(_mConnection.prepare("SELECT image.width, image.height, image.data, image_ref.url, image_ref.urlDevice, image_ref.imageClass FROM image_ref LEFT JOIN image ON image_ref.imageId = image.id WHERE image_ref.id = ?1;", &_stmt));
+    DatabaseConnection* conn = &_mLoadConnections[connIndex];
+    PreparedStatement* stmt = &_mLoadStatements[connIndex];
+
+    nbl::Result res = nbl::Result::SUCCESS;
+
+    if(!stmt->isValid(conn)) {
+        NBL_CHECK(conn->prepare("SELECT image.width, image.height, image.data, image_ref.url, image_ref.urlDevice, image_ref.imageClass FROM image_ref LEFT JOIN image ON image_ref.imageId = image.id WHERE image_ref.id = ?1;", stmt));
+    }
+    if(res.success()) {
+        res = stmt->bind(1, refId);
     }
 
-    NBL_CHECK(_stmt.bind(1, refId));
-
     bool found = false;
-    NBL_CHECK(_mConnection.execute(&_stmt, [&](i32 columns, nbl::DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
+    if(res.success()) {
+        res = conn->execute(stmt, [&](i32 columns, nbl::DataValue* values, const char** names, i64 lastInsertRowId) -> nbl::Result {
         if(found) {
             NBL_WARN("Two rows were returned for a single image ref!");
             return nbl::Result::SUCCESS;
@@ -195,10 +202,41 @@ nbl::Result nbl::MediaManager::loadImage(i64 refId, ImageLoadCallback callback, 
                 }
             });
         }
-    }));
+        });
+    }
 
-    if(!found) return Result::NOT_FOUND;
+    _releaseLoadConnection(connIndex);
+
+    if(res.error()) return res;
+    if(!found) return nbl::Result::NOT_FOUND;
     return nbl::Result::SUCCESS;
+}
+
+nbl::Result nbl::MediaManager::_acquireLoadConnection(usize* outIndex) {
+    _mLoadMutex.lock();
+    while(true) {
+        usize freeIndex = _LOAD_POOL_SIZE;
+        for(usize i = 0; i < _LOAD_POOL_SIZE; i++) {
+            if(!_mLoadInUse[i]) {
+                freeIndex = i;
+                break;
+            }
+        }
+        if(freeIndex != _LOAD_POOL_SIZE) {
+            _mLoadInUse[freeIndex] = true;
+            *outIndex = freeIndex;
+            _mLoadMutex.unlock();
+            return nbl::Result::SUCCESS;
+        }
+        _mLoadCondition.wait(_mLoadMutex);
+    }
+}
+
+void nbl::MediaManager::_releaseLoadConnection(usize index) {
+    _mLoadMutex.lock();
+    _mLoadInUse[index] = false;
+    _mLoadCondition.signal();
+    _mLoadMutex.unlock();
 }
 
 
@@ -219,6 +257,13 @@ nbl::Result nbl::MediaManager::create(StringView dbPath, i64 deviceId, MediaMana
     NBL_CHECK(DatabaseConnection::open(dbPath, connection));
 
     outManager->_mDeviceId = deviceId;
+
+    for(usize i = 0; i < MediaManager::_LOAD_POOL_SIZE; i++) {
+        NBL_CHECK(DatabaseConnection::open(dbPath, &outManager->_mLoadConnections[i]));
+    }
+
+    NBL_CHECK(nbl::Mutex::create(&outManager->_mLoadMutex));
+    NBL_CHECK(nbl::Condition::create(&outManager->_mLoadCondition));
 
     i32 userVersion = 0;
 
