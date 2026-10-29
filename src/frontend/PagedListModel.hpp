@@ -49,8 +49,12 @@ public:
     bool isLoading() const { return _bIsLoading; }
     bool allLoaded() const { return _bAllLoaded; }
 
-    void setPageSize(int size) { 
-        _mPageSize = nbl::max(1, size);
+    void setPageSize(int size) {
+        const quint64 newSize = static_cast<quint64>(nbl::max(1, size));
+        if(_mPageSize == newSize) return;
+
+        _mPageSize = newSize;
+        emit pageSizeChanged();
     }
 
     int count() {

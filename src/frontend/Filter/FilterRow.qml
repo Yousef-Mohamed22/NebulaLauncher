@@ -33,6 +33,7 @@ Item {
     required property bool iconIsImage
 
     property bool showRowTitle: true
+    property real viewportHeight: 0
 
     implicitHeight: content.height
 
@@ -80,9 +81,10 @@ Item {
             useIcons: root.useIcons
             showTitles: root.showTitles
             showFilterInfo: root.showFilterInfo
+            viewportHeight: root.viewportHeight > 0 ? root.viewportHeight : root.Window.height
 
             model: FilterModel {
-                pageSize: 30
+                pageSize: list.pageSize
                 filterId: root.filterId
                 searchInstallations: root.showInstallations
             }

@@ -48,6 +48,8 @@ Item {
 
             id: flickable
 
+            onContentYChanged: list.scrolled()
+
             Column {
 
                 id: content
@@ -79,20 +81,21 @@ Item {
 
                     id: list
                     width: parent.width
+                    viewportHeight: scrollView.height
+
+                    multiLine: true
+                    useIcons: root.useIcons
+                    showTitles: root.showTitles
+                    showFilterInfo: false
 
                     model: GameSearchModel {
-                        pageSize: 30
+                        pageSize: list.pageSize
                         searchQuery: root.query
                     }
                     onLoadMore: {
                         model.loadNextPage()
                         allLoaded = model.allLoaded
                     }
-
-                    multiLine: true
-                    useIcons: root.useIcons
-                    showTitles: root.showTitles
-                    showFilterInfo: false
 
                     onItemClicked: id => {
                         root.gameClicked(id)

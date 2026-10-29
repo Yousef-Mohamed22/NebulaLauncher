@@ -56,6 +56,7 @@ Item {
                     id: row
                     required property var modelData
                     width: content.width - 8
+                    viewportHeight: scrollView.height
 
                     filterId: modelData.id
                     name: modelData.name

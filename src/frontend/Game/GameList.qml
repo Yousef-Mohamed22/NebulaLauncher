@@ -28,16 +28,45 @@ Item {
     property bool allLoaded: false
 
     property real requestedWidth: 180
+    property real viewportHeight: 0
 
     readonly property real aspectRatio: useIcons ? 1 : (2/3)
     readonly property real itemWidth: calculateWidth(width - 16, requestedWidth)
-    //readonly property real rowHeight: (itemWidth / aspectRatio) + (showTitles ? 24 : 0) + (showFilterInfo ? 24 : 0)
+    readonly property int columns: calculateColumns(width - 16, requestedWidth)
+    readonly property real rowHeight: (itemWidth / aspectRatio) + (showTitles ? 24 : 0) + (showFilterInfo ? 24 : 0)
+    readonly property real effectiveViewportHeight: viewportHeight > 0 ? viewportHeight : (root.Window ? root.Window.height : 0)
+
+    readonly property int pageSize: {
+
+        let pageWidth = width > 16 ? width : (root.Window ? root.Window.width : 0)
+        if(pageWidth <= 16) return multiLine ? 12 : 6
+
+        let columnsForPage = calculateColumns(pageWidth - 16, requestedWidth)
+
+        if(!multiLine) {
+            return columnsForPage + 1
+        }
+
+        let itemWidthForPage = calculateWidth(pageWidth - 16, requestedWidth)
+        let rowHeightForPage = (itemWidthForPage / aspectRatio) + (showTitles ? 24 : 0) + (showFilterInfo ? 24 : 0)
+
+        if(effectiveViewportHeight <= 0 || rowHeightForPage <= 0) {
+            return columnsForPage * 3
+        }
+
+        let rows = Math.max(1, Math.floor(effectiveViewportHeight / rowHeightForPage) + 1)
+        return Math.max(1, columnsForPage * rows)
+    }
+
+    function calculateColumns(rootWidth, itemWidth) {
+        return Math.max(1, Math.round(rootWidth / (itemWidth + 16)))
+    }
 
     function calculateWidth(rootWidth, itemWidth) {
 
-        let idealWidth = itemWidth + 16 // Account for spacing
-        let numItems = rootWidth / idealWidth
-        let wholeNumItems = Math.round(numItems)
+        let idealWidth = itemWidth + 16
+        let numItems = Math.max(1, rootWidth / idealWidth)
+        let wholeNumItems = Math.max(1, Math.round(numItems))
 
         let remainingSpace = numItems - wholeNumItems
         let spacePerItem = remainingSpace / wholeNumItems
@@ -84,22 +113,47 @@ Item {
             active: true
 
             onLoaded: {
-                item.scrolled()
+                Qt.callLater(() => {
+                    if(item != null) item.scrolled()
+                })
             }
         }
 
         Component {
             id: singleLineComponent
             Flickable {
-                function scrolled() {}
+                id: singleLineFlickable
 
                 width: parent.width
                 height: singleLineList.height
 
                 contentHeight: singleLineList.height
                 contentWidth: singleLineList.width
-                
+
                 clip: true
+
+                function scrolled() {
+                    if(root.allLoaded) return
+                    if(width <= 0) return
+
+                    if(singleLineRepeater.count == 0) {
+                        root.loadMore()
+                        return
+                    }
+
+                    if(singleLineList.width <= 0) return
+
+                    const hasOverflow = contentWidth > width
+                    const atEnd = contentX + width >= contentWidth
+                    if(!hasOverflow || atEnd) {
+                        root.loadMore()
+                    }
+                }
+
+                onContentWidthChanged: Qt.callLater(() => scrolled())
+                onWidthChanged: Qt.callLater(() => scrolled())
+                onAtXEndChanged: scrolled()
+
                 Row {
                     id: singleLineList
 
@@ -107,14 +161,9 @@ Item {
                     padding: 8
 
                     Repeater {
+                        id: singleLineRepeater
                         model: root.model
                         delegate: content.buttonDelegate
-                    }
-                }
-
-                onAtXEndChanged: {
-                    if(atXEnd) { 
-                        root.loadMore()
                     }
                 }
             }
@@ -124,49 +173,57 @@ Item {
 
             Flow {
 
-                function scrolled() {
-                    while(!root.allLoaded && isAtEnd()) {
-                        root.loadMore()
-                    }
-                }
-                function isAtEnd() {
-
-                    if(multiLineRepeater.count == 0) return true
-                    let globalPos = multiLineRepeater.itemAt(multiLineRepeater.count - 1).mapToItem(null, 0, 0);
-
-                    let itemLeft = globalPos.x;
-                    let itemRight = globalPos.x + width;
-                    let itemTop = globalPos.y;
-                    let itemBottom = globalPos.y + height;
-
-                    let insideX = (itemRight > 0) && (itemLeft < root.Window.width);
-                    let insideY = (itemBottom > 0) && (itemTop < root.Window.height);
-
-                    return insideX && insideY;
-                }
-
                 id: multiLineList
 
                 width: parent.width
                 padding: 8
                 spacing: 16
 
+                onHeightChanged: scrolled()
+
+                function scrolled() {
+                    if(root.allLoaded) return
+                    if(multiLineRepeater.count == 0 || isAtEnd()) {
+                        root.loadMore()
+                    }
+                }
+
+                function isAtEnd() {
+
+                    if(multiLineRepeater.count == 0) return true
+
+                    let last = multiLineRepeater.itemAt(multiLineRepeater.count - 1)
+                    if(last.y == 0) return false
+
+                    let globalPos = last.mapToItem(null, 0, 0);
+
+                    let itemLeft = globalPos.x;
+                    let itemRight = globalPos.x + last.width;
+                    let itemTop = globalPos.y;
+                    let itemBottom = globalPos.y + last.height;
+
+                    let insideX = (itemRight > 0) && (itemLeft < root.Window.width);
+                    let insideY = (itemBottom > 0) && (itemTop < root.Window.height - root.rowHeight);
+
+                    return insideX && insideY;
+                }
+
                 Repeater {
                     id: multiLineRepeater
                     model: root.model
                     delegate: content.buttonDelegate
-
-                    onCountChanged: {
-                        parent.scrolled()
-                    }
                 }
             }
         }
     }
 
     function scrolled() {
-        loader.item.scrolled()
+        if(loader.item != null) {
+            loader.item.scrolled()
+        }
     }
+
+    Component.onCompleted: scrolled()
 
     function getImageSource(modelData) {
 
