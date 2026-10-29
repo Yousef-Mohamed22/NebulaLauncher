@@ -115,8 +115,8 @@ void ApplicationContext::_initialize() {
                     map["type"] = "info";
             }
 
-            map["title"] = QString::fromUtf8(title.data, title.length);
-            map["message"] = QString::fromUtf8(message.data, message.length);
+            map["title"] = QString::fromUtf8(title.data(), title.length());
+            map["message"] = QString::fromUtf8(message.data(), message.length());
             if(icon.hasValue()) map["icon"] = nbl::frontend::fromNbl(*icon);
             if(duration.hasValue()) map["duration"] = *duration;
             
@@ -137,7 +137,7 @@ QString ApplicationContext::dataFolder() const {
             _dataFolder = qEnvironmentVariable("NBL_DATA_FOLDER");
         } else {
             nbl::StringView dataDir = nbl::getDataDirectory();
-            _dataFolder = QString::fromUtf8(dataDir.data, dataDir.length).append("/NebulaLauncher");
+            _dataFolder = QString::fromUtf8(dataDir.data(), dataDir.length()).append("/NebulaLauncher");
         }
     }
     return _dataFolder;
@@ -150,7 +150,7 @@ QString ApplicationContext::pluginFolder() const {
         nbl::StringView applicationPath = nbl::getBinaryPath();
         usize lastSlash = 0;
         NBL_ASSERT(applicationPath.findLast('/', &lastSlash).success());
-        _pluginFolder = QString::fromUtf8(applicationPath.data, lastSlash) + "/plugins";
+        _pluginFolder = QString::fromUtf8(applicationPath.data(), lastSlash) + "/plugins";
     }
     return _pluginFolder;
 }

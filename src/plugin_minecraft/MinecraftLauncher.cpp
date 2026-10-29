@@ -201,10 +201,10 @@ nbl::Result nbl::mc::MinecraftLauncher::init(StringView rootFolder, MinecraftLau
 
 
     char* begin;
-    NBL_CHECK(launcher->_mDataArena.allocate(&begin, rootFolder.length));
-    memcpy(begin, rootFolder.data, rootFolder.length);
+    NBL_CHECK(launcher->_mDataArena.allocate(&begin, rootFolder.length()));
+    memcpy(begin, rootFolder.data(), rootFolder.length());
 
-    launcher->_mRootFolder = StringView(begin, rootFolder.length);
+    launcher->_mRootFolder = StringView(begin, rootFolder.length());
 
     StringView authPath;
     NBL_CHECK(StringBuilder(&launcher->_mDataArena).append(rootFolder).append("/auth.json").buildNullTerminated(&authPath));
@@ -276,10 +276,10 @@ void nbl::mc::MinecraftLauncher::_manifestDownloadComplete(void* userData, nbl::
 
     JsonElement element{};
     if(nbl::parseJson(channel.reader(), &launcher->_mDataArena, &element).error()
-    || element.type != JsonType::OBJECT) {
+    || element.type() != JsonType::OBJECT) {
         NBL_ERROR("An error occurred while attempting to parse the version manifest!");
         return;
     }
 
-    launcher->_mVersionManifest = element.object;
+    launcher->_mVersionManifest = element.asObject();
 }

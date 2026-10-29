@@ -133,8 +133,8 @@ struct UrlDecode {
     StringView string;
 };
 
-Result toString(const UrlEncode& encode, Writer writer);
-Result toString(const UrlDecode& encode, Writer writer);
+Result write(const UrlEncode& encode, Writer writer);
+Result write(const UrlDecode& encode, Writer writer);
 
 class HttpClient {
 public:

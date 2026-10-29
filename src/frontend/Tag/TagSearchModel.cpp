@@ -62,7 +62,7 @@ nbl::Result nbl::frontend::TagSearchModel::_fetchPageData(qsizetype limit, qsize
     if(query.empty()) {
         NBL_CHECK(nbl::Tag::enumerate(db, limit, offset, [&](const nbl::Tag& tag) -> nbl::Result {
 
-            TagMeta ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
+            TagMeta ref(tag.id, QString::fromUtf8(tag.name.data(), tag.name.length()), QColor::fromRgb(tag.color)); 
             found.append(ref);
             return nbl::Result::SUCCESS;
 
@@ -74,7 +74,7 @@ nbl::Result nbl::frontend::TagSearchModel::_fetchPageData(qsizetype limit, qsize
                 exactMatch = true;
             }
 
-            TagMeta ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
+            TagMeta ref(tag.id, QString::fromUtf8(tag.name.data(), tag.name.length()), QColor::fromRgb(tag.color)); 
             found.append(ref);
             return nbl::Result::SUCCESS;
 

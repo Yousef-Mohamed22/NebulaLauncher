@@ -145,10 +145,10 @@ nbl::Result nbl::AchievementHelper::getSetProviderData(StringView id, void* dest
 
     nbl::Result res = nbl::Result::SUCCESS;
     NBL_CHECK(_pContext->databaseConnection()->execute(&_stmt, [&](i32 rows, DataValue* values, const char** names, i64) -> nbl::Result {
-        if(values[0].blobValue.length != destSize) {
+        if(values[0].blobValue.length() != destSize) {
             res = nbl::Result::NO_CHANGE;
         } else {
-            memcpy(dest, values[0].blobValue.data, destSize);
+            memcpy(dest, values[0].blobValue.data(), destSize);
         }
         return nbl::Result::SUCCESS;
     }));

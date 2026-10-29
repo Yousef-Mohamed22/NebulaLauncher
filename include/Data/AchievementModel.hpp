@@ -96,8 +96,8 @@ struct Achievement {
 
     template<typename T>
     void getProviderData(T* output) const {
-        if(providerData.length != sizeof(T)) return;
-        memcpy(output, providerData.data, sizeof(T));
+        if(providerData.length() != sizeof(T)) return;
+        memcpy(output, providerData.data(), sizeof(T));
     }
 
     static Result add(DatabaseConnection* connection, const Achievement& achievement, i64* outId);
@@ -138,8 +138,8 @@ struct AchievementSet {
 
     template<typename T>
     void getProviderData(T* output) const {
-        if(providerData.length != sizeof(T)) return;
-        memcpy(output, providerData.data, sizeof(T));
+        if(providerData.length() != sizeof(T)) return;
+        memcpy(output, providerData.data(), sizeof(T));
     }
 
 	static Result add(DatabaseConnection* connection, const AchievementSet& achievementSet, i64* outId);

@@ -22,7 +22,7 @@ nbl::frontend::FieldList::FieldList(nbl::Span<nbl::Field> fields, QObject* paren
     _mFields(fields)
 { }
 
-quint32 nbl::frontend::FieldList::count() const { return _mFields.length; }
+quint32 nbl::frontend::FieldList::count() const { return _mFields.length(); }
 
 quint32 nbl::frontend::FieldList::visibleCount() const {
     quint32 out = 0;
@@ -35,7 +35,7 @@ quint32 nbl::frontend::FieldList::visibleCount() const {
 
 nbl::frontend::FieldRef* nbl::frontend::FieldList::itemAt(qsizetype index) {
 
-    if(index >= _mFields.length) return nullptr;
+    if(index >= _mFields.length()) return nullptr;
     return new FieldRef(&_mFields[index]);
 
 }

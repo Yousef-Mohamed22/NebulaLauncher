@@ -41,9 +41,9 @@ nbl::Result nbl::mc::generateFabricVersionMeta(VersionRef* outVersion, StringVie
 
     nbl::JsonElement element{};
     NBL_CHECK(nbl::parseJson(file.reader(), allocator, &element));
-    if(element.type != JsonType::ARRAY) return nbl::Result::FORMAT_ERROR;
+    if(element.type() != JsonType::ARRAY) return nbl::Result::FORMAT_ERROR;
 
-    nbl::JsonObject versionObj = element.array.getObject(0);
+    nbl::JsonObject versionObj = element.asArray().getObject(0);
     nbl::JsonObject loaderObj = versionObj.getObject("loader");
 
     StringView fabricVersion = loaderObj.getString("version");

@@ -45,6 +45,16 @@ public:
     inline Result allocate(T** location, usize amount = 1) noexcept {
         return push(amount * sizeof(T), reinterpret_cast<void**>(location));
     }
+    
+    template<typename T>
+    inline Result allocate(Span<T>* span) noexcept {
+        if(span == nullptr || span->length() == 0 || span->data() != nullptr) return Result::INVALID_ARGUMENT;
+
+        T* data;
+        NBL_CHECK(allocate(&data, span->length()));
+        *span = Span<T>(data, span->length());
+        return Result::SUCCESS;
+    }
 
     virtual Result pop(usize amount) noexcept = 0;
     
@@ -60,6 +70,13 @@ public:
 
     virtual usize index() const noexcept = 0;
     
+    inline Span<u8> span() noexcept {
+        return Span<u8>(static_cast<u8*>(begin()), index());
+    }
+    inline ConstSpan<u8> constSpan() const noexcept {
+        return ConstSpan<u8>(static_cast<const u8*>(begin()), index());
+    }
+
     inline Writer writer() noexcept {
         return Writer {
             .impl = this,

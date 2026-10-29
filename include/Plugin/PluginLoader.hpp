@@ -62,11 +62,8 @@ public:
     Result beginLoadAsync();
     Result awaitLoaded();
 
-    Span<LoadedPlugin> loadedPlugins() { 
-        return {
-            .data = static_cast<LoadedPlugin*>(_mMetaArena.begin()),
-            .length = _mMetaArena.index() / sizeof(LoadedPlugin)
-        };
+    ConstSpan<LoadedPlugin> loadedPlugins() const { 
+        return _mMetaArena.constSpan().reinterpret<const LoadedPlugin>();
     }
 
     static Result create(PluginContext* context, StringView pluginFolder, PluginLoader* out);

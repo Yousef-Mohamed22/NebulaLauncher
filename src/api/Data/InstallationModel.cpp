@@ -348,7 +348,7 @@ OFFSET ?10;
 
     AllocationFrame frame(Arena::threadLocal());
 
-    if(criteria.tags.length == 0) {
+    if(criteria.tags.length() == 0) {
         NBL_CHECK(lookupInstallationsStmt.bindNull(1));
     } else {
 
@@ -372,7 +372,7 @@ OFFSET ?10;
         NBL_CHECK(lookupInstallationsStmt.bindString(1, tagsJson));
     }
 
-    if(criteria.excludedTags.length == 0) {
+    if(criteria.excludedTags.length() == 0) {
         NBL_CHECK(lookupInstallationsStmt.bindNull(2));
     } else {
         StringBuilder tagsBuilder(&frame);

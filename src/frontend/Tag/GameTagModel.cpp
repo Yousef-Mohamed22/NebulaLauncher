@@ -56,7 +56,7 @@ nbl::Result nbl::frontend::GameTagModel::_fetchPageData(qsizetype limit, qsizety
     QList<TagMeta> found = {};
     found.reserve(limit);
     NBL_CHECK(nbl::Tag::enumerateGameTags(db, _mGameId, [&](const nbl::Tag& tag) -> nbl::Result {
-        TagMeta ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
+        TagMeta ref(tag.id, QString::fromUtf8(tag.name.data(), tag.name.length()), QColor::fromRgb(tag.color)); 
         found.append(ref);
         return nbl::Result::SUCCESS;
     }))

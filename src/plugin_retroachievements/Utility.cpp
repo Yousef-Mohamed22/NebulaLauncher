@@ -47,7 +47,7 @@ nbl::Result nbl::ra::parseTitle(StringView title, std::function_ref<void(StringV
 
     i32 state = S_TAGS;
     char c;
-    for(usize i = 0 ; i < title.length ; i++) {
+    for(usize i = 0 ; i < title.length() ; i++) {
 
         c = title[i];
 
@@ -89,14 +89,14 @@ nbl::Result nbl::ra::parseTitle(StringView title, std::function_ref<void(StringV
             }
             break;
         case S_SUBSET:
-            if(length == _subsetText.length) {
+            if(length == _subsetText.length()) {
                 state = S_SUBSET_NAME;
                 begin = i;
                 length = 0;
             } 
             else if(c != _subsetText[length++]) {
                 state = S_TITLE;
-                length += gameTitle->length + 2;
+                length += gameTitle->length() + 2;
             }
             break;
         case S_SUBSET_NAME:
@@ -109,7 +109,7 @@ nbl::Result nbl::ra::parseTitle(StringView title, std::function_ref<void(StringV
             *subsetName = title.slice(begin, length);
         } else {
             state = S_TITLE;
-            length += gameTitle->length;
+            length += gameTitle->length();
         } 
     }
 

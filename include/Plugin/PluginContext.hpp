@@ -89,7 +89,7 @@ public:
     inline StringView databasePath() const { return _mDatabasePath; }
     inline StringView pluginDataPath() const { return _mPluginDataPath; }
 
-    inline Span<LoadedPlugin> loadedPlugins() { 
+    inline ConstSpan<LoadedPlugin> loadedPlugins() { 
         return _mLoader.loadedPlugins();
     }
 

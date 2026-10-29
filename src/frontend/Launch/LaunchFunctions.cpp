@@ -35,7 +35,7 @@ void _pushStatus(i64 id, nbl::Optional<nbl::StringView> status, nbl::Optional<f6
     if(hnd == nullptr) return;
 
     if(status.hasValue()) {
-        QString statusStr = QString::fromUtf8(status->data, status->length);
+        QString statusStr = QString::fromUtf8(status->data(), status->length());
         hnd->pushStatus(statusStr);
     }
     if(progress.hasValue()) {
@@ -103,10 +103,10 @@ nbl::frontend::ProcessHandle* ApplicationContext::launchInstallation(qint64 inst
             nbl::AllocationFrame frame(nbl::Arena::threadLocal());
             nbl::Span<nbl::FieldValue> values = {};
 
-            if(installType->fields.length > 0) {
+            if(installType->fields.length() > 0) {
                 nbl::JsonElement value = {};
                 NBL_CHECK(nbl::parseJson(meta.command, &frame, &value));
-                NBL_CHECK(nbl::decodeFieldValues(&ctx->_mContext, installType->fields, value.object, &values, &frame));
+                NBL_CHECK(nbl::decodeFieldValues(&ctx->_mContext, installType->fields, value.asObject(), &values, &frame));
             }
             NBL_CHECK(installType->launch(&ctx->_mContext, values, meta, handle->tracker()));
             NBL_CHECK(handle->initLogging());
@@ -162,17 +162,16 @@ int ApplicationContext::openInstallationFolder(qint64 installationId) {
         }
 
         nbl::AllocationFrame frame(nbl::Arena::threadLocal());
-        nbl::Span<nbl::FieldValue> values = {
-            .data = nullptr,
-            .length = installType->fields.length
-        };
+        nbl::FieldValue* values;
+        NBL_CHECK(frame.allocate(&values, installType->fields.length()));
+        nbl::Span<nbl::FieldValue> valueSpan(values, installType->fields.length());
 
         nbl::JsonElement value = {};
         NBL_CHECK(nbl::parseJson(meta.command, &frame, &value));
-        NBL_CHECK(nbl::decodeFieldValues(&_mContext, installType->fields, value.object, &values, &frame));
+        NBL_CHECK(nbl::decodeFieldValues(&_mContext, installType->fields, value.asObject(), &valueSpan, &frame));
 
         nbl::StringView folder = {};
-        NBL_CHECK(installType->getFolder(&_mContext, values, meta, &folder));
+        NBL_CHECK(installType->getFolder(&_mContext, valueSpan, meta, &folder));
 
         if(folder.empty()) {
             _mContext.pushNotification(nbl::NotificationType::ERROR, "Could not open folder", "The installation did not specify a valid installation path");

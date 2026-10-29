@@ -30,30 +30,30 @@
 
 nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
 
-    switch(element.type) {
+    switch(element.type()) {
         case(nbl::JsonType::NONE): {
             return writer.writeString("null");
         }
         case(nbl::JsonType::NUMBER): {
-            switch(element.number.type) {
+            switch(element.asNumber().type) {
                 case(nbl::JsonNumberType::SIGNED): {
-                    return nbl::writeInt(element.number.intValue, writer);
+                    return nbl::writeInt(element.asNumber().intValue, writer);
                 }
                 case(nbl::JsonNumberType::UNSIGNED): {
-                    return nbl::writeUint(element.number.uintValue, writer);
+                    return nbl::writeUint(element.asNumber().uintValue, writer);
                 }
                 case(nbl::JsonNumberType::FLOAT): {
-                    i32 fpInfo = std::fpclassify(element.number.floatValue);
+                    i32 fpInfo = std::fpclassify(element.asNumber().floatValue);
                     if(fpInfo == FP_INFINITE || fpInfo == FP_NAN) {
                         return writer.writeString("0");
                     }
-                    return nbl::writeFloat(element.number.floatValue, writer);
+                    return nbl::writeFloat(element.asNumber().floatValue, writer);
                 }
             }
             break;
         }
         case(nbl::JsonType::BOOLEAN): {
-            if(element.boolean) {
+            if(element.asBoolean()) {
                 return writer.writeString("true");
             } else {
                 return writer.writeString("false");
@@ -61,7 +61,7 @@ nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
         }
         case(nbl::JsonType::STRING): {
             NBL_CHECK(writer.writeChar('"'));
-            for(char c : element.string) {
+            for(char c : element.asString()) {
                 switch(c) {
                     case '"':
                     case '\\':
@@ -96,7 +96,7 @@ nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
         case(nbl::JsonType::ARRAY): {
             NBL_CHECK(writer.writeChar('['));
             usize index = 0;
-            for(JsonElement& ele : element.array) {
+            for(JsonElement& ele : element.asArray()) {
                 if(index++ > 0) {
                     NBL_CHECK(writer.writeChar(','));
                 }
@@ -108,7 +108,7 @@ nbl::Result nbl::writeJson(Writer writer, JsonElement element) {
         case(nbl::JsonType::OBJECT): {
             NBL_CHECK(writer.writeChar('{'));
             usize index = 0;
-            for(JsonObject::Entry& ent : element.object) {
+            for(JsonObject::Entry& ent : element.asObject()) {
                 if(index++ > 0) {
                     NBL_CHECK(writer.writeChar(','));
                 }

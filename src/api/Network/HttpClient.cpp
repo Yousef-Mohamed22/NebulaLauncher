@@ -98,10 +98,7 @@ nbl::Result nbl::HttpClient::downloadFile(StringView url, StringView file, HttpR
             if(_mPaths.begin() == nullptr) {
                 NBL_CHECK(nbl::Arena::create(_mRequests.capacity() * 4096U, &_mPaths));
             }
-            void* data;
-            _mPaths.push(file.length, &data);
-            memcpy(data, file.data, file.length);
-            file.data = static_cast<char*>(data);
+            NBL_CHECK(StringBuilder(&_mPaths).append(file).buildNullTerminated(&file));
         }
         
         _mOpenFiles++;
@@ -191,7 +188,7 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
 
     AllocationFrame frame(Arena::threadLocal());
 
-    if(!url.nullTerminated) {
+    if(!url.nullTerminated()) {
         NBL_CHECK(StringBuilder::nullTerminate(url, &url, &frame));
     }
 
@@ -213,13 +210,13 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
     if(postData.hasValue()) {
 
         StringView postStr = *postData;
-        if(!postStr.nullTerminated) {
+        if(!postStr.nullTerminated()) {
             NBL_CHECK(nbl::StringBuilder::nullTerminate(postStr, &postStr, &frame));
         }
-        curl_easy_setopt(easyHandle, CURLOPT_POSTFIELDS, postStr.data);
+        curl_easy_setopt(easyHandle, CURLOPT_POSTFIELDS, postStr.data());
     }
 
-    if(options.headers.length > 0) {
+    if(options.headers.length() > 0) {
         curl_slist* list = nullptr;
     
         for(const HttpHeader& header : options.headers) { 
@@ -233,13 +230,13 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
                 .append(header.value)
                 .buildNullTerminated(&headerStr));
 
-            list = curl_slist_append(list, headerStr.data);
+            list = curl_slist_append(list, headerStr.data());
         }
 
         curl_easy_setopt(easyHandle, CURLOPT_HTTPHEADER, list);
         req->headers = list;
     }
-    curl_easy_setopt(easyHandle, CURLOPT_URL, url.data);
+    curl_easy_setopt(easyHandle, CURLOPT_URL, url.data());
 
     req->doneCallback = options.doneCallback;
     req->userData = options.userData;
@@ -429,7 +426,7 @@ nbl::Result nbl::HttpClient::create(u32 maxRequests, u32 maxConnections, u32 max
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::toString(const UrlEncode& encode, Writer writer) {
+nbl::Result nbl::write(const UrlEncode& encode, Writer writer) {
     for(char c : encode.string) {
         if(
         (c >= 'A' && c <= 'Z') ||
@@ -445,12 +442,12 @@ nbl::Result nbl::toString(const UrlEncode& encode, Writer writer) {
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::toString(const UrlDecode& decode, Writer writer) {
-    for(usize i = 0 ; i < decode.string.length ; i++) {
+nbl::Result nbl::write(const UrlDecode& decode, Writer writer) {
+    for(usize i = 0 ; i < decode.string.length() ; i++) {
 
         char c = decode.string[i];
         if(c == '%') {
-            if(i + 2 >= decode.string.length) {
+            if(i + 2 >= decode.string.length()) {
                 NBL_DEBUG("Found '%' too close to the end of the string!");
                 return nbl::Result::FORMAT_ERROR;
             }

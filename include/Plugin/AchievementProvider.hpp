@@ -50,14 +50,14 @@ public:
     Result addOrUpdateAchievementSet(StringView id, StringView name, u64 lastUpdated = nbl::getCurrentTime(), bool hidden = false, ConstSpan<u8> providerData = {});
     template<typename T>
     Result addOrUpdateAchievementSet(StringView id, StringView name, u64 lastUpdated, bool hidden, const T& providerData) {
-        return addOrUpdateAchievementSet(id, name, lastUpdated, hidden, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&providerData), .length = sizeof(T) });
+        return addOrUpdateAchievementSet(id, name, lastUpdated, hidden, ConstSpan<u8>(reinterpret_cast<const u8*>(&providerData), sizeof(T)));
     }
 
     Result addAchievementSet(StringView id, StringView name, u64 lastUpdated = nbl::getCurrentTime(), bool hidden = false, ConstSpan<u8> providerData = {});
 
     template<typename T>
     Result addAchievementSet(StringView id, StringView name, u64 lastUpdated, bool hidden, const T& providerData) {
-        return addAchievementSet(id, name, lastUpdated, hidden, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&providerData), .length = sizeof(T) });
+        return addAchievementSet(id, name, lastUpdated, hidden, ConstSpan<u8>(reinterpret_cast<const u8*>(&providerData), sizeof(T)));
     }
 
     Result getSetProviderData(StringView id, void* dest, usize destSize);
@@ -69,21 +69,21 @@ public:
 
     Result updateSetProviderData(StringView id, ConstSpan<u8> providerData);
     inline Result updateSetProviderData(StringView id, StringView providerData) {
-        return updateSetProviderData(id, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(providerData.data), .length = providerData.length });
+        return updateSetProviderData(id, ConstSpan<u8>(reinterpret_cast<const u8*>(providerData.data()), providerData.length()));
     }
     template<typename T>
     inline Result updateSetProviderData(StringView id, const T& data) {
-        return updateSetProviderData(id, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&data), .length = sizeof(T) });
+        return updateSetProviderData(id, ConstSpan<u8>(reinterpret_cast<const u8*>(&data), sizeof(T)));
     }
 
 
     Result updateSetProviderData(i64 setId, ConstSpan<u8> providerData);
     inline Result updateSetProviderData(i64 setId, StringView providerData) {
-        return updateSetProviderData(setId, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(providerData.data), .length = providerData.length });
+        return updateSetProviderData(setId, ConstSpan<u8>(reinterpret_cast<const u8*>(providerData.data()), providerData.length()));
     }
     template<typename T>
     Result updateSetProviderData(i64 setId, const T& data) {
-        return updateSetProviderData(setId, ConstSpan<u8>{ .data = reinterpret_cast<const u8*>(&data), .length = sizeof(T) });
+        return updateSetProviderData(setId, ConstSpan<u8>(reinterpret_cast<const u8*>(&data), sizeof(T)));
     }
 
 

@@ -83,9 +83,9 @@ union InlineIcon {
         if(value.type == DataType::INTEGER) {
             return { .encoded = value.intValue };
         } else if(value.type == DataType::TEXT) {
-            usize length = min(value.textValue.length, static_cast<usize>(4));
+            usize length = min(value.textValue.length(), static_cast<usize>(4));
             InlineIcon out{};
-            memcpy(out.utf.data, value.textValue.data, length);
+            memcpy(out.utf.data, value.textValue.data(), length);
             out.utf.length = length;
             return out;
         } else {

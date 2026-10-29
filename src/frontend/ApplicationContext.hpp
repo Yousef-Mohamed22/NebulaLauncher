@@ -38,7 +38,7 @@ namespace nbl::frontend {
 
 
 inline QByteArray fromNbl(nbl::StringView sv) {
-    return QByteArray(sv.data, sv.length);
+    return QByteArray(sv.data(), sv.length());
 }
 
 inline QUrl mediaUrl(i64 refId) {

@@ -31,27 +31,38 @@ namespace {
 
 nbl::Result _deepCopy(nbl::JsonElement element, nbl::JsonElement* other, nbl::LinearAllocator* allocator) {
 
-    other->type = element.type;
-    if(element.type == nbl::JsonType::STRING) {
-        NBL_CHECK(nbl::StringBuilder(allocator).append(element.string).buildNullTerminated(&other->string));
-    } else if(element.type == nbl::JsonType::ARRAY) {
-        NBL_CHECK(allocator->allocate(&other->array.elements, element.array.count));
-        for(usize i = 0 ; i < element.array.count ; i++) {
-            NBL_CHECK(_deepCopy(element.array.elements[i], &other->array.elements[i], allocator));
+    //other->type = element.type();
+    if(element.type() == nbl::JsonType::STRING) {
+        nbl::StringView sv;
+        NBL_CHECK(nbl::StringBuilder(allocator).append(element.asString()).buildNullTerminated(&sv));
+        *other = sv;
+
+    } else if(element.type() == nbl::JsonType::ARRAY) {
+        nbl::JsonArray arr(nullptr, element.asArray().count);
+        NBL_CHECK(allocator->allocate(&arr.elements, element.asArray().count));
+        for(usize i = 0 ; i < element.asArray().count ; i++) {
+            NBL_CHECK(_deepCopy(element.asArray()[i], &arr.elements[i], allocator));
         }
-    } else if(element.type == nbl::JsonType::OBJECT) {
-        NBL_CHECK(allocator->allocate(&other->object.buckets, element.object.bucketCount));
-        NBL_CHECK(allocator->allocate(&other->object.entries, element.object.entryCount));
+        *other = arr;
 
-        memcpy(other->object.buckets, element.object.buckets, element.object.bucketCount * sizeof(nbl::JsonObject::Bucket)); 
+    } else if(element.type() == nbl::JsonType::OBJECT) {
 
-        other->object.entryCount = element.object.entryCount;
-        other->object.bucketCount = element.object.bucketCount;
+        nbl::JsonObject obj;
 
-        for(usize i = 0 ; i < element.object.entryCount ; i++) {
-            NBL_CHECK(nbl::StringBuilder(allocator).append(element.object.entries[i].key).buildNullTerminated(&other->object.entries[i].key));
-            NBL_CHECK(_deepCopy(element.object.entries[i].value, &other->object.entries[i].value, allocator));
+        NBL_CHECK(allocator->allocate(&obj.buckets, element.asObject().bucketCount));
+        NBL_CHECK(allocator->allocate(&obj.entries, element.asObject().entryCount));
+
+        memcpy(other->asObject().buckets, element.asObject().buckets, element.asObject().bucketCount * sizeof(nbl::JsonObject::Bucket)); 
+
+        obj.entryCount = element.asObject().entryCount;
+        obj.bucketCount = element.asObject().bucketCount;
+
+        for(usize i = 0 ; i < element.asObject().entryCount ; i++) {
+            NBL_CHECK(nbl::StringBuilder(allocator).append(element.asObject().entries[i].key).buildNullTerminated(&obj.entries[i].key));
+            NBL_CHECK(_deepCopy(element.asObject().entries[i].value, &obj.entries[i].value, allocator));
         }
+
+        *other = obj;
 
     } else {
         *other = element;
@@ -88,69 +99,69 @@ const nbl::JsonElement* nbl::JsonArray::get(usize index) const {
 
 nbl::JsonObject nbl::JsonArray::getObject(usize index) const {
     const JsonElement* element = get(index);
-    if(element == nullptr || element->type != JsonType::OBJECT) return {};
-    return element->object;
+    if(element == nullptr || element->type() != JsonType::OBJECT) return {};
+    return element->asObject();
 }
 
 nbl::JsonObject nbl::JsonArray::getObject(usize index, JsonObject defaultValue) const {
     const JsonElement* element = get(index);
-    if(element == nullptr || element->type != JsonType::OBJECT) return defaultValue;
-    return element->object;
+    if(element == nullptr || element->type() != JsonType::OBJECT) return defaultValue;
+    return element->asObject();
 }
 
 nbl::JsonArray nbl::JsonArray::getArray(usize index, JsonArray defaultValue) const {
     const JsonElement* element = get(index);
-    if(element == nullptr || element->type != JsonType::ARRAY) return defaultValue;
-    return element->array;
+    if(element == nullptr || element->type() != JsonType::ARRAY) return defaultValue;
+    return element->asArray();
 }
 
 nbl::StringView nbl::JsonArray::getString(usize index, StringView defaultValue) const {
     const JsonElement* element = get(index);
-    if(element == nullptr || element->type != JsonType::STRING) return defaultValue;
-    return element->string;
+    if(element == nullptr || element->type() != JsonType::STRING) return defaultValue;
+    return element->asString();
 }
 
 nbl::JsonNumber nbl::JsonArray::getNumber(usize index, JsonNumber defaultValue) const { 
     const JsonElement* element = get(index);
-    if(element == nullptr || element->type != JsonType::NUMBER) return defaultValue;
-    return element->number;
+    if(element == nullptr || element->type() != JsonType::NUMBER) return defaultValue;
+    return element->asNumber();
 }
 
 bool nbl::JsonArray::getBoolean(usize index, bool defaultValue) const {
     const JsonElement* element = get(index);
-    if(element == nullptr || element->type != JsonType::BOOLEAN) return defaultValue;
-    return element->boolean;
+    if(element == nullptr || element->type() != JsonType::BOOLEAN) return defaultValue;
+    return element->asBoolean();
 }
 
 
 nbl::JsonObject nbl::JsonObject::getObject(StringView key, JsonObject defaultValue) const {
     const JsonElement* element = get(key);
-    if(element == nullptr || element->type != JsonType::OBJECT) return defaultValue;
-    return element->object;
+    if(element == nullptr || element->type() != JsonType::OBJECT) return defaultValue;
+    return element->asObject();
 }
 
 nbl::JsonArray nbl::JsonObject::getArray(StringView key, JsonArray defaultValue) const {
     const JsonElement* element = get(key);
-    if(element == nullptr || element->type != JsonType::ARRAY) return defaultValue;
-    return element->array;
+    if(element == nullptr || element->type() != JsonType::ARRAY) return defaultValue;
+    return element->asArray();
 }
 
 nbl::StringView nbl::JsonObject::getString(StringView key, StringView defaultValue) const {
     const JsonElement* element = get(key);
-    if(element == nullptr || element->type != JsonType::STRING) return defaultValue;
-    return element->string;
+    if(element == nullptr || element->type() != JsonType::STRING) return defaultValue;
+    return element->asString();
 }
 
 nbl::JsonNumber nbl::JsonObject::getNumber(StringView key, JsonNumber defaultValue) const { 
     const JsonElement* element = get(key);
-    if(element == nullptr || element->type != JsonType::NUMBER) return defaultValue;
-    return element->number;
+    if(element == nullptr || element->type() != JsonType::NUMBER) return defaultValue;
+    return element->asNumber();
 }
 
 bool nbl::JsonObject::getBoolean(StringView key, bool defaultValue) const {
     const JsonElement* element = get(key);
-    if(element == nullptr || element->type != JsonType::BOOLEAN) return defaultValue;
-    return element->boolean;
+    if(element == nullptr || element->type() != JsonType::BOOLEAN) return defaultValue;
+    return element->asBoolean();
 }
 
 
@@ -168,15 +179,16 @@ nbl::Result nbl::JsonObject::Builder::add(StringView key, JsonElement element) {
 }
 nbl::Result nbl::JsonObject::Builder::addObject(StringView key, std::function_ref<Result(JsonObject::Builder&)> callback, usize buckets) {
 
-    JsonObject::Entry* entry;
+    JsonObject::Entry* entry = nullptr;
+    JsonObject obj{};
     NBL_CHECK(_scratch()->allocate(&entry));
     
     NBL_CHECK(StringBuilder(_pAllocator).append(key).buildNullTerminated(&entry->key));
 
     Builder child(_pAllocator, _scratch());
     NBL_CHECK(callback(child));
-    NBL_CHECK(child.build(&entry->value.object, buckets));
-    entry->value.type = JsonType::OBJECT;
+    NBL_CHECK(child.build(&obj, buckets));
+    entry->value = obj;
     _mEntryCount++;
 
     return nbl::Result::SUCCESS;
@@ -184,15 +196,16 @@ nbl::Result nbl::JsonObject::Builder::addObject(StringView key, std::function_re
 }
 nbl::Result nbl::JsonObject::Builder::addArray(StringView key, std::function_ref<Result(JsonArray::Builder&)> callback) {
 
-    JsonObject::Entry* entry;
+    JsonObject::Entry* entry = nullptr;
+    JsonArray arr{};
     NBL_CHECK(_scratch()->allocate(&entry));
     
     NBL_CHECK(StringBuilder(_pAllocator).append(key).buildNullTerminated(&entry->key));
 
     JsonArray::Builder child(_pAllocator, _scratch());
     NBL_CHECK(callback(child));
-    NBL_CHECK(child.build(&entry->value.array));
-    entry->value.type = JsonType::ARRAY;
+    NBL_CHECK(child.build(&arr));
+    entry->value = arr;
     _mEntryCount++;
 
     return nbl::Result::SUCCESS;
@@ -266,13 +279,14 @@ nbl::Result nbl::JsonArray::Builder::add(JsonElement element) {
 }
 nbl::Result nbl::JsonArray::Builder::addObject(std::function_ref<Result(JsonObject::Builder&)> callback) {
 
-    JsonElement* entry;
+    JsonElement* entry = nullptr;
+    JsonObject obj{};
     NBL_CHECK(_scratch()->allocate(&entry));
     
     JsonObject::Builder child(_pAllocator, _scratch());
     NBL_CHECK(callback(child));
-    NBL_CHECK(child.build(&entry->object));
-    entry->type = JsonType::OBJECT;
+    NBL_CHECK(child.build(&obj));
+    *entry = obj;
     _mElementCount++;
 
     return nbl::Result::SUCCESS;
@@ -280,13 +294,14 @@ nbl::Result nbl::JsonArray::Builder::addObject(std::function_ref<Result(JsonObje
 }
 nbl::Result nbl::JsonArray::Builder::addArray(std::function_ref<Result(JsonArray::Builder&)> callback) {
 
-    JsonElement* entry;
+    JsonElement* entry = nullptr;
+    JsonArray arr{};
     NBL_CHECK(_scratch()->allocate(&entry));
     
     Builder child(_pAllocator, _scratch());
     NBL_CHECK(callback(child));
-    NBL_CHECK(child.build(&entry->array));
-    entry->type = JsonType::ARRAY;
+    NBL_CHECK(child.build(&arr));
+    *entry = arr;
     _mElementCount++;
 
     return nbl::Result::SUCCESS;

@@ -61,7 +61,7 @@ usize _index(nbl::RGBA color) {
 nbl::Result nbl::QoiImageMeta::readMeta(nbl::Reader reader, QoiImageMeta* out) {
     u8 buffer[14]{};
     NBL_CHECK(reader.readAll(buffer, 14));
-    return decodeMeta({ .data = buffer, .length = 14 }, out);
+    return decodeMeta(ConstSpan<u8>(buffer, 14), out);
 }
 
 nbl::Result nbl::QoiImageMeta::readImageData(Reader reader, QoiImageMeta meta, LinearAllocator* storage, u8 channels) {
@@ -76,7 +76,7 @@ nbl::Result nbl::QoiImageMeta::readImageData(Reader reader, QoiImageMeta meta, L
     void* begin = storage->end();
 
     Span<u8> outputBuffer(nullptr, meta.width * meta.height * channels);
-    NBL_CHECK(storage->allocate(&outputBuffer.data, outputBuffer.length));
+    NBL_CHECK(storage->allocate(&outputBuffer));
 
     u8* qoiBegin = static_cast<u8*>(storage->end());
     Result res;
@@ -97,9 +97,9 @@ nbl::Result nbl::QoiImageMeta::readImageData(Reader reader, QoiImageMeta meta, L
 
 nbl::Result nbl::QoiImageMeta::decodeMeta(ConstSpan<u8> buffer, QoiImageMeta* out) {
 
-    if(buffer.length < 14) return Result::INVALID_ARGUMENT;
+    if(buffer.length() < 14) return Result::INVALID_ARGUMENT;
 
-    const _QoiHeader* header = reinterpret_cast<const _QoiHeader*>(buffer.data);
+    const _QoiHeader* header = reinterpret_cast<const _QoiHeader*>(buffer.data());
     if(::memcmp(header->magic, _MAGIC, 4) != 0) return nbl::Result::PARSE_ERROR;
 
     if(header->channels != 3 && header->channels != 4) {
@@ -125,10 +125,10 @@ nbl::Result nbl::QoiImageMeta::decodeImageData(ConstSpan<u8> buffer, QoiImageMet
     else if(channels < 3 || channels > 4) {
         return nbl::Result::INVALID_ARGUMENT;
     }
-    if(outputBuffer.length < meta.width * meta.height * channels) {
+    if(outputBuffer.length() < meta.width * meta.height * channels) {
         return nbl::Result::INVALID_ARGUMENT;
     }
-    if(buffer.length < 8) {
+    if(buffer.length() < 8) {
         return nbl::Result::INVALID_ARGUMENT;
     }
 
@@ -137,7 +137,7 @@ nbl::Result nbl::QoiImageMeta::decodeImageData(ConstSpan<u8> buffer, QoiImageMet
 
     usize outputIndex = 0;
     auto _pushPix = [&]() {
-        memcpy(outputBuffer.data + outputIndex, &prev, channels);
+        memcpy(outputBuffer.data() + outputIndex, &prev, channels);
         outputIndex += channels;
     };
 
@@ -230,9 +230,9 @@ nbl::Result nbl::QoiImageMeta::writeMeta(Writer writer, QoiImageMeta meta) {
 nbl::Result nbl::QoiImageMeta::writeImageData(Writer writer, QoiImageMeta meta, ConstSpan<u8> imageData) {
 
     usize bufferLength = meta.width * meta.height * meta.channels;
-    if(imageData.length < bufferLength) return nbl::Result::INVALID_ARGUMENT;
+    if(imageData.length() < bufferLength) return nbl::Result::INVALID_ARGUMENT;
 
-    const u8* pixels = imageData.data;
+    const u8* pixels = imageData.data();
     RGBA prev = { .r = 0, .g = 0, .b = 0, .a = 255 };
     RGBA seen[64]{};
 
@@ -322,9 +322,9 @@ nbl::Result nbl::QoiImageMeta::writeImageData(Writer writer, QoiImageMeta meta, 
 
 nbl::Result nbl::QoiImageMeta::encodeMeta(Span<u8> buffer, QoiImageMeta meta) {
 
-    if(buffer.length < 14) return nbl::Result::INVALID_ARGUMENT;
+    if(buffer.length() < 14) return nbl::Result::INVALID_ARGUMENT;
 
-    _QoiHeader* header = reinterpret_cast<_QoiHeader*>(buffer.data);
+    _QoiHeader* header = reinterpret_cast<_QoiHeader*>(buffer.data());
     *header = {
         .widthBe = ::htonl(meta.width),
         .heightBe = ::htonl(meta.height),
@@ -338,9 +338,9 @@ nbl::Result nbl::QoiImageMeta::encodeMeta(Span<u8> buffer, QoiImageMeta meta) {
 nbl::Result nbl::QoiImageMeta::encodeImageData(nbl::LinearAllocator* alloc, QoiImageMeta meta, ConstSpan<u8> imageData) {
 
     usize bufferLength = meta.width * meta.height * meta.channels;
-    if(imageData.length < bufferLength) return nbl::Result::INVALID_ARGUMENT;
+    if(imageData.length() < bufferLength) return nbl::Result::INVALID_ARGUMENT;
 
-    const u8* pixels = imageData.data;
+    const u8* pixels = imageData.data();
     RGBA prev = { .r = 0, .g = 0, .b = 0, .a = 255 };
     RGBA seen[64]{};
 

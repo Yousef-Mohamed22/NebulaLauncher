@@ -74,7 +74,10 @@ nbl::Result _getAchievements(nbl::PluginContext* context, i32 appId, nbl::JsonOb
     if(element.asObject().getBoolean("success")) {
         *out = element.asObject();
     } else {
-        context->pushNotification(nbl::NotificationType::ERROR, "Steam Client Error", element.asObject().getString("error"));
+        i32 code = element.asObject().getNumber("code").asInt();
+        if(code != -3) { // -3 means Steam is not running.
+            context->pushNotification(nbl::NotificationType::ERROR, "Steam Client Error", element.asObject().getString("error"));
+        }
         return nbl::Result::IO_ERROR;
     }
 
@@ -93,7 +96,7 @@ nbl::Result _updateAchievementState(nbl::PluginContext* context, const nbl::Game
             return nbl::Result::NO_CHANGE;
         case nbl::AchievementProviderStatus::ADDED_BY_PROVIDER:
         case nbl::AchievementProviderStatus::ADDED_BY_USER:
-            NBL_CHECK(helper.dropUnknownSets({ .data = &externalId, .length = 1 }));
+            NBL_CHECK(helper.dropUnknownSets(nbl::Span<nbl::StringView>(&externalId, 1)));
 
             // Intentional fall-through
         case nbl::AchievementProviderStatus::NOT_ADDED: {
@@ -122,7 +125,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
         return nbl::Result::NO_CHANGE;
     }
 
-    nbl::StringView storedHash(reinterpret_cast<const char*>(set.providerData.data), set.providerData.length);
+    nbl::StringView storedHash(reinterpret_cast<const char*>(set.providerData.data()), set.providerData.length());
     nbl::StringView generatedHash = obj.getString("revision_hash");
 
     bool schemaUpdated = set.lastUpdated == 0;
@@ -170,7 +173,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
                     set.id, 
                     e.asObject().getString("name"),
                     e.asObject().getNumber("global_unlock_rate").asFloat(), 
-                    0, 0, // Doesn't seem to be obtainable without the web API or knowing which stats correspond to which achievements :/
+                    0, 0, // Doesn't seem to be obtainable without knowing which stats correspond to which achievements :/
                     unlockTime, 
                     nbl::steam::BORDER_COLOR);
 
@@ -181,10 +184,10 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
     if(updated) {
         if(schemaUpdated) {
             helper.dropStaleAchievements(set.id);
-            helper.updateSetProviderData(set.id, nbl::ConstSpan<u8> {
-                .data = reinterpret_cast<const u8*>(generatedHash.data),
-                .length = generatedHash.length
-            });
+            helper.updateSetProviderData(set.id, nbl::ConstSpan<u8>(
+                reinterpret_cast<const u8*>(generatedHash.data()),
+                generatedHash.length()
+            ));
         }
         helper.bumpSetUpdateTime(set.id, latestUnlock);
         return nbl::Result::SUCCESS;

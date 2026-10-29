@@ -15,6 +15,7 @@
  */
 #include "Achievement/AchievementStateModel.hpp"
 #include "ApplicationContext.hpp"
+#include "Data/AchievementModel.hpp"
 
 #include <Plugin/AchievementProvider.hpp>
 #include <Data/Model.hpp>
@@ -33,14 +34,14 @@ QVariant nbl::frontend::AchievementStateModel::data(const QModelIndex& index, in
 
     switch(role) {
         case IdRole:
-            return QString::fromUtf8(item.provider->id.data, item.provider->id.length);
+            return QString::fromUtf8(item.provider->id.data(), item.provider->id.length());
         case NameRole:
-            return QString::fromUtf8(item.provider->name.data, item.provider->name.length);
+            return QString::fromUtf8(item.provider->name.data(), item.provider->name.length());
         case StatusRole:
             return static_cast<quint32>(item.status);
         case FieldCountRole:
             if(item.status != nbl::AchievementProviderStatus::ADDED_BY_USER && item.status != nbl::AchievementProviderStatus::ADDED_BY_PROVIDER) return 0;
-            return static_cast<quint32>(item.provider->fields.length);
+            return static_cast<quint32>(item.provider->fields.length());
         case FieldValuesRole: {
         
             if(item.status != nbl::AchievementProviderStatus::ADDED_BY_USER && item.status != nbl::AchievementProviderStatus::ADDED_BY_PROVIDER) return QVariant();
@@ -54,15 +55,19 @@ QVariant nbl::frontend::AchievementStateModel::data(const QModelIndex& index, in
 
             QVariant qtFields = QVariantMap();
             nbl::AllocationFrame frame(nbl::Arena::threadLocal());
-            nbl::Span<nbl::FieldValue> values;
-            if(frame.allocate(&values.data, item.provider->fields.length).error()) return QVariant();
+
+            nbl::FieldValue* values;
+            if(frame.allocate(&values, item.provider->fields.length()).error()) return QVariant();
+
+            nbl::Span<nbl::FieldValue> valueSpan(values, item.provider->fields.length());
+
 
             nbl::JsonElement element;
             if(nbl::parseJson(nbl::StringView(item.encodedFields.data(), item.encodedFields.length()), &frame, &element).error()) return QVariant();
-            if(element.type != nbl::JsonType::OBJECT) return QVariant();
+            if(element.type() != nbl::JsonType::OBJECT) return QVariant();
 
-            if(nbl::decodeFieldValues(ctx->pluginContext(), item.provider->fields, element.object, &values, &frame).error()) return QVariant();
-            qtFields = FieldRef(&dummy).fromNbl({ .compositeValue = values });
+            if(nbl::decodeFieldValues(ctx->pluginContext(), item.provider->fields, element.asObject(), &valueSpan, &frame).error()) return QVariant();
+            qtFields = FieldRef(&dummy).fromNbl({ .compositeValue = valueSpan });
             return qtFields;
         }
     }
@@ -91,7 +96,7 @@ void nbl::frontend::AchievementStateModel::_refresh() {
     ApplicationContext* ctx = ApplicationContext::instance();
     nbl::ConstSpan<const nbl::AchievementProvider*> providers = ctx->pluginContext()->registry<nbl::AchievementProvider>();
 
-    _mData.resizeForOverwrite(providers.length);
+    _mData.resizeForOverwrite(providers.length());
     qsizetype index = 0;
     for(const nbl::AchievementProvider* provider : providers) {
         _mData[index++] = _Item{
@@ -101,10 +106,10 @@ void nbl::frontend::AchievementStateModel::_refresh() {
         };
     }
 
-    nbl::AchievementState::enumerate(ctx->databaseConnection(), _mGameId, [&](auto& state) -> nbl::Result {
+    nbl::AchievementState::enumerate(ctx->databaseConnection(), _mGameId, [&](const AchievementState& state) -> nbl::Result {
         for(_Item& item : _mData) {
             if(item.provider->id == state.provider) {
-                item.encodedFields = QByteArray(state.fields.data, state.fields.length);
+                item.encodedFields = QByteArray(state.fields.data(), state.fields.length());
                 item.status = state.status;
                 return nbl::Result::SUCCESS;
             }

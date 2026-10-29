@@ -31,11 +31,11 @@ QVariant nbl::frontend::EnumFieldModel::data(const QModelIndex& index, int role)
     switch(role) {
         case NameRole: {
             nbl::StringView name = field.enumData.name(ApplicationContext::instance()->pluginContext(), static_cast<u32>(index.row()));
-            return QByteArray(name.data, name.length);
+            return QByteArray(name.data(), name.length());
         }
         case DisplayNameRole: {
             nbl::StringView name = field.enumData.displayName(ApplicationContext::instance()->pluginContext(), static_cast<u32>(index.row()));
-            return QByteArray(name.data, name.length);
+            return QByteArray(name.data(), name.length());
         }
         default:
             return QVariant();

@@ -26,8 +26,8 @@
 TEST(StringView, ImplicitCast) {
 
     nbl::StringView sv = "Hello";
-    ASSERT_EQ(sv.length, 5);
-    ASSERT_EQ(memcmp("Hello", sv.data, 5), 0);
+    ASSERT_EQ(sv.length(), 5);
+    ASSERT_EQ(memcmp("Hello", sv.data(), 5), 0);
 
 }
 

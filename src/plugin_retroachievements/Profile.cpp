@@ -51,15 +51,16 @@ nbl::Result nbl::ra::downloadProfile(HttpClient *client, StringView apiKey, Stri
 
     NBL_CHECK(nbl::parseJson(responseJson, &frame, &response));
 
-    if(response.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
-    
-    NBL_CHECK(nbl::StringBuilder(storage).append(apiKey).buildNullTerminated(&out->apiKey));
-    NBL_CHECK(nbl::StringBuilder(storage).append(response.object.getString("User")).buildNullTerminated(&out->username));
-    NBL_CHECK(nbl::StringBuilder(storage).append(response.object.getString("ULID")).buildNullTerminated(&out->ulid));
-    NBL_CHECK(nbl::StringBuilder(storage).append(RA_MEDIA_URL).append(response.object.getString("UserPic")).buildNullTerminated(&out->pfp));
+    if(response.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+    JsonObject responseObj = response.asObject();
 
-    out->points = response.object.getNumber("TotalPoints").asUint();
-    out->truePoints = response.object.getNumber("TotalTruePoints").asUint();
+    NBL_CHECK(nbl::StringBuilder(storage).append(apiKey).buildNullTerminated(&out->apiKey));
+    NBL_CHECK(nbl::StringBuilder(storage).append(responseObj.getString("User")).buildNullTerminated(&out->username));
+    NBL_CHECK(nbl::StringBuilder(storage).append(responseObj.getString("ULID")).buildNullTerminated(&out->ulid));
+    NBL_CHECK(nbl::StringBuilder(storage).append(RA_MEDIA_URL).append(responseObj.getString("UserPic")).buildNullTerminated(&out->pfp));
+
+    out->points = responseObj.getNumber("TotalPoints").asUint();
+    out->truePoints = responseObj.getNumber("TotalTruePoints").asUint();
 
     return nbl::Result::SUCCESS;
 }

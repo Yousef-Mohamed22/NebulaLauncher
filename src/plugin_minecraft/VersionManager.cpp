@@ -124,14 +124,14 @@ nbl::Result nbl::mc::VersionManager::open(JsonObject manifestJson, StringView ve
     JsonElement ele{};
     NBL_CHECK(nbl::parseJson(file.reader(), allocator, &ele));
 
-    if(ele.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+    if(ele.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
     
-    StringView parent = ele.object.getString("inheritsFrom");
+    StringView parent = ele.asObject().getString("inheritsFrom");
     if(!parent.empty()) {
         NBL_CHECK(allocator->allocate(&outRef->parent));
         NBL_CHECK(open(manifestJson, parent, client, allocator, outRef->parent));
     }
-    outRef->root = ele.object;
+    outRef->root = ele.asObject();
 
     return Result::SUCCESS;
 }
@@ -144,19 +144,19 @@ nbl::Result nbl::mc::VersionManager::_download(JsonObject manifestJson, StringVi
 
     if(version.startsWith("@")) {
         
-        StringView alias = version.tail(1);
+        StringView alias = version.slice(1);
         if(alias != "latest" && alias != "latest_snapshot") {
             NBL_ERROR("Invalid version alias: ", version);
             return nbl::Result::INVALID_ARGUMENT;
         }
 
         const JsonElement* latestObj = manifestJson.get("latest");
-        if(latestObj == nullptr || latestObj->type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+        if(latestObj == nullptr || latestObj->type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-        const JsonElement* release = latestObj->object.get(alias == "latest_snapshot" ? "snapshot" : "release");
-        if(release == nullptr || release->type != JsonType::STRING) return nbl::Result::FORMAT_ERROR;
+        const JsonElement* release = latestObj->asObject().get(alias == "latest_snapshot" ? "snapshot" : "release");
+        if(release == nullptr || release->type() != JsonType::STRING) return nbl::Result::FORMAT_ERROR;
 
-        version = release->string;
+        version = release->asString();
         nbl::StringBuilder(&frame).append(_mFolderPath).append('/').append(version).append(".json").build(&path);
         
         res = nbl::FileChannel::open(path, outFile, FileOpenFlag::READ);
@@ -164,18 +164,18 @@ nbl::Result nbl::mc::VersionManager::_download(JsonObject manifestJson, StringVi
     }
 
     const JsonElement* versionsArr = manifestJson.get("versions");
-    if(versionsArr == nullptr || versionsArr->type != JsonType::ARRAY) return nbl::Result::FORMAT_ERROR;
+    if(versionsArr == nullptr || versionsArr->type() != JsonType::ARRAY) return nbl::Result::FORMAT_ERROR;
 
     nbl::StringView url{};
     nbl::StringView sha1{};
-    for(const JsonElement& ele : versionsArr->array) {
-        if(ele.type != JsonType::OBJECT) continue;
+    for(const JsonElement& ele : versionsArr->asArray()) {
+        if(ele.type() != JsonType::OBJECT) continue;
 
-        StringView id = ele.object.getString("id");
+        StringView id = ele.asObject().getString("id");
         if(id != version) continue;
 
-        url = ele.object.getString("url");
-        sha1 = ele.object.getString("sha1");
+        url = ele.asObject().getString("url");
+        sha1 = ele.asObject().getString("sha1");
     }
 
     if(url.empty()) return nbl::Result::NOT_FOUND;

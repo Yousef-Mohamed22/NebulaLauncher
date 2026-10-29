@@ -67,10 +67,9 @@ nbl::StringView nbl::getHostName() {
 
     static char hostname[HOST_NAME_MAX];
     static StringView out = {};
-    if(out.length == 0) {
+    if(out.length() == 0) {
         gethostname(hostname, HOST_NAME_MAX-1);
-        out.length = strlen(hostname);
-        out.data = hostname;
+        out = hostname;
     }
 
     return out;
@@ -78,13 +77,13 @@ nbl::StringView nbl::getHostName() {
 
 nbl::StringView nbl::getEnv(nbl::StringView name) {
     const char* value;
-    if(name.nullTerminated) {
-        value = ::getenv(name.data);
+    if(name.nullTerminated()) {
+        value = ::getenv(name.data());
     } else {
         nbl::StringView data;
         nbl::AllocationFrame frame(nbl::Arena::threadLocal());
         if(nbl::StringBuilder::nullTerminate(name, &data, &frame).error()) return "";
-        value = ::getenv(data.data);
+        value = ::getenv(data.data());
     }
     if(value) return nbl::StringView(value);
     return {};
@@ -94,14 +93,14 @@ nbl::StringView nbl::getEnv(nbl::StringView name) {
 void nbl::setEnv(StringView name, StringView value, bool overwrite) {
 
     nbl::AllocationFrame frame(nbl::Arena::threadLocal());
-    if(!name.nullTerminated) {
+    if(!name.nullTerminated()) {
         StringBuilder(&frame).append(name).buildNullTerminated(&name);
     } 
-    if(!value.nullTerminated) {
+    if(!value.nullTerminated()) {
         StringBuilder(&frame).append(value).buildNullTerminated(&value);
     }
 
-    setenv(name.data, value.data, overwrite ? 1 : 0);
+    setenv(name.data(), value.data(), overwrite ? 1 : 0);
 }
 
 
@@ -215,7 +214,7 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
             return nbl::Result::PROCESS_ERROR;
         }
     } else if(options.outputMode == ProcessOutputMode::REDIRECT) {
-        if(options.outputRedirectFile.empty() || options.outputRedirectFile.length + 1 >= PATH_MAX) {
+        if(options.outputRedirectFile.empty() || options.outputRedirectFile.length() + 1 >= PATH_MAX) {
             return nbl::Result::INVALID_ARGUMENT;
         }
     }
@@ -241,7 +240,7 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
                 exit(1);
             }
 
-            chdir(path.data);
+            chdir(path.data());
         }
 
         // Handle standard IO
@@ -275,8 +274,8 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
             }
             case ProcessOutputMode::REDIRECT: {
                 char nullPath[PATH_MAX];
-                memcpy(nullPath, options.outputRedirectFile.data, options.outputRedirectFile.length);
-                nullPath[options.outputRedirectFile.length] = '\0';
+                memcpy(nullPath, options.outputRedirectFile.data(), options.outputRedirectFile.length());
+                nullPath[options.outputRedirectFile.length()] = '\0';
 
                 int fd = ::open(nullPath, O_WRONLY | O_CREAT);
                 if(fd == -1) {
@@ -302,29 +301,29 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
         nbl::AllocationFrame frame = nbl::AllocationFrame(nbl::Arena::threadLocal());
 
         char** argv;
-        if(frame.allocate(&argv, sizeof(const char**) * (args.length + 2)).error()) {
+        if(frame.allocate(&argv, sizeof(const char**) * (args.length() + 2)).error()) {
             exit(1);
         }
 
-        if(frame.allocate(&argv[0], path.length + 1).error()) {
+        if(frame.allocate(&argv[0], path.length() + 1).error()) {
             exit(1);
         }
-        memcpy(argv[0], path.data, path.length);
-        argv[0][path.length] = '\0';
+        memcpy(argv[0], path.data(), path.length());
+        argv[0][path.length()] = '\0';
 
-        for(usize i = 0; i < args.length; i++) {
-            if(frame.allocate(&argv[i + 1], args[i].length + 1).error()) {
+        for(usize i = 0; i < args.length(); i++) {
+            if(frame.allocate(&argv[i + 1], args[i].length() + 1).error()) {
                 exit(1);
             }
 
-            memcpy(argv[i + 1], args[i].data, args[i].length);
-            argv[i + 1][args[i].length] = '\0';
+            memcpy(argv[i + 1], args[i].data(), args[i].length());
+            argv[i + 1][args[i].length()] = '\0';
         }
-        argv[args.length + 1] = nullptr;
+        argv[args.length() + 1] = nullptr;
 
 
         char** env;
-        if(options.environment.length == 0) {
+        if(options.environment.length() == 0) {
             env = environ;
         } else {
 
@@ -333,28 +332,28 @@ nbl::Result nbl::ProcessHandle::spawn(StringView path, Span<StringView> args, Pr
                 numVars++;
             }
 
-            numVars += options.environment.length;
+            numVars += options.environment.length();
 
             if(frame.allocate(&env, sizeof(const char**) * (numVars + 1)).error()) {
                 exit(1);
             }
-            for(usize i = 0; i < options.environment.length; i++) {
+            for(usize i = 0; i < options.environment.length(); i++) {
 
                 StringView key = options.environment[i].variable;
                 StringView value = options.environment[i].value;
-                usize bufLen = key.length + 1 + value.length + 1;
+                usize bufLen = key.length() + 1 + value.length() + 1;
 
                 if(frame.allocate(&env[i], bufLen).error()) {
                     exit(1);
                 }
 
-                memcpy(env[i], key.data, key.length);
-                env[i][key.length] = '=';
-                memcpy(env[i] + key.length + 1, value.data, value.length);
+                memcpy(env[i], key.data(), key.length());
+                env[i][key.length()] = '=';
+                memcpy(env[i] + key.length() + 1, value.data(), value.length());
                 env[i][bufLen - 1] = '\0';
             }
 
-            memcpy(env + options.environment.length, environ, sizeof(char*) * (numVars - options.environment.length));
+            memcpy(env + options.environment.length(), environ, sizeof(char*) * (numVars - options.environment.length()));
 
             env[numVars] = nullptr;
         }

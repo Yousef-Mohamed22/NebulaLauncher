@@ -130,7 +130,7 @@ inline void log(LogLevel level, Args&&... args) {
     Writer out = bufferedWriter;
 
     out.writeString(_prefixes[static_cast<usize>(level)]);
-    (void(toString(std::forward<Args>(args), out)), ...);
+    (void(write(std::forward<Args>(args), out)), ...);
     out.writeString("\n\x1B[0m");
 
     bufferedWriter.flush();

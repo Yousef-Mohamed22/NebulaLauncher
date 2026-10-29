@@ -74,11 +74,11 @@ nbl::Result nbl::MediaManager::reserveAndSave(StringView url, ImageClass imageCl
 nbl::Result nbl::MediaManager::saveImage(i64 refId, u32 width, u32 height, ConstSpan<u8> pixels) {
 
     if(width == 0 || height == 0) return nbl::Result::INVALID_ARGUMENT;
-    if(pixels.length < width * height * 4) return nbl::Result::INVALID_ARGUMENT;
+    if(pixels.length() < width * height * 4) return nbl::Result::INVALID_ARGUMENT;
 
 
     Arena arena{};
-    NBL_CHECK(Arena::create((pixels.length / 4) * 5 + 16, &arena));
+    NBL_CHECK(Arena::create((pixels.length() / 4) * 5 + 16, &arena));
 
     nbl::QoiImageMeta meta {
         .width = width,

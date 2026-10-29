@@ -57,7 +57,7 @@ nbl::Result nbl::frontend::TagModel::_fetchPageData(qsizetype offset, qsizetype 
     QList<TagMeta> found = {};
     found.reserve(limit);
     NBL_CHECK(nbl::Tag::enumerate(db, limit, offset, [&](const nbl::Tag& meta) -> nbl::Result {
-        TagMeta ref(meta.id, QString::fromUtf8(meta.name.data, meta.name.length), QColor::fromRgb(meta.color)); 
+        TagMeta ref(meta.id, QString::fromUtf8(meta.name.data(), meta.name.length()), QColor::fromRgb(meta.color)); 
         found.append(ref);
         return nbl::Result::SUCCESS;
     }))

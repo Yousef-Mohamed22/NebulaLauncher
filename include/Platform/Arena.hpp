@@ -62,7 +62,7 @@ public:
 
     static Arena* threadLocal() noexcept;
 
-    static  bool isThreadLocalWriter(Writer writer) noexcept;
+    static bool isThreadLocalWriter(Writer writer) noexcept;
 
 private:
 

@@ -67,13 +67,13 @@ nbl::Array _accountFields = {
 nbl::Result _login(nbl::PluginContext* context, nbl::Span<nbl::FieldValue> fields, nbl::LoginTracker* tracker, void* userData) {
 
     nbl::StringView token = fields[0].stringValue.raw;
-    if(token.length > 64) {
+    if(token.length() > 64) {
         tracker->fail("Token is too long");
         return nbl::Result::INVALID_ARGUMENT;
     }
 
-    memcpy(_tokenBuffer, token.data, token.length);
-    _tokenLength = token.length;
+    memcpy(_tokenBuffer, token.data(), token.length());
+    _tokenLength = token.length();
 
     tracker->complete(context, "API Key", "", false, fields);
     return nbl::Result::SUCCESS;
@@ -89,16 +89,16 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 
     nbl::Span<nbl::FieldValue> values{};
 
-    nbl::decodeFieldValues(context, _accountFields, element.object, &values, &frame);
+    nbl::decodeFieldValues(context, _accountFields, element.asObject(), &values, &frame);
 
     nbl::StringView token = values[0].stringValue.raw;
-    if(token.length > 64) {
+    if(token.length() > 64) {
         tracker->fail("Token is too long");
         return nbl::Result::INVALID_ARGUMENT;
     }
 
-    memcpy(_tokenBuffer, token.data, token.length);
-    _tokenLength = token.length;
+    memcpy(_tokenBuffer, token.data(), token.length());
+    _tokenLength = token.length();
 
     return nbl::Result::NO_CHANGE;
 }
@@ -129,7 +129,7 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
 
     nbl::StringView sgdbId;
     nbl::StringView steamId;
-    for(usize i = 0 ; i < info.platformIds.length ; i++) {
+    for(usize i = 0 ; i < info.platformIds.length() ; i++) {
         if(info.platformNames[i] == "sgdb") {
             sgdbId = info.platformIds[i];
         } else if(info.platformNames[i] == "steam") {
@@ -167,10 +167,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
             nbl::JsonElement response{};
             NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
-            if(response.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
-            if(!response.object.getBoolean("success")) return nbl::Result::SUCCESS;
+            if(response.type() != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+            if(!response.asObject().getBoolean("success")) return nbl::Result::SUCCESS;
 
-            nbl::JsonArray data = response.object.getArray("data");
+            nbl::JsonArray data = response.asObject().getArray("data");
             if(data.count == 0) return nbl::Result::SUCCESS;
 
             intId = data.getObject(0).getNumber("id").asUint();
@@ -199,10 +199,10 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
             nbl::JsonElement response{};
             NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
-            if(response.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
-            if(!response.object.getBoolean("success")) return nbl::Result::SUCCESS;
+            if(response.type() != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+            if(!response.asObject().getBoolean("success")) return nbl::Result::SUCCESS;
 
-            nbl::JsonObject data = response.object.getObject("data");
+            nbl::JsonObject data = response.asObject().getObject("data");
             if(data.entryCount == 0) return nbl::Result::SUCCESS;
 
             intId = data.getNumber("id").asUint();
@@ -237,14 +237,14 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         nbl::JsonElement response{};
         NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
-        if(response.type == nbl::JsonType::OBJECT && response.object.getBoolean("success")) {
-            for(nbl::JsonElement e : response.object.getArray("data")) {
-                if(e.type != nbl::JsonType::OBJECT) continue;
+        if(response.type() == nbl::JsonType::OBJECT && response.asObject().getBoolean("success")) {
+            for(nbl::JsonElement e : response.asObject().getArray("data")) {
+                if(e.type() != nbl::JsonType::OBJECT) continue;
 
-                u32 width = e.object.getNumber("width").asUint();
-                u32 height = e.object.getNumber("height").asUint();
+                u32 width = e.asObject().getNumber("width").asUint();
+                u32 height = e.asObject().getNumber("height").asUint();
                 nbl::MetadataField field = (width == height) ? nbl::MetadataField::ICON : nbl::MetadataField::POSTER;
-                nbl::Result res = callback(field, { e.object.getString("url") });
+                nbl::Result res = callback(field, { e.asObject().getString("url") });
 
                 if(res != nbl::Result::SUCCESS) return res;
             }
@@ -277,11 +277,11 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         nbl::JsonElement response{};
         NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
-        if(response.type == nbl::JsonType::OBJECT && response.object.getBoolean("success")) {
-            for(nbl::JsonElement e : response.object.getArray("data")) {
-                if(e.type != nbl::JsonType::OBJECT) continue;
+        if(response.type() == nbl::JsonType::OBJECT && response.asObject().getBoolean("success")) {
+            for(nbl::JsonElement e : response.asObject().getArray("data")) {
+                if(e.type() != nbl::JsonType::OBJECT) continue;
 
-                nbl::Result res = callback(nbl::MetadataField::BANNER, { e.object.getString("url") });
+                nbl::Result res = callback(nbl::MetadataField::BANNER, { e.asObject().getString("url") });
 
                 if(res != nbl::Result::SUCCESS) return res;
             }
@@ -314,13 +314,13 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         nbl::JsonElement response{};
         NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
-        if(response.type == nbl::JsonType::OBJECT && response.object.getBoolean("success")) {
-            for(nbl::JsonElement e : response.object.getArray("data")) {
-                if(e.type != nbl::JsonType::OBJECT) continue;
-                u64 pixels = e.object.getNumber("width").asUint() * e.object.getNumber("height").asUint();
+        if(response.type() == nbl::JsonType::OBJECT && response.asObject().getBoolean("success")) {
+            for(nbl::JsonElement e : response.asObject().getArray("data")) {
+                if(e.type() != nbl::JsonType::OBJECT) continue;
+                u64 pixels = e.asObject().getNumber("width").asUint() * e.asObject().getNumber("height").asUint();
                 if(pixels < (32*32) || pixels > (4096*4096)) continue;
 
-                nbl::Result res = callback(nbl::MetadataField::LOGO, { e.object.getString("url") });
+                nbl::Result res = callback(nbl::MetadataField::LOGO, { e.asObject().getString("url") });
 
                 if(res != nbl::Result::SUCCESS) return res;
             }
@@ -353,13 +353,13 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::MetadataLookupInfo&
         nbl::JsonElement response{};
         NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
-        if(response.type == nbl::JsonType::OBJECT && response.object.getBoolean("success")) {
-            for(nbl::JsonElement e : response.object.getArray("data")) {
-                if(e.type != nbl::JsonType::OBJECT) continue;
-                u64 pixels = e.object.getNumber("width").asUint() * e.object.getNumber("height").asUint();
+        if(response.type() == nbl::JsonType::OBJECT && response.asObject().getBoolean("success")) {
+            for(nbl::JsonElement e : response.asObject().getArray("data")) {
+                if(e.type() != nbl::JsonType::OBJECT) continue;
+                u64 pixels = e.asObject().getNumber("width").asUint() * e.asObject().getNumber("height").asUint();
                 if(pixels < (32*32) || pixels > (4096*4096)) continue;
 
-                nbl::Result res = callback(nbl::MetadataField::ICON, { e.object.getString("url") });
+                nbl::Result res = callback(nbl::MetadataField::ICON, { e.asObject().getString("url") });
 
                 if(res != nbl::Result::SUCCESS) return res;
             }

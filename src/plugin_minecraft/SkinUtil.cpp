@@ -137,7 +137,7 @@ nbl::Result nbl::mc::downloadSkinHead(StringView skinFolder, StringView url, Htt
         }
     }
 
-    stbi_write_png(skinFile.data, 8, 8, 4, outputData, 32);
+    stbi_write_png(skinFile.data(), 8, 8, 4, outputData, 32);
     stbi_image_free(data);
 
     return nbl::Result::SUCCESS;
@@ -147,8 +147,8 @@ nbl::Result nbl::mc::extractSkinId(StringView url, StringView *skinId) {
     if(!url.startsWith("http://textures.minecraft.net/texture/")) {
         return nbl::Result::INVALID_ARGUMENT;
     }
-    *skinId = url.tail(38);
-    if(skinId->length == 0 || skinId->length > 64) {
+    *skinId = url.slice(38);
+    if(skinId->length() == 0 || skinId->length() > 64) {
         return nbl::Result::INVALID_ARGUMENT;
     }
     return nbl::Result::SUCCESS;

@@ -20,6 +20,7 @@
  */
 
 #include "ApplicationContext.hpp"
+#include "Core/String.hpp"
 #include "Data/MediaManager.hpp"
 #include "Field/FieldRef.hpp"
 #include "Field/FieldList.hpp"
@@ -41,29 +42,31 @@ nbl::Result _applyInstallationCommand(nbl::PluginContext* context, nbl::Installa
     nbl::FieldValue value = nbl::frontend::FieldRef(&dummy).toNbl(fields, &frame);
 
     bool applyGamePlaceholders = false;
-    for(usize i = 0 ; i < type->fields.length ; i++) {
+    for(usize i = 0 ; i < type->fields.length() ; i++) {
         const nbl::Field& field = type->fields[i];
         if(field.type == nbl::FieldType::STRING) {
             applyGamePlaceholders = applyGamePlaceholders || (field.flags & nbl::FieldFlag::APPLY_GAME_PLACEHOLDERS);
         }
     }
 
-    nbl::Span<nbl::Placeholder> placeholders{};
+    nbl::Span<nbl::Placeholder> placeholderSpan{};
     if(applyGamePlaceholders) {
 
+        nbl::Placeholder* placeholders = nullptr;
+        usize placeholderCount = 0;
         usize globalPlaceholders = 2 + externalIds.length();
-        NBL_CHECK(frame.allocate(&placeholders.data, globalPlaceholders));
+        NBL_CHECK(frame.allocate(&placeholders, globalPlaceholders));
 
         nbl::StringView gIdStr;
         nbl::StringView iIdStr;
         NBL_CHECK(nbl::StringBuilder(&frame).append(meta.gameId).buildNullTerminated(&gIdStr));
         NBL_CHECK(nbl::StringBuilder(&frame).append(meta.id).buildNullTerminated(&gIdStr));
 
-        placeholders[placeholders.length++] = {
+        placeholders[placeholderCount++] = {
             .key = "gameId",
             .value = gIdStr
         };
-        placeholders[placeholders.length++] = {
+        placeholders[placeholderCount++] = {
             .key = "installationId",
             .value = gIdStr
         };
@@ -78,15 +81,17 @@ nbl::Result _applyInstallationCommand(nbl::PluginContext* context, nbl::Installa
             NBL_CHECK(nbl::StringBuilder(&frame).append("external_id_").append(nblName).buildNullTerminated(&nblName));
             NBL_CHECK(nbl::StringBuilder(&frame).append(nblId).buildNullTerminated(&nblId));
 
-            placeholders[placeholders.length++] = {
+            placeholders[placeholderCount++] = {
                 .key = nblName,
                 .value = nblId
             };
         }
+
+        placeholderSpan = nbl::Span<nbl::Placeholder>(placeholders, placeholderCount);
     }
 
     nbl::StringBuilder builder(&frame);
-    NBL_CHECK(nbl::encodeFieldValues(context, type->fields, value.compositeValue, builder, placeholders));
+    NBL_CHECK(nbl::encodeFieldValues(context, type->fields, value.compositeValue, builder, placeholderSpan));
 
     nbl::StringView cmd;
     NBL_CHECK(builder.buildNullTerminated(&cmd));
@@ -122,7 +127,7 @@ nbl::frontend::InstallationDetails* ApplicationContext::getInstallationDetails(q
 
             nbl::JsonElement value = {};
             NBL_CHECK(nbl::parseJson(installation.command, &frame, &value));
-            NBL_CHECK(nbl::decodeFieldValues(&_mContext, type->fields, value.object, &values, &frame));
+            NBL_CHECK(nbl::decodeFieldValues(&_mContext, type->fields, value.asObject(), &values, &frame));
 
             nbl::Field dummy {
                 .type = nbl::FieldType::STRUCT,

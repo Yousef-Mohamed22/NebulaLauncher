@@ -25,92 +25,92 @@
 
 #include <Core/Types.hpp>
 #include <Core/Assert.hpp>
+#include <Core/Math.hpp>
+
 
 namespace nbl {
 
-
 template<typename T>
-struct ConstSpan {
-    
+class Span {
+public:
 
-    const T* data;
-    usize length;
+    constexpr Span() noexcept = default;
+    constexpr Span(const Span& other) noexcept = default;
 
+    constexpr Span(T* data, usize length) noexcept :
+        _pData(data),
+        _mLength(length)
+    { }
 
-    constexpr const T& operator[](usize index) const { 
-        NBL_ASSERT(index < length);
-        return data[index]; 
+    constexpr Span& operator=(const Span&) noexcept = default;
+
+    constexpr operator Span<const T>() const noexcept {
+        return Span<const T>(_pData, _mLength);
     }
 
+    constexpr T& operator[](usize index) noexcept {
+        NBL_ASSERT(index < _mLength);
+        return _pData[index];
+    }
 
-    constexpr const T* begin() const { return data; }
-    constexpr const T* end() const { return data + length; }
+    constexpr const T& operator[](usize index) const noexcept {
+        NBL_ASSERT(index < _mLength);
+        return _pData[index];
+    }
 
-    constexpr bool contains(const T& value) const {
-        for(const T& v : *this) {
-            if(v == value) return true;
+    constexpr T* data() noexcept { return _pData; }
+    constexpr const T* data() const noexcept { return _pData; }
+    constexpr usize length() const noexcept { return _mLength; }
+
+    constexpr T* begin() noexcept { return _pData; }
+    constexpr T* end() noexcept { return _pData + _mLength; }
+
+    constexpr const T* begin() const noexcept { return _pData; }
+    constexpr const T* end() const noexcept { return _pData + _mLength; }
+
+    constexpr Span slice(usize start) const noexcept {
+        if(start > this->_mLength) return {};
+        return Span(_pData + start, _mLength - start);
+    }
+
+    constexpr Span slice(usize start, usize length) const noexcept {
+        if(start > this->_mLength) return {};
+        return Span(_pData + start, min(length, _mLength - start));
+    }
+    
+    constexpr Span head(usize amount) const noexcept {
+        if(amount >= _mLength) return *this;
+        return Span(_pData, amount);
+    }
+
+    constexpr Span tail(usize amount) const noexcept {
+        if(amount >= _mLength) return *this;
+        return Span(_pData + _mLength - amount, _mLength - amount);
+    }
+
+    constexpr bool contains(const T& value) const noexcept {
+        for(usize i = 0 ; i < _mLength ; i++) {
+            if(_pData[i] == value) return true;
         }
         return false;
     }
 
-    constexpr ConstSpan<T> slice(usize start, usize length) const {
-        NBL_ASSERT(start + length <= this->length);
-        return { data + start, length };
+    template<typename R>
+    constexpr Span<R> reinterpret() {
+        usize maxLength = SIZE_MAX / sizeof(T);
+        NBL_ASSERT(_mLength < maxLength);
+        usize lengthInBytes = _mLength * sizeof(T);
+        usize newLength = lengthInBytes / sizeof(R);
+        return Span<R>(reinterpret_cast<R*>(_pData), newLength);
     }
 
-    constexpr ConstSpan<T> slice(usize start) const {
-        NBL_ASSERT(start <= length);
-        return { data + start, length - start };
-    }
-
+private:
+    T* _pData;
+    usize _mLength;
 };
-
-
 
 template<typename T>
-struct Span {
-    
+using ConstSpan = Span<const T>;
 
-    T* data;
-    usize length;
-
-
-    constexpr const T& operator[](usize index) const { 
-        NBL_ASSERT(index < length);
-        return data[index]; 
-    }
-
-    constexpr T& operator[](usize index) { 
-        NBL_ASSERT(index < length);
-        return data[index]; 
-    }
-
-
-    constexpr T* begin() { return data; }
-    constexpr T* end() { return data + length; }
-
-    constexpr const T* begin() const { return data; }
-    constexpr const T* end() const { return data + length; }
-
-    constexpr operator ConstSpan<T>() const {
-        return { .data = data, .length = length };
-    }
-    constexpr ConstSpan<T> constSpan() const {
-        return { .data = data, .length = length };
-    }
-
-    constexpr bool contains(const T& value) const {
-        for(const T& v : *this) {
-            if(v == value) return true;
-        }
-        return false;
-    }
-
-    constexpr Span<T> slice(usize start, usize length) const {
-        NBL_ASSERT(start + length <= this->length);
-        return { data + start, length };
-    }
-
-};
 
 }

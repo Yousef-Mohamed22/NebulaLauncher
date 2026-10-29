@@ -73,20 +73,20 @@ nbl::Base64CharacterSet nbl::Base64CharacterSet::STANDARD = { .encodingTable = B
 nbl::Base64CharacterSet nbl::Base64CharacterSet::URL_SAFE = { .encodingTable = B64URL_LOOKUP, .decodingTable = B64URL_REVERSE_LOOKUP };
 
 
-nbl::Result nbl::encodeBase64(Span<u8> input, Span<char> output, const Base64CharacterSet& characterSet) {
+nbl::Result nbl::encodeBase64(ConstSpan<u8> input, Span<char> output, const Base64CharacterSet& characterSet) {
 
-    if(output.length < b64EncodedLength(input.length)) return nbl::Result::INVALID_ARGUMENT;
+    if(output.length() < b64EncodedLength(input.length())) return nbl::Result::INVALID_ARGUMENT;
 
-    usize dataLength = input.length;
+    usize dataLength = input.length();
     usize index = 0;
 
     usize position = 0;
     while(dataLength - position >= 3) {
 
         u32 encodedChunk = 
-            (input.data[position] << 16) |
-            (input.data[position + 1] << 8) |
-            (input.data[position + 2]);
+            (input[position] << 16) |
+            (input[position + 1] << 8) |
+            (input[position + 2]);
 
         position += 3;
 
@@ -102,7 +102,7 @@ nbl::Result nbl::encodeBase64(Span<u8> input, Span<char> output, const Base64Cha
             characterSet.encodingTable[c1] 
         };
 
-        memcpy(output.data + index, chunk, 4);
+        memcpy(output.data() + index, chunk, 4);
         index += 4;
     }
 
@@ -110,8 +110,8 @@ nbl::Result nbl::encodeBase64(Span<u8> input, Span<char> output, const Base64Cha
     if(remaining == 2) {
 
         u32 encodedChunk = 
-            ((input.data[position] << 8) |
-            (input.data[position + 1])) << 2;
+            ((input[position] << 8) |
+            (input[position + 1])) << 2;
 
         position += 2;
 
@@ -125,12 +125,12 @@ nbl::Result nbl::encodeBase64(Span<u8> input, Span<char> output, const Base64Cha
             characterSet.encodingTable[c1]
         };
 
-        memcpy(output.data + index, chunk, 3);
+        memcpy(output.data() + index, chunk, 3);
         index += 3;
     }
     else if(remaining == 1) {
         u32 encodedChunk = 
-            (input.data[position]) << 4;
+            (input[position]) << 4;
 
         position += 1;
 
@@ -141,27 +141,27 @@ nbl::Result nbl::encodeBase64(Span<u8> input, Span<char> output, const Base64Cha
             characterSet.encodingTable[c2],
             characterSet.encodingTable[c1]
         };
-        memcpy(output.data + index, chunk, 2);
+        memcpy(output.data() + index, chunk, 2);
         index += 2;
     }
 
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result nbl::decodeBase64(Span<char> input, Span<u8> output, const Base64CharacterSet& characterSet) {
+nbl::Result nbl::decodeBase64(ConstSpan<char> input, Span<u8> output, const Base64CharacterSet& characterSet) {
 
-    if(output.length < b64DecodedLength(input.length)) return nbl::Result::INVALID_ARGUMENT;
+    if(output.length() < b64DecodedLength(input.length())) return nbl::Result::INVALID_ARGUMENT;
 
     usize position = 0;
-    usize encodedLength = input.length;
+    usize encodedLength = input.length();
     usize index = 0;
 
     while((encodedLength - position) >= 4) {
 
-        u8 c1 = B64URL_REVERSE_LOOKUP[input.data[position]];
-        u8 c2 = B64URL_REVERSE_LOOKUP[input.data[position + 1]];
-        u8 c3 = B64URL_REVERSE_LOOKUP[input.data[position + 2]];
-        u8 c4 = B64URL_REVERSE_LOOKUP[input.data[position + 3]];
+        u8 c1 = B64URL_REVERSE_LOOKUP[input[position]];
+        u8 c2 = B64URL_REVERSE_LOOKUP[input[position + 1]];
+        u8 c3 = B64URL_REVERSE_LOOKUP[input[position + 2]];
+        u8 c4 = B64URL_REVERSE_LOOKUP[input[position + 3]];
 
         position += 4;
 
@@ -171,15 +171,15 @@ nbl::Result nbl::decodeBase64(Span<char> input, Span<u8> output, const Base64Cha
             static_cast<u8>((chunk >> 8) & 0xFF), 
             static_cast<u8>(chunk & 0xFF) 
         };
-        memcpy(output.data + index, data, 3);
+        memcpy(output.data() + index, data, 3);
         index += 3;
     }
 
     usize remaining = encodedLength - position;
     if(remaining == 3) {
-        u8 c1 = B64URL_REVERSE_LOOKUP[input.data[position]];
-        u8 c2 = B64URL_REVERSE_LOOKUP[input.data[position + 1]];
-        u8 c3 = B64URL_REVERSE_LOOKUP[input.data[position + 2]];
+        u8 c1 = B64URL_REVERSE_LOOKUP[input[position]];
+        u8 c2 = B64URL_REVERSE_LOOKUP[input[position + 1]];
+        u8 c3 = B64URL_REVERSE_LOOKUP[input[position + 2]];
 
         position += 3;
 
@@ -188,25 +188,25 @@ nbl::Result nbl::decodeBase64(Span<char> input, Span<u8> output, const Base64Cha
             static_cast<u8>((chunk >> 8) & 0xFF), 
             static_cast<u8>(chunk & 0xFF) 
         };
-        memcpy(output.data + index, data, 2);
+        memcpy(output.data() + index, data, 2);
         index += 2;
 
     } else if(remaining == 2) {
-        u8 c1 = B64URL_REVERSE_LOOKUP[input.data[position]];
-        u8 c2 = B64URL_REVERSE_LOOKUP[input.data[position + 1]];
+        u8 c1 = B64URL_REVERSE_LOOKUP[input[position]];
+        u8 c2 = B64URL_REVERSE_LOOKUP[input[position + 1]];
 
         position += 2;
 
         u32 chunk = ((c1 << 6) | c2) >> 4;
         u8 data = static_cast<u8>(chunk & 0xFF);
 
-        output.data[index++] = data;
+        output[index++] = data;
 
     } else if(remaining == 1) {
-        u8 c1 = B64URL_REVERSE_LOOKUP[input.data[position]];
+        u8 c1 = B64URL_REVERSE_LOOKUP[input[position]];
         position += 1;
 
-        output.data[index++] = c1;
+        output[index++] = c1;
     }
 
     return nbl::Result::SUCCESS;

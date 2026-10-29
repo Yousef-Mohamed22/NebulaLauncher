@@ -54,15 +54,13 @@ void _strDistance(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
     if(argc > 0) {
         const unsigned char* data1 = sqlite3_value_text(argv[0]);
         if(data1) {
-            str1.length = strlen(reinterpret_cast<const char*>(data1));
-            str1.data = reinterpret_cast<const char*>(data1);
+            str1 = reinterpret_cast<const char*>(data1);
         }
     }
     if(argc > 1) {
         const unsigned char* data2 = sqlite3_value_text(argv[1]);
         if(data2) {
-            str2.length = strlen(reinterpret_cast<const char*>(data2));
-            str2.data = reinterpret_cast<const char*>(data2);
+            str2 = reinterpret_cast<const char*>(data2);
         }
     }
     sqlite3_result_int64(ctx, str1.distance(str2));
@@ -116,13 +114,13 @@ nbl::Result nbl::PreparedStatement::bindFloat(i32 index, f64 value) {
 
 nbl::Result nbl::PreparedStatement::bindString(i32 index, nbl::StringView value, bool transient) {
 
-    NBL_ASSERT(value.length <= static_cast<usize>(INT_MAX));
+    NBL_ASSERT(value.length() <= static_cast<usize>(INT_MAX));
 
     int rc = sqlite3_bind_text(
         reinterpret_cast<sqlite3_stmt*>(_pHandle), 
         index, 
-        value.data, 
-        static_cast<int>(value.length), 
+        value.data(), 
+        static_cast<int>(value.length()), 
         transient ? SQLITE_TRANSIENT : SQLITE_STATIC);
 
     if(rc != SQLITE_OK) {
@@ -133,13 +131,13 @@ nbl::Result nbl::PreparedStatement::bindString(i32 index, nbl::StringView value,
 }
 nbl::Result nbl::PreparedStatement::bindBlob(i32 index, ConstSpan<u8> value, bool transient) {
 
-    NBL_ASSERT(value.length <= static_cast<usize>(INT_MAX));
+    NBL_ASSERT(value.length() <= static_cast<usize>(INT_MAX));
 
     int rc = sqlite3_bind_blob64(
         reinterpret_cast<sqlite3_stmt*>(_pHandle), 
         index, 
-        value.data, 
-        value.length,
+        value.data(), 
+        value.length(),
         transient ? SQLITE_TRANSIENT : SQLITE_STATIC);
 
     if(rc != SQLITE_OK) {
@@ -171,13 +169,13 @@ nbl::Result nbl::DatabaseConnection::prepare(nbl::StringView query, PreparedStat
 
     outStatement->~PreparedStatement();
 
-    NBL_ASSERT(query.length <= static_cast<usize>(INT_MAX));
+    NBL_ASSERT(query.length() <= static_cast<usize>(INT_MAX));
     outStatement->_pConnectionHandle = _pHandle;
 
     int rc = sqlite3_prepare_v2(
         reinterpret_cast<sqlite3*>(_pHandle), 
-        query.data, 
-        static_cast<int>(query.length), 
+        query.data(), 
+        static_cast<int>(query.length()), 
         reinterpret_cast<sqlite3_stmt**>(&outStatement->_pHandle), 
         nullptr);
 
@@ -195,7 +193,7 @@ nbl::Result nbl::DatabaseConnection::execute(nbl::StringView query) {
 
     int rc = sqlite3_exec(
         reinterpret_cast<sqlite3*>(_pHandle), 
-        query.data, 
+        query.data(), 
         nullptr,
         nullptr,
         nullptr);
@@ -211,7 +209,7 @@ nbl::Result nbl::DatabaseConnection::execute(nbl::StringView query, DatabaseCall
 
     int rc = sqlite3_exec(
         reinterpret_cast<sqlite3*>(_pHandle), 
-        query.data, 
+        query.data(), 
         _databaseCallback, 
         &callback, 
         nullptr);
@@ -317,10 +315,10 @@ nbl::Result nbl::DatabaseConnection::execute(PreparedStatement* query, TypedData
                         break;
                     case SQLITE_BLOB:
                         columnValues[i].type = DataType::BLOB;
-                        columnValues[i].blobValue = ConstSpan<u8>{
-                            .data = reinterpret_cast<const u8*>(sqlite3_column_blob(stmt, i)),
-                            .length = static_cast<usize>(sqlite3_column_bytes(stmt, i))
-                        };
+                        columnValues[i].blobValue = ConstSpan<u8>(
+                            reinterpret_cast<const u8*>(sqlite3_column_blob(stmt, i)),
+                            static_cast<usize>(sqlite3_column_bytes(stmt, i))
+                        );
                         break;
 
                     case SQLITE_NULL:
@@ -424,7 +422,7 @@ nbl::Result nbl::DatabaseConnection::open(nbl::StringView path, DatabaseConnecti
     NBL_CHECK(nbl::StringBuilder::nullTerminate(path, &nullTerminatedPath, &frame));
 
     int rc = sqlite3_open_v2(
-        nullTerminatedPath.data, 
+        nullTerminatedPath.data(), 
         reinterpret_cast<sqlite3**>(&outConnection->_pHandle), 
         SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
         nullptr);

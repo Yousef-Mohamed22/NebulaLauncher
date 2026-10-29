@@ -43,7 +43,7 @@ nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValu
         }
     }
 
-    usize outStringLength = stringLength + (occurrances * (newValue.length - 1));
+    usize outStringLength = stringLength + (occurrances * (newValue.length() - 1));
 
 
     if(outStringLength > stringLength) {
@@ -53,10 +53,10 @@ nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValu
         for(usize i = startIndex; i < outStringLength; i++) {
             char c = stringData[i];
             if(c == oldValue) {
-                memmove(stringData + i + newValue.length, stringData + i + 1, stringLength - i - 1);
-                memcpy(stringData + i, newValue.data, newValue.length);
-                i += newValue.length - 1;
-                stringLength += newValue.length - 1;
+                memmove(stringData + i + newValue.length(), stringData + i + 1, stringLength - i - 1);
+                memcpy(stringData + i, newValue.data(), newValue.length());
+                i += newValue.length() - 1;
+                stringLength += newValue.length() - 1;
             } else {
                 stringData[i] = c;
             }
@@ -66,7 +66,7 @@ nbl::Result nbl::StringBuilder::replaceChecked(char oldValue, StringView newValu
         for(usize i = startIndex; i < stringLength; i++) {
             char c = stringData[i];
             if(c == oldValue) {
-                stringData[i] = newValue.data[0];
+                stringData[i] = newValue.data()[0];
             }
         }
     }

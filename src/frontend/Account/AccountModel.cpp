@@ -45,11 +45,11 @@ nbl::Result _startTracking(void* userData, i64 accountId, const nbl::AccountProv
                 }
 
                 nbl::frontend::AccountModel* model = static_cast<nbl::frontend::AccountModel*>(userData);
-                emit model->loginFinished(success, QString::fromUtf8(message.data, message.length));
+                emit model->loginFinished(success, QString::fromUtf8(message.data(), message.length()));
             },
             [](nbl::StringView message, void* userData) {
                 nbl::frontend::AccountModel* model = static_cast<nbl::frontend::AccountModel*>(userData);
-                emit model->loginStatus(QString::fromUtf8(message.data, message.length));
+                emit model->loginStatus(QString::fromUtf8(message.data(), message.length()));
             },
             [](nbl::StringView url, void* userData) {
                 QDesktopServices::openUrl(QUrl(nbl::frontend::fromNbl(url)));

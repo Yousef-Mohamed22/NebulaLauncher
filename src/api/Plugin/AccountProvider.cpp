@@ -63,8 +63,8 @@ void nbl::LoginTracker::complete(PluginContext* context, StringView username, St
             return;
         }
     } else {
-        iconId.utf.length = min(static_cast<usize>(4), icon.length);
-        memcpy(iconId.utf.data, icon.data, iconId.utf.length);
+        iconId.utf.length = min(static_cast<usize>(4), icon.length());
+        memcpy(iconId.utf.data, icon.data(), iconId.utf.length);
     }
 
     nbl::OnlineAccount account={
@@ -89,7 +89,7 @@ void nbl::LoginTracker::complete(PluginContext* context, StringView username, St
 
 nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView clientId, Span<StringView> scopes, u16 port, OAuthResponseType type, Span<char> challengeB64, StringBuilder* responseBuilder) {
 
-    if(challengeB64.length < 43 || challengeB64.length > 128) {
+    if(challengeB64.length() < 43 || challengeB64.length() > 128) {
         return nbl::Result::INVALID_ARGUMENT;
     }
 
@@ -108,10 +108,10 @@ nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView client
     // PKCE
     nbl::Array<u8, 96> challengeBytes;
     NBL_CHECK(nbl::secureRandom(challengeBytes));
-    NBL_CHECK(nbl::encodeBase64(challengeBytes.span().slice(0, nbl::b64DecodedLength(challengeB64.length)), challengeB64, nbl::Base64CharacterSet::URL_SAFE));
+    NBL_CHECK(nbl::encodeBase64(challengeBytes.span().slice(0, nbl::b64DecodedLength(challengeB64.length())), challengeB64, nbl::Base64CharacterSet::URL_SAFE));
 
     nbl::Array<u8, 32> hash{};
-    NBL_CHECK(nbl::sha256(ConstSpan<u8>(reinterpret_cast<u8*>(challengeB64.data), challengeB64.length), hash));
+    NBL_CHECK(nbl::sha256(ConstSpan<u8>(reinterpret_cast<u8*>(challengeB64.data()), challengeB64.length()), hash));
 
     nbl::Array<char, 43> hashB64{};
     NBL_CHECK(nbl::encodeBase64(hash, hashB64, nbl::Base64CharacterSet::URL_SAFE));
@@ -143,7 +143,7 @@ nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView client
             .append("&redirect_uri=http%3A%2F%2Flocalhost%3A").append(port);
 
         usize index = 0;
-        if(scopes.length > 0) {
+        if(scopes.length() > 0) {
             builder.append("&scope=");
             for(StringView& scope : scopes) {
                 if(index++ > 0) {
@@ -170,13 +170,13 @@ nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView client
     usize index = 0;
     NBL_CHECK(path.findFirst('?', &index));
 
-    StringView current = path.tail(index + 1);
+    StringView current = path.slice(index + 1);
     bool c = true;
     while(c) {
         Result findRes = current.findFirst('&', &index);
         if(findRes == Result::NOT_FOUND) {
             c = false;
-            index = current.length;
+            index = current.length();
         }
         StringView arg = current.slice(0, index);
 
@@ -184,7 +184,7 @@ nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView client
         NBL_CHECK(arg.findFirst('=', &delim));
 
         StringView field = arg.slice(0, delim);
-        StringView value = arg.tail(delim + 1);
+        StringView value = arg.slice(delim + 1);
 
         NBL_DEBUG(field, '=', value);
 
@@ -198,7 +198,7 @@ nbl::Result nbl::LoginTracker::beginOAuthLogin(StringView url, StringView client
         }
 
         if(c) {
-            current = current.tail(index + 1);
+            current = current.slice(index + 1);
         }
     }
 

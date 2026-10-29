@@ -107,9 +107,9 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 
     nbl::Span<nbl::FieldValue> values{};
 
-    nbl::decodeFieldValues(context, _accountFields, element.object, &values, &frame);
+    nbl::decodeFieldValues(context, _accountFields, element.asObject(), &values, &frame);
 
-    _localAlloc.popTo(nbl::alignUp(_db_path.length + 1, 8));
+    _localAlloc.popTo(nbl::alignUp(_db_path.length() + 1, 8));
     NBL_CHECK(nbl::ra::downloadProfile(&_httpClient, values[1].stringValue.raw, values[0].stringValue.raw, &_localAlloc, &_profile));
 
     values[2].stringValue.raw = _profile.ulid;
@@ -127,7 +127,7 @@ nbl::Result _logout(nbl::PluginContext* context, i64 accountId, void* userData) 
     _profile.apiKey = {};
     _profile.username = {};
 
-    _localAlloc.popTo(nbl::alignUp(_db_path.length + 1, 8));
+    _localAlloc.popTo(nbl::alignUp(_db_path.length() + 1, 8));
 
     return nbl::Result::SUCCESS;
 }
@@ -155,15 +155,15 @@ struct _ProviderData {
         return nbl::StringView(completionPercents);
     }
     void setUserCompletion(nbl::StringView completion) {
-        NBL_ASSERT(completion.length < 8);
-        memcpy(completionPercents, completion.data, completion.length);
+        NBL_ASSERT(completion.length() < 8);
+        memcpy(completionPercents, completion.data(), completion.length());
     }
     nbl::StringView hardcoreCompletion() {
         return nbl::StringView(completionPercents + 8);
     }
     void setHardcoreCompletion(nbl::StringView completion) {
-        NBL_ASSERT(completion.length < 8);
-        memcpy(completionPercents + 8, completion.data, completion.length);
+        NBL_ASSERT(completion.length() < 8);
+        memcpy(completionPercents + 8, completion.data(), completion.length());
     }
 };
 
@@ -275,11 +275,11 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
     nbl::JsonElement responseJson{};
 
     NBL_CHECK(nbl::parseJson(response, &frame, &responseJson));
-    if(responseJson.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+    if(responseJson.type() != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-    u64 numPlayers = responseJson.object.getNumber("NumDistinctPlayers").asUint();
+    u64 numPlayers = responseJson.asObject().getNumber("NumDistinctPlayers").asUint();
 
-    nbl::JsonObject obj = responseJson.object.getObject("Achievements");
+    nbl::JsonObject obj = responseJson.asObject().getObject("Achievements");
     if(obj.entryCount == 0) {
         nbl::log(nbl::LogLevel::DEBUG, "Achievement set: ", set.providerId, " has no achievements");
         return nbl::Result::NO_CHANGE;
@@ -287,7 +287,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
 
     bool updated = false;
 
-    u64 totalPlayers = responseJson.object.getNumber("NumDistinctPlayers").asUint();
+    u64 totalPlayers = responseJson.asObject().getNumber("NumDistinctPlayers").asUint();
     if(totalPlayers != ud.numPlayers) {
 
         updated = true;
@@ -295,8 +295,8 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
 
     } else {
 
-        nbl::StringView userCompletion = responseJson.object.getString("UserCompletion");
-        nbl::StringView hardcoreCompletion = responseJson.object.getString("UserCompletionHardcore");
+        nbl::StringView userCompletion = responseJson.asObject().getString("UserCompletion");
+        nbl::StringView hardcoreCompletion = responseJson.asObject().getString("UserCompletionHardcore");
 
         if(userCompletion != ud.userCompletion() || hardcoreCompletion != ud.hardcoreCompletion()) {
         
@@ -313,22 +313,22 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
     for(nbl::JsonObject::Entry& ent : obj) {
 
         nbl::StringView id = ent.key;
-        if(ent.value.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+        if(ent.value.type() != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
         u64 time;
-        NBL_CHECK(nbl::ra::parseDate(ent.value.object.getString("DateModified"), &time));
+        NBL_CHECK(nbl::ra::parseDate(ent.value.asObject().getString("DateModified"), &time));
 
         if(latestUpdate < time) latestUpdate = time;
 
-        nbl::StringView unlockDate = ent.value.object.getString("DateEarnedHardcore");
-        bool hardcore = unlockDate.length > 0;
-        bool unlocked = hardcore || (unlockDate = ent.value.object.getString("DateEarned")).length > 0;
+        nbl::StringView unlockDate = ent.value.asObject().getString("DateEarnedHardcore");
+        bool hardcore = unlockDate.length() > 0;
+        bool unlocked = hardcore || (unlockDate = ent.value.asObject().getString("DateEarned")).length() > 0;
 
         if(unlocked) numComplete++;
         if(hardcore) numHardcore++;
 
         u64 unlockTime = 0;
-        if(unlockDate.length > 0) {
+        if(unlockDate.length() > 0) {
             NBL_CHECK(nbl::ra::parseDate(unlockDate, &unlockTime));
         }
 
@@ -336,7 +336,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
         if(set.lastUpdated < time) {
 
             nbl::AchievementFlags flags = 0;
-            nbl::StringView type = ent.value.object.getString("Type");
+            nbl::StringView type = ent.value.asObject().getString("Type");
             if(type == "progression") {
                 flags |= nbl::AchievementFlag::PROGRESSION;
             } else if(type == "win_condition") {
@@ -350,7 +350,7 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
             nbl::StringBuilder(&frame)
                 .append(RA_MEDIA_URL)
                 .append("/Badge/")
-                .append(ent.value.object.getString("BadgeName"))
+                .append(ent.value.asObject().getString("BadgeName"))
                 .append(".png")
                 .buildNullTerminated(&badgeUrl);
 
@@ -358,27 +358,27 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
             nbl::StringBuilder(&frame)
                 .append(RA_MEDIA_URL)
                 .append("/Badge/")
-                .append(ent.value.object.getString("BadgeName"))
+                .append(ent.value.asObject().getString("BadgeName"))
                 .append("_lock.png")
                 .buildNullTerminated(&lockedBadgeUrl);
 
             nbl::StringView descriptionWithPoints{};
             nbl::StringBuilder(&frame)
-                .append(ent.value.object.getString("Description"))
-                .append(" (").append(ent.value.object.getNumber("Points").asInt()).append(')')
+                .append(ent.value.asObject().getString("Description"))
+                .append(" (").append(ent.value.asObject().getNumber("Points").asInt()).append(')')
                 .buildNullTerminated(&descriptionWithPoints);
 
             helper.addOrUpdateAchievementWithProgress(
                 set.id,
-                ent.value.object.getNumber("DisplayOrder").asUint(),
+                ent.value.asObject().getNumber("DisplayOrder").asUint(),
                 id,
-                ent.value.object.getString("Title"),
+                ent.value.asObject().getString("Title"),
                 descriptionWithPoints,
                 badgeUrl,
                 lockedBadgeUrl,
-                100.0 * ent.value.object.getNumber(hardcore ? "NumAwardedHardcore" : "NumAwarded").asFloat() / numPlayers,
+                100.0 * ent.value.asObject().getNumber(hardcore ? "NumAwardedHardcore" : "NumAwarded").asFloat() / numPlayers,
                 0, 0,
-                unlockDate.length == 0 ? 0 : unlockTime, 
+                unlockDate.length() == 0 ? 0 : unlockTime, 
                 flags,
                 hardcore ? RA_BORDER_COLOR_HARDCORE : RA_BORDER_COLOR_CASUAL,
                 {}
@@ -392,9 +392,9 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
             helper.setAchievementProgress(
                     set.id, 
                     id,
-                    100.0 * ent.value.object.getNumber(hardcore ? "NumAwardedHardcore" : "NumAwarded").asFloat() / numPlayers,
+                    100.0 * ent.value.asObject().getNumber(hardcore ? "NumAwardedHardcore" : "NumAwarded").asFloat() / numPlayers,
                     0, 0,
-                    unlockDate.length == 0 ? 0 : unlockTime, 
+                    unlockDate.length() == 0 ? 0 : unlockTime, 
                     hardcore ? RA_BORDER_COLOR_HARDCORE : RA_BORDER_COLOR_CASUAL);
 
             updated = true;

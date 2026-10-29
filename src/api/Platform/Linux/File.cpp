@@ -151,14 +151,14 @@ nbl::Result nbl::FileChannel::open(StringView path, FileChannel* outChannel, Fil
     }
 
     int fd;
-    if(path.nullTerminated) {
-        fd = ::open(path.data, openFlags, 0644);
+    if(path.nullTerminated()) {
+        fd = ::open(path.data(), openFlags, 0644);
     } else {
 
         nbl::AllocationFrame frame(nbl::Arena::threadLocal());
         StringView nullTerminatedPath{};
         NBL_CHECK(nbl::StringBuilder::nullTerminate(path, &nullTerminatedPath, &frame));
-        fd = ::open(nullTerminatedPath.data, openFlags, 0644);
+        fd = ::open(nullTerminatedPath.data(), openFlags, 0644);
     }   
 
     if(fd < 0) {
@@ -239,7 +239,7 @@ nbl::Result nbl::FolderIterator::create(StringView path, FolderIterator* outIter
     nbl::StringView nullPath;
     NBL_CHECK(nbl::StringBuilder(&frame).append(path).buildNullTerminated(&nullPath));
 
-    DIR* handle = ::opendir(nullPath.data);
+    DIR* handle = ::opendir(nullPath.data());
     if(handle == nullptr) {
         return nbl::Result::IO_ERROR;
     }
@@ -250,12 +250,12 @@ nbl::Result nbl::FolderIterator::create(StringView path, FolderIterator* outIter
 
 nbl::Result nbl::makeDirectories(StringView path) {
 
-    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+    if(path.length() == 0 || path.length() >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 
     char temp[PATH_MAX] = {};
-    memcpy(temp, path.data, path.length);
+    memcpy(temp, path.data(), path.length());
 
-    StringView stackPath = StringView(temp, path.length);
+    StringView stackPath = StringView(temp, path.length());
 
     usize index = 0;
     Result rc = nbl::Result::SUCCESS;
@@ -266,7 +266,7 @@ nbl::Result nbl::makeDirectories(StringView path) {
             return rc;
         }
         if(rc == nbl::Result::NOT_FOUND) {
-            index = path.length;
+            index = path.length();
         }
 
         if(index == 0) {
@@ -285,7 +285,7 @@ nbl::Result nbl::makeDirectories(StringView path) {
         temp[index] = '/';
         index += 1;
 
-        if(index >= path.length) break;
+        if(index >= path.length()) break;
     }
 
     return nbl::Result::SUCCESS;
@@ -294,13 +294,13 @@ nbl::Result nbl::makeDirectories(StringView path) {
 
 bool nbl::fileExists(StringView path) {
 
-    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+    if(path.length() == 0 || path.length() >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 
-    if(path.nullTerminated) {
-        return access(path.data, F_OK) == 0;
+    if(path.nullTerminated()) {
+        return access(path.data(), F_OK) == 0;
     } else {
         char temp[PATH_MAX] = {};
-        memcpy(temp, path.data, path.length);
+        memcpy(temp, path.data(), path.length());
         return access(temp, F_OK) == 0;
     }
 }
@@ -308,14 +308,14 @@ bool nbl::fileExists(StringView path) {
 
 nbl::Result nbl::deleteFile(StringView path) {
 
-    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+    if(path.length() == 0 || path.length() >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 
     int rc;
-    if(path.nullTerminated) {
-        rc = unlink(path.data);
+    if(path.nullTerminated()) {
+        rc = unlink(path.data());
     } else {
         char temp[PATH_MAX] = {};
-        memcpy(temp, path.data, path.length);
+        memcpy(temp, path.data(), path.length());
         rc = unlink(temp);
     }
 
@@ -324,36 +324,36 @@ nbl::Result nbl::deleteFile(StringView path) {
 }
 
 bool nbl::isExecutable(StringView path) {
-    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+    if(path.length() == 0 || path.length() >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 
-    if(path.nullTerminated) {
-        return access(path.data, X_OK) == 0;
+    if(path.nullTerminated()) {
+        return access(path.data(), X_OK) == 0;
     } else {
         char temp[PATH_MAX] = {};
-        memcpy(temp, path.data, path.length);
+        memcpy(temp, path.data(), path.length());
         return access(temp, X_OK) == 0;
     }
 }
 
 nbl::Result nbl::setExecutable(StringView path) {
 
-    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+    if(path.length() == 0 || path.length() >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 
     struct stat fileStat;
 
-    if(path.nullTerminated) {
+    if(path.nullTerminated()) {
 
-        if(access(path.data, X_OK) == 0) return nbl::Result::SUCCESS;
+        if(access(path.data(), X_OK) == 0) return nbl::Result::SUCCESS;
 
-        if(stat(path.data, &fileStat) != 0) return nbl::Result::OS_ERROR;
+        if(stat(path.data(), &fileStat) != 0) return nbl::Result::OS_ERROR;
         int mode = fileStat.st_mode & 0777;
 
-        if(chmod(path.data, mode | 0100) != 0) return nbl::Result::OS_ERROR;
+        if(chmod(path.data(), mode | 0100) != 0) return nbl::Result::OS_ERROR;
         return nbl::Result::SUCCESS;
 
     } else {
         char temp[PATH_MAX] = {};
-        memcpy(temp, path.data, path.length);
+        memcpy(temp, path.data(), path.length());
 
         if(access(temp, X_OK) == 0) return nbl::Result::SUCCESS;
 
@@ -371,14 +371,14 @@ nbl::Result nbl::createLink(StringView target, StringView path) {
 
     AllocationFrame frame(nbl::Arena::threadLocal());
 
-    if(!target.nullTerminated) {
+    if(!target.nullTerminated()) {
         NBL_CHECK(StringBuilder::nullTerminate(target, &target, &frame));
     }
-    if(!path.nullTerminated) {
+    if(!path.nullTerminated()) {
         NBL_CHECK(StringBuilder::nullTerminate(path, &path, &frame));
     }
 
-    int rc = symlink(target.data, path.data);
+    int rc = symlink(target.data(), path.data());
     if(rc != 0) return nbl::Result::OS_ERROR;
 
     return nbl::Result::SUCCESS;
@@ -387,18 +387,18 @@ nbl::Result nbl::createLink(StringView target, StringView path) {
 
 u64 nbl::modifyTime(StringView path) {
 
-    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+    if(path.length() == 0 || path.length() >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 
     struct stat fileStat;
 
-    if(path.nullTerminated) {
+    if(path.nullTerminated()) {
 
-        if(stat(path.data, &fileStat) != 0) return 0;
+        if(stat(path.data(), &fileStat) != 0) return 0;
         return fileStat.st_mtime;
 
     } else {
         char temp[PATH_MAX] = {};
-        memcpy(temp, path.data, path.length);
+        memcpy(temp, path.data(), path.length());
 
         if(stat(temp, &fileStat) != 0) return 0;
         return fileStat.st_mtime;
@@ -407,7 +407,7 @@ u64 nbl::modifyTime(StringView path) {
 
 nbl::Result nbl::setModifyTime(StringView path, u64 modifyTime) {
 
-    if(path.length == 0 || path.length >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
+    if(path.length() == 0 || path.length() >= PATH_MAX) return nbl::Result::INVALID_ARGUMENT;
 
     struct timespec times[2];
     times[0].tv_nsec = UTIME_OMIT;
@@ -415,13 +415,13 @@ nbl::Result nbl::setModifyTime(StringView path, u64 modifyTime) {
     times[1].tv_sec = modifyTime / 1000;
     times[1].tv_nsec = (modifyTime * 1000000) % 1000000;
 
-    if(path.nullTerminated) {
+    if(path.nullTerminated()) {
 
-        if(utimensat(AT_FDCWD, path.data, times, 0) == -1) return nbl::Result::OS_ERROR;
+        if(utimensat(AT_FDCWD, path.data(), times, 0) == -1) return nbl::Result::OS_ERROR;
 
     } else {
         char temp[PATH_MAX] = {};
-        memcpy(temp, path.data, path.length);
+        memcpy(temp, path.data(), path.length());
 
         if(utimensat(AT_FDCWD, temp, times, 0) == -1) return nbl::Result::OS_ERROR;
     }

@@ -38,16 +38,16 @@ nbl::Result nbl::mc::downloadAssets(nbl::mc::DownloadManager* client, StringView
 
     JsonElement indexJson;
     NBL_CHECK(parseJson(channel.reader(), &frame, &indexJson));
-    if(indexJson.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+    if(indexJson.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
     
-    JsonObject objects = indexJson.object.getObject("objects");
+    JsonObject objects = indexJson.asObject().getObject("objects");
     for(JsonObject::Entry ent : objects) {
-        if(ent.value.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+        if(ent.value.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-        StringView hash = ent.value.object.getString("hash");
-        u64 size = ent.value.object.getNumber("size").uintValue;
+        StringView hash = ent.value.asObject().getString("hash");
+        u64 size = ent.value.asObject().getNumber("size").uintValue;
 
-        if(hash.length != 40 || size == 0) {
+        if(hash.length() != 40 || size == 0) {
             return nbl::Result::FORMAT_ERROR;
         }
 
@@ -55,7 +55,7 @@ nbl::Result nbl::mc::downloadAssets(nbl::mc::DownloadManager* client, StringView
         StringView filePath;
         NBL_CHECK(StringBuilder(&frame).append(assetFolder).append("/objects/").append(hash.slice(0, 2)).append("/").append(hash).buildNullTerminated(&filePath));
 
-        StringView folderPath = filePath.slice(0, filePath.length - hash.length - 1);
+        StringView folderPath = filePath.slice(0, filePath.length() - hash.length() - 1);
         nbl::makeDirectories(folderPath);
 
         StringView fileUrl;
@@ -79,16 +79,16 @@ nbl::Result nbl::mc::verifyStrict(StringView assetFolder, StringView id, StringV
 
     JsonElement indexJson;
     NBL_CHECK(parseJson(channel.reader(), &frame, &indexJson));
-    if(indexJson.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+    if(indexJson.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-    JsonObject objects = indexJson.object.getObject("objects");
+    JsonObject objects = indexJson.asObject().getObject("objects");
     for(JsonObject::Entry ent : objects) {
-        if(ent.value.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+        if(ent.value.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-        StringView hash = ent.value.object.getString("hash");
-        u64 size = ent.value.object.getNumber("size").uintValue;
+        StringView hash = ent.value.asObject().getString("hash");
+        u64 size = ent.value.asObject().getNumber("size").uintValue;
 
-        if(hash.length != 40 || size == 0) {
+        if(hash.length() != 40 || size == 0) {
             return nbl::Result::FORMAT_ERROR;
         }
 

@@ -32,7 +32,7 @@ enum _ParamClassification {
 
 
 _ParamClassification _classify(nbl::StringView id, usize* sep) {
-    if(id.length == 0) return CLASS_INVALID;
+    if(id.length() == 0) return CLASS_INVALID;
 
     bool foundSep = false;
     usize index = 0;
@@ -78,10 +78,10 @@ void nbl::frontend::OnlineGameLookupWorker::run() {
         out["tags"] = tags;
         
         QVariantList platformIds = {};
-        for(usize i = 0 ; i < nbl::min(value.platformIds.length, value.platformNames.length) ; i++) {
+        for(usize i = 0 ; i < nbl::min(value.platformIds.length(), value.platformNames.length()) ; i++) {
             QVariantMap id = {};
-            id["platform"] = QString::fromUtf8(value.platformNames[i].data, value.platformNames[i].length);
-            id["id"] = QString::fromUtf8(value.platformIds[i].data, value.platformIds[i].length);
+            id["platform"] = QString::fromUtf8(value.platformNames[i].data(), value.platformNames[i].length());
+            id["id"] = QString::fromUtf8(value.platformIds[i].data(), value.platformIds[i].length());
             platformIds.append(id);
         }
         out["externalIds"] = platformIds;
@@ -135,7 +135,7 @@ int nbl::frontend::OnlineGameLookupHelper::lookup(QByteArray title) {
 
     ApplicationContext* ctx = ApplicationContext::instance();
 
-    if(ctx->pluginContext()->registry<nbl::GameProvider>().length == 0) {
+    if(ctx->pluginContext()->registry<nbl::GameProvider>().length() == 0) {
         emit done();
         return nbl::Result::SUCCESS;
     } 

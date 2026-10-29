@@ -148,12 +148,12 @@ nbl::Result nbl::PluginLoader::_load(StringView folder, Registry::Builder* regis
 
     JsonElement value = {};
     NBL_CHECK(parseJson(manifestStream.reader(), &frame, &value));
-    if(value.type != JsonType::OBJECT) return nbl::Result::INVALID_ARGUMENT;
+    if(value.type() != JsonType::OBJECT) return nbl::Result::INVALID_ARGUMENT;
 
-    StringView id = value.object.getString("id");
-    StringView name = value.object.getString("name");
-    StringView description = value.object.getString("description");
-    StringView version = value.object.getString("version");
+    StringView id = value.asObject().getString("id");
+    StringView name = value.asObject().getString("name");
+    StringView description = value.asObject().getString("description");
+    StringView version = value.asObject().getString("version");
 
     if(id.empty() || name.empty() || version.empty()) return nbl::Result::INVALID_ARGUMENT;
 
@@ -195,7 +195,7 @@ nbl::Result nbl::PluginLoader::_load(StringView folder, Registry::Builder* regis
 }
 
 void nbl::PluginLoader::_unloadAll() {
-    for(LoadedPlugin& p : loadedPlugins()) {
+    for(LoadedPlugin& p : _mMetaArena.span().reinterpret<LoadedPlugin>()) {
         (&p)->~LoadedPlugin();
     }
     _mMetaArena.popTo(0);

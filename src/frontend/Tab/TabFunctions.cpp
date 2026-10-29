@@ -80,29 +80,32 @@ nbl::Result _pushFilters(ApplicationContext* context, nbl::DatabaseConnection* c
 
 
         QVariantList setsList = filter["tags"].toList();
-        nbl::Span<nbl::ConstSpan<i64>> tagSets{};
+        nbl::Span<nbl::ConstSpan<i64>> tagSets(nullptr, setsList.length());
         if(setsList.length() > 0) {
-            NBL_CHECK(frame.allocate(&tagSets.data, setsList.length()));
+            NBL_CHECK(frame.allocate(&tagSets));
+            usize setCount = 0;
             for(QVariant var : setsList) {
 
                 QVariantList list = var.toList();
 
-                nbl::Span<i64> tags{};
-                NBL_CHECK(frame.allocate(&tags.data, list.length()));
+                nbl::Span<i64> tags(nullptr, list.length());
+                usize tagCount = 0;
+                NBL_CHECK(frame.allocate(&tags));
                 for(QVariant tId : list) {
-                    tags[tags.length++] = tId.toLongLong();
+                    tags[tagCount++] = tId.toLongLong();
                 }
-                tagSets[tagSets.length++] = tags;
+                tagSets[setCount++] = tags;
             }
         }
 
 
         QVariantList excludeList = filter["excludeTags"].toList();
-        nbl::Span<i64> exclude{};
+        nbl::Span<i64> exclude(nullptr, excludeList.length());
         if(excludeList.length() > 0) {
-            NBL_CHECK(frame.allocate(&exclude.data, excludeList.length()));
+            NBL_CHECK(frame.allocate(&exclude));
+            usize i = 0;
             for(QVariant var : excludeList) {
-                exclude[exclude.length++] = var.toLongLong();
+                exclude[i++] = var.toLongLong();
             }
         }
 

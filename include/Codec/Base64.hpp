@@ -40,8 +40,8 @@ struct Base64CharacterSet {
 usize b64EncodedLength(usize length);
 usize b64DecodedLength(usize length);
 
-Result encodeBase64(Span<u8> input, Span<char> output, const Base64CharacterSet& characterSet = Base64CharacterSet::STANDARD);
-Result decodeBase64(Span<char> input, Span<u8> output, const Base64CharacterSet& characterSet = Base64CharacterSet::STANDARD);
+Result encodeBase64(ConstSpan<u8> input, Span<char> output, const Base64CharacterSet& characterSet = Base64CharacterSet::STANDARD);
+Result decodeBase64(ConstSpan<char> input, Span<u8> output, const Base64CharacterSet& characterSet = Base64CharacterSet::STANDARD);
 
 
 }

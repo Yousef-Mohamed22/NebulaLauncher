@@ -143,6 +143,115 @@ struct Reader {
 };
 
 
+
+/**
+ * \brief Writes an integer value to a writer in Base-10 ASCII.
+ * \param value The integer value to write.
+ * \param writer The writer to write the value to.
+ * \return A Result indicating success or failure of the write operation.
+ */
+Result writeInt(i64 value, Writer writer);
+
+/**
+ * \brief Writes an unsigned integer value to a writer in Base-10 ASCII.
+ * \param value The unsigned integer value to write.
+ * \param writer The writer to write the value to.
+ * \return A Result indicating success or failure of the write operation.
+ */
+Result writeUint(u64 value, Writer writer);
+
+/**
+ * \brief Writes a floating-point value to a writer in Base-10 ASCII format with a specified precision.
+ * \param value The floating-point value to write.
+ * \param writer The writer to write the value to.
+ * \param precision The number of decimal places to include in the output. Default is 15.
+ * \return A Result indicating success or failure of the write operation.
+ */
+Result writeFloat(f64 value, Writer writer, u8 precision = 15);
+
+/**
+ * \brief Writes an unsigned integer value to a writer in Base-16 ASCII.
+ * \param value The unsigned integer value to write.
+ * \param writer The writer to write the value to.
+ * \param minDigits The minimum number of digits to write. The output will be left-padded with zeros if necessary.
+ * \param lower Whether to use lowercase hex digits for place values greater than 9
+ * \return A Result indicating success or failure of the write operation.
+ */
+Result writeHex(u64 value, Writer writer, u8 minDigits = 0, bool lower = false);
+
+
+/**
+* \brief Converts a value of any type to a string representation and writes it to a writer. This is a template function that should be specialized for different types.
+* \tparam T The type of the value to convert to a string.
+* \param value The value to convert to a string.
+* \param writer The writer to write the string representation of the value to.
+* \return A Result indicating success or failure of the write operation. By default, this function returns an error indicating that the conversion is unimplemented for the given type, and should be specialized for specific types to provide actual implementations.
+*/
+template<typename T>
+Result write(T value, Writer writer) {
+    return nbl::Result::UNIMPLEMENTED;
+}
+
+template<typename T>
+inline Result write(T* ptr, Writer writer) {
+    NBL_CHECK(writer.writeAll("0x", 2));
+    return writeHex(reinterpret_cast<u64>(ptr), writer, sizeof(T*) * 2);
+}
+
+inline Result write(bool value, Writer writer) { return write(value ? "true" : "false", writer); }
+inline Result write(char value, Writer writer) { return writer.writeAll(&value, 1); }
+
+inline Result write(i64 value, Writer writer) { return writeInt(value, writer); }
+inline Result write(u64 value, Writer writer) { return writeUint(value, writer); }
+inline Result write(f64 value, Writer writer) { return writeFloat(value, writer); }
+
+inline Result write(i32 value, Writer writer) { return writeInt(static_cast<i64>(value), writer); }
+inline Result write(u32 value, Writer writer) { return writeUint(static_cast<u64>(value), writer); }
+inline Result write(f32 value, Writer writer) { return writeFloat(static_cast<f64>(value), writer); }
+
+inline Result write(i16 value, Writer writer) { return writeInt(static_cast<i64>(value), writer); }
+inline Result write(u16 value, Writer writer) { return writeUint(static_cast<u64>(value), writer); }
+
+inline Result write(i8 value, Writer writer) { return writeInt(static_cast<i64>(value), writer); }
+inline Result write(u8 value, Writer writer) { return writeUint(static_cast<u64>(value), writer); }
+
+inline Result write(nbl::Result value, Writer writer) {
+    return write(static_cast<i32>(value), writer);
+}
+
+/**
+ * \brief A struct that holds a floating-point value and a precision for formatting the value as a string. This can be used to specify the precision when converting a floating-point value to a string representation.
+ */
+struct FloatLimiter {
+    
+    /** 
+     * \brief Constructor that initializes the FloatLimiter with a floating-point value and a precision.
+     * \param value The floating-point value to be formatted as a string.
+     * \param precision The number of decimal places to include in the string representation of the value.
+     */
+    FloatLimiter(f64 value, u8 precision) : 
+        value(value),
+        precision(precision) 
+    { }
+    
+    f64 value;
+    u8 precision;
+};
+
+// Specialization of the toString function for the FloatLimiter struct, which writes the floating-point value to the writer with the specified precision.
+inline Result write(FloatLimiter limiter, Writer writer) {
+    return writeFloat(limiter.value, writer, limiter.precision);
+}
+
+
+struct HexEncoder {
+    ConstSpan<u8> data;
+    bool upper;
+};
+// Specialization of the toString function for the HexEncoder struct, which writes the buffer to the stream in hexadecimal format.
+Result write(HexEncoder encoder, Writer writer);
+
+
 /**
  * \brief A simple stream implementation for reading and writing from a known buffer.
  */
@@ -157,7 +266,7 @@ public:
  
     template<typename T>
     BufferStream(Span<T> data) :
-        _mBuffer{ reinterpret_cast<u8*>(data.data), data.length / sizeof(T) },
+        _mBuffer(data. template reinterpret<u8>()),
         _mReaderIndex(0),
         _mWriterIndex(0)
     { }

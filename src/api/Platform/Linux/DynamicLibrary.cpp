@@ -58,7 +58,7 @@ nbl::Result nbl::DynamicLibrary::_findSymbol(StringView name, void** outSym) {
     NBL_CHECK(nbl::StringBuilder::nullTerminate(name, &zName, &frame));
 
     dlerror(); // Clear dlerror
-    void* sym = dlsym(_pHandle, name.data);
+    void* sym = dlsym(_pHandle, name.data());
 
     const char* err = dlerror();
     if(err) {
@@ -72,7 +72,7 @@ nbl::Result nbl::DynamicLibrary::_findSymbol(StringView name, void** outSym) {
 
 nbl::Result nbl::DynamicLibrary::load(StringView path, DynamicLibrary* outLibrary) {
 
-    if(path.length == 0) {
+    if(path.length() == 0) {
         return nbl::Result::INVALID_ARGUMENT;
     }
 
@@ -81,7 +81,7 @@ nbl::Result nbl::DynamicLibrary::load(StringView path, DynamicLibrary* outLibrar
     nbl::StringView zPath;
     NBL_CHECK(nbl::StringBuilder::nullTerminate(path, &zPath, &frame));
 
-    void* handle = ::dlopen(zPath.data, RTLD_LAZY);
+    void* handle = ::dlopen(zPath.data(), RTLD_LAZY);
     if(handle == nullptr) {
         nbl::log(nbl::LogLevel::ERROR, "Failed to load library: ", path, " (", dlerror(), ")");
         return nbl::Result::IO_ERROR;

@@ -96,7 +96,7 @@ struct QoiImageMeta {
 
     static inline Result encode(LinearAllocator* alloc, QoiImageMeta meta, ConstSpan<u8> imageData) {
         Span<u8> header(nullptr, 14);
-        NBL_CHECK(alloc->allocate(&header.data, header.length));
+        NBL_CHECK(alloc->allocate(&header));
         NBL_CHECK(encodeMeta(header, meta));
         return encodeImageData(alloc, meta, imageData);
     }

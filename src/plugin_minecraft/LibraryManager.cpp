@@ -31,18 +31,18 @@ nbl::Result nbl::mc::downloadLibraries(DownloadManager* client, StringView libra
 
     usize i = 0;
     return ref.enumerateLibraries([&](JsonElement ele) -> Result {
-        if(ele.type != JsonType::OBJECT) {
+        if(ele.type() != JsonType::OBJECT) {
             return nbl::Result::FORMAT_ERROR;
         }
 
-        StringView name = ele.object.getString("name");
-        if(ele.object.has("rules")) {
+        StringView name = ele.asObject().getString("name");
+        if(ele.asObject().has("rules")) {
             bool canUse = true;
-            for(const JsonElement& ruleEle : ele.object.getArray("rules")) {
-                if(ruleEle.type != JsonType::OBJECT) continue;
+            for(const JsonElement& ruleEle : ele.asObject().getArray("rules")) {
+                if(ruleEle.type() != JsonType::OBJECT) continue;
 
                 Rule rule;
-                NBL_CHECK(Rule::parse(ruleEle.object, &rule));
+                NBL_CHECK(Rule::parse(ruleEle.asObject(), &rule));
 
                 if(!rule.canUse(OsInfo::current(), features)) {
                     canUse = false; 
@@ -58,7 +58,7 @@ nbl::Result nbl::mc::downloadLibraries(DownloadManager* client, StringView libra
 
         AllocationFrame frame(Arena::threadLocal());
 
-        JsonObject artifact = ele.object.getObject("downloads").getObject("artifact");
+        JsonObject artifact = ele.asObject().getObject("downloads").getObject("artifact");
         if(artifact.entryCount > 0) {
             path = artifact.getString("path");
             sha1 = artifact.getString("sha1");
@@ -66,8 +66,8 @@ nbl::Result nbl::mc::downloadLibraries(DownloadManager* client, StringView libra
 
         } else { // Legacy format
 
-            StringView baseUrl = ele.object.getString("url");
-            sha1 = ele.object.getString("sha1");
+            StringView baseUrl = ele.asObject().getString("url");
+            sha1 = ele.asObject().getString("sha1");
 
             // TODO: Parse maven artifact coordinates, convert to maven url.
 
@@ -79,7 +79,7 @@ nbl::Result nbl::mc::downloadLibraries(DownloadManager* client, StringView libra
 
             StringView group = name.slice(0, firstColonIndex);
             StringView artifact = name.slice(firstColonIndex + 1, lastColonIndex - firstColonIndex - 1);
-            StringView version = name.tail(lastColonIndex + 1);
+            StringView version = name.slice(lastColonIndex + 1);
 
             StringView groupUrl;
             NBL_CHECK(StringBuilder(&frame).append(group).replace('.',"/").build(&groupUrl));
@@ -136,16 +136,16 @@ nbl::Result nbl::mc::verifyStrict(StringView libraryFolder, const VersionRef& re
 
     usize i = 0;
     return ref.enumerateLibraries([&](JsonElement ele) -> Result {
-        if(ele.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+        if(ele.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-        StringView name = ele.object.getString("name");
-        if(ele.object.has("rules")) {
+        StringView name = ele.asObject().getString("name");
+        if(ele.asObject().has("rules")) {
             bool canUse = true;
-            for(const JsonElement& ruleEle : ele.object.getArray("rules")) {
-                if(ruleEle.type != JsonType::OBJECT) continue;
+            for(const JsonElement& ruleEle : ele.asObject().getArray("rules")) {
+                if(ruleEle.type() != JsonType::OBJECT) continue;
 
                 Rule rule;
-                NBL_CHECK(Rule::parse(ruleEle.object, &rule));
+                NBL_CHECK(Rule::parse(ruleEle.asObject(), &rule));
 
                 if(!rule.canUse(OsInfo::current(), features)) {
                     canUse = false; 
@@ -155,7 +155,7 @@ nbl::Result nbl::mc::verifyStrict(StringView libraryFolder, const VersionRef& re
             if(!canUse) return nbl::Result::SUCCESS;
         }
 
-        JsonObject artifact = ele.object.getObject("downloads").getObject("artifact");
+        JsonObject artifact = ele.asObject().getObject("downloads").getObject("artifact");
         StringView path = artifact.getString("path");
         StringView sha1 = artifact.getString("sha1");
 

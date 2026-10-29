@@ -322,22 +322,22 @@ nbl::Result _launch(
         nbl::ProcessTracker* handle, 
         void* userData) {
 
-    nbl::log(nbl::LogLevel::INFO, "String: ", fields.data[0].stringValue.resolved);
-    nbl::log(nbl::LogLevel::INFO, "Integer: ", fields.data[1].integerValue);
-    nbl::log(nbl::LogLevel::INFO, "Float: ", fields.data[2].floatValue);
-    nbl::log(nbl::LogLevel::INFO, "Boolean: ", fields.data[3].booleanValue);
-    nbl::log(nbl::LogLevel::INFO, "Enum: ", _name(ctx, fields.data[4].enumValue, nullptr));
-    nbl::log(nbl::LogLevel::INFO, "Date: ", fields.data[5].uintegerValue);
+    nbl::log(nbl::LogLevel::INFO, "String: ", fields[0].stringValue.resolved);
+    nbl::log(nbl::LogLevel::INFO, "Integer: ", fields[1].integerValue);
+    nbl::log(nbl::LogLevel::INFO, "Float: ", fields[2].floatValue);
+    nbl::log(nbl::LogLevel::INFO, "Boolean: ", fields[3].booleanValue);
+    nbl::log(nbl::LogLevel::INFO, "Enum: ", _name(ctx, fields[4].enumValue, nullptr));
+    nbl::log(nbl::LogLevel::INFO, "Date: ", fields[5].uintegerValue);
 
-    nbl::log(nbl::LogLevel::INFO, "Account: ", fields.data[6].accountValue.id);
-    nbl::log(nbl::LogLevel::INFO, "Account (Default): ", fields.data[7].accountValue.id);
+    nbl::log(nbl::LogLevel::INFO, "Account: ", fields[6].accountValue.id);
+    nbl::log(nbl::LogLevel::INFO, "Account (Default): ", fields[7].accountValue.id);
 
-    nbl::log(nbl::LogLevel::INFO, "List.length: ", fields.data[8].compositeValue.length);
-    for(usize i = 0 ; i < fields.data[8].compositeValue.length ; i++) {
-        nbl::log(nbl::LogLevel::INFO, "List[", i, "]: ", fields.data[8].compositeValue[i].stringValue.resolved);
+    nbl::log(nbl::LogLevel::INFO, "List.length: ", fields[8].compositeValue.length());
+    for(usize i = 0 ; i < fields[8].compositeValue.length() ; i++) {
+        nbl::log(nbl::LogLevel::INFO, "List[", i, "]: ", fields[8].compositeValue[i].stringValue.resolved);
     }
-    nbl::log(nbl::LogLevel::INFO, "Struct.String: ", fields.data[9].compositeValue[0].stringValue.resolved);
-    nbl::log(nbl::LogLevel::INFO, "Struct.Int: ", fields.data[9].compositeValue[1].integerValue);
+    nbl::log(nbl::LogLevel::INFO, "Struct.String: ", fields[9].compositeValue[0].stringValue.resolved);
+    nbl::log(nbl::LogLevel::INFO, "Struct.Int: ", fields[9].compositeValue[1].integerValue);
 
     ctx->pushNotification(nbl::NotificationType::INFO, "Hello", "Hello from test plugin");
 

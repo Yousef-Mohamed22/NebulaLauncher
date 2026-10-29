@@ -36,18 +36,18 @@ nbl::Result _decodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
 
     switch(field.type) {
         case nbl::FieldType::STRING: 
-            if(element.type == nbl::JsonType::STRING) {
+            if(element.type() == nbl::JsonType::STRING) {
                 *outValue = nbl::FieldValue { 
                     .stringValue = {
-                        .resolved = element.string,
-                        .raw = element.string,
+                        .resolved = element.asString(),
+                        .raw = element.asString(),
                     }
                 };
-            } else if(element.type == nbl::JsonType::OBJECT) {
+            } else if(element.type() == nbl::JsonType::OBJECT) {
                 *outValue = nbl::FieldValue {
                     .stringValue = {
-                        .resolved = element.object.getString("resolved"),
-                        .raw = element.object.getString("raw")
+                        .resolved = element.asObject().getString("resolved"),
+                        .raw = element.asObject().getString("raw")
                     }
                 };
             } else {
@@ -55,59 +55,59 @@ nbl::Result _decodeFieldValue(nbl::PluginContext* context, const nbl::Field& fie
             }
             break;
         case nbl::FieldType::FLOAT:
-            if(element.type != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
-            *outValue = nbl::FieldValue { .floatValue = element.number.asFloat() };
+            if(element.type() != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
+            *outValue = nbl::FieldValue { .floatValue = element.asNumber().asFloat() };
             break;
         case nbl::FieldType::INTEGER:
-            if(element.type != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
-            *outValue = nbl::FieldValue { .integerValue = element.number.asInt() };
+            if(element.type() != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
+            *outValue = nbl::FieldValue { .integerValue = element.asNumber().asInt() };
             break;
         case nbl::FieldType::BOOLEAN:
-            if(element.type != nbl::JsonType::BOOLEAN) return nbl::Result::INVALID_ARGUMENT;
-            *outValue = nbl::FieldValue { .booleanValue = element.boolean };
+            if(element.type() != nbl::JsonType::BOOLEAN) return nbl::Result::INVALID_ARGUMENT;
+            *outValue = nbl::FieldValue { .booleanValue = element.asBoolean() };
             break;
         case nbl::FieldType::ENUM: {
-            if(element.type != nbl::JsonType::STRING) return nbl::Result::INVALID_ARGUMENT;
-            u32 index = field.enumData.index(context, element.string);
+            if(element.type() != nbl::JsonType::STRING) return nbl::Result::INVALID_ARGUMENT;
+            u32 index = field.enumData.index(context, element.asString());
             *outValue = nbl::FieldValue { .enumValue = index };
             break;
         }
         case nbl::FieldType::DATE: 
-            if(element.type != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
-            *outValue = nbl::FieldValue { .uintegerValue = element.number.asUint() };
+            if(element.type() != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
+            *outValue = nbl::FieldValue { .uintegerValue = element.asNumber().asUint() };
             break;
         case nbl::FieldType::ACCOUNT:
-            if(element.type != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
+            if(element.type() != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
             outValue->accountValue = {
-                .id = static_cast<u32>(element.number.asUint()),
-                .isDefault = (element.number.asInt() == -1)
+                .id = static_cast<u32>(element.asNumber().asUint()),
+                .isDefault = (element.asNumber().asInt() == -1)
             };
             break;
         case nbl::FieldType::COLOR:
-            if(element.type != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
+            if(element.type() != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
             outValue->colorValue = {
-                .rgba = static_cast<u32>(element.number.asUint())
+                .rgba = static_cast<u32>(element.asNumber().asUint())
             };
             break;
         case nbl::FieldType::LIST: {
             if(!nbl::shouldEncodeField(*field.listData.templateField)) {
                 return nbl::Result::INVALID_ARGUMENT;
             }
-            if(element.type != nbl::JsonType::ARRAY) return nbl::Result::INVALID_ARGUMENT;
-            usize items = element.array.count;
-            outValue->compositeValue.length = items;
+            if(element.type() != nbl::JsonType::ARRAY) return nbl::Result::INVALID_ARGUMENT;
+            usize items = element.asArray().count;
+            outValue->compositeValue = nbl::Span<nbl::FieldValue>(nullptr, items);
             if(items > 0) {
-                NBL_CHECK(allocator->allocate<nbl::FieldValue>(&outValue->compositeValue.data, items));
+                NBL_CHECK(allocator->allocate(&outValue->compositeValue));
                 for(usize i = 0 ; i < items ; i++) {
-                    nbl::JsonElement ele = element.array[i];
+                    nbl::JsonElement ele = element.asArray()[i];
                     NBL_CHECK(_decodeFieldValue(context, *field.listData.templateField, ele, &outValue->compositeValue[i], allocator));
                 }
             }
             break;
         }
         case nbl::FieldType::STRUCT:
-            if(element.type != nbl::JsonType::OBJECT) return nbl::Result::INVALID_ARGUMENT;
-            NBL_CHECK(nbl::decodeFieldValues(context, field.structData.fields, element.object, &outValue->compositeValue, allocator));
+            if(element.type() != nbl::JsonType::OBJECT) return nbl::Result::INVALID_ARGUMENT;
+            NBL_CHECK(nbl::decodeFieldValues(context, field.structData.fields, element.asObject(), &outValue->compositeValue, allocator));
             break;
         case nbl::FieldType::ACTION:
         case nbl::FieldType::FIELD_ACTION:
@@ -187,7 +187,7 @@ nbl::Result nbl::encodeFieldValues(PluginContext* context, Span<Field> fields, S
     BufferedWriter bufferedWriter(writer, buffer, 4096);
 
     return JsonWriter(bufferedWriter).writeObject([&](JsonWriter::ObjectWriter& obj) {
-        for(usize i = 0 ; i < fields.length ; i++) {
+        for(usize i = 0 ; i < fields.length() ; i++) {
             const Field& field = fields[i];
 
             if(!shouldEncodeField(field)) continue;
@@ -203,11 +203,10 @@ nbl::Result nbl::encodeFieldValues(PluginContext* context, Span<Field> fields, S
 
 
 nbl::Result nbl::decodeFieldValues(PluginContext* context, Span<Field> fields, JsonObject obj, Span<FieldValue>* outValues, LinearAllocator* allocator) {
-    Span<FieldValue> values;
-    NBL_CHECK(allocator->allocate<FieldValue>(&values.data, fields.length));
-    values.length = fields.length;
+    Span<FieldValue> values(nullptr, fields.length());
+    NBL_CHECK(allocator->allocate(&values));
 
-    for(usize i = 0 ; i < fields.length ; i++) {
+    for(usize i = 0 ; i < fields.length() ; i++) {
 
         const Field& field = fields[i];
 

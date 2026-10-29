@@ -95,7 +95,7 @@ int nbl::frontend::MetadataLookupHelper::lookup(QByteArray title, quint64 releas
 
     ApplicationContext* ctx = ApplicationContext::instance();
 
-    if(ctx->pluginContext()->registry<nbl::MetadataProvider>().length == 0) {
+    if(ctx->pluginContext()->registry<nbl::MetadataProvider>().length() == 0) {
         emit done();
         return nbl::Result::SUCCESS;
     } 

@@ -56,7 +56,7 @@ nbl::Result nbl::frontend::InstallationTagModel::_fetchPageData(qsizetype limit,
     QList<TagMeta> found = {};
     found.reserve(limit);
     NBL_CHECK(nbl::Tag::enumerateInstallationTags(db, _mInstallationId, offset, limit, [&](const nbl::Tag& tag) -> nbl::Result {
-        TagMeta ref(tag.id, QString::fromUtf8(tag.name.data, tag.name.length), QColor::fromRgb(tag.color)); 
+        TagMeta ref(tag.id, QString::fromUtf8(tag.name.data(), tag.name.length()), QColor::fromRgb(tag.color)); 
         found.append(ref);
         return nbl::Result::SUCCESS;
     }))

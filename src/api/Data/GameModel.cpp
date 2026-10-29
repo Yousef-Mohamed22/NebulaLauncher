@@ -172,7 +172,7 @@ nbl::Result nbl::Game::lookup(DatabaseConnection *connection, const Filter& meta
     usize sortByIndex = static_cast<usize>(criteria.sortBy);
     usize sortOrderIndex = static_cast<usize>(criteria.sortOrder);
 
-    bool hasTags = criteria.tags.length > 0 || criteria.excludedTags.length > 0;
+    bool hasTags = criteria.tags.length() > 0 || criteria.excludedTags.length() > 0;
 
     usize statementIndex = (sortByIndex * 2 + sortOrderIndex) + (16 * hasTags);
     if(statementIndex >= 32) {
@@ -381,7 +381,7 @@ LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId)");
     {
         
         AllocationFrame frame(Arena::threadLocal());
-        if(criteria.tags.length == 0) {
+        if(criteria.tags.length() == 0) {
             NBL_CHECK(lookupGamesStmt.bindNull(1));
         } else {
    
@@ -405,7 +405,7 @@ LEFT JOIN set_sizes ON set_sizes.setId = matching_sets.setId)");
             NBL_CHECK(lookupGamesStmt.bindString(1, tagsJson));
         }
 
-        if(criteria.excludedTags.length == 0) {
+        if(criteria.excludedTags.length() == 0) {
             NBL_CHECK(lookupGamesStmt.bindNull(2));
         } else {
 

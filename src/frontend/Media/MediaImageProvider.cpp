@@ -55,7 +55,7 @@ void nbl::frontend::MediaImageResponse::run() {
         if(result.isPresent) {
     
             QImage image(
-                result.imageData.pixels.data,
+                result.imageData.pixels.data(),
                 result.imageData.width,
                 result.imageData.height,
                 QImage::Format_RGBA8888,
@@ -168,10 +168,12 @@ void nbl::frontend::MediaImageResponse::handleNetworkReply() {
     MediaManager* manager = ctx->mediaManager();
 
     const u8* imageBytes = img.constBits();
-    if(manager->saveImage(_mRefId, img.width(), img.height(), {
-        .data = imageBytes,
-        .length = static_cast<usize>(img.sizeInBytes())
-    }).error()) {
+    if(manager->saveImage(
+        _mRefId, 
+        img.width(), 
+        img.height(), 
+        ConstSpan<u8>(imageBytes, static_cast<usize>(img.sizeInBytes()))
+    ).error()) {
         NBL_WARN("Failed to save image!");
     }
  

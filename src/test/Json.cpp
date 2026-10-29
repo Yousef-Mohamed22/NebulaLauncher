@@ -27,7 +27,7 @@ TEST(Json, ParseNull) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NONE);
+    EXPECT_EQ(element.type(), nbl::JsonType::NONE);
 }
 
 TEST(Json, ParseTrue) {
@@ -36,8 +36,8 @@ TEST(Json, ParseTrue) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::BOOLEAN);
-    EXPECT_EQ(element.boolean, true);
+    EXPECT_EQ(element.type(), nbl::JsonType::BOOLEAN);
+    EXPECT_EQ(element.asBoolean(), true);
 }
 
 TEST(Json, ParseFalse) {
@@ -46,8 +46,8 @@ TEST(Json, ParseFalse) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::BOOLEAN);
-    EXPECT_EQ(element.boolean, false);
+    EXPECT_EQ(element.type(), nbl::JsonType::BOOLEAN);
+    EXPECT_EQ(element.asBoolean(), false);
 }
 
 TEST(Json, ParseInt) {
@@ -56,9 +56,9 @@ TEST(Json, ParseInt) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.number.type, nbl::JsonNumberType::SIGNED);
-    EXPECT_EQ(element.number.intValue, -145);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asNumber().type, nbl::JsonNumberType::SIGNED);
+    EXPECT_EQ(element.asNumber().intValue, -145);
 }
 
 TEST(Json, ParseUint) {
@@ -67,9 +67,9 @@ TEST(Json, ParseUint) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_NE(element.number.type, nbl::JsonNumberType::FLOAT);
-    EXPECT_EQ(element.number.uintValue, 145);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_NE(element.asNumber().type, nbl::JsonNumberType::FLOAT);
+    EXPECT_EQ(element.asNumber().uintValue, 145);
 }
 
 TEST(Json, ParseZero) {
@@ -78,11 +78,11 @@ TEST(Json, ParseZero) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.number.type, nbl::JsonNumberType::SIGNED);
-    EXPECT_EQ(element.number.intValue, 0);
-    EXPECT_EQ(element.number.asUint(), 0);
-    EXPECT_EQ(element.number.asFloat(), 0.0);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asNumber().type, nbl::JsonNumberType::SIGNED);
+    EXPECT_EQ(element.asNumber().intValue, 0);
+    EXPECT_EQ(element.asNumber().asUint(), 0);
+    EXPECT_EQ(element.asNumber().asFloat(), 0.0);
 }
 
 TEST(Json, ParseNegativeZero) {
@@ -91,9 +91,9 @@ TEST(Json, ParseNegativeZero) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.number.type, nbl::JsonNumberType::SIGNED);
-    EXPECT_EQ(element.number.intValue, 0);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asNumber().type, nbl::JsonNumberType::SIGNED);
+    EXPECT_EQ(element.asNumber().intValue, 0);
 }
 
 TEST(Json, ParseFloat) {
@@ -102,9 +102,9 @@ TEST(Json, ParseFloat) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.number.type, nbl::JsonNumberType::FLOAT);
-    EXPECT_EQ(element.number.floatValue, 1.45);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asNumber().type, nbl::JsonNumberType::FLOAT);
+    EXPECT_EQ(element.asNumber().floatValue, 1.45);
 }
 
 TEST(Json, ParseNegativeFloat) {
@@ -113,10 +113,10 @@ TEST(Json, ParseNegativeFloat) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.number.type, nbl::JsonNumberType::FLOAT);
-    EXPECT_EQ(element.number.asFloat(), -1.5);
-    EXPECT_EQ(element.number.asInt(), -1);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asNumber().type, nbl::JsonNumberType::FLOAT);
+    EXPECT_EQ(element.asNumber().asFloat(), -1.5);
+    EXPECT_EQ(element.asNumber().asInt(), -1);
 }
 
 TEST(Json, ParseExponentPositive) {
@@ -125,9 +125,9 @@ TEST(Json, ParseExponentPositive) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.number.type, nbl::JsonNumberType::UNSIGNED);
-    EXPECT_EQ(element.number.uintValue, 10000000000ULL);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asNumber().type, nbl::JsonNumberType::UNSIGNED);
+    EXPECT_EQ(element.asNumber().uintValue, 10000000000ULL);
 }
 
 TEST(Json, ParseExponentNegative) {
@@ -136,9 +136,9 @@ TEST(Json, ParseExponentNegative) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.number.type, nbl::JsonNumberType::FLOAT);
-    EXPECT_NEAR(element.number.floatValue, 0.0015, 1e-9);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asNumber().type, nbl::JsonNumberType::FLOAT);
+    EXPECT_NEAR(element.asNumber().floatValue, 0.0015, 1e-9);
 }
 
 TEST(Json, ParseExponentUppercase) {
@@ -147,8 +147,8 @@ TEST(Json, ParseExponentUppercase) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.number.uintValue, 10000000000ULL);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asNumber().uintValue, 10000000000ULL);
 }
 
 TEST(Json, ParseLargeUint) {
@@ -157,9 +157,9 @@ TEST(Json, ParseLargeUint) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.number.type, nbl::JsonNumberType::UNSIGNED);
-    EXPECT_EQ(element.number.uintValue, 18446744073709551615ULL);
+    EXPECT_EQ(element.type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asNumber().type, nbl::JsonNumberType::UNSIGNED);
+    EXPECT_EQ(element.asNumber().uintValue, 18446744073709551615ULL);
 }
 
 TEST(Json, ParseString) {
@@ -168,8 +168,8 @@ TEST(Json, ParseString) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::STRING);
-    EXPECT_EQ(element.string, nbl::StringView("Hello, World"));
+    EXPECT_EQ(element.type(), nbl::JsonType::STRING);
+    EXPECT_EQ(element.asString(), nbl::StringView("Hello, World"));
 }
 
 TEST(Json, ParseEmptyString) {
@@ -178,9 +178,9 @@ TEST(Json, ParseEmptyString) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::STRING);
-    EXPECT_EQ(element.string.length, 0u);
-    EXPECT_STREQ(element.string.data, "");
+    EXPECT_EQ(element.type(), nbl::JsonType::STRING);
+    EXPECT_EQ(element.asString().length(), 0);
+    EXPECT_STREQ(element.asString().data(), "");
 }
 
 TEST(Json, ParseStringWithEscapes) {
@@ -190,8 +190,8 @@ TEST(Json, ParseStringWithEscapes) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::STRING);
-    EXPECT_EQ(element.string, nbl::StringView("quote \\ slash/ back\b form\n new\r cari\t tab"));
+    EXPECT_EQ(element.type(), nbl::JsonType::STRING);
+    EXPECT_EQ(element.asString(), nbl::StringView("quote \\ slash/ back\b form\n new\r cari\t tab"));
 }
 
 TEST(Json, ParseStringUnicodeEscape) {
@@ -200,8 +200,8 @@ TEST(Json, ParseStringUnicodeEscape) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::STRING);
-    EXPECT_EQ(element.string, nbl::StringView("ABC"));
+    EXPECT_EQ(element.type(), nbl::JsonType::STRING);
+    EXPECT_EQ(element.asString(), nbl::StringView("ABC"));
 }
 
 TEST(Json, ParseStringUnicodeSurrogatePair) {
@@ -211,13 +211,13 @@ TEST(Json, ParseStringUnicodeSurrogatePair) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::STRING);
+    EXPECT_EQ(element.type(), nbl::JsonType::STRING);
     // 😀 is 4 bytes in UTF-8: F0 9F 98 80
-    EXPECT_EQ(element.string.length, 4u);
-    EXPECT_EQ(static_cast<unsigned char>(element.string.data[0]), 0xF0);
-    EXPECT_EQ(static_cast<unsigned char>(element.string.data[1]), 0x9F);
-    EXPECT_EQ(static_cast<unsigned char>(element.string.data[2]), 0x98);
-    EXPECT_EQ(static_cast<unsigned char>(element.string.data[3]), 0x80);
+    EXPECT_EQ(element.asString().length(), 4u);
+    EXPECT_EQ(static_cast<unsigned char>(element.asString().data()[0]), 0xF0);
+    EXPECT_EQ(static_cast<unsigned char>(element.asString().data()[1]), 0x9F);
+    EXPECT_EQ(static_cast<unsigned char>(element.asString().data()[2]), 0x98);
+    EXPECT_EQ(static_cast<unsigned char>(element.asString().data()[3]), 0x80);
 }
 
 TEST(Json, ParseArray) {
@@ -226,14 +226,14 @@ TEST(Json, ParseArray) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(element.array.count, 3);
-    EXPECT_EQ(element.array[0].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.array[0].number.asUint(), 1);
-    EXPECT_EQ(element.array[1].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.array[1].number.asUint(), 2);
-    EXPECT_EQ(element.array[2].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.array[2].number.asUint(), 3);
+    EXPECT_EQ(element.type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.asArray().count, 3);
+    EXPECT_EQ(element.asArray()[0].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asArray()[0].asNumber().asUint(), 1);
+    EXPECT_EQ(element.asArray()[1].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asArray()[1].asNumber().asUint(), 2);
+    EXPECT_EQ(element.asArray()[2].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asArray()[2].asNumber().asUint(), 3);
 }
 
 TEST(Json, ParseEmptyArray) {
@@ -242,9 +242,9 @@ TEST(Json, ParseEmptyArray) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(element.array.count, 0);
-    EXPECT_EQ(element.array.elements, nullptr);
+    EXPECT_EQ(element.type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.asArray().count, 0);
+    EXPECT_EQ(element.asArray().elements, nullptr);
 }
 
 TEST(Json, ParseSingleElementArray) {
@@ -253,10 +253,10 @@ TEST(Json, ParseSingleElementArray) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(element.array.count, 1);
-    EXPECT_EQ(element.array[0].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.array[0].number.asUint(), 42);
+    EXPECT_EQ(element.type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.asArray().count, 1);
+    EXPECT_EQ(element.asArray()[0].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asArray()[0].asNumber().asUint(), 42);
 }
 
 TEST(Json, ParseHeterogeneousArray) {
@@ -265,18 +265,18 @@ TEST(Json, ParseHeterogeneousArray) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(element.array.count, 5);
-    EXPECT_EQ(element.array[0].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(element.array[0].number.asUint(), 1);
-    EXPECT_EQ(element.array[1].type, nbl::JsonType::STRING);
-    EXPECT_EQ(element.array[1].string, "two");
-    EXPECT_EQ(element.array[2].type, nbl::JsonType::BOOLEAN);
-    EXPECT_EQ(element.array[2].boolean, true);
-    EXPECT_EQ(element.array[3].type, nbl::JsonType::NONE);
-    EXPECT_EQ(element.array[4].type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(element.array[4].array.count, 1);
-    EXPECT_EQ(element.array[4].array[0].number.asUint(), 2);
+    EXPECT_EQ(element.type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.asArray().count, 5);
+    EXPECT_EQ(element.asArray()[0].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(element.asArray()[0].asNumber().asUint(), 1);
+    EXPECT_EQ(element.asArray()[1].type(), nbl::JsonType::STRING);
+    EXPECT_EQ(element.asArray()[1].asString(), "two");
+    EXPECT_EQ(element.asArray()[2].type(), nbl::JsonType::BOOLEAN);
+    EXPECT_EQ(element.asArray()[2].asBoolean(), true);
+    EXPECT_EQ(element.asArray()[3].type(), nbl::JsonType::NONE);
+    EXPECT_EQ(element.asArray()[4].type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.asArray()[4].asArray().count, 1);
+    EXPECT_EQ(element.asArray()[4].asArray()[0].asNumber().asUint(), 2);
 }
 
 TEST(Json, ParseNestedArray) {
@@ -285,16 +285,16 @@ TEST(Json, ParseNestedArray) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(element.array.count, 2);
-    EXPECT_EQ(element.array[0].type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(element.array[0].array.count, 2);
-    EXPECT_EQ(element.array[0].array[0].number.asUint(), 1);
-    EXPECT_EQ(element.array[0].array[1].number.asUint(), 2);
-    EXPECT_EQ(element.array[1].type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(element.array[1].array.count, 2);
-    EXPECT_EQ(element.array[1].array[0].number.asUint(), 3);
-    EXPECT_EQ(element.array[1].array[1].number.asUint(), 4);
+    EXPECT_EQ(element.type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.asArray().count, 2);
+    EXPECT_EQ(element.asArray()[0].type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.asArray()[0].asArray().count, 2);
+    EXPECT_EQ(element.asArray()[0].asArray()[0].asNumber().asUint(), 1);
+    EXPECT_EQ(element.asArray()[0].asArray()[1].asNumber().asUint(), 2);
+    EXPECT_EQ(element.asArray()[1].type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.asArray()[1].asArray().count, 2);
+    EXPECT_EQ(element.asArray()[1].asArray()[0].asNumber().asUint(), 3);
+    EXPECT_EQ(element.asArray()[1].asArray()[1].asNumber().asUint(), 4);
 }
 
 TEST(Json, ParseArrayOutOfBounds) {
@@ -303,7 +303,7 @@ TEST(Json, ParseArrayOutOfBounds) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.array.get(3), nullptr);
+    EXPECT_EQ(element.asArray().get(3), nullptr);
 }
 
 TEST(Json, ParseLargeArray) {
@@ -319,10 +319,10 @@ TEST(Json, ParseLargeArray) {
     EXPECT_EQ(nbl::Arena::create(4096, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(nbl::StringView(json.data(), json.size()), &storage, &element),
             nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(element.array.count, 200);
-    EXPECT_EQ(element.array[0].number.asUint(), 0);
-    EXPECT_EQ(element.array[199].number.asUint(), 199);
+    EXPECT_EQ(element.type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.asArray().count, 200);
+    EXPECT_EQ(element.asArray()[0].asNumber().asUint(), 0);
+    EXPECT_EQ(element.asArray()[199].asNumber().asUint(), 199);
 }
 
 TEST(Json, ParseArrayIteration) {
@@ -334,9 +334,9 @@ TEST(Json, ParseArrayIteration) {
 
     usize count = 0;
     u64 sum = 0;
-    for (auto it = element.array.begin(); it != element.array.end(); ++it) {
-        EXPECT_EQ(it->type, nbl::JsonType::NUMBER);
-        sum += it->number.asUint();
+    for (auto it = element.asArray().begin(); it != element.asArray().end(); ++it) {
+        EXPECT_EQ(it->type(), nbl::JsonType::NUMBER);
+        sum += it->asNumber().asUint();
         ++count;
     }
     EXPECT_EQ(count, 3u);
@@ -349,13 +349,13 @@ TEST(Json, ParseObject) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 1);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 1);
 
-    const nbl::JsonElement* e = element.object.get("key");
+    const nbl::JsonElement* e = element.asObject().get("key");
     EXPECT_NE(e, nullptr);
-    EXPECT_EQ(e->type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(e->number.asUint(), 99);
+    EXPECT_EQ(e->type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(e->asNumber().asUint(), 99);
 }
 
 TEST(Json, ParseEmptyObject) {
@@ -364,11 +364,11 @@ TEST(Json, ParseEmptyObject) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 0);
-    EXPECT_EQ(element.object.entries, nullptr);
-    EXPECT_FALSE(element.object.has("anything"));
-    EXPECT_EQ(element.object.get("missing"), nullptr);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 0);
+    EXPECT_EQ(element.asObject().entries, nullptr);
+    EXPECT_FALSE(element.asObject().has("anything"));
+    EXPECT_EQ(element.asObject().get("missing"), nullptr);
 }
 
 TEST(Json, ParseSubObject) {
@@ -377,18 +377,18 @@ TEST(Json, ParseSubObject) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 1);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 1);
 
-    const nbl::JsonElement* e = element.object.get("sub");
+    const nbl::JsonElement* e = element.asObject().get("sub");
     EXPECT_NE(e, nullptr);
-    EXPECT_EQ(e->type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(e->object.entryCount, 1);
+    EXPECT_EQ(e->type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(e->asObject().entryCount, 1);
 
-    const nbl::JsonElement* e2 = e->object.get("key");
+    const nbl::JsonElement* e2 = e->asObject().get("key");
     EXPECT_NE(e2, nullptr);
-    EXPECT_EQ(e2->type, nbl::JsonType::STRING);
-    EXPECT_EQ(e2->string, "value");
+    EXPECT_EQ(e2->type(), nbl::JsonType::STRING);
+    EXPECT_EQ(e2->asString(), "value");
 }
 
 TEST(Json, ParseComplex) {
@@ -397,47 +397,47 @@ TEST(Json, ParseComplex) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 6);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 6);
 
-    const nbl::JsonElement* eInt = element.object.get("int");
-    const nbl::JsonElement* eFloat = element.object.get("float");
-    const nbl::JsonElement* eStr = element.object.get("str");
-    const nbl::JsonElement* eBool = element.object.get("bool");
-    const nbl::JsonElement* eObj = element.object.get("obj");
-    const nbl::JsonElement* eArr = element.object.get("arr");
+    const nbl::JsonElement* eInt = element.asObject().get("int");
+    const nbl::JsonElement* eFloat = element.asObject().get("float");
+    const nbl::JsonElement* eStr = element.asObject().get("str");
+    const nbl::JsonElement* eBool = element.asObject().get("bool");
+    const nbl::JsonElement* eObj = element.asObject().get("obj");
+    const nbl::JsonElement* eArr = element.asObject().get("arr");
 
     EXPECT_NE(eInt, nullptr);
-    EXPECT_EQ(eInt->type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eInt->number.asInt(), 0);
+    EXPECT_EQ(eInt->type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eInt->asNumber().asInt(), 0);
 
     EXPECT_NE(eFloat, nullptr);
-    EXPECT_EQ(eFloat->type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eFloat->number.asFloat(), 99.5);
+    EXPECT_EQ(eFloat->type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eFloat->asNumber().asFloat(), 99.5);
 
     EXPECT_NE(eStr, nullptr);
-    EXPECT_EQ(eStr->type, nbl::JsonType::STRING);
-    EXPECT_EQ(eStr->string, "TEST");
+    EXPECT_EQ(eStr->type(), nbl::JsonType::STRING);
+    EXPECT_EQ(eStr->asString(), "TEST");
 
     EXPECT_NE(eBool, nullptr);
-    EXPECT_EQ(eBool->type, nbl::JsonType::BOOLEAN);
-    EXPECT_EQ(eBool->boolean, true);
+    EXPECT_EQ(eBool->type(), nbl::JsonType::BOOLEAN);
+    EXPECT_EQ(eBool->asBoolean(), true);
 
     EXPECT_NE(eObj, nullptr);
-    EXPECT_EQ(eObj->type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(eObj->object.entryCount, 1);
-    EXPECT_TRUE(eObj->object.has("key"));
-    EXPECT_EQ(eObj->object.get("key")->type, nbl::JsonType::STRING);
-    EXPECT_EQ(eObj->object.get("key")->string, "value");
+    EXPECT_EQ(eObj->type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(eObj->asObject().entryCount, 1);
+    EXPECT_TRUE(eObj->asObject().has("key"));
+    EXPECT_EQ(eObj->asObject().get("key")->type(), nbl::JsonType::STRING);
+    EXPECT_EQ(eObj->asObject().get("key")->asString(), "value");
 
-    EXPECT_EQ(eArr->type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(eArr->array.count, 3);
-    EXPECT_EQ(eArr->array[0].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eArr->array[0].number.asUint(), 1);
-    EXPECT_EQ(eArr->array[1].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eArr->array[1].number.asUint(), 2);
-    EXPECT_EQ(eArr->array[2].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eArr->array[2].number.asUint(), 3);
+    EXPECT_EQ(eArr->type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(eArr->asArray().count, 3);
+    EXPECT_EQ(eArr->asArray()[0].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eArr->asArray()[0].asNumber().asUint(), 1);
+    EXPECT_EQ(eArr->asArray()[1].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eArr->asArray()[1].asNumber().asUint(), 2);
+    EXPECT_EQ(eArr->asArray()[2].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eArr->asArray()[2].asNumber().asUint(), 3);
 }
 
 TEST(Json, ParseObjectMultipleEntries) {
@@ -446,23 +446,23 @@ TEST(Json, ParseObjectMultipleEntries) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 3);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 3);
 
-    EXPECT_TRUE(element.object.has("a"));
-    EXPECT_TRUE(element.object.has("b"));
-    EXPECT_TRUE(element.object.has("c"));
-    EXPECT_FALSE(element.object.has("d"));
+    EXPECT_TRUE(element.asObject().has("a"));
+    EXPECT_TRUE(element.asObject().has("b"));
+    EXPECT_TRUE(element.asObject().has("c"));
+    EXPECT_FALSE(element.asObject().has("d"));
 
-    EXPECT_EQ(element.object.get("a")->number.asUint(), 1);
-    EXPECT_EQ(element.object.get("b")->number.asUint(), 2);
-    EXPECT_EQ(element.object.get("c")->number.asUint(), 3);
+    EXPECT_EQ(element.asObject().get("a")->asNumber().asUint(), 1);
+    EXPECT_EQ(element.asObject().get("b")->asNumber().asUint(), 2);
+    EXPECT_EQ(element.asObject().get("c")->asNumber().asUint(), 3);
 }
 
 TEST(Json, ParseDeepNesting) {
     nbl::JsonElement element = {};
     std::string json = "{\"v\":42}";
-    // Wrap in 50 nested objects
+    // Wrap in 50 nested.asObject().
     for (int i = 0; i < 50; ++i) {
         json = "{\"o\":" + json + "}";
     }
@@ -475,14 +475,14 @@ TEST(Json, ParseDeepNesting) {
     const nbl::JsonElement* cur = &element;
     for (int i = 0; i < 50; ++i) {
         ASSERT_NE(cur, nullptr);
-        EXPECT_EQ(cur->type, nbl::JsonType::OBJECT);
-        cur = cur->object.get("o");
+        EXPECT_EQ(cur->type(), nbl::JsonType::OBJECT);
+        cur = cur->asObject().get("o");
     }
     ASSERT_NE(cur, nullptr);
-    cur = cur->object.get("v");
+    cur = cur->asObject().get("v");
     ASSERT_NE(cur, nullptr);
-    EXPECT_EQ(cur->type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(cur->number.asUint(), 42);
+    EXPECT_EQ(cur->type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(cur->asNumber().asUint(), 42);
 }
 
 TEST(Json, ParseObjectObjectDefaultHelpers) {
@@ -492,16 +492,16 @@ TEST(Json, ParseObjectObjectDefaultHelpers) {
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
 
-    EXPECT_EQ(element.object.getNumber("num", nbl::JsonNumber { .type = nbl::JsonNumberType::SIGNED, .intValue = -1 }).asInt(), 7);
-    EXPECT_EQ(element.object.getNumber("missing", nbl::JsonNumber { .type = nbl::JsonNumberType::SIGNED, .intValue = -1 }).asInt(), -1);
-    EXPECT_EQ(element.object.getString("str", "default").data[0], 'h');
-    EXPECT_EQ(element.object.getString("missing", "default"), nbl::StringView("default"));
-    EXPECT_EQ(element.object.getBoolean("bool", true), false);
-    EXPECT_EQ(element.object.getBoolean("missing", true), true);
-    EXPECT_EQ(element.object.getObject("obj", {}).entryCount, 1);
-    EXPECT_EQ(element.object.getObject("missing", {}).entryCount, 0);
-    EXPECT_EQ(element.object.getArray("arr", {}).count, 2);
-    EXPECT_EQ(element.object.getArray("missing", {}).count, 0);
+    EXPECT_EQ(element.asObject().getNumber("num", nbl::JsonNumber { .type = nbl::JsonNumberType::SIGNED, .intValue = -1 }).asInt(), 7);
+    EXPECT_EQ(element.asObject().getNumber("missing", nbl::JsonNumber { .type = nbl::JsonNumberType::SIGNED, .intValue = -1 }).asInt(), -1);
+    EXPECT_EQ(element.asObject().getString("str", "default").data()[0], 'h');
+    EXPECT_EQ(element.asObject().getString("missing", "default"), nbl::StringView("default"));
+    EXPECT_EQ(element.asObject().getBoolean("bool", true), false);
+    EXPECT_EQ(element.asObject().getBoolean("missing", true), true);
+    EXPECT_EQ(element.asObject().getObject("obj", {}).entryCount, 1);
+    EXPECT_EQ(element.asObject().getObject("missing", {}).entryCount, 0);
+    EXPECT_EQ(element.asObject().getArray("arr", {}).count, 2);
+    EXPECT_EQ(element.asObject().getArray("missing", {}).count, 0);
 }
 
 TEST(Json, ParseArrayObjectDefaultHelpers) {
@@ -510,17 +510,17 @@ TEST(Json, ParseArrayObjectDefaultHelpers) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::ARRAY);
+    EXPECT_EQ(element.type(), nbl::JsonType::ARRAY);
 
-    EXPECT_EQ(element.array.getObject(0, {}).getString("name", "").data[0], 'a');
-    EXPECT_EQ(element.array.getObject(99, {}).entryCount, 0);
-    EXPECT_EQ(element.array.getArray(99, {}).count, 0);
-    EXPECT_EQ(element.array.getString(3, "def"), nbl::StringView("str"));
-    EXPECT_EQ(element.array.getString(99, "def"), nbl::StringView("def"));
-    EXPECT_EQ(element.array.getNumber(2, nbl::JsonNumber { .type = nbl::JsonNumberType::SIGNED, .intValue = -1 }).asInt(), 42);
-    EXPECT_EQ(element.array.getNumber(99, nbl::JsonNumber { .type = nbl::JsonNumberType::SIGNED, .intValue = -1 }).asInt(), -1);
-    EXPECT_EQ(element.array.getBoolean(4, false), true);
-    EXPECT_EQ(element.array.getBoolean(99, false), false);
+    EXPECT_EQ(element.asArray().getObject(0, {}).getString("name", "").data()[0], 'a');
+    EXPECT_EQ(element.asArray().getObject(99, {}).entryCount, 0);
+    EXPECT_EQ(element.asArray().getArray(99, {}).count, 0);
+    EXPECT_EQ(element.asArray().getString(3, "def"), nbl::StringView("str"));
+    EXPECT_EQ(element.asArray().getString(99, "def"), nbl::StringView("def"));
+    EXPECT_EQ(element.asArray().getNumber(2, nbl::JsonNumber { .type = nbl::JsonNumberType::SIGNED, .intValue = -1 }).asInt(), 42);
+    EXPECT_EQ(element.asArray().getNumber(99, nbl::JsonNumber { .type = nbl::JsonNumberType::SIGNED, .intValue = -1 }).asInt(), -1);
+    EXPECT_EQ(element.asArray().getBoolean(4, false), true);
+    EXPECT_EQ(element.asArray().getBoolean(99, false), false);
 }
 
 TEST(Json, ParseObjectIteration) {
@@ -531,8 +531,8 @@ TEST(Json, ParseObjectIteration) {
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
 
     usize count = 0;
-    for (auto it = element.object.begin(); it != element.object.end(); ++it) {
-        EXPECT_EQ(it->value.type, nbl::JsonType::NUMBER);
+    for (auto it = element.asObject().begin(); it != element.asObject().end(); ++it) {
+        EXPECT_EQ(it->value.type(), nbl::JsonType::NUMBER);
         ++count;
     }
     EXPECT_EQ(count, 2u);
@@ -551,69 +551,69 @@ TEST(Json, ParseLargeObject) {
     EXPECT_EQ(nbl::Arena::create(65536, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(nbl::StringView(json.data(), json.size()), &storage, &element),
             nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 200);
-    EXPECT_NE(element.object.get("k199"), nullptr);
-    EXPECT_EQ(element.object.get("k199")->number.asUint(), 199);
-    EXPECT_EQ(element.object.get("k0")->number.asUint(), 0);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 200);
+    EXPECT_NE(element.asObject().get("k199"), nullptr);
+    EXPECT_EQ(element.asObject().get("k199")->asNumber().asUint(), 199);
+    EXPECT_EQ(element.asObject().get("k0")->asNumber().asUint(), 0);
 }
 
 TEST(Json, ParseComplexFromStream) {
     nbl::JsonElement element = {};
     nbl::StringView json = "{\"int\":0,\"float\":99.5,\"str\":\"TEST\",\"bool\":true,\"obj\":{\"key\":\"value\"},\"arr\":[1,2,3]}";
-    nbl::BufferStream stream(const_cast<char*>(json.data), json.length);
+    nbl::BufferStream stream(const_cast<char*>(json.data()), json.length());
 
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(stream, &storage, &element), nbl::Result::SUCCESS);
 
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 6);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 6);
 
-    const nbl::JsonElement* eInt = element.object.get("int");
-    const nbl::JsonElement* eFloat = element.object.get("float");
-    const nbl::JsonElement* eStr = element.object.get("str");
-    const nbl::JsonElement* eBool = element.object.get("bool");
-    const nbl::JsonElement* eObj = element.object.get("obj");
-    const nbl::JsonElement* eArr = element.object.get("arr");
+    const nbl::JsonElement* eInt = element.asObject().get("int");
+    const nbl::JsonElement* eFloat = element.asObject().get("float");
+    const nbl::JsonElement* eStr = element.asObject().get("str");
+    const nbl::JsonElement* eBool = element.asObject().get("bool");
+    const nbl::JsonElement* eObj = element.asObject().get("obj");
+    const nbl::JsonElement* eArr = element.asObject().get("arr");
 
     EXPECT_NE(eInt, nullptr);
-    EXPECT_EQ(eInt->type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eInt->number.asInt(), 0);
+    EXPECT_EQ(eInt->type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eInt->asNumber().asInt(), 0);
 
     EXPECT_NE(eFloat, nullptr);
-    EXPECT_EQ(eFloat->type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eFloat->number.asFloat(), 99.5);
+    EXPECT_EQ(eFloat->type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eFloat->asNumber().asFloat(), 99.5);
 
     EXPECT_NE(eStr, nullptr);
-    EXPECT_EQ(eStr->type, nbl::JsonType::STRING);
-    EXPECT_EQ(eStr->string, "TEST");
+    EXPECT_EQ(eStr->type(), nbl::JsonType::STRING);
+    EXPECT_EQ(eStr->asString(), "TEST");
 
     EXPECT_NE(eBool, nullptr);
-    EXPECT_EQ(eBool->type, nbl::JsonType::BOOLEAN);
-    EXPECT_EQ(eBool->boolean, true);
+    EXPECT_EQ(eBool->type(), nbl::JsonType::BOOLEAN);
+    EXPECT_EQ(eBool->asBoolean(), true);
 
     EXPECT_NE(eObj, nullptr);
-    EXPECT_EQ(eObj->type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(eObj->object.entryCount, 1);
-    EXPECT_TRUE(eObj->object.has("key"));
-    EXPECT_EQ(eObj->object.get("key")->type, nbl::JsonType::STRING);
-    EXPECT_EQ(eObj->object.get("key")->string, "value");
+    EXPECT_EQ(eObj->type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(eObj->asObject().entryCount, 1);
+    EXPECT_TRUE(eObj->asObject().has("key"));
+    EXPECT_EQ(eObj->asObject().get("key")->type(), nbl::JsonType::STRING);
+    EXPECT_EQ(eObj->asObject().get("key")->asString(), "value");
 
-    EXPECT_EQ(eArr->type, nbl::JsonType::ARRAY);
-    EXPECT_EQ(eArr->array.count, 3);
-    EXPECT_EQ(eArr->array[0].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eArr->array[0].number.asUint(), 1);
-    EXPECT_EQ(eArr->array[1].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eArr->array[1].number.asUint(), 2);
-    EXPECT_EQ(eArr->array[2].type, nbl::JsonType::NUMBER);
-    EXPECT_EQ(eArr->array[2].number.asUint(), 3);
+    EXPECT_EQ(eArr->type(), nbl::JsonType::ARRAY);
+    EXPECT_EQ(eArr->asArray().count, 3);
+    EXPECT_EQ(eArr->asArray()[0].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eArr->asArray()[0].asNumber().asUint(), 1);
+    EXPECT_EQ(eArr->asArray()[1].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eArr->asArray()[1].asNumber().asUint(), 2);
+    EXPECT_EQ(eArr->asArray()[2].type(), nbl::JsonType::NUMBER);
+    EXPECT_EQ(eArr->asArray()[2].asNumber().asUint(), 3);
 }
 
 TEST(Json, ParseFromStreamWithTempStorage) {
     nbl::JsonElement element = {};
     nbl::StringView json = "{\"key\":42}";
-    nbl::BufferStream stream(const_cast<char*>(json.data), json.length);
+    nbl::BufferStream stream(const_cast<char*>(json.data()), json.length());
 
     nbl::Arena storage;
     nbl::Arena temp;
@@ -621,11 +621,11 @@ TEST(Json, ParseFromStreamWithTempStorage) {
     EXPECT_EQ(nbl::Arena::create(1024, &temp), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(stream, &storage, &element, &temp), nbl::Result::SUCCESS);
 
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 1);
-    const nbl::JsonElement* e = element.object.get("key");
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 1);
+    const nbl::JsonElement* e = element.asObject().get("key");
     EXPECT_NE(e, nullptr);
-    EXPECT_EQ(e->number.asUint(), 42);
+    EXPECT_EQ(e->asNumber().asUint(), 42);
 }
 
 TEST(Json, ParseInvalidArgumentWhenTempEqualsStorage) {
@@ -808,12 +808,12 @@ TEST(Json, ParseWhitespaceAroundTokens) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 2);
-    EXPECT_EQ(element.object.get("key")->number.asUint(), 42);
-    EXPECT_EQ(element.object.get("arr")->array.count, 2);
-    EXPECT_EQ(element.object.get("arr")->array[0].number.asUint(), 1);
-    EXPECT_EQ(element.object.get("arr")->array[1].number.asUint(), 2);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 2);
+    EXPECT_EQ(element.asObject().get("key")->asNumber().asUint(), 42);
+    EXPECT_EQ(element.asObject().get("arr")->asArray().count, 2);
+    EXPECT_EQ(element.asObject().get("arr")->asArray()[0].asNumber().asUint(), 1);
+    EXPECT_EQ(element.asObject().get("arr")->asArray()[1].asNumber().asUint(), 2);
 }
 
 TEST(Json, ParseStringWithSpacesAndSpecialChars) {
@@ -822,8 +822,8 @@ TEST(Json, ParseStringWithSpacesAndSpecialChars) {
     nbl::Arena storage;
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
-    EXPECT_EQ(element.type, nbl::JsonType::STRING);
-    EXPECT_EQ(element.string, nbl::StringView("  spaces  and !@#$%^&*()  "));
+    EXPECT_EQ(element.type(), nbl::JsonType::STRING);
+    EXPECT_EQ(element.asString(), nbl::StringView("  spaces  and !@#$%^&*()  "));
 }
 
 TEST(Json, ParseFilter) {
@@ -836,8 +836,8 @@ TEST(Json, ParseFilter) {
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
 
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 13);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 13);
 
 }
 
@@ -851,8 +851,8 @@ TEST(Json, ParseCommand) {
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
 
-    EXPECT_EQ(element.type, nbl::JsonType::OBJECT);
-    EXPECT_EQ(element.object.entryCount, 2);
+    EXPECT_EQ(element.type(), nbl::JsonType::OBJECT);
+    EXPECT_EQ(element.asObject().entryCount, 2);
 
 }
 
@@ -861,9 +861,8 @@ TEST(Json, ParseNumber) {
     nbl::JsonNumber number = {};
 
     nbl::StringView json = "7";
-    nbl::BufferStream stream(const_cast<char*>(json.data), json.length);
 
-    EXPECT_EQ(nbl::parseJsonNumber(stream, &number), nbl::Result::SUCCESS);
+    EXPECT_EQ(nbl::parseJsonNumber(json, &number), nbl::Result::SUCCESS);
     EXPECT_EQ(number.intValue, 7);
 }
 
@@ -877,6 +876,6 @@ TEST(Json, ParseUnicode) {
     EXPECT_EQ(nbl::Arena::create(1024, &storage), nbl::Result::SUCCESS);
     EXPECT_EQ(nbl::parseJson(json, &storage, &element), nbl::Result::SUCCESS);
 
-    EXPECT_EQ(element.type, nbl::JsonType::STRING);
-    EXPECT_EQ(element.string, "'");
+    EXPECT_EQ(element.type(), nbl::JsonType::STRING);
+    EXPECT_EQ(element.asString(), "'");
 }

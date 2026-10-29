@@ -169,8 +169,8 @@ void _quicksortMappings(_TagMapping* mappings, i32 low, i32 high) {
 
 nbl::Optional<nbl::StringView> _findMapping(nbl::StringView tag) {
 
-    if(_mappings.length == 0) return {};
-    if(_mappings.length == 1) {
+    if(_mappings.length() == 0) return {};
+    if(_mappings.length() == 1) {
         if(_mappings[0].igdbTagName == tag) {
             return _mappings[0].mappedTagName;
         }
@@ -180,7 +180,7 @@ nbl::Optional<nbl::StringView> _findMapping(nbl::StringView tag) {
     u64 hash = tag.hash();
 
     i32 low = 0;
-    i32 high = _mappings.length - 1;
+    i32 high = _mappings.length() - 1;
 
     while(low <= high) {
 
@@ -191,7 +191,7 @@ nbl::Optional<nbl::StringView> _findMapping(nbl::StringView tag) {
             if(midpointTag.igdbTagName == tag) {
                 return midpointTag.mappedTagName;
             } else {
-                // Hash collision. Very unlikely but we account for it.
+                // Hash collision. Extremely unlikely but we account for it.
                 low = index;
                 high = index + 1;
                 while(low > 0) {
@@ -199,7 +199,7 @@ nbl::Optional<nbl::StringView> _findMapping(nbl::StringView tag) {
                     if(_mappings[low].tagHash != hash) break;
                     if(_mappings[low].igdbTagName == tag) return _mappings[low].mappedTagName;
                 }
-                while(high < _mappings.length - 1) {
+                while(high < _mappings.length() - 1) {
                     if(_mappings[high].tagHash != hash) break;
                     if(_mappings[high].igdbTagName == tag) return _mappings[high].mappedTagName;
                     high++;
@@ -255,20 +255,18 @@ nbl::Result _doLogin(nbl::StringView clientId, nbl::StringView clientSecret) {
     nbl::JsonElement response;
 
     NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
-    if(response.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+    if(response.type() != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-    nbl::StringView token = response.object.getString("access_token");
-    if(token.length > 256) return nbl::Result::FORMAT_ERROR;
+    nbl::StringView token = response.asObject().getString("access_token");
+    if(token.length() > 256) return nbl::Result::FORMAT_ERROR;
 
-    u64 expiresIn = response.object.getNumber("expires_in").asUint() * 1000;
+    u64 expiresIn = response.asObject().getNumber("expires_in").asUint() * 1000;
 
-    NBL_DEBUG(response.object);
+    memcpy(_accessTokenBuffer, token.data(), token.length());
+    memcpy(_clientIdBuffer, clientId.data(), clientId.length());
 
-    memcpy(_accessTokenBuffer, token.data, token.length);
-    memcpy(_clientIdBuffer, clientId.data, clientId.length);
-
-    _accessToken = nbl::StringView(_accessTokenBuffer, token.length);
-    _clientId = nbl::StringView(_clientIdBuffer, clientId.length);
+    _accessToken = nbl::StringView(_accessTokenBuffer, token.length());
+    _clientId = nbl::StringView(_clientIdBuffer, clientId.length());
     _expiry = preRequestTime + expiresIn;
 
     return nbl::Result::SUCCESS;
@@ -327,13 +325,13 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
     NBL_CHECK(nbl::parseJson(account.fields, &frame, &element));
 
     nbl::Span<nbl::FieldValue> values{};
-    nbl::decodeFieldValues(context, _accountFields, element.object, &values, &frame);
+    nbl::decodeFieldValues(context, _accountFields, element.asObject(), &values, &frame);
 
     nbl::StringView clientId = values[0].stringValue.raw;
     nbl::StringView clientSecret = values[1].stringValue.raw;
     nbl::StringView accessToken = values[2].stringValue.raw;
 
-    if(clientSecret.length > 256) {
+    if(clientSecret.length() > 256) {
         tracker->fail("Access token is too long");
         return nbl::Result::INVALID_ARGUMENT;
     }
@@ -342,11 +340,11 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 
     u64 now = nbl::getCurrentTime();
     if(now + (1000 * 60 * 60 * 24 * 3) < _expiry) {
-        memcpy(_accessTokenBuffer, accessToken.data, accessToken.length);
-        _accessToken = nbl::StringView(_accessTokenBuffer, accessToken.length);
+        memcpy(_accessTokenBuffer, accessToken.data(), accessToken.length());
+        _accessToken = nbl::StringView(_accessTokenBuffer, accessToken.length());
 
-        memcpy(_clientIdBuffer, clientId.data, clientId.length);
-        _clientId = nbl::StringView(_clientIdBuffer, clientId.length);
+        memcpy(_clientIdBuffer, clientId.data(), clientId.length());
+        _clientId = nbl::StringView(_clientIdBuffer, clientId.length());
 
         return nbl::Result::NO_CHANGE;
     }
@@ -362,7 +360,7 @@ nbl::Result _refresh(nbl::PluginContext* context, const nbl::OnlineAccount& acco
 }
 nbl::Result _logout(nbl::PluginContext* context, i64 accountId, void* userData) {
 
-    _accessToken.length = 0;
+    _accessToken = {};
     memset(_accessTokenBuffer, 0, 256);
 
     return nbl::Result::SUCCESS;
@@ -370,7 +368,7 @@ nbl::Result _logout(nbl::PluginContext* context, i64 accountId, void* userData) 
 
 bool _canProvide(nbl::PluginContext* context, const nbl::OnlineGameLookupInfo& info, void* userData) {
 
-    return _accessToken.length > 0;
+    return !_accessToken.empty();
 }
 
 nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInfo& info, nbl::OnlineGameCallback callback, void* userData) {
@@ -434,14 +432,14 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
     nbl::JsonElement response;
 
     NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
-    if(response.type != nbl::JsonType::ARRAY) return nbl::Result::FORMAT_ERROR;
+    if(response.type() != nbl::JsonType::ARRAY) return nbl::Result::FORMAT_ERROR;
 
-    for(nbl::JsonElement ele : response.array) {
+    for(nbl::JsonElement ele : response.asArray()) {
 
         nbl::AllocationFrame subFrame(nbl::Arena::threadLocal());
 
-        if(ele.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
-        nbl::JsonObject obj = ele.object;
+        if(ele.type() != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+        nbl::JsonObject obj = ele.asObject();
 
         nbl::OnlineGameMeta meta{};
 
@@ -460,20 +458,20 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
         }
 
         for(nbl::JsonElement element : obj.getArray("artworks")) {
-            if(element.type != nbl::JsonType::OBJECT) continue;
+            if(element.type() != nbl::JsonType::OBJECT) continue;
 
-            u64 imageType = element.object.getNumber("image_type").asUint();
-            if(meta.posterUrl.length == 0 && (imageType == 8 || imageType == 10)) {
-                NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.object.getString("image_id")).append(".png").build(&meta.posterUrl));
+            u64 imageType = element.asObject().getNumber("image_type").asUint();
+            if(meta.posterUrl.length() == 0 && (imageType == 8 || imageType == 10)) {
+                NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.asObject().getString("image_id")).append(".png").build(&meta.posterUrl));
             }
-            if(meta.iconUrl.length == 0 && (imageType == 11 || imageType == 13)) {
-                NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.object.getString("image_id")).append(".png").build(&meta.iconUrl));
+            if(meta.iconUrl.length() == 0 && (imageType == 11 || imageType == 13)) {
+                NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.asObject().getString("image_id")).append(".png").build(&meta.iconUrl));
             }
-            if(meta.logoUrl.length == 0 && (imageType == 5 || imageType == 6 || imageType == 7)) {
-                NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.object.getString("image_id")).append(".png").build(&meta.logoUrl));
+            if(meta.logoUrl.length() == 0 && (imageType == 5 || imageType == 6 || imageType == 7)) {
+                NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.asObject().getString("image_id")).append(".png").build(&meta.logoUrl));
             }
-            if(meta.bannerUrl.length == 0 && (imageType == 1 || imageType == 2 || imageType == 3)) {
-                NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.object.getString("image_id")).append(".png").build(&meta.bannerUrl));
+            if(meta.bannerUrl.length() == 0 && (imageType == 1 || imageType == 2 || imageType == 3)) {
+                NBL_CHECK(nbl::StringBuilder(&subFrame).append("https://images.igdb.com/igdb/image/upload/t_original/").append(element.asObject().getString("image_id")).append(".png").build(&meta.bannerUrl));
                 if(imageType == 3) { // Key art with logo
                     meta.logoPosition = nbl::LogoPosition::HIDDEN;
                 }
@@ -485,17 +483,22 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
 
         nbl::JsonArray arr = obj.getArray("external_games");
 
-        subFrame.allocate(&meta.platformNames.data, arr.count + 1);
-        subFrame.allocate(&meta.platformIds.data, arr.count + 1);
+        meta.platformNames = nbl::Span<nbl::StringView>(nullptr, arr.count + 1);
+        meta.platformIds = nbl::Span<nbl::StringView>(nullptr, arr.count + 1);
+        usize platformCount = 0;
 
-        meta.platformNames[meta.platformNames.length++] = "igdb";
-        meta.platformIds[meta.platformIds.length++] = idStr;
+        subFrame.allocate(&meta.platformNames);
+        subFrame.allocate(&meta.platformIds);
+
+        meta.platformNames[platformCount] = "igdb";
+        meta.platformIds[platformCount] = idStr;
+        platformCount++;
 
         if(arr.count > 0) {
 
             for(nbl::JsonElement element : arr) {
-                if(element.type != nbl::JsonType::OBJECT) continue;
-                nbl::JsonObject& obj = element.object;
+                if(element.type() != nbl::JsonType::OBJECT) continue;
+                nbl::JsonObject obj = element.asObject();
 
                 nbl::StringView uid = obj.getString("uid");
                 u64 sourceId = obj.getNumber("external_game_source").asUint();
@@ -503,8 +506,9 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
                 nbl::StringView platformName = _externalSourceName(sourceId);
                 if(uid.empty() || platformName.empty()) continue;
 
-                meta.platformNames[meta.platformNames.length++] = platformName;
-                meta.platformIds[meta.platformIds.length++] = uid;
+                meta.platformNames[platformCount] = platformName;
+                meta.platformIds[platformCount] = uid;
+                platformCount++;
             }
         }
 
@@ -517,13 +521,16 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
             usize maxTagCount = themes.count + genres.count + perspectives.count;
             if(maxTagCount > 0) {
 
+                meta.tags = nbl::Span<nbl::StringView>(nullptr, maxTagCount);
+                usize tags = 0;
+
                 nbl::Array allTags = { themes, genres, perspectives };
-                NBL_CHECK(subFrame.allocate(&meta.tags.data, maxTagCount));
+                NBL_CHECK(subFrame.allocate(&meta.tags));
 
                 for(nbl::JsonArray a : allTags) {
                     for(nbl::JsonElement e : a) {
-                        if(e.type != nbl::JsonType::OBJECT) continue;
-                        nbl::StringView slug = e.object.getString("slug");
+                        if(e.type() != nbl::JsonType::OBJECT) continue;
+                        nbl::StringView slug = e.asObject().getString("slug");
 
                         nbl::StringView tag{};
                         NBL_CHECK(nbl::StringBuilder(&subFrame).append(slug)
@@ -536,12 +543,13 @@ nbl::Result _provide(nbl::PluginContext* context, const nbl::OnlineGameLookupInf
                             tag = *mapping;
                         } else if(_tagMode == TAG_MODE_MAPPED) continue;
 
-                        if(tag.length > 0) {
-                            meta.tags.length++;
-                            meta.tags[meta.tags.length - 1] = tag;
+                        if(tag.length() > 0) {
+                            meta.tags[tags++] = tag;
                         }
                     }
                 }
+
+                meta.tags = meta.tags.head(tags);
             }
         }
 
@@ -631,10 +639,10 @@ nbl::Result _loadConfig(nbl::Span<nbl::FieldValue> values) {
     _configArena.popTo(0);
 
     _TagMode tagMode = static_cast<_TagMode>(values[0].enumValue);
-    if(tagMode != TAG_MODE_NONE && values[1].compositeValue.length > 0) {
+    if(tagMode != TAG_MODE_NONE && values[1].compositeValue.length() > 0) {
 
         _TagMapping* mappings;
-        NBL_CHECK(_configArena.allocate(&mappings, values[1].compositeValue.length));
+        NBL_CHECK(_configArena.allocate(&mappings, values[1].compositeValue.length()));
 
         usize index = 0;
         for(nbl::FieldValue mapping : values[1].compositeValue) {
@@ -656,8 +664,8 @@ nbl::Result _loadConfig(nbl::Span<nbl::FieldValue> values) {
             };
         }
 
-        _mappings = nbl::Span(mappings, values[1].compositeValue.length);
-        _quicksortMappings(_mappings.data, 0, _mappings.length - 1);
+        _mappings = nbl::Span(mappings, values[1].compositeValue.length());
+        _quicksortMappings(_mappings.data(), 0, _mappings.length() - 1);
     }
 
     return nbl::Result::SUCCESS;

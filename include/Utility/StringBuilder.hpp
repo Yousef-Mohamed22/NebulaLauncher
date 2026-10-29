@@ -82,7 +82,7 @@ public:
         if(_mLength == 0) {
             _mBegin = _pAllocator->index();
         }
-        _mLastResult = toString(std::forward<T>(value), _pAllocator->writer());
+        _mLastResult = write(std::forward<T>(value), _pAllocator->writer());
         _mLength = _pAllocator->index() - _mBegin;
         return _mLastResult;
     }

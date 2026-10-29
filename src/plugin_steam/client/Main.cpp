@@ -69,7 +69,7 @@ nbl::StringView _getSteamInstallPath() {
     if(_out.empty()) {
         nbl::StringView client = _getSteamClientPath(); 
 #if defined(NBL_PLATFORM_LINUX)
-        _out = client.slice(0, client.length - 22);
+        _out = client.slice(0, client.length() - 22);
 #endif
     }
 
@@ -93,6 +93,7 @@ int main(int argc, char** argv) {
     if(appIdStr.empty()) {
         writer.writeObject([&](auto& obj) {
             obj.add("success", false);
+            obj.add("code", -1);
             obj.add("error", "SteamAppId is unset");
             return nbl::Result::SUCCESS;
         });
@@ -104,6 +105,7 @@ int main(int argc, char** argv) {
     if(rc != 0 || client == nullptr) {
         writer.writeObject([&](auto& obj) {
             obj.add("success", false);
+            obj.add("code", -2);
             obj.add("error", "Failed to create Steam client.");
             return nbl::Result::SUCCESS;
         });
@@ -116,6 +118,7 @@ int main(int argc, char** argv) {
     if(pipe == 0 || user == 0) {
         writer.writeObject([&](auto& obj) {
             obj.add("success", false);
+            obj.add("code", -3);
             obj.add("error", "Failed to connect to Steam. Is it running?");
             return nbl::Result::SUCCESS;
         });
@@ -218,7 +221,7 @@ int main(int argc, char** argv) {
 
                     nbl::JsonObject displayObj = bit.value.asObject().getObject("display");
 
-                    const char* name = bit.value.asObject().getString("name").data;
+                    const char* name = bit.value.asObject().getString("name").data();
                     const char* displayName = stats->GetAchievementDisplayAttribute(name, "name");
                     const char* description = stats->GetAchievementDisplayAttribute(name, "desc");
 
@@ -233,8 +236,8 @@ int main(int argc, char** argv) {
                         || EVP_DigestUpdate(ctx, description, strlen(description)) != 1
                         || EVP_DigestUpdate(ctx, &number, sizeof(u64)) != 1
                         || EVP_DigestUpdate(ctx, &hidden, sizeof(bool)) != 1
-                        || EVP_DigestUpdate(ctx, icon.data, icon.length) != 1
-                        || EVP_DigestUpdate(ctx, iconGray.data, iconGray.length) != 1) {
+                        || EVP_DigestUpdate(ctx, icon.data(), icon.length()) != 1
+                        || EVP_DigestUpdate(ctx, iconGray.data(), iconGray.length()) != 1) {
 
                         EVP_MD_CTX_free(ctx);
                         return nbl::Result::LIBRARY_ERROR;
@@ -292,7 +295,7 @@ int main(int argc, char** argv) {
         EVP_MD_CTX_free(ctx);
 
         obj.writeString("revision_hash", [&](nbl::Writer writer) -> nbl::Result { 
-            return nbl::toString(nbl::HexEncoder({ hash.data, length }), writer);
+            return nbl::write(nbl::HexEncoder({ hash.data, length }), writer);
         });
 
         obj.add("latest_unlock", latestUnlock);

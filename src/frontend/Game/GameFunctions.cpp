@@ -128,7 +128,7 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
     if(params.contains("achievementProviders")) achievementProviderFields = params.find("achievementProviders")->toMap();
     for(const nbl::AchievementProvider* ap : _mContext.registry<nbl::AchievementProvider>()) {
 
-        QString qId = QString::fromUtf8(ap->id.data, ap->id.length);
+        QString qId = QString::fromUtf8(ap->id.data(), ap->id.length());
 
         nbl::AchievementProviderStatus status = nbl::AchievementProviderStatus::NOT_ADDED;
         nbl::Span<nbl::FieldValue> fieldValues{};
@@ -172,7 +172,7 @@ qint64 ApplicationContext::addGame(QVariantMap params) {
 
         nbl::AchievementHelper helper(pluginContext(), ap, gameMeta.id);
 
-        QByteArray requested = QByteArray(ap->requestedExternalId.data, ap->requestedExternalId.length);
+        QByteArray requested = QByteArray(ap->requestedExternalId.data(), ap->requestedExternalId.length());
         QByteArray externalId = idMap.value(requested);
 
         nbl::Result res = ap->updateAchievementState(
@@ -274,7 +274,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
     QVariantMap achievementProviderFields = params.find("achievementProviders")->toMap();
     for(const nbl::AchievementProvider* ap : _mContext.registry<nbl::AchievementProvider>()) {
 
-        QString qId = QString::fromUtf8(ap->id.data, ap->id.length);
+        QString qId = QString::fromUtf8(ap->id.data(), ap->id.length());
         QVariantMap providerInfo = achievementProviderFields.find(qId)->toMap();
 
         nbl::AchievementProviderStatus status = static_cast<nbl::AchievementProviderStatus>(providerInfo.find("status")->toUInt());
@@ -323,7 +323,7 @@ int ApplicationContext::updateGame(QVariantMap params) {
 
         nbl::AchievementHelper helper(pluginContext(), ap, gameMeta.id);
 
-        QByteArray requested = QByteArray(ap->requestedExternalId.data, ap->requestedExternalId.length);
+        QByteArray requested = QByteArray(ap->requestedExternalId.data(), ap->requestedExternalId.length());
         QByteArray externalId = idMap.value(requested);
 
         nbl::Result res = ap->updateAchievementState(

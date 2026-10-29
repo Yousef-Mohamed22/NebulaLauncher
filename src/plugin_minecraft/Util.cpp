@@ -17,14 +17,14 @@
 #include "Util.hpp"
 
 nbl::Result nbl::mc::parseHex(StringView hex, Span<u8> out) {
-    if(hex.length % 2 != 0) {
+    if(hex.length() % 2 != 0) {
         return nbl::Result::INVALID_ARGUMENT;
     }
-    if(hex.length / 2 > out.length) {
+    if(hex.length() / 2 > out.length()) {
         return nbl::Result::INVALID_ARGUMENT;
     }
 
-    for(usize i = 0 ; i < hex.length ; i++) {
+    for(usize i = 0 ; i < hex.length() ; i++) {
         char hexChar = hex[i];
         if(!(hexChar >= '0' && hexChar <= '9')
         && !(hexChar >= 'a' && hexChar <= 'f')) {

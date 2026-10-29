@@ -28,7 +28,7 @@ bool nbl::nextPlaceholder(StringView str, usize* placeholderStart, usize* placeh
 
     usize depth = 0;
     usize start = 0;
-    for(usize i = 0 ; i < str.length ; i++) {
+    for(usize i = 0 ; i < str.length() ; i++) {
         switch(depth) {
             case 0:
                 if(str[i] == '$') {
@@ -47,7 +47,7 @@ bool nbl::nextPlaceholder(StringView str, usize* placeholderStart, usize* placeh
                 if(str[i] == '}') {
                     *placeholderEnd = i;
                     *placeholderStart = start;
-                    *placeholder = StringView(str.data + start + 2, i - start - 2);
+                    *placeholder = StringView(str.data() + start + 2, i - start - 2);
                     return true;
                 }
                 break;
@@ -59,7 +59,7 @@ bool nbl::nextPlaceholder(StringView str, usize* placeholderStart, usize* placeh
 
 nbl::Result nbl::formatPlaceholders(StringView format, Writer writer, Span<Span<Placeholder>> placeholders, bool strict) {
 
-    if(!strict && placeholders.length == 0) {
+    if(!strict && placeholders.length() == 0) {
         return writer.writeString(format);
     }
 
@@ -70,13 +70,13 @@ nbl::Result nbl::formatPlaceholders(StringView format, Writer writer, Span<Span<
     usize index = 0;
     usize prevPlaceholder = 0;
 
-    while(nextPlaceholder(format.tail(index), &placeholderStart, &placeholderEnd, &placeholderName)) {
+    while(nextPlaceholder(format.slice(index), &placeholderStart, &placeholderEnd, &placeholderName)) {
         
         StringView placeholderValue{};
         bool found = false;
 
-        for(usize set = 0 ; set < placeholders.length ; set++) {
-            for(usize i = 0 ; i < placeholders[set].length ; i++) {
+        for(usize set = 0 ; set < placeholders.length() ; set++) {
+            for(usize i = 0 ; i < placeholders[set].length() ; i++) {
                 Placeholder& p = placeholders[set][i];
                 if(p.key == placeholderName) {
                     placeholderValue = p.value;
@@ -112,8 +112,8 @@ nbl::Result nbl::formatPlaceholders(StringView format, Writer writer, Span<Span<
         }
     }
 
-    if(index < format.length) {
-        NBL_CHECK(writer.writeString(format.tail(index)));
+    if(index < format.length()) {
+        NBL_CHECK(writer.writeString(format.slice(index)));
     }
     
     return nbl::Result::SUCCESS;

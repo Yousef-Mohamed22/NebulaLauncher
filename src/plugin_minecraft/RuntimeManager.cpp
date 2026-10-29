@@ -36,8 +36,8 @@ nbl::StringView _archStr() {
         memcpy(archBuffer, "mac-os", 6);
         index = 6;
     } else {
-        memcpy(archBuffer, osInfo.name.data, osInfo.name.length);
-        index = osInfo.name.length;
+        memcpy(archBuffer, osInfo.name.data(), osInfo.name.length());
+        index = osInfo.name.length();
     }
 
     switch(osInfo.arch) {
@@ -88,13 +88,13 @@ nbl::Result nbl::mc::downloadRuntime(DownloadManager* client, StringView runtime
     JsonElement root{};
     NBL_CHECK(parseJson(manifestFile.reader(), &frame, &root));
 
-    if(root.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+    if(root.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-    JsonArray components = root.object.getObject(arch).getArray(runtimeComponent);
+    JsonArray components = root.asObject().getObject(arch).getArray(runtimeComponent);
     if(components.count == 0) return nbl::Result::NOT_FOUND;
 
     StringView url = components.getObject(0).getObject("manifest").getString("url");
-    if(url.length == 0) return nbl::Result::NOT_FOUND;
+    if(url.length() == 0) return nbl::Result::NOT_FOUND;
 
 
     StringView componentManifestPath;
@@ -108,11 +108,11 @@ nbl::Result nbl::mc::downloadRuntime(DownloadManager* client, StringView runtime
     JsonElement componentRoot{};
     NBL_CHECK(parseJson(componentManifestFile.reader(), &frame, &componentRoot));
 
-    if(componentRoot.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+    if(componentRoot.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-    for(JsonObject::Entry& ent : componentRoot.object.getObject("files")) {
-        if(ent.value.type != JsonType::OBJECT) continue;
-        StringView type = ent.value.object.getString("type");
+    for(JsonObject::Entry& ent : componentRoot.asObject().getObject("files")) {
+        if(ent.value.type() != JsonType::OBJECT) continue;
+        StringView type = ent.value.asObject().getString("type");
         if(type == "directory") continue;
 
 
@@ -126,14 +126,14 @@ nbl::Result nbl::mc::downloadRuntime(DownloadManager* client, StringView runtime
             NBL_CHECK(filePath.findLast('/', &last));
             NBL_CHECK(makeDirectories(filePath.slice(0, last)));
             
-            nbl::createLink(ent.value.object.getString("target"), filePath);
+            nbl::createLink(ent.value.asObject().getString("target"), filePath);
 
         } else if(type == "file") {
 
-            StringView sha1 = ent.value.object.getObject("downloads").getObject("raw").getString("sha1");
-            StringView url = ent.value.object.getObject("downloads").getObject("raw").getString("url");
+            StringView sha1 = ent.value.asObject().getObject("downloads").getObject("raw").getString("sha1");
+            StringView url = ent.value.asObject().getObject("downloads").getObject("raw").getString("url");
 
-            bool executable = ent.value.object.getBoolean("executable");
+            bool executable = ent.value.asObject().getBoolean("executable");
             NBL_CHECK(client->verifyOrDownload(sha1, filePath, url, executable));
 
         } else { 

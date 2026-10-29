@@ -73,7 +73,7 @@ public:
 
     QString providerId() const {
         if(_pProvider == nullptr) return {};
-        return QString::fromUtf8(_pProvider->id.data, _pProvider->id.length);
+        return QString::fromUtf8(_pProvider->id.data(), _pProvider->id.length());
     }
     void setProviderId(QString providerId);
 

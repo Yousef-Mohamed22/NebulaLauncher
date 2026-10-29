@@ -78,7 +78,7 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
     }
 
     nbl::StringView liveToken = response.asObject().getString("Token");
-    if(liveToken.length == 0) {
+    if(liveToken.length() == 0) {
         NBL_WARN("Xbox auth sent invalid token: ", response);
         return nbl::Result::FORMAT_ERROR;
     }
@@ -130,7 +130,7 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
     nbl::StringView xstsToken = response.asObject().getString("Token");
     nbl::StringView uhs = response.asObject().getObject("DisplayClaims").getArray("xui").getObject(0).getString("uhs");
 
-    if(xstsToken.length == 0 || uhs.length == 0) {
+    if(xstsToken.length() == 0 || uhs.length() == 0) {
         NBL_WARN("XSTS send invalid response: ", response);
         return nbl::Result::FORMAT_ERROR;
     }
@@ -172,8 +172,8 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
 
     u64 expiry = (response.asObject().getNumber("expires_in").asUint() * 1000) + nbl::getCurrentTime();
 
-    nbl::StringView mcAccessToken = response.object.getString("access_token");
-    if(mcAccessToken.length == 0) {
+    nbl::StringView mcAccessToken = response.asObject().getString("access_token");
+    if(mcAccessToken.length() == 0) {
         NBL_WARN("Minecraft auth sent zero-length access token");
         return nbl::Result::FORMAT_ERROR;
     }
@@ -216,14 +216,14 @@ nbl::Result _finishLogin(nbl::PluginContext* context, nbl::HttpClient& client, n
         skin = element.asObject().getString("url");
     }
 
-    if(uuidHex.length != 32 || username.length == 0 || username.length > 16) {
+    if(uuidHex.length() != 32 || username.length() == 0 || username.length() > 16) {
         NBL_WARN("Invalid name or UUID: name=", username, ", uuid=", uuidHex);
         return nbl::Result::FORMAT_ERROR;
     }
 
     nbl::StringView skinId{};
     tracker->postStatus("Downloading skin");
-    if(skin.length > 0) {
+    if(skin.length() > 0) {
         NBL_CHECK(nbl::mc::downloadSkinHead(skinFolder, skin, &client, &skinId));
     }
 
@@ -303,16 +303,16 @@ nbl::Result nbl::mc::login(nbl::PluginContext* context, Span<FieldValue> values,
     JsonElement element{};
     NBL_CHECK(nbl::parseJson(responseStr, &frame, &element));
 
-    if(element.type != JsonType::OBJECT) {
+    if(element.type() != JsonType::OBJECT) {
         NBL_WARN("Xbox Live sent invalid response");
         return nbl::Result::FORMAT_ERROR;
     }
 
-    StringView token = element.object.getString("access_token");
-    StringView refreshToken = element.object.getString("refresh_token");
+    StringView token = element.asObject().getString("access_token");
+    StringView refreshToken = element.asObject().getString("refresh_token");
 
-    if(token.length == 0 || refreshToken.length == 0) {
-        NBL_WARN("Xbox Live sent invalid response: ", element.object);
+    if(token.length() == 0 || refreshToken.length() == 0) {
+        NBL_WARN("Xbox Live sent invalid response: ", element.asObject());
         return nbl::Result::FORMAT_ERROR;
     }
 
@@ -337,7 +337,7 @@ nbl::Result nbl::mc::refresh(nbl::PluginContext* context, const OnlineAccount& a
     u64 expiry = values[4].uintegerValue;
     u64 now = getCurrentTime();
 
-    if(refreshToken.length == 0) {
+    if(refreshToken.length() == 0) {
         return nbl::Result::EXPIRED;
     }
     if(now + (1000 * 60 * 60 * 12) < expiry) {
@@ -378,16 +378,16 @@ nbl::Result nbl::mc::refresh(nbl::PluginContext* context, const OnlineAccount& a
     JsonElement response{};
     NBL_CHECK(nbl::parseJson(responseStr, &frame, &response));
 
-    if(response.type != JsonType::OBJECT) {
+    if(response.type() != JsonType::OBJECT) {
         NBL_WARN("Xbox Live sent invalid response");
         return nbl::Result::FORMAT_ERROR;
     }
 
-    StringView token = response.object.getString("access_token");
-    StringView newRefreshToken = response.object.getString("refresh_token");
+    StringView token = response.asObject().getString("access_token");
+    StringView newRefreshToken = response.asObject().getString("refresh_token");
 
-    if(token.length == 0 || refreshToken.length == 0) {
-        NBL_WARN("Xbox Live sent invalid response: ", response.object);
+    if(token.length() == 0 || refreshToken.length() == 0) {
+        NBL_WARN("Xbox Live sent invalid response: ", response.asObject());
         return nbl::Result::FORMAT_ERROR;
     }
 

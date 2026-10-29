@@ -79,7 +79,7 @@ nbl::Result nbl::frontend::TabFilterModel::_fetchPageData(qsizetype limit, qsize
     NBL_CHECK(nbl::Filter::enumerateForTab(db, _mTabId, offset, limit, [&](const nbl::Filter& meta) -> nbl::Result {
         found.append(FilterMeta(
             meta.filterId, 
-            QByteArray(meta.name.data, meta.name.length), 
+            QByteArray(meta.name.data(), meta.name.length()), 
             inlineIcon(meta.icon, meta.flags & FilterFlag::IMAGE_ICON),
             meta.flags
         ));

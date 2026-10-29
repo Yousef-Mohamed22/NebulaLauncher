@@ -143,8 +143,117 @@ struct JsonObject {
     class Builder;
 };
 
-struct JsonElement {
-    JsonType type;
+class JsonElement {
+public:
+
+    JsonElement() :
+        _mType(JsonType::NONE)
+    {} 
+
+    JsonElement(const JsonElement& other) noexcept = default;
+    JsonElement& operator=(const JsonElement& other) noexcept = default;
+
+    JsonElement(JsonNumber number) :
+        _mType(JsonType::NUMBER),
+        number(number)
+    {}
+
+    JsonElement(u64 uint) :
+        _mType(JsonType::NUMBER),
+        number{ .type = JsonNumberType::UNSIGNED, .uintValue = uint }
+    {}
+    
+    JsonElement(u32 uint) :
+        _mType(JsonType::NUMBER),
+        number{ .type = JsonNumberType::UNSIGNED, .uintValue = uint }
+    {}
+
+    JsonElement(i64 sint) :
+        _mType(JsonType::NUMBER),
+        number{ .type = JsonNumberType::SIGNED, .intValue = sint }
+    {}
+
+    JsonElement(i32 sint) :
+        _mType(JsonType::NUMBER),
+        number{ .type = JsonNumberType::SIGNED, .intValue = sint }
+    {}
+
+    JsonElement(f64 dbl) :
+        _mType(JsonType::NUMBER),
+        number{ .type = JsonNumberType::FLOAT, .floatValue = dbl }
+    {}
+
+    JsonElement(bool boolean) :
+        _mType(JsonType::BOOLEAN),
+        boolean(boolean)
+    {}
+    
+    JsonElement(StringView string) :
+        _mType(JsonType::STRING),
+        string(string)
+    {}
+ 
+    JsonElement(const char* string) :
+        _mType(JsonType::STRING),
+        string(string)
+    {}
+
+    JsonElement(const JsonArray& array) :
+        _mType(JsonType::ARRAY),
+        array(array)
+    {}
+
+    JsonElement(const JsonObject& object) :
+        _mType(JsonType::OBJECT),
+        object(object)
+    {}
+
+    inline JsonType type() const noexcept {
+        return _mType;
+    }
+
+    inline JsonObject asObject(JsonObject defaultValue = {}) const noexcept {
+        if(_mType == JsonType::OBJECT) return object;
+        return defaultValue;
+    }
+
+    inline JsonArray asArray(JsonArray defaultValue = {}) const noexcept {
+        if(_mType == JsonType::ARRAY) return array;
+        return defaultValue;
+    }
+
+    inline JsonNumber asNumber(JsonNumber defaultValue = {}) const noexcept {
+        if(_mType == JsonType::NUMBER) return number;
+        return defaultValue;
+    }
+
+    inline i64 asInt(i64 defaultValue = {}) const noexcept {
+        if(_mType == JsonType::NUMBER) return number.asInt();
+        return defaultValue;
+    }
+
+    inline u64 asUint(u64 defaultValue = {}) const noexcept {
+        if(_mType == JsonType::NUMBER) return number.asUint();
+        return defaultValue;
+    }
+
+    inline f64 asFloat(f64 defaultValue = {}) const noexcept {
+        if(_mType == JsonType::NUMBER) return number.asFloat();
+        return defaultValue;
+    }
+
+    inline StringView asString(StringView defaultValue = {}) const noexcept {
+        if(_mType == JsonType::STRING) return string;
+        return defaultValue;
+    }
+
+    inline bool asBoolean(bool defaultValue = false) const noexcept {
+        if(_mType == JsonType::BOOLEAN) return boolean;
+        return defaultValue;
+    }
+
+private:
+    JsonType _mType;
     union {
         JsonNumber number;
         bool boolean;
@@ -152,106 +261,6 @@ struct JsonElement {
         JsonArray array;
         JsonObject object;
     };
-
-    JsonElement() :
-        type(JsonType::NONE)
-    {} 
-
-    JsonElement(JsonNumber number) :
-        type(JsonType::NUMBER),
-        number(number)
-    {}
-
-    JsonElement(u64 uint) :
-        type(JsonType::NUMBER),
-        number{ .type = JsonNumberType::UNSIGNED, .uintValue = uint }
-    {}
-    
-    JsonElement(u32 uint) :
-        type(JsonType::NUMBER),
-        number{ .type = JsonNumberType::UNSIGNED, .uintValue = uint }
-    {}
-
-    JsonElement(i64 sint) :
-        type(JsonType::NUMBER),
-        number{ .type = JsonNumberType::SIGNED, .intValue = sint }
-    {}
-
-    JsonElement(i32 sint) :
-        type(JsonType::NUMBER),
-        number{ .type = JsonNumberType::SIGNED, .intValue = sint }
-    {}
-
-    JsonElement(f64 dbl) :
-        type(JsonType::NUMBER),
-        number{ .type = JsonNumberType::FLOAT, .floatValue = dbl }
-    {}
-
-    JsonElement(bool boolean) :
-        type(JsonType::BOOLEAN),
-        boolean(boolean)
-    {}
-    
-    JsonElement(StringView string) :
-        type(JsonType::STRING),
-        string(string)
-    {}
- 
-    JsonElement(const char* string) :
-        type(JsonType::STRING),
-        string(string)
-    {}
-
-    JsonElement(const JsonArray& array) :
-        type(JsonType::ARRAY),
-        array(array)
-    {}
-
-    JsonElement(const JsonObject& object) :
-        type(JsonType::OBJECT),
-        object(object)
-    {}
-
-
-    inline JsonObject asObject(JsonObject defaultValue = {}) const noexcept {
-        if(type == JsonType::OBJECT) return object;
-        return defaultValue;
-    }
-
-    inline JsonArray asArray(JsonArray defaultValue = {}) const noexcept {
-        if(type == JsonType::ARRAY) return array;
-        return defaultValue;
-    }
-
-    inline JsonNumber asNumber(JsonNumber defaultValue = {}) const noexcept {
-        if(type == JsonType::NUMBER) return number;
-        return defaultValue;
-    }
-
-    inline i64 asInt(i64 defaultValue = {}) const noexcept {
-        if(type == JsonType::NUMBER) return number.asInt();
-        return defaultValue;
-    }
-
-    inline u64 asUint(u64 defaultValue = {}) const noexcept {
-        if(type == JsonType::NUMBER) return number.asUint();
-        return defaultValue;
-    }
-
-    inline f64 asFloat(f64 defaultValue = {}) const noexcept {
-        if(type == JsonType::NUMBER) return number.asFloat();
-        return defaultValue;
-    }
-
-    inline StringView asString(StringView defaultValue = {}) const noexcept {
-        if(type == JsonType::STRING) return string;
-        return defaultValue;
-    }
-
-    inline bool asBoolean(bool defaultValue = false) const noexcept {
-        if(type == JsonType::BOOLEAN) return boolean;
-        return defaultValue;
-    }
 };
 
 struct JsonObject::Entry {
@@ -291,9 +300,9 @@ Result parseJsonNumber(StringView string, JsonNumber* outNumber);
 
 Result writeJson(Writer writer, JsonElement element);
 
-inline Result toString(JsonElement element, Writer writer) { return writeJson(writer, element); }
-inline Result toString(JsonArray element, Writer writer) { return writeJson(writer, element); }
-inline Result toString(JsonObject element, Writer writer) { return writeJson(writer, element); }
+inline Result write(JsonElement element, Writer writer) { return writeJson(writer, element); }
+inline Result write(JsonArray element, Writer writer) { return writeJson(writer, element); }
+inline Result write(JsonObject element, Writer writer) { return writeJson(writer, element); }
 
 Writer jsonStringWriter(Writer* writer);
 

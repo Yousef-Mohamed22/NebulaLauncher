@@ -31,7 +31,7 @@ namespace {
 
 nbl::Result _hash(const EVP_MD* md, nbl::Reader reader, nbl::Span<u8> outBytes) {
 
-    if(outBytes.length < EVP_MD_size(md)) return nbl::Result::INVALID_ARGUMENT;
+    if(outBytes.length() < EVP_MD_size(md)) return nbl::Result::INVALID_ARGUMENT;
     
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
     if(ctx == nullptr) {
@@ -54,7 +54,7 @@ nbl::Result _hash(const EVP_MD* md, nbl::Reader reader, nbl::Span<u8> outBytes) 
     }
 
     u32 outputLen = 32;
-    if(EVP_DigestFinal_ex(ctx, outBytes.data, &outputLen) != 1) {
+    if(EVP_DigestFinal_ex(ctx, outBytes.data(), &outputLen) != 1) {
         EVP_MD_CTX_free(ctx);
         return nbl::Result::LIBRARY_ERROR;
     }
@@ -64,7 +64,7 @@ nbl::Result _hash(const EVP_MD* md, nbl::Reader reader, nbl::Span<u8> outBytes) 
 
 nbl::Result _hash(const EVP_MD* md, nbl::ConstSpan<u8> buffer, nbl::Span<u8> outBytes) {
 
-    if(outBytes.length < EVP_MD_size(md)) return nbl::Result::INVALID_ARGUMENT;
+    if(outBytes.length() < EVP_MD_size(md)) return nbl::Result::INVALID_ARGUMENT;
     
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
     if(ctx == nullptr) {
@@ -76,13 +76,13 @@ nbl::Result _hash(const EVP_MD* md, nbl::ConstSpan<u8> buffer, nbl::Span<u8> out
         return nbl::Result::LIBRARY_ERROR;
     }
 
-    if(EVP_DigestUpdate(ctx, buffer.data, buffer.length) != 1) {
+    if(EVP_DigestUpdate(ctx, buffer.data(), buffer.length()) != 1) {
         EVP_MD_CTX_free(ctx);
         return nbl::Result::LIBRARY_ERROR;
     }
 
     u32 outputLen = 32;
-    if(EVP_DigestFinal_ex(ctx, outBytes.data, &outputLen) != 1) {
+    if(EVP_DigestFinal_ex(ctx, outBytes.data(), &outputLen) != 1) {
         EVP_MD_CTX_free(ctx);
         return nbl::Result::LIBRARY_ERROR;
     }
@@ -95,7 +95,7 @@ nbl::Result _hash(const EVP_MD* md, nbl::ConstSpan<u8> buffer, nbl::Span<u8> out
 
 nbl::Result nbl::fileSha1(nbl::StringView filePath, Span<u8> outBytes) {
 
-    if(outBytes.length < 20) return nbl::Result::INVALID_ARGUMENT;
+    if(outBytes.length() < 20) return nbl::Result::INVALID_ARGUMENT;
 
     FileChannel file{};
     NBL_CHECK(FileChannel::open(filePath, &file, FileOpenFlag::READ));
@@ -105,7 +105,7 @@ nbl::Result nbl::fileSha1(nbl::StringView filePath, Span<u8> outBytes) {
 
 nbl::Result nbl::fileSha256(nbl::StringView filePath, Span<u8> outBytes) {
 
-    if(outBytes.length < 32) return nbl::Result::INVALID_ARGUMENT;
+    if(outBytes.length() < 32) return nbl::Result::INVALID_ARGUMENT;
 
     FileChannel file{};
     NBL_CHECK(FileChannel::open(filePath, &file, FileOpenFlag::READ));

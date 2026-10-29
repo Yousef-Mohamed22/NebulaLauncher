@@ -112,13 +112,13 @@ inline Result toString(DataValue value, Writer writer) {
         case DataType::NULL_TYPE: 
             return writer.writeString("NULL");
         case DataType::INTEGER:
-            return toString(value.intValue, writer);
+            return write(value.intValue, writer);
         case DataType::FLOAT:
-            return toString(value.floatValue, writer);
+            return write(value.floatValue, writer);
         case DataType::TEXT:
             return writer.writeString(value.textValue);
         case DataType::BLOB:
-            return toString(HexEncoder(value.blobValue), writer);
+            return write(HexEncoder(value.blobValue), writer);
     }
     return nbl::Result::UNEXPECTED_ERROR;
 }

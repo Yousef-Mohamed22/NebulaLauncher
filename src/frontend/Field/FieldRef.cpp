@@ -31,11 +31,11 @@ QVariant _fieldToQt(const nbl::Field* field, nbl::FieldValue value) {
     switch(field->type) {
         case nbl::FieldType::STRING: {
             QVariantMap out = {};
-            out["resolved"] = QString::fromUtf8(value.stringValue.resolved.data, value.stringValue.resolved.length);
+            out["resolved"] = QString::fromUtf8(value.stringValue.resolved.data(), value.stringValue.resolved.length());
             if(!value.stringValue.raw.empty()) {
-                out["raw"] = QString::fromUtf8(value.stringValue.raw.data, value.stringValue.raw.length);
+                out["raw"] = QString::fromUtf8(value.stringValue.raw.data(), value.stringValue.raw.length());
             } else {
-                out["raw"] = QString::fromUtf8(value.stringValue.resolved.data, value.stringValue.resolved.length);
+                out["raw"] = QString::fromUtf8(value.stringValue.resolved.data(), value.stringValue.resolved.length());
             }
             return out;
         }
@@ -63,12 +63,12 @@ QVariant _fieldToQt(const nbl::Field* field, nbl::FieldValue value) {
         }
         case nbl::FieldType::STRUCT: {
             QVariantMap out;
-            for(auto i = 0 ; i < nbl::min(field->structData.fields.length, value.compositeValue.length) ; i++) {
-                QString key = QString::fromUtf8(field->structData.fields[i].key.data, field->structData.fields[i].key.length);
+            for(auto i = 0 ; i < nbl::min(field->structData.fields.length(), value.compositeValue.length()) ; i++) {
+                QString key = QString::fromUtf8(field->structData.fields[i].key.data(), field->structData.fields[i].key.length());
                 out.insert(key, _fieldToQt(&field->structData.fields[i], value.compositeValue[i]));
             }
-            for(auto i = nbl::min(field->structData.fields.length, value.compositeValue.length) ; i < field->structData.fields.length ; i++) {
-                QString key = QString::fromUtf8(field->structData.fields[i].key.data, field->structData.fields[i].key.length);
+            for(auto i = nbl::min(field->structData.fields.length(), value.compositeValue.length()) ; i < field->structData.fields.length() ; i++) {
+                QString key = QString::fromUtf8(field->structData.fields[i].key.data(), field->structData.fields[i].key.length());
                 out.insert(key, _fieldToQt(&field->structData.fields[i], {}));
             }
             return out;
@@ -117,41 +117,43 @@ nbl::FieldValue _qtToField(const nbl::Field* field, QVariant value, nbl::LinearA
             .rgba = value.toUInt()
         }};
         case nbl::FieldType::LIST: {
-            QVariantList values = value.toList();
-            nbl::Span<nbl::FieldValue> fieldValues{};
-            if(values.length() > 0) {
-                NBL_ASSERT(allocator->allocate(&fieldValues.data, values.length()).success()); 
-                fieldValues.length = values.length();
+            QVariantList qtValues = value.toList();
+            nbl::FieldValue* values{};
+            nbl::Span<nbl::FieldValue> valueSpan{};
+            if(qtValues.length() > 0) {
+                NBL_ASSERT(allocator->allocate(&values, qtValues.length()).success()); 
         
                 usize current = 0;
-                for(QVariant var : values) {
-                    fieldValues[current++] = _qtToField(field->listData.templateField, var, allocator);
+                for(QVariant var : qtValues) {
+                    values[current++] = _qtToField(field->listData.templateField, var, allocator);
                 }
-                fieldValues.length = current;
+                valueSpan = nbl::Span<nbl::FieldValue>(values, current);
             }
-            return { .compositeValue = fieldValues };
+            return { .compositeValue = valueSpan };
         };
         case nbl::FieldType::STRUCT: {
 
-            QVariantMap values = value.toMap();
-            nbl::Span<nbl::FieldValue> fieldValues{};
-            fieldValues.length = field->structData.fields.length;
-            if(fieldValues.length > 0) {
-                NBL_ASSERT(allocator->allocate(&fieldValues.data, fieldValues.length).success());
+            QVariantMap qtValues = value.toMap();
+            nbl::FieldValue* values{};
+            nbl::Span<nbl::FieldValue> valueSpan{};
+            if(field->structData.fields.length() > 0) {
+                NBL_ASSERT(allocator->allocate(&values, field->structData.fields.length()).success());
 
                 usize current = 0;
                 for(const nbl::Field& field : field->structData.fields) {
                     
-                    QString key = QString::fromUtf8(field.key.data, field.key.length);
-                    if(values.contains(key)) {
-                        QVariant var = *values.find(key);
-                        fieldValues[current++] = _qtToField(&field, var, allocator);
+                    QString key = QString::fromUtf8(field.key.data(), field.key.length());
+                    if(qtValues.contains(key)) {
+                        QVariant var = *qtValues.find(key);
+                        values[current++] = _qtToField(&field, var, allocator);
                     } else {
-                        fieldValues[current++] = field.defaultValue;
+                        values[current++] = field.defaultValue;
                     }
                 }
+
+                valueSpan = nbl::Span<nbl::FieldValue>(values, current);
             }
-            return { .compositeValue = fieldValues };          
+            return { .compositeValue = valueSpan };          
         };
         case nbl::FieldType::ACTION:
         case nbl::FieldType::FIELD_ACTION:
@@ -167,11 +169,11 @@ quint32 nbl::frontend::FieldRef::type() {
 }
 
 QString nbl::frontend::FieldRef::key() {
-    return QString::fromUtf8(_pField->key.data, _pField->key.length);
+    return QString::fromUtf8(_pField->key.data(), _pField->key.length());
 }
 
 QString nbl::frontend::FieldRef::name() {
-    return QString::fromUtf8(_pField->name.data, _pField->name.length);
+    return QString::fromUtf8(_pField->name.data(), _pField->name.length());
 }
 
 QVariant nbl::frontend::FieldRef::min() {
@@ -212,7 +214,7 @@ QVariant nbl::frontend::FieldRef::defaultValue() {
 
 QString nbl::frontend::FieldRef::accountProvider() {
     if(_pField->type != nbl::FieldType::ACCOUNT) return {};
-    return QString::fromUtf8(_pField->accountData.accountProvider.data, _pField->accountData.accountProvider.length);
+    return QString::fromUtf8(_pField->accountData.accountProvider.data(), _pField->accountData.accountProvider.length());
 }
 bool nbl::frontend::FieldRef::showDefaultOption() {
     return _pField->type == nbl::FieldType::ACCOUNT && (_pField->flags & nbl::FieldFlag::SHOW_DEFAULT_OPTION);
@@ -256,7 +258,7 @@ void nbl::frontend::FieldRef::suggest(QString current, QJSValue value) {
     QByteArray currentUtf = current.toUtf8();
     _pField->stringData.suggest(context, nbl::StringView(currentUtf.data(), currentUtf.length()), [&](nbl::StringView suggestion) {
         QJSValueList args{};
-        args.append(QString::fromUtf8(suggestion.data, suggestion.length));
+        args.append(QString::fromUtf8(suggestion.data(), suggestion.length()));
         value.call(args);
     });
 }
@@ -293,16 +295,17 @@ QVariant nbl::frontend::FieldRef::parse(QByteArray encodedFields, nbl::Span<nbl:
 
     QVariant qtFields = QVariantMap();
     nbl::AllocationFrame frame(nbl::Arena::threadLocal());
-    nbl::Span<nbl::FieldValue> values;
-    if(frame.allocate(&values.data, fields.length).error()) return QVariant();
+    nbl::FieldValue* values;
+    if(frame.allocate(&values, fields.length()).error()) return QVariant();
 
     nbl::JsonElement element;
     if(nbl::parseJson(nbl::StringView(encodedFields.data(), encodedFields.length()), &frame, &element).error()) return QVariant();
-    if(element.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+    if(element.type() != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-    if(nbl::decodeFieldValues(ApplicationContext::instance()->pluginContext(), fields, element.object, &values, &frame).error()) return QVariant();
+    nbl::Span<nbl::FieldValue> valueSpan(values, fields.length());
+    if(nbl::decodeFieldValues(ApplicationContext::instance()->pluginContext(), fields, element.asObject(), &valueSpan, &frame).error()) return QVariant();
 
-    qtFields = nbl::frontend::FieldRef(&dummy).fromNbl({ .compositeValue = values });
+    qtFields = nbl::frontend::FieldRef(&dummy).fromNbl({ .compositeValue = valueSpan });
 
     return qtFields;
 

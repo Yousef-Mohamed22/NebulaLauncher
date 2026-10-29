@@ -81,18 +81,18 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::AllocationFr
 
     NBL_CHECK(nbl::parseJson(criteriaJson, frame, &criteriaValue));
 
-    if(criteriaValue.type != nbl::JsonType::OBJECT) {
-        nbl::log(nbl::LogLevel::ERROR, "Expected criteria JSON to be an object, but got ", criteriaValue.type);
+    if(criteriaValue.type() != nbl::JsonType::OBJECT) {
+        nbl::log(nbl::LogLevel::ERROR, "Expected criteria JSON to be an object, but got ", criteriaValue.type());
         return nbl::Result::INVALID_ARGUMENT;
     }
 
-    nbl::JsonObject& criteriaObject = criteriaValue.object;
+    nbl::JsonObject criteriaObject = criteriaValue.asObject();
 
     auto getChecked = [](const nbl::JsonObject& criteriaObj, nbl::StringView key, nbl::JsonType type, auto* outValue) -> nbl::Result {
         const nbl::JsonElement* value = criteriaObj.get(key);
         if(value) {
-            if(value->type != type) {
-                nbl::log(nbl::LogLevel::ERROR, "Expected criteria ", key, " to be of type ", type, " but got ", value->type);
+            if(value->type() != type) {
+                nbl::log(nbl::LogLevel::ERROR, "Expected criteria ", key, " to be of type ", type, " but got ", value->type());
                 return nbl::Result::INVALID_ARGUMENT;
             }
             *outValue = value;
@@ -102,27 +102,28 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::AllocationFr
 
     const nbl::JsonElement* tagsValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "tags", nbl::JsonType::ARRAY, &tagsValue));
-    if(tagsValue && tagsValue->array.count > 0) {
+    if(tagsValue && tagsValue->asArray().count > 0) {
 
-        nbl::Span<nbl::ConstSpan<i64>> outSets{};
+        nbl::Span<nbl::ConstSpan<i64>> outSets(nullptr, tagsValue->asArray().count);
 
-        frame->allocate(&outSets.data, tagsValue->array.count);
+        frame->allocate(&outSets);
+        usize index = 0;
 
-        for(const nbl::JsonElement& set : tagsValue->array) {
-            if(set.type != nbl::JsonType::ARRAY) return nbl::Result::INVALID_ARGUMENT;
+        for(const nbl::JsonElement& set : tagsValue->asArray()) {
+            if(set.type() != nbl::JsonType::ARRAY) return nbl::Result::INVALID_ARGUMENT;
 
-            nbl::Span<i64> outSet{};
+            nbl::Span<i64> outSet(nullptr, set.asArray().count);
 
-            if(set.array.count > 0) {
-                frame->allocate(&outSet.data, set.array.count);
+            if(set.asArray().count > 0) {
+                frame->allocate(&outSet);
 
-                for(const nbl::JsonElement& tag : set.array) {
-                    if(tag.type != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
-                    outSet[outSet.length++] = tag.number.intValue;
+                for(const nbl::JsonElement& tag : set.asArray()) {
+                    if(tag.type() != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
+                    outSet[index++] = tag.asNumber().intValue;
                 }
             }
 
-            outSets[outSets.length++] = outSet;
+            outSets[index++] = outSet;
         }
 
         outCriteria->tags = outSets;
@@ -130,14 +131,14 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::AllocationFr
 
     const nbl::JsonElement* excludedTagsValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "excludedTags", nbl::JsonType::ARRAY, &excludedTagsValue));
-    if(excludedTagsValue && excludedTagsValue->array.count > 0) {
-        nbl::Span<i64> outTags{};
-        frame->allocate(&outTags.data, excludedTagsValue->array.count);
+    if(excludedTagsValue && excludedTagsValue->asArray().count > 0) {
+        nbl::Span<i64> outTags(nullptr, excludedTagsValue->asArray().count);
+        frame->allocate(&outTags);
 
         usize i = 0;
-        for(const nbl::JsonElement& tag : excludedTagsValue->array) {
-            if(tag.type != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
-            outTags[outTags.length++] = tag.number.intValue;
+        for(const nbl::JsonElement& tag : excludedTagsValue->asArray()) {
+            if(tag.type() != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
+            outTags[i] = tag.asNumber().intValue;
         }
 
         outCriteria->excludedTags = outTags;
@@ -153,13 +154,13 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::AllocationFr
     const nbl::JsonElement* sortByValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "sortBy", nbl::JsonType::STRING, &sortByValue));
     if(sortByValue) {
-        NBL_CHECK(nbl::byName(sortByValue->string, &outCriteria->sortBy));
+        NBL_CHECK(nbl::byName(sortByValue->asString(), &outCriteria->sortBy));
     }
 
     const nbl::JsonElement* sortOrderValue = nullptr;
     NBL_CHECK(getChecked(criteriaObject, "sortOrder", nbl::JsonType::STRING, &sortOrderValue));
     if(sortOrderValue) {
-        NBL_CHECK(nbl::byName(sortOrderValue->string, &outCriteria->sortOrder));
+        NBL_CHECK(nbl::byName(sortOrderValue->asString(), &outCriteria->sortOrder));
     }
 
     outCriteria->offset = criteriaObject.getNumber("offset").asUint();

@@ -25,7 +25,7 @@
 
 int nbl::frontend::PluginModel::rowCount(const QModelIndex& parent) const {
     ApplicationContext* ctx = ApplicationContext::instance();
-    return ctx->pluginContext()->loadedPlugins().length;
+    return ctx->pluginContext()->loadedPlugins().length();
 }
 
 QVariant nbl::frontend::PluginModel::data(const QModelIndex& index, int role) const {
@@ -37,15 +37,15 @@ QVariant nbl::frontend::PluginModel::data(const QModelIndex& index, int role) co
 
     switch(role) {
         case IdRole:
-            return QByteArray(plugin.meta.id.data, plugin.meta.id.length);
+            return QByteArray(plugin.meta.id.data(), plugin.meta.id.length());
         case NameRole:
-            return QByteArray(plugin.meta.name.data, plugin.meta.name.length);
+            return QByteArray(plugin.meta.name.data(), plugin.meta.name.length());
         case VersionRole:
-            return QByteArray(plugin.meta.version.data, plugin.meta.version.length);
+            return QByteArray(plugin.meta.version.data(), plugin.meta.version.length());
         case DescriptionRole:
-            return QByteArray(plugin.meta.description.data, plugin.meta.description.length);
+            return QByteArray(plugin.meta.description.data(), plugin.meta.description.length());
         case FieldCountRole:
-            return static_cast<qsizetype>(plugin.fields.length);
+            return static_cast<qsizetype>(plugin.fields.length());
         case FieldValuesRole: {
         
             QVariant qtFields = QVariantMap();
@@ -58,14 +58,14 @@ QVariant nbl::frontend::PluginModel::data(const QModelIndex& index, int role) co
             if(nbl::getPluginFields(ctx->databaseConnection(), plugin.meta.id, [&](const nbl::PluginFields& fields) -> nbl::Result {
 
                 nbl::AllocationFrame frame(nbl::Arena::threadLocal());
-                nbl::Span<nbl::FieldValue> values;
-                NBL_CHECK(frame.allocate(&values.data, plugin.fields.length));
+                nbl::Span<nbl::FieldValue> values(nullptr, plugin.fields.length());
+                NBL_CHECK(frame.allocate(&values));
 
                 nbl::JsonElement element;
                 NBL_CHECK(nbl::parseJson(fields.fieldsJson, &frame, &element));
-                if(element.type != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+                if(element.type() != nbl::JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
 
-                nbl::decodeFieldValues(ctx->pluginContext(), plugin.fields, element.object, &values, &frame);
+                nbl::decodeFieldValues(ctx->pluginContext(), plugin.fields, element.asObject(), &values, &frame);
                 qtFields = nbl::frontend::FieldRef(&dummy).fromNbl({ .compositeValue = values });
 
                 return nbl::Result::SUCCESS;
@@ -112,18 +112,12 @@ void nbl::frontend::PluginModel::saveFields(QVariantMap fields, int row) {
     nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::FieldValue value = nbl::frontend::FieldRef(&dummy).toNbl(fields, &frame);
 
-    nbl::Span<nbl::Placeholder> placeholders = {};
-    for(usize i = 0 ; i < plugin.fields.length ; i++) {
+    for(usize i = 0 ; i < plugin.fields.length() ; i++) {
         const nbl::Field& field = plugin.fields[i];
         if(field.type == nbl::FieldType::STRING) {
-
-            usize numPlaceholders = field.stringData.customPlaceholders.length;
-            if(numPlaceholders > 0) {
-                NBL_ASSERT(frame.allocate(&placeholders.data, numPlaceholders).success());
-                memcpy(placeholders.data, field.stringData.customPlaceholders.data, field.stringData.customPlaceholders.length * sizeof(nbl::Placeholder));
-                placeholders.length = field.stringData.customPlaceholders.length;
+            if(field.stringData.customPlaceholders.length() > 0) {
                 nbl::StringBuilder applied(&frame);
-                nbl::formatPlaceholders(value.compositeValue[i].stringValue.raw, &applied, placeholders, field.flags & nbl::FieldFlag::STRICT_PLACEHOLDERS);
+                nbl::formatPlaceholders(value.compositeValue[i].stringValue.raw, &applied, field.stringData.customPlaceholders, field.flags & nbl::FieldFlag::STRICT_PLACEHOLDERS);
                 NBL_ASSERT(applied.buildNullTerminated(&value.compositeValue[i].stringValue.resolved).success());
             } else {
                 value.compositeValue[i].stringValue.resolved = value.compositeValue[i].stringValue.raw;

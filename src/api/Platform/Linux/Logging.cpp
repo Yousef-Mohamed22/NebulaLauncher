@@ -32,11 +32,11 @@
 
 
 void nbl::stdout(StringView data) {
-    ::write(STDOUT_FILENO, data.data, data.length);
+    ::write(STDOUT_FILENO, data.data(), data.length());
 }
 
 void nbl::stderr(StringView data) {
-    ::write(STDERR_FILENO, data.data, data.length);
+    ::write(STDERR_FILENO, data.data(), data.length());
 }
 
 nbl::Writer nbl::stdoutWriter() {

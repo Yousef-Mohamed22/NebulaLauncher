@@ -248,20 +248,18 @@ nbl::Result _readString(_ParseContext* context, nbl::LinearAllocator* storage, n
         memset(paddingData, 0, padding);
     }
 
-    out->length = length - 1;
-    out->data = begin;
-    out->nullTerminated = true;
-
+    *out = nbl::StringView(begin, length - 1, true);
     return nbl::Result::SUCCESS;
 }
 
 nbl::Result _parseString(_ParseContext* context) {
-    NBL_CHECK(_readString(context, context->storage, &context->outElement.string));
+    nbl::StringView sv{};
+    NBL_CHECK(_readString(context, context->storage, &sv));
 
     nbl::Result res = _nextToken(context);
     if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
 
-    context->outElement.type = nbl::JsonType::STRING;
+    context->outElement = sv;
 
     return nbl::Result::SUCCESS;
 }
@@ -300,19 +298,22 @@ nbl::Result _parseArrayInPlace(_ParseContext* context, usize depth = 0) {
     if(done) {
 
         usize totalElements = elementCount + (depth * 128);
-        context->outElement.type = nbl::JsonType::ARRAY;
 
         void* outElements;
         NBL_CHECK(context->storage->push(totalElements * sizeof(nbl::JsonElement), &outElements));
 
-        context->outElement.array.elements = static_cast<nbl::JsonElement*>(outElements);
-        context->outElement.array.count = totalElements;
+        nbl::JsonArray array = {
+            .elements = static_cast<nbl::JsonElement*>(outElements),
+            .count = totalElements
+        };
+
+        context->outElement = array;
         
     } else {
         NBL_CHECK(_parseArrayInPlace(context, depth + 1));
     }
 
-    memcpy(context->outElement.array.elements + (depth * 128), elements, elementCount * sizeof(nbl::JsonElement));
+    memcpy(context->outElement.asArray().elements + (depth * 128), elements, elementCount * sizeof(nbl::JsonElement));
     return nbl::Result::SUCCESS;
 }
 
@@ -379,9 +380,9 @@ nbl::Result _parseArray(_ParseContext* context) {
 
 void _fillBuckets(nbl::ConstSpan<nbl::JsonObject::Entry> unorderedEntries, nbl::JsonObject* obj) {
 
-    NBL_ASSERT(unorderedEntries.length == obj->entryCount);
+    NBL_ASSERT(unorderedEntries.length() == obj->entryCount);
 
-    const nbl::JsonObject::Entry* source = unorderedEntries.data;
+    const nbl::JsonObject::Entry* source = unorderedEntries.data();
     if(source == obj->entries) {
         source = obj->entries + obj->entryCount;
         memcpy(obj->entries + obj->entryCount, obj->entries, sizeof(nbl::JsonObject::Entry) * obj->entryCount);
@@ -424,7 +425,7 @@ nbl::Result _parseObjectInPlace(_ParseContext* context, usize depth = 0) {
             return nbl::Result::UNEXPECTED_TOKEN;
         }
 
-        nextEntry.key = context->outElement.string;
+        nextEntry.key = context->outElement.asString();
 
         NBL_CHECK(_nextToken(context));
         NBL_CHECK(_parseElement(context));
@@ -456,34 +457,36 @@ nbl::Result _parseObjectInPlace(_ParseContext* context, usize depth = 0) {
         usize bucketCount = context->retainOrder || (totalEntries == 1) ? 1 : totalEntries * 2;
         usize startIndex = context->storage->index();
 
-        context->outElement.type = nbl::JsonType::OBJECT;
+        nbl::JsonObject::Bucket* outBuckets;
+        NBL_CHECK(context->storage->allocate(&outBuckets, bucketCount));
 
-        void* outBuckets;
-        NBL_CHECK(context->storage->push(bucketCount * sizeof(nbl::JsonObject::Bucket), &outBuckets));
-
-        void* outElements;
-        nbl::Result res = context->storage->push(totalEntries * 2 * sizeof(nbl::JsonObject::Entry), &outElements);
+        nbl::JsonObject::Entry* outElements;
+        nbl::Result res = context->storage->allocate(&outElements, totalEntries * 2);
         if(res.error()) {
             NBL_CHECK(context->storage->popTo(startIndex));
             return res;
         }
 
+        nbl::JsonObject obj = {
+            .entries = outElements,
+            .entryCount = totalEntries,
+            .buckets = outBuckets,
+            .bucketCount = bucketCount
+        };
+        context->outElement = obj;
 
-        context->outElement.object.entries = static_cast<nbl::JsonObject::Entry*>(outElements);
-        context->outElement.object.entryCount = totalEntries;
-
-        context->outElement.object.buckets = static_cast<nbl::JsonObject::Bucket*>(outBuckets);
-        context->outElement.object.bucketCount = bucketCount;
 
     } else {
         NBL_CHECK(_parseObjectInPlace(context, depth + 1));
     }
 
-    memcpy(context->outElement.object.entries + (depth * 128), entries, entryCount * sizeof(nbl::JsonObject::Entry));
+    memcpy(context->outElement.asObject().entries + (depth * 128), entries, entryCount * sizeof(nbl::JsonObject::Entry));
 
     if(depth == 0) {
-        _fillBuckets(nbl::ConstSpan(context->outElement.object.entries, context->outElement.object.entryCount), &context->outElement.object);
-        NBL_CHECK(context->storage->pop(context->outElement.object.entryCount * sizeof(nbl::JsonObject::Entry)));
+        nbl::JsonObject obj = context->outElement.asObject();
+        _fillBuckets(nbl::ConstSpan(obj.entries, obj.entryCount), &obj);
+        NBL_CHECK(context->storage->pop(obj.entryCount * sizeof(nbl::JsonObject::Entry)));
+        context->outElement = obj;
     }
 
     return nbl::Result::SUCCESS;
@@ -527,7 +530,7 @@ nbl::Result _parseObject(_ParseContext* context) {
             return nbl::Result::UNEXPECTED_TOKEN;
         }
 
-        nextEntry.key = context->outElement.string;
+        nextEntry.key = context->outElement.asString();
 
         NBL_CHECK(_nextToken(context));
         NBL_CHECK(_parseElement(context));
@@ -545,16 +548,17 @@ nbl::Result _parseObject(_ParseContext* context) {
 
             usize bucketCount = context->retainOrder ? 1 : entries * 2;
 
-            NBL_CHECK(context->storage->push(entries * sizeof(nbl::JsonObject::Entry), reinterpret_cast<void**>(&outElements)));
-            NBL_CHECK(context->storage->push(bucketCount * sizeof(nbl::JsonObject::Bucket), reinterpret_cast<void**>(&outBuckets)));
+            NBL_CHECK(context->storage->allocate(&outElements, entries));
+            NBL_CHECK(context->storage->allocate(&outBuckets, bucketCount));
 
-            context->outElement = nbl::JsonObject {
+            nbl::JsonObject obj = nbl::JsonObject {
                 .entries = outElements,
                 .entryCount = entries,
                 .buckets = outBuckets,
                 .bucketCount = bucketCount
             };
-            _fillBuckets(nbl::ConstSpan<nbl::JsonObject::Entry>(firstEntry, entries), &context->outElement.object);
+            _fillBuckets(nbl::ConstSpan<nbl::JsonObject::Entry>(firstEntry, entries), &obj);
+            context->outElement = obj;
 
             return nbl::Result::SUCCESS;
         }
@@ -795,7 +799,7 @@ nbl::Result _parseElement(_ParseContext* context) {
             if(memcmp(remaining, "ull", 3) != 0) {
                 return nbl::Result::PARSE_ERROR;
             }
-            context->outElement.type = nbl::JsonType::NONE;
+            context->outElement = {};
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
             return nbl::Result::SUCCESS;
@@ -806,8 +810,7 @@ nbl::Result _parseElement(_ParseContext* context) {
             if(memcmp(remaining, "rue", 3) != 0) {
                 return nbl::Result::PARSE_ERROR;
             }
-            context->outElement.type = nbl::JsonType::BOOLEAN;
-            context->outElement.boolean = true;
+            context->outElement = true;
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
             return nbl::Result::SUCCESS;
@@ -818,8 +821,7 @@ nbl::Result _parseElement(_ParseContext* context) {
             if(memcmp(remaining, "alse", 4) != 0) {
                 return nbl::Result::PARSE_ERROR;
             }
-            context->outElement.type = nbl::JsonType::BOOLEAN;
-            context->outElement.boolean = false;
+            context->outElement = false;
             nbl::Result res = _nextToken(context);
             if(res.error() && res != nbl::Result::UNEXPECTED_END_OF_STREAM) return res;
             return nbl::Result::SUCCESS;
@@ -875,7 +877,7 @@ nbl::Result nbl::parseJson(nbl::Reader reader, nbl::LinearAllocator* storage, nb
 nbl::Result nbl::parseJson(nbl::StringView str, nbl::LinearAllocator* storage, nbl::JsonElement* outElement, nbl::LinearAllocator* tempStorage, bool retainOrder) {
 
     if(tempStorage == storage || storage == nullptr) return nbl::Result::INVALID_ARGUMENT;
-    if(str.length == 0) return Result::UNEXPECTED_END_OF_STREAM;
+    if(str.empty()) return Result::UNEXPECTED_END_OF_STREAM;
 
     _ParseContext ctx = {
         .reader = {},
@@ -883,9 +885,9 @@ nbl::Result nbl::parseJson(nbl::StringView str, nbl::LinearAllocator* storage, n
         .tempStorage = tempStorage,
         .outElement = {},
         .bufferIndex = 0,
-        .bufferLength = str.length,
-        .bufferCapacity = str.length,
-        .buffer = const_cast<char*>(str.data),
+        .bufferLength = str.length(),
+        .bufferCapacity = str.length(),
+        .buffer = const_cast<char*>(str.data()),
         .retainOrder = retainOrder
     };
 
@@ -923,7 +925,7 @@ nbl::Result nbl::parseJsonNumber(Reader reader, JsonNumber* outNumber) {
     if(ctx.lastRead() >= '0' && ctx.lastRead() <= '9' || ctx.lastRead() == '-') {
         NBL_CHECK(_parseNumber(&ctx));
 
-        if(outNumber) *outNumber = ctx.outElement.number;
+        if(outNumber) *outNumber = ctx.outElement.asNumber();
         return nbl::Result::SUCCESS;
     }
 
@@ -932,7 +934,7 @@ nbl::Result nbl::parseJsonNumber(Reader reader, JsonNumber* outNumber) {
 
 nbl::Result nbl::parseJsonNumber(nbl::StringView str, JsonNumber* outNumber) {
 
-    if(str.length == 0) return Result::UNEXPECTED_END_OF_STREAM;
+    if(str.empty()) return Result::UNEXPECTED_END_OF_STREAM;
 
     _ParseContext ctx = {
         .reader = {},
@@ -940,15 +942,15 @@ nbl::Result nbl::parseJsonNumber(nbl::StringView str, JsonNumber* outNumber) {
         .tempStorage = nullptr,
         .outElement = {},
         .bufferIndex = 0,
-        .bufferLength = str.length,
-        .bufferCapacity = str.length,
-        .buffer = const_cast<char*>(str.data)
+        .bufferLength = str.length(),
+        .bufferCapacity = str.length(),
+        .buffer = const_cast<char*>(str.data())
     };
 
     if(ctx.lastRead() >= '0' && ctx.lastRead() <= '9' || ctx.lastRead() == '-') {
         NBL_CHECK(_parseNumber(&ctx));
 
-        if(outNumber) *outNumber = ctx.outElement.number;
+        if(outNumber) *outNumber = ctx.outElement.asNumber();
         return nbl::Result::SUCCESS;
     }
 

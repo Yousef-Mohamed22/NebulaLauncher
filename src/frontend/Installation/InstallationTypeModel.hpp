@@ -23,6 +23,7 @@
 #include <QtQml>
 
 #include "ApplicationContext.hpp"
+#include "Field/FieldList.hpp"
 
 namespace nbl::frontend {
 
@@ -46,7 +47,7 @@ public:
         Q_UNUSED(parent)
         nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
         if(ctx == nullptr) return 0;
-        return ctx->registry<nbl::InstallationType>().length;
+        return ctx->registry<nbl::InstallationType>().length();
     }
 
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override {
@@ -57,9 +58,9 @@ public:
 
         switch(role) {
             case IdRole:
-                return QByteArray(type->id.data, type->id.length);
+                return QByteArray(type->id.data(), type->id.length());
             case NameRole:
-                return QByteArray(type->name.data, type->name.length);
+                return QByteArray(type->name.data(), type->name.length());
             default:
                 return QVariant();
         }
@@ -75,7 +76,7 @@ public:
     Q_INVOKABLE FieldList* fields(qsizetype index) const {
         nbl::PluginContext* ctx = ApplicationContext::instance()->pluginContext();
         ConstSpan<const InstallationType*> types = ctx->registry<nbl::InstallationType>();
-        if(index < 0 || index >= types.length) return nullptr;
+        if(index < 0 || index >= types.length()) return nullptr;
         return new FieldList(types[index]->fields);
     }
 

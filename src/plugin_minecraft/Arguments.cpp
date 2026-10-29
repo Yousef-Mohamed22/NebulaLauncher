@@ -97,7 +97,7 @@ nbl::Result nbl::mc::OsVersion::parse(StringView version, OsVersion* out) {
 
     out->major = numberJson.asUint();
 
-    StringView lastTwo = version.tail(dotIndex + 1);
+    StringView lastTwo = version.slice(dotIndex + 1);
     res = lastTwo.findFirst('.', &dotIndex);
 
     if(res.error()) {
@@ -116,13 +116,13 @@ nbl::Result nbl::mc::OsVersion::parse(StringView version, OsVersion* out) {
 
     out->minor = numberJson.asUint();
 
-    StringView lastOne = lastTwo.tail(dotIndex + 1);
+    StringView lastOne = lastTwo.slice(dotIndex + 1);
     res = lastOne.findFirst('-', &dotIndex);
 
     if(res.error()) {
         res = lastOne.findFirst('+', &dotIndex);
         if(res.error()) {
-            dotIndex = lastOne.length;
+            dotIndex = lastOne.length();
         }
     }
 
@@ -236,10 +236,10 @@ bool nbl::mc::Rule::matches(OsInfo os, FeatureSet features) {
         StringView versionString;
         NBL_CHECK(StringBuilder(&frame).append(os.version.major).append('.').append(os.version.minor).append('.').append(os.version.patch).buildNullTerminated(&versionString));
 
-        std::string regexStr(versionRegex->data, versionRegex->length);
+        std::string regexStr(versionRegex->data(), versionRegex->length());
         std::regex re(regexStr);
 
-        if(!std::regex_search(versionString.data, re)) return false;
+        if(!std::regex_search(versionString.data(), re)) return false;
     }
     if(architecture.hasValue() && *architecture != os.arch) return false; 
 
@@ -257,19 +257,19 @@ bool nbl::mc::Rule::matches(OsInfo os, FeatureSet features) {
 nbl::Result nbl::mc::appendArgs(const VersionRef& ref, StringView args, StringBuilder* command, Span<Placeholder> placeholders, FeatureSet features) {
 
     return ref.enumerateArguments(args, [&](JsonElement ele) -> nbl::Result {        
-        if(ele.type == JsonType::STRING) {
+        if(ele.type() == JsonType::STRING) {
             command->append(" \"");
-            NBL_CHECK(formatPlaceholders(ele.string, command, placeholders));
+            NBL_CHECK(formatPlaceholders(ele.asString(), command, placeholders));
             command->append("\"");
-        } else if(ele.type == JsonType::OBJECT) {
+        } else if(ele.type() == JsonType::OBJECT) {
 
-            if(ele.object.has("rules")) {
+            if(ele.asObject().has("rules")) {
                 bool canUse = true;
-                JsonArray arr = ele.object.getArray("rules");
+                JsonArray arr = ele.asObject().getArray("rules");
                 for(JsonElement& rule : arr) {
-                    if(rule.type != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
+                    if(rule.type() != JsonType::OBJECT) return nbl::Result::FORMAT_ERROR;
                     Rule r;
-                    NBL_CHECK(Rule::parse(rule.object, &r));
+                    NBL_CHECK(Rule::parse(rule.asObject(), &r));
 
                     if(!r.canUse(OsInfo::current(), features)) {
                         canUse = false;
@@ -279,18 +279,18 @@ nbl::Result nbl::mc::appendArgs(const VersionRef& ref, StringView args, StringBu
                 if(!canUse) return nbl::Result::SUCCESS;
             }
 
-            const JsonElement* value = ele.object.get("value");
+            const JsonElement* value = ele.asObject().get("value");
             if(value == nullptr) return nbl::Result::FORMAT_ERROR;
 
-            if(value->type == JsonType::STRING) {
+            if(value->type() == JsonType::STRING) {
                 command->append(" \"");
-                NBL_CHECK(formatPlaceholders(value->string, command, placeholders));
+                NBL_CHECK(formatPlaceholders(value->asString(), command, placeholders));
                 command->append("\"");
-            } else if(value->type == JsonType::ARRAY) {
-                for(const JsonElement& line : value->array) {
-                    if(line.type != JsonType::STRING) return nbl::Result::FORMAT_ERROR;
+            } else if(value->type() == JsonType::ARRAY) {
+                for(const JsonElement& line : value->asArray()) {
+                    if(line.type() != JsonType::STRING) return nbl::Result::FORMAT_ERROR;
                     command->append(" \"");
-                    NBL_CHECK(formatPlaceholders(line.string, command, placeholders));
+                    NBL_CHECK(formatPlaceholders(line.asString(), command, placeholders));
                     command->append("\"");
                 }
             } else {
