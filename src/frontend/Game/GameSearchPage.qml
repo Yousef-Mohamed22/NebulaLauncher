@@ -94,7 +94,6 @@ Item {
                     }
                     onLoadMore: {
                         model.loadNextPage()
-                        allLoaded = model.allLoaded
                     }
 
                     onItemClicked: id => {

@@ -25,7 +25,7 @@ Item {
     required property bool useIcons
     required property var model
 
-    property bool allLoaded: false
+    readonly property bool allLoaded: model ? model.allLoaded : false
 
     property real requestedWidth: 180
     property real viewportHeight: 0
@@ -35,6 +35,10 @@ Item {
     readonly property int columns: calculateColumns(width - 16, requestedWidth)
     readonly property real rowHeight: (itemWidth / aspectRatio) + (showTitles ? 24 : 0) + (showFilterInfo ? 24 : 0)
     readonly property real effectiveViewportHeight: viewportHeight > 0 ? viewportHeight : (root.Window ? root.Window.height : 0)
+
+    readonly property int loadedCount: model ? model.count : 0
+    readonly property int fullRowItemCount: columns > 0 ? Math.floor(loadedCount / columns) * columns : loadedCount
+    readonly property int visibleItemCount: (multiLine && !allLoaded) ? fullRowItemCount : loadedCount
 
     readonly property int pageSize: {
 
@@ -88,8 +92,10 @@ Item {
         property Component buttonDelegate: Component {
             GameButton {
                 required property var modelData
+                required property int index
 
                 width: root.itemWidth
+                visible: index < root.visibleItemCount
 
                 filterInfo: modelData.filterInfo ?? ""
                 filterInfoIcon: modelData.filterInfoIcon ?? ""
@@ -190,10 +196,10 @@ Item {
 
                 function isAtEnd() {
 
-                    if(multiLineRepeater.count == 0) return true
+                    if(root.visibleItemCount <= 0) return true
 
-                    let last = multiLineRepeater.itemAt(multiLineRepeater.count - 1)
-                    if(last.y == 0) return false
+                    let last = multiLineRepeater.itemAt(root.visibleItemCount - 1)
+                    if(last == null) return false
 
                     let globalPos = last.mapToItem(null, 0, 0);
 
