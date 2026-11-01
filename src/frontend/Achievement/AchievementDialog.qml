@@ -37,7 +37,7 @@ NblDialog {
     function updateSet(setId) {
         if(!updated.has(setBox.currentValue)) {
             updated.add(setBox.currentValue)
-            achievementUpdateRunner.update(root.gameId, setId)
+            achievementUpdateRunner.update(root.gameId, 1, setId)
         }
     }
 

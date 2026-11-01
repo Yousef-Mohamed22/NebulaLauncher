@@ -34,6 +34,16 @@
 
 namespace nbl {
 
+enum class AchievementUpdateReason {
+    GAME_PAGE_OPENED = 0,
+    ACHIEVEMENT_DIALOG_OPENED = 1,
+    GAME_CLOSED = 2,
+    GAME_UPDATED = 3,
+    MANUAL_REFRESH = 4,
+    TIMED_REFRESH = 5
+};
+
+
 class AchievementHelper {
 public:
 
@@ -136,10 +146,11 @@ struct AchievementProvider {
      * \param gameId The ID of the set to consider
      * \param gameId The ID of the updated game
      * \param helper An AchievementHelper designed to make the updating achievements easier
+     * \param reason The reason this callback was called.
      * \param userData The same as the userData pointer in this struct
      * \return The result of the operation. If the UI should not be refreshed, this should return nbl::Result::NO_CHANGE.
      */
-    Result(*pfnUpdateAchievements)(PluginContext* context, const AchievementSet& set, AchievementHelper& helper, void* userData);
+    Result(*pfnUpdateAchievements)(PluginContext* context, const AchievementSet& set, AchievementHelper& helper, AchievementUpdateReason reason, void* userData);
 
     /**
      * \brief The userData parameter passed to function pointers in this provider.
@@ -151,9 +162,9 @@ struct AchievementProvider {
         return pfnUpdateAchievementState(context, game, status, fieldValues, helper, externalId, userData);
     }
 
-    Result updateAchievements(PluginContext* context, const AchievementSet& set, AchievementHelper& helper) const {
+    Result updateAchievements(PluginContext* context, const AchievementSet& set, AchievementUpdateReason reason, AchievementHelper& helper) const {
         if(!pfnUpdateAchievements) return nbl::Result::PLUGIN_ERROR;
-        return pfnUpdateAchievements(context, set, helper, userData);
+        return pfnUpdateAchievements(context, set, helper, reason, userData);
     }
 
 };

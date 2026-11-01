@@ -33,7 +33,7 @@ void nbl::frontend::AchievementUpdateWorker::run() {
         }
 
         nbl::AchievementHelper helper(ctx->pluginContext(), provider, _mGameId);
-        nbl::Result res = provider->updateAchievements(ctx->pluginContext(), achievementSet, helper);
+        nbl::Result res = provider->updateAchievements(ctx->pluginContext(), achievementSet, static_cast<nbl::AchievementUpdateReason>(_mReason), helper);
 
         if(res.error()) {
             ctx->pluginContext()->pushNotification(nbl::NotificationType::WARNING, "An error occurred", "An error occurred while an achievement provider was updating achievements!");

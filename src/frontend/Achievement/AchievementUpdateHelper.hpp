@@ -24,8 +24,9 @@ class AchievementUpdateWorker : public QObject {
 
     Q_OBJECT
 public:
-    AchievementUpdateWorker(qint64 gameId,qint64 setId) :
+    AchievementUpdateWorker(qint64 gameId, qint32 reason, qint64 setId) :
         _mGameId(gameId),
+        _mReason(reason),
         _mSetId(setId)
     { }
 
@@ -40,6 +41,7 @@ private:
 
     qint64 _mGameId;
     qint64 _mSetId;
+    quint32 _mReason;
 };
 
 class AchievementUpdateRunner : public QObject {
@@ -64,7 +66,7 @@ public:
         }
     }
 
-    Q_INVOKABLE void update(qint64 gameId, qint64 setId=0) {
+    Q_INVOKABLE void update(qint64 gameId, quint32 updateReason, qint64 setId=0) {
 
         if(_pActiveThread) {
             _pActiveThread->quit();
@@ -75,7 +77,7 @@ public:
 
         _pActiveThread = new QThread(this);
         emit isRunningUpdated();
-        AchievementUpdateWorker* worker = new AchievementUpdateWorker(gameId,setId);
+        AchievementUpdateWorker* worker = new AchievementUpdateWorker(gameId, updateReason, setId);
 
         worker->moveToThread(_pActiveThread);
 

@@ -247,7 +247,7 @@ nbl::Result _updateAchievementState(nbl::PluginContext* context, const nbl::Game
     return nbl::Result::SUCCESS;
 }
 
-nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::AchievementSet& set, nbl::AchievementHelper& helper, void* userData) {
+nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::AchievementSet& set, nbl::AchievementHelper& helper, nbl::AchievementUpdateReason reason, void* userData) {
 
     if(!_profile.isValid()) return nbl::Result::NO_CHANGE;
 

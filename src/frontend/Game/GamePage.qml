@@ -39,12 +39,12 @@ Item {
     signal closeRequested
     signal tagClicked(int id, string name, color color)
 
-    function refresh() {
+    function refresh(gameClosed = false) {
         isFavorite = false
         details = ApplicationContext.getGameDetails(details.gameId)
         installationPicker.refresh()
         achievementsSection.refresh()
-        achievementUpdateRunner.update(root.details.gameId)
+        achievementUpdateRunner.update(root.details.gameId, gameClosed ? 2 : 3)
     }
 
     onDetailsChanged: {
@@ -70,7 +70,7 @@ Item {
     }
 
     Component.onCompleted: {
-        achievementUpdateRunner.update(root.details.gameId)
+        achievementUpdateRunner.update(root.details.gameId, 0)
     }
 
     AchievementUpdateRunner { 
@@ -446,7 +446,7 @@ Item {
                                         text: "Refresh"
 
                                         onClicked: {
-                                            achievementUpdateRunner.update(root.details.gameId)
+                                            achievementUpdateRunner.update(root.details.gameId, 4)
                                             contextMenu.close()
                                         }
                                         radius: 2

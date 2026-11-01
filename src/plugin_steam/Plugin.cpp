@@ -75,10 +75,12 @@ nbl::Result _getAchievements(nbl::PluginContext* context, i32 appId, nbl::JsonOb
         *out = element.asObject();
     } else {
         i32 code = element.asObject().getNumber("code").asInt();
-        if(code != -3) { // -3 means Steam is not running.
+        if(code == -3) { // -3 means Steam is not running.
+            return nbl::Result::NO_CHANGE;
+        } else {
             context->pushNotification(nbl::NotificationType::ERROR, "Steam Client Error", element.asObject().getString("error"));
+            return nbl::Result::IO_ERROR;
         }
-        return nbl::Result::IO_ERROR;
     }
 
     return nbl::Result::SUCCESS;
@@ -110,14 +112,16 @@ nbl::Result _updateAchievementState(nbl::PluginContext* context, const nbl::Game
 }
 
 
-nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::AchievementSet& set, nbl::AchievementHelper& helper, void* userData) {
+nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::AchievementSet& set, nbl::AchievementHelper& helper, nbl::AchievementUpdateReason reason, void* userData) {
 
     nbl::JsonNumber appId{};
     NBL_CHECK(nbl::parseJsonNumber(nbl::StringReader(set.providerId), &appId));
 
     nbl::AllocationFrame frame(nbl::Arena::threadLocal());
     nbl::JsonObject obj{};
-    NBL_CHECK(_getAchievements(context, appId.asInt(), &obj, &frame));
+    nbl::Result res = _getAchievements(context, appId.asInt(), &obj, &frame);
+    if(res == nbl::Result::NO_CHANGE) return nbl::Result::NO_CHANGE;
+    if(res.error()) return res;
 
     u64 latestUnlock = obj.getNumber("latest_unlock").asUint();
 
