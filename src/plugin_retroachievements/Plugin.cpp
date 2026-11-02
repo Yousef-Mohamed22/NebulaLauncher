@@ -37,6 +37,7 @@
 #include <Plugin/AccountProvider.hpp>
 
 #include "Constants.hpp"
+#include "Platform/Time.hpp"
 #include "Utility.hpp"
 #include "Profile.hpp"
 
@@ -251,6 +252,12 @@ nbl::Result _updateAchievements(nbl::PluginContext* context, const nbl::Achievem
 
     if(!_profile.isValid()) return nbl::Result::NO_CHANGE;
 
+    if(reason == nbl::AchievementUpdateReason::GAME_PAGE_OPENED) {
+        u64 now = nbl::getCurrentTime();
+        if(now - set.lastUpdated < (1000 * 60 * 60)) {
+            return nbl::Result::NO_CHANGE;
+        }
+    }
 
     _ProviderData ud{};
     set.getProviderData(&ud);

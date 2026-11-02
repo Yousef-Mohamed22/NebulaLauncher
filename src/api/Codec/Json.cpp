@@ -52,7 +52,7 @@ nbl::Result _deepCopy(nbl::JsonElement element, nbl::JsonElement* other, nbl::Li
         NBL_CHECK(allocator->allocate(&obj.buckets, element.asObject().bucketCount));
         NBL_CHECK(allocator->allocate(&obj.entries, element.asObject().entryCount));
 
-        memcpy(other->asObject().buckets, element.asObject().buckets, element.asObject().bucketCount * sizeof(nbl::JsonObject::Bucket)); 
+        memcpy(obj.buckets, element.asObject().buckets, element.asObject().bucketCount * sizeof(nbl::JsonObject::Bucket)); 
 
         obj.entryCount = element.asObject().entryCount;
         obj.bucketCount = element.asObject().bucketCount;

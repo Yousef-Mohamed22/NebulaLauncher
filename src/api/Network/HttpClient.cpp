@@ -201,6 +201,7 @@ nbl::Result nbl::HttpClient::_setupConnection(StringView url, _ActiveRequest* re
     curl_easy_setopt(easyHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
     curl_easy_setopt(easyHandle, CURLOPT_UPKEEP_INTERVAL_MS, 5000L);
     curl_easy_setopt(easyHandle, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(easyHandle, CURLOPT_ACCEPT_ENCODING, "");
 
     if(options.ifModifiedSince > 0) {
         curl_easy_setopt(easyHandle, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);

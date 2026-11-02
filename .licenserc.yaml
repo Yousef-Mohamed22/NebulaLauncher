@@ -25,6 +25,7 @@ header:
     - '.licenserc'
     - '.clangd'
     - '.clang-format'
+    - 'cmake/CPM.cmake'
     - '**/*.md'
     - '**/*.json'
     - 'LICENSE'

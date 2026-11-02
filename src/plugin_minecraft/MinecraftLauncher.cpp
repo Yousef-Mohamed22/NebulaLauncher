@@ -98,6 +98,11 @@ nbl::Result nbl::mc::MinecraftLauncher::launch(nbl::PluginContext* ctx, StringVi
             clientJarPath, 
             downloadInfo.getString("url"));
 
+    tracker->pushStatus("Preparing runtime...");
+
+    StringView runtimeComponent = ref.javaVersion().getString("component");
+    NBL_CHECK(nbl::mc::downloadRuntime(&downloadManager, runtimeFolderPath, runtimeComponent));
+
     tracker->pushStatus("Verifying assets...");
 
     nbl::StringBuilder logArgBuilder(&frame);
@@ -116,11 +121,6 @@ nbl::Result nbl::mc::MinecraftLauncher::launch(nbl::PluginContext* ctx, StringVi
 
     usize classpathLength = static_cast<char*>(frame.end()) - classpathStart;
     StringView classpath = StringView(classpathStart, classpathLength);
-    
-
-
-    StringView runtimeComponent = ref.javaVersion().getString("component");
-    NBL_CHECK(nbl::mc::downloadRuntime(&downloadManager, runtimeFolderPath, runtimeComponent));
 
     tracker->pushStatus("Downloading assets...");
     NBL_CHECK(downloadManager.awaitAll());
