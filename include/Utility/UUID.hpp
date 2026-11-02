@@ -58,7 +58,7 @@ struct UUID {
     static UUID generateV7(Random random);
 };
 
-Result toString(UUID uuid, Writer writer);
+Result write(UUID uuid, Writer writer);
 
 
 }

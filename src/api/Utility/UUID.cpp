@@ -53,7 +53,7 @@ nbl::UUID nbl::UUID::generateV7(Random random) {
 }
 
 
-nbl::Result nbl::toString(UUID uuid, Writer writer) {
+nbl::Result nbl::write(UUID uuid, Writer writer) {
 
     Array<u8, 36> hex{};
 

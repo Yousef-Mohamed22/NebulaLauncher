@@ -238,7 +238,7 @@ struct FloatLimiter {
     u8 precision;
 };
 
-// Specialization of the toString function for the FloatLimiter struct, which writes the floating-point value to the writer with the specified precision.
+// Specialization of the write function for the FloatLimiter struct, which writes the floating-point value to the writer with the specified precision.
 inline Result write(FloatLimiter limiter, Writer writer) {
     return writeFloat(limiter.value, writer, limiter.precision);
 }
@@ -248,7 +248,7 @@ struct HexEncoder {
     ConstSpan<u8> data;
     bool upper;
 };
-// Specialization of the toString function for the HexEncoder struct, which writes the buffer to the stream in hexadecimal format.
+// Specialization of the write function for the HexEncoder struct, which writes the buffer to the stream in hexadecimal format.
 Result write(HexEncoder encoder, Writer writer);
 
 

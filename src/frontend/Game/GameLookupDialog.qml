@@ -62,6 +62,7 @@ NblDialog {
                         }
                         searchRow.modified = false
                         searchHelper.lookup(queryBox.text)
+                        resultsModel.clear()
                     }
                 }
                 NblButton {
@@ -81,6 +82,7 @@ NblDialog {
                         }
                         searchRow.modified = false
                         searchHelper.lookup(queryBox.text)
+                        resultsModel.clear()
                     }
                 }
             }

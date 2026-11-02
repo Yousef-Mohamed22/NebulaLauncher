@@ -508,10 +508,10 @@ extern "C" i32 initPlugin(nbl::PluginInitContext* context) {
 }
 
 namespace nbl {
-Result toString(const _Filters& filters, Writer writer);
+Result write(const _Filters& filters, Writer writer);
 }
 
-nbl::Result nbl::toString(const _Filters& filters, Writer writer) {
+nbl::Result nbl::write(const _Filters& filters, Writer writer) {
     if(filters.allowNsfw != DENY) {
         NBL_CHECK(writer.writeString("&nsfw="));
         NBL_CHECK(writer.writeString(_tristateName(nullptr, filters.allowNsfw, nullptr)));

@@ -107,7 +107,7 @@ struct DataValue {
     }
 };
 
-inline Result toString(DataValue value, Writer writer) {
+inline Result write(DataValue value, Writer writer) {
     switch(value.type) {
         case DataType::NULL_TYPE: 
             return writer.writeString("NULL");

@@ -42,7 +42,7 @@ TEST(UUID, Write) {
 
 
     nbl::BufferStream stream(buffer.span());
-    ASSERT_EQ(nbl::toString(uuid, stream), nbl::Result::SUCCESS);
+    ASSERT_EQ(nbl::write(uuid, stream), nbl::Result::SUCCESS);
     ASSERT_EQ(nbl::StringView(buffer.data, buffer.size()), nbl::StringView("bf45f994-8268-47a5-983d-01661490f9f3"));
 }
 

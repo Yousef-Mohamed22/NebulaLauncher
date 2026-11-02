@@ -39,21 +39,13 @@ namespace nbl {
 class StringBuilder {
 public:
 
-    /**
-     * \brief Constructor that initializes the string builder with a reference to an arena frame for storage. The string builder will use the arena frame to allocate memory for the string being built, and will keep track of the starting index in the arena to determine the final string view when building is complete.
-     * \param arena Pointer to the arena frame that will be used to store the final string.
-     */
+
     StringBuilder(LinearAllocator* allocator) noexcept :
         _mLastResult(Result::SUCCESS),
         _pAllocator(allocator)
     { }
 
-    /**
-     * \brief Appends a value of any type to the string being built. This function is a template that can accept any type of value, and it will attempt to convert the value to a string representation and append it to the current string being built. If the append operation fails, the string builder will store the error result and all subsequent append operations will be no-ops.
-     * \tparam T The type of the value to be appended. This can be any type for which a toString function is defined that can convert the value to a string representation.
-     * \param value The value to be appended to the current string being built. This can be of any type for which a toString function is defined.
-     * \return A reference to the string builder for chaining. If the append operation fails, the string builder will store the error result and subsequent append operations will be no-ops.
-     */
+
     template<typename T>
     StringBuilder& append(T&& value) noexcept {
         appendChecked(std::forward<T>(value));
@@ -68,12 +60,6 @@ public:
     Result replaceChecked(char oldValue, StringView newValue, usize startIndex = 0) noexcept;
 
 
-    /**
-     * \brief Appends a value of any type to the string being built, with error checking. This function is a template that can accept any type of value, and it will attempt to convert the value to a string representation and append it to the current string being built. If the append operation fails, the string builder will store the error result and all subsequent append operations will be no-ops.
-     * \tparam T The type of the value to be appended. This can be any type for which a toString function is defined that can convert the value to a string representation.
-     * \param value The value to be appended to the current string being built. This can be of any type for which a toString function is defined.
-     * \return A Result indicating success or failure of the append operation. If the append operation fails, the string builder will store the error result and subsequent append operations will be no-ops.
-     */
     template<typename T>
     Result appendChecked(T&& value) noexcept {
         if(!_mLastResult.success()) {
@@ -87,11 +73,6 @@ public:
         return _mLastResult;
     }
 
-    /**
-     * \brief Builds the final string view from the string being built. If the string builder is in an error state, it will return the stored error result.
-     * \param outString Pointer to a variable that will receive the StringView representing the constructed string. 
-     * \return A Result indicating success or failure of building the final string view. 
-     */
     Result build(StringView* outString) noexcept {
         if(!_mLastResult.success()) {
             return _mLastResult;
@@ -103,11 +84,7 @@ public:
         return Result::SUCCESS;
     }
 
-    /**
-     * \brief Builds the final null-terminated string view from the string being built. 
-     * \param outString Pointer to a variable that will receive the StringView representing the constructed null-terminated string. 
-     * \return A Result indicating success or failure of building the final null-terminated string view. 
-     */
+
     Result buildNullTerminated(StringView* outString) noexcept {
 
         if(!_mLastResult.success()) {
@@ -164,11 +141,6 @@ public:
         return writer.pfnWrite == _write;
     }
 
-    /**
-     * \brief Static helper function that creates a null-terminated string view from a given string.
-     * \param string The StringView representing the string to be converted into a null-terminated string view. 
-     * \return A Result indicating success or failure of creating the null-terminated string view. If any step of the process fails, it returns the error result. 
-     */
     static inline Result nullTerminate(StringView string, StringView* outString, AllocationFrame* arena) noexcept {
         return StringBuilder(arena).append(string).append('\0').build(outString);
     }
