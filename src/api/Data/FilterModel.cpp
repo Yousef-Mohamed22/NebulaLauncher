@@ -116,10 +116,11 @@ nbl::Result _deserializeCriteria(nbl::StringView criteriaJson, nbl::AllocationFr
 
             if(set.asArray().count > 0) {
                 frame->allocate(&outSet);
+                usize i = 0;
 
                 for(const nbl::JsonElement& tag : set.asArray()) {
                     if(tag.type() != nbl::JsonType::NUMBER) return nbl::Result::INVALID_ARGUMENT;
-                    outSet[index++] = tag.asNumber().intValue;
+                    outSet[i++] = tag.asNumber().intValue;
                 }
             }
 
