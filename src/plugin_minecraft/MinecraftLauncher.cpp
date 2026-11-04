@@ -162,6 +162,7 @@ nbl::Result nbl::mc::MinecraftLauncher::launch(nbl::PluginContext* ctx, StringVi
         Placeholder{ "natives_directory", runtimeFolderPath },
         Placeholder{ "launcher_name", "Nebula" },
         Placeholder{ "launcher_version", "0.1.0" },
+        Placeholder{ "user_type", "msa" },
         Placeholder{ "classpath", classpath }
     };
 
