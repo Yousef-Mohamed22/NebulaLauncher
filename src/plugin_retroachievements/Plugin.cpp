@@ -442,6 +442,10 @@ nbl::Array _fields = {
         .type = nbl::FieldType::INTEGER,
         .key = "id",
         .name = "Game ID",
+        .integerData = {
+            .min = 0,
+            .max = INT32_MAX
+        }
     }
 };
 
