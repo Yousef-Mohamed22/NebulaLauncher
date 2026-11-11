@@ -101,6 +101,12 @@ NblDialog {
                 id: hiddenBox
                 width: controls.width
                 text: "Hidden"
+
+                NblToolTip {
+                    delay: 500
+                    text: "Hidden tabs can be shown again with Ctrl+H or the Show Hidden Tabs menu item."
+                    visible: hiddenBox.hovered
+                }
             }
 
             
