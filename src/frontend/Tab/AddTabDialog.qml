@@ -393,7 +393,7 @@ NblDialog {
                             min: 0
                             max: 100
                             allowDecimal: true
-                            value: dropdown.modelData.minRating
+                            value: dropdown.modelData.maxRating
                         }
 
                         NblNumberInput {
