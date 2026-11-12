@@ -30,6 +30,7 @@
 #include <Platform/Allocator.hpp>
 #include <Platform/Arena.hpp>
 #include <Utility/Hash.hpp>
+#include <Utility/StringBuilder.hpp>
 #include <Codec/Qoi.hpp>
 #include <Data/Database.hpp>
 
@@ -240,14 +241,40 @@ void nbl::MediaManager::_releaseLoadConnection(usize index) {
 }
 
 
-nbl::Result nbl::MediaManager::pruneUnreferencedImages() {
-    
-    static PreparedStatement _stmt{};
-    if(!_stmt.isValid(&_mConnection)) {
-        NBL_CHECK(_mConnection.prepare("DELETE FROM image WHERE NOT EXISTS (SELECT 1 FROM image_ref WHERE image_ref.imageId = image.id);", &_stmt));
+nbl::Result nbl::MediaManager::pruneUnused(ConstSpan<i64> liveRefs) {
+
+    auto lock = _mMutex.frameLock();
+
+    // Build a JSON array of the references that are still in use and let
+    // SQLite turn it into a table. This keeps the statement within SQLite's
+    // parameter limit and avoids a transaction, which could otherwise race
+    // with image data being saved on a loader thread.
+    nbl::AllocationFrame frame(nbl::Arena::threadLocal());
+    nbl::StringView liveRefsJson{};
+    nbl::StringBuilder builder(&frame);
+
+    builder.append('[');
+    for(usize i = 0; i < liveRefs.length(); i++) {
+        if(i > 0) builder.append(',');
+        builder.append(liveRefs[i]);
     }
-    
-    return _mConnection.execute(&_stmt);
+    builder.append(']');
+    NBL_CHECK(builder.build(&liveRefsJson));
+
+    static PreparedStatement _refStmt{};
+    if(!_refStmt.isValid(&_mConnection)) {
+        NBL_CHECK(_mConnection.prepare("DELETE FROM image_ref WHERE id NOT IN (SELECT value FROM json_each(?1));", &_refStmt));
+    }
+
+    NBL_CHECK(_refStmt.bind(1, liveRefsJson));
+    NBL_CHECK(_mConnection.execute(&_refStmt));
+
+    static PreparedStatement _imageStmt{};
+    if(!_imageStmt.isValid(&_mConnection)) {
+        NBL_CHECK(_mConnection.prepare("DELETE FROM image WHERE NOT EXISTS (SELECT 1 FROM image_ref WHERE image_ref.imageId = image.id);", &_imageStmt));
+    }
+
+    return _mConnection.execute(&_imageStmt);
 }
 
 
