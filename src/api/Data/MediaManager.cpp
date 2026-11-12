@@ -330,7 +330,9 @@ CREATE TABLE image_ref (
     UNIQUE (url, urlDevice)
 );
 
-PRAGMA user_version = 1;
+CREATE INDEX IF NOT EXISTS idx_image_ref_imageId ON image_ref(imageId);
+
+PRAGMA user_version = 2;
 COMMIT;
         )";
 
@@ -338,6 +340,19 @@ COMMIT;
         return nbl::Result::SUCCESS;
 
     } else if(userVersion == 1) {
+
+        nbl::StringView initQuery = R"(
+PRAGMA foreign_keys = ON;
+BEGIN TRANSACTION;
+CREATE INDEX IF NOT EXISTS idx_image_ref_imageId ON image_ref(imageId);
+PRAGMA user_version = 2;
+COMMIT;
+)";
+        NBL_CHECK(connection->execute(initQuery));
+
+        return nbl::Result::SUCCESS;
+
+    } else if(userVersion == 2) {
 
         nbl::StringView initQuery = "PRAGMA foreign_keys = ON;";
         NBL_CHECK(connection->execute(initQuery));
