@@ -272,6 +272,7 @@ if(${NBL_BUILD_TESTS})
     list(FILTER NBL_TEST_SOURCES EXCLUDE REGEX ".*/Plugin.cpp$")
 
     if(NOT ${NBL_BUILD_MINECRAFT_PLUGIN})
+        list(FILTER NBL_TEST_SOURCES EXCLUDE REGEX ".*/MinecraftLog.cpp$")
         list(FILTER NBL_TEST_SOURCES EXCLUDE REGEX ".*/Quilt.cpp$")
     endif()
 
